@@ -169,7 +169,7 @@
 #define PORT_NWPSERIAL	85
 
 /* MAX3100 */
-#define PORT_MAX3100    86
+#define PORT_MAX3100    96
 
 /* Timberdale UART */
 #define PORT_TIMBUART	87
@@ -195,6 +195,8 @@
 
 /* High Speed UART for Medfield */
 #define PORT_MFD	95
+
+#define PORT_SW         86
 
 #ifdef __KERNEL__
 
