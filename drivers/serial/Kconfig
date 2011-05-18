@@ -682,6 +682,36 @@ config SERIAL_PXA_CONSOLE
 	  your boot loader (lilo or loadlin) about how to pass options to the
 	  kernel at boot time.)
 
+config SERIAL_SW
+        bool "SW serial port support"
+        depends on ARCH_SUN3I || ARCH_SUN4I
+        select SERIAL_CORE
+        help
+          If you have a machine based on an SW CPU you
+          can enable its onboard serial ports by enabling this option.
+
+config SERIAL_SW_CONSOLE
+        bool "Console on SW serial port"
+        depends on SERIAL_SW
+        select SERIAL_CORE_CONSOLE
+        help
+          If you have enabled the serial port on the SW
+          CPU you can make it the console by answering Y to this option.
+
+          Even if you say Y here, the currently visible virtual console
+          (/dev/tty0) will still be used as the system console by default, but
+          you can alter that using a kernel command line option such as
+          "console=ttySA0". (Try "man bootparam" or see the documentation of
+          your boot loader (lilo or loadlin) about how to pass options to the
+          kernel at boot time.)
+
+config SERIAL_SW_SELECT
+        hex "Select which uart port"
+        default 0
+        help
+          Select the uart number. In SW plat, currently it has 4 uart, you can
+          select the number in (0~3)
+
 config SERIAL_SA1100
 	bool "SA1100 serial port support"
 	depends on ARM && ARCH_SA1100
