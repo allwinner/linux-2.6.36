@@ -958,6 +958,14 @@ config TI_DAVINCI_EMAC
 	  To compile this driver as a module, choose M here: the module
 	  will be called davinci_emac_driver.  This is recommended.
 
+if ARCH_SUN3I
+source "drivers/net/sun3i/Kconfig"
+endif
+
+if ARCH_SUN4I
+source "drivers/net/sun4i/Kconfig"
+endif
+
 config DM9000
 	tristate "DM9000 support"
 	depends on ARM || BLACKFIN || MIPS

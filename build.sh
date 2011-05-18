@@ -27,7 +27,7 @@ cp arch/arm/boot/zImage output/zImage
 #
 # Put kernel image and all modules to output dir
 #
-rm -rf output/*
+rm -rf output/bImage
 for file in $(find  ! -path output -name "*.ko");
 	do mkdir -p output/`dirname $file`;
 	cp $file output/$file;

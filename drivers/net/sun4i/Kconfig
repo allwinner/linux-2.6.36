@@ -1,0 +1,9 @@
+config WEMAC
+	tristate "wemac support"
+	depends on ARM
+	select MII
+	---help---
+	  Support for softwinner chipset.
+
+	  To compile this driver as a module, choose M here.  The module
+	  will be called wemac.
