@@ -40,7 +40,7 @@
 #include <asm/irq.h>
 #include <asm/io.h>
 
-#include "sun3i_wemac.h"
+#include "sun4i_wemac.h"
 
 #include <mach/dma.h>
 
