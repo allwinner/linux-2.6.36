@@ -482,10 +482,12 @@ serial_sw_set_termios(struct uart_port *port, struct ktermios *termios,
 	 * Ask the core to calculate the divisor for us.
 	 */
 
-#ifdef CONFIG_ARCH_SUN4I
+#if CONFIG_CHIP_ID == 1123
 	port->uartclk = 24000000; /* Only work on FPGA board */
-#else
+#elif CONFIG_CHIP_ID == 1120
 	port->uartclk = clk_get_rate(up->clk);
+#else
+	#error "no chip id defined"
 #endif
 
 	baud = uart_get_baud_rate(port, termios, old, 0, port->uartclk/16);

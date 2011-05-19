@@ -82,7 +82,8 @@ ENTRY(stext)
 	b       _real_start
 
 
-#ifdef CONFIG_ARCH_SUN3I
+#if CONFIG_CHIP_ID == 1120
+#warning "chip id: 1120"
 1:	.long   0xbf7
 	.long   0x80000000
 
@@ -90,7 +91,8 @@ _real_start:
 	adr     r4, 1b
 	ldmia   r4, {r1, r2}
 
-#elif defined(CONFIG_ARCH_SUN4I)
+#elif CONFIG_CHIP_ID == 1123
+#warning "chip id: 1123"
 1:	.long   0xbf8
 	.long   0x81000000
 
@@ -98,6 +100,7 @@ _real_start:
 	adr     r4, 1b
 	ldmia   r4, {r1, r2}
 #else
+#warning "no chipd id defined"
 _real_start:
 #endif
 	

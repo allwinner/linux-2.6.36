@@ -37,6 +37,8 @@ config ARM
 config HAVE_PWM
 	bool
 
+
+
 config SYS_SUPPORTS_APM_EMULATION
 	bool
 
@@ -254,6 +256,7 @@ config ARCH_VERSATILE
 	help
 	  This enables support for ARM Ltd Versatile board.
 
+
 config ARCH_SUN3I
         bool "Allwinner Ltd. sun3i family"
 	select CPU_ARM926T
@@ -272,12 +275,15 @@ config ARCH_SUN4I
 	select ARM_AMBA
 	select HAVE_CLK
 	select ARM_VIC
+	#select CHIP_ID
 	#select COMMON_CLKDEV
 	select ICST
 	select GENERIC_CLOCKEVENTS
 	select ARM_L1_CACHE_SHIFT_6
 	help
 	  This enables support for ARM Ltd Versatile board.
+
+
 
 config ARCH_VEXPRESS
 	bool "ARM Ltd. Versatile Express family"
@@ -1285,6 +1291,11 @@ config HOTPLUG_CPU
 	help
 	  Say Y here to experiment with turning CPUs off and on.  CPUs
 	  can be controlled through /sys/devices/system/cpu.
+
+config CHIP_ID
+	int
+	default 1120 if ARCH_SUN3I
+	default 1123 if ARCH_SUN4I
 
 config LOCAL_TIMERS
 	bool "Use local timer interrupts"
