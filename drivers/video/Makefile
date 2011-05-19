@@ -30,6 +30,11 @@ obj-$(CONFIG_FB_DEFERRED_IO)   += fb_defio.o
 # Hardware specific drivers go first
 obj-$(CONFIG_LYCHEE_FB_SUN3I)     += sun3i/disp/
 obj-$(CONFIG_LYCHEE_HDMI_SUN3I)   += sun3i/hdmi/
+
+obj-$(CONFIG_LYCHEE_FB_SUN4I)     += sun4i/disp/
+obj-$(CONFIG_LYCHEE_HDMI_SUN4I)   += sun4i/hdmi/
+
+
 obj-$(CONFIG_FB_AMIGA)            += amifb.o c2p_planar.o
 obj-$(CONFIG_FB_ARC)              += arcfb.o
 obj-$(CONFIG_FB_CLPS711X)         += clps711xfb.o
