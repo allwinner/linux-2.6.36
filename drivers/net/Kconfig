@@ -958,13 +958,23 @@ config TI_DAVINCI_EMAC
 	  To compile this driver as a module, choose M here: the module
 	  will be called davinci_emac_driver.  This is recommended.
 
-if ARCH_SUN3I
-source "drivers/net/sun3i/Kconfig"
-endif
+config WEMAC_SUN3I
+	tristate "wemac support(sun3i)"
+	depends on ARCH_SUN3I
+	---help---
+	  Support for softwinner chipset.
 
-if ARCH_SUN4I
-source "drivers/net/sun4i/Kconfig"
-endif
+	  To compile this driver as a module, choose M here.  The module
+	  will be called wemac.
+
+config WEMAC_SUN4I
+	tristate "wemac support(sun4i)"
+	depends on ARCH_SUN4I
+	---help---
+	  Support for softwinner chipset.
+
+	  To compile this driver as a module, choose M here.  The module
+	  will be called wemac.
 
 config DM9000
 	tristate "DM9000 support"
