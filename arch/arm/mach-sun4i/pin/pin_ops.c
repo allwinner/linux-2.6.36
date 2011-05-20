@@ -30,7 +30,7 @@
 
 
 #define CSP_OSAL_PHY_2_VIRT(phys, size) SW_VA_PORTC_IO_BASE
-#define CSP_OSAL_MALLOC(size) kmalloc((size), GFP_KERNEL)
+#define CSP_OSAL_MALLOC(size) kmalloc((size), GFP_ATOMIC)
 #define CSP_OSAL_FREE(ptr) kfree((ptr))
 
 #define	CSP_PIN_PHY_ADDR_BASE	SW_PA_PORTC_IO_BASE
@@ -90,8 +90,6 @@ system_gpio_set_t;
 */
 int gpio_init(void)          //gpio初始化函数接口
 {
-	int offset = 0;
-	unsigned int data = 0; 
 	printk("Init eGon pin module V2.0\n");
 	gpio_g_pioMemBase = (u32)CSP_OSAL_PHY_2_VIRT(CSP_PIN_PHY_ADDR_BASE , CSP_PIN_PHY_ADDR_SIZE);
     #ifdef FPGA_RUNTIME_ENV
@@ -768,81 +766,81 @@ __s32  gpio_set_one_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, cons
 	user_gpio_set = (system_gpio_set_t *)(tmp_buf + 16);
 	//读取用户数据
 	//表示读取用户给定的数据
-	for(i = 0; i < group_count_max; i++)
-	{
-		tmp_sys_gpio_data = user_gpio_set + i;             //tmp_sys_gpio_data指向申请的GPIO空间
-		if(strcmp(gpio_name, tmp_sys_gpio_data->gpio_name))
-		{
-			continue;
-		}
+    for(i = 0; i < group_count_max; i++)
+    {
+        tmp_sys_gpio_data = user_gpio_set + i;             //tmp_sys_gpio_data指向申请的GPIO空间
+        if(strcmp(gpio_name, tmp_sys_gpio_data->gpio_name))
+        {
+            continue;
+        }
 
-		port          = tmp_sys_gpio_data->port;                           //读出port数据
-		port_num      = tmp_sys_gpio_data->port_num;                       //读出port_num数据
-		port_num_func = (port_num >> 3);
-		port_num_pull = (port_num >> 4);
+        port          = tmp_sys_gpio_data->port;                           //读出port数据
+        port_num      = tmp_sys_gpio_data->port_num;                       //读出port_num数据
+        port_num_func = (port_num >> 3);
+        port_num_pull = (port_num >> 4);
 
-		if(if_set_to_current_input_status)                                 //根据当前用户设定修正
-		{
-			//修改FUCN寄存器
-			script_gpio.mul_sel   = gpio_status->mul_sel;
-			script_gpio.pull      = gpio_status->pull;
-			script_gpio.drv_level = gpio_status->drv_level;
-			script_gpio.data      = gpio_status->data;
-		}
-		else
-		{
-			script_gpio.mul_sel   = tmp_sys_gpio_data->user_gpio_status.mul_sel;
-			script_gpio.pull      = tmp_sys_gpio_data->user_gpio_status.pull;
-			script_gpio.drv_level = tmp_sys_gpio_data->user_gpio_status.drv_level;
-			script_gpio.data      = tmp_sys_gpio_data->user_gpio_status.data;
-		}
+        if(if_set_to_current_input_status)                                 //根据当前用户设定修正
+        {
+            //修改FUCN寄存器
+            script_gpio.mul_sel   = gpio_status->mul_sel;
+            script_gpio.pull      = gpio_status->pull;
+            script_gpio.drv_level = gpio_status->drv_level;
+            script_gpio.data      = gpio_status->data;
+        }
+        else
+        {
+            script_gpio.mul_sel   = tmp_sys_gpio_data->user_gpio_status.mul_sel;
+            script_gpio.pull      = tmp_sys_gpio_data->user_gpio_status.pull;
+            script_gpio.drv_level = tmp_sys_gpio_data->user_gpio_status.drv_level;
+            script_gpio.data      = tmp_sys_gpio_data->user_gpio_status.data;
+        }
 
-		if(script_gpio.mul_sel >= 0)
-		{
-			tmp_addr = PIO_REG_CFG(port, port_num_func);
-			reg_val = *tmp_addr;                      								 //修改FUNC寄存器
-			tmp_val = (port_num - (port_num_func<<3))<<2;
-			reg_val &= ~(0x07 << tmp_val);
-			reg_val |=  (script_gpio.mul_sel) << tmp_val;
-			*tmp_addr = reg_val;
-		}
-		//修改PULL寄存器
-		if(script_gpio.pull >= 0)
-		{
-			tmp_addr = PIO_REG_PULL(port, port_num_pull);
-			reg_val = *tmp_addr;								                     //修改FUNC寄存器
-			tmp_val = (port_num - (port_num_pull<<4))<<1;
-			reg_val &= ~(0x07 << tmp_val);
-			reg_val |=  (script_gpio.pull) << tmp_val;
-			*tmp_addr = reg_val;
-		}
-		//修改DLEVEL寄存器
-		if(script_gpio.drv_level >= 0)
-		{
-			tmp_addr = PIO_REG_DLEVEL(port, port_num_pull);
-			reg_val = *tmp_addr;                       								  //修改FUNC寄存器
-			tmp_val = (port_num - (port_num_pull<<4))<<1;
-			reg_val &= ~(0x07 << tmp_val);
-			reg_val |=  (script_gpio.drv_level) << tmp_val;
-			*tmp_addr = reg_val;
-		}
-		//修改data寄存器
-		if(script_gpio.mul_sel == 1)
-		{
-			if(script_gpio.data >= 0)
-			{
-				tmp_addr = PIO_REG_DATA(port);
-				reg_val = *tmp_addr;                                   				   //修改DATA寄存器
-				reg_val &= ~(0x01 << port_num);
-				reg_val |=  (script_gpio.data & 0x01) << port_num;
-				*tmp_addr = reg_val;
-			}
-		}
+        if(script_gpio.mul_sel >= 0)
+        {
+        	tmp_addr = PIO_REG_CFG(port, port_num_func);
+            reg_val = *tmp_addr;                      								 //修改FUNC寄存器
+            tmp_val = (port_num - (port_num_func<<3))<<2;
+            reg_val &= ~(0x07 << tmp_val);
+            reg_val |=  (script_gpio.mul_sel) << tmp_val;
+            *tmp_addr = reg_val;
+        }
+        //修改PULL寄存器
+        if(script_gpio.pull >= 0)
+        {
+        	tmp_addr = PIO_REG_PULL(port, port_num_pull);
+            reg_val = *tmp_addr;								                     //修改FUNC寄存器
+            tmp_val = (port_num - (port_num_pull<<4))<<1;
+            reg_val &= ~(0x07 << tmp_val);
+            reg_val |=  (script_gpio.pull) << tmp_val;
+            *tmp_addr = reg_val;
+        }
+        //修改DLEVEL寄存器
+        if(script_gpio.drv_level >= 0)
+        {
+        	tmp_addr = PIO_REG_DLEVEL(port, port_num_pull);
+            reg_val = *tmp_addr;                       								  //修改FUNC寄存器
+            tmp_val = (port_num - (port_num_pull<<4))<<1;
+            reg_val &= ~(0x07 << tmp_val);
+            reg_val |=  (script_gpio.drv_level) << tmp_val;
+            *tmp_addr = reg_val;
+        }
+        //修改data寄存器
+        if(script_gpio.mul_sel == 1)
+        {
+            if(script_gpio.data >= 0)
+            {
+            	tmp_addr = PIO_REG_DATA(port);
+                reg_val = *tmp_addr;                                   				   //修改DATA寄存器
+                reg_val &= ~(0x01 << port_num);
+                reg_val |=  (script_gpio.data & 0x01) << port_num;
+                *tmp_addr = reg_val;
+            }
+        }
 
-		break;
-	}
-	
-	return EGPIO_SUCCESS;
+        break;
+    }
+
+    return EGPIO_SUCCESS;
 }
 EXPORT_SYMBOL(gpio_set_one_pin_status);
 /*
@@ -1129,20 +1127,20 @@ __s32  gpio_read_one_pin_value(u32 p_handler, const char *gpio_name)
 		return EGPIO_FAIL;
 	}
 
-	port     = user_gpio_set->port;
-	port_num = user_gpio_set->port_num;
-	port_num_func = port_num >> 3;
+    port     = user_gpio_set->port;
+    port_num = user_gpio_set->port_num;
+    port_num_func = port_num >> 3;
 
-	reg_val  = PIO_REG_CFG_VALUE(port, port_num_func);
-	func_val = (reg_val >> ((port_num - (port_num_func<<3))<<2)) & 0x07;
-	if(func_val == 0)
-	{
-		reg_val = (PIO_REG_DATA_VALUE(port) >> port_num) & 0x01;
+    reg_val  = PIO_REG_CFG_VALUE(port, port_num_func);
+    func_val = (reg_val >> ((port_num - (port_num_func<<3))<<2)) & 0x07;
+    if(func_val == 0)
+    {
+        reg_val = (PIO_REG_DATA_VALUE(port) >> port_num) & 0x01;
 
-		return reg_val;
-	}
+        return reg_val;
+    }
 
-	return EGPIO_FAIL;
+    return EGPIO_FAIL;
 }
 EXPORT_SYMBOL(gpio_read_one_pin_value);
 /*

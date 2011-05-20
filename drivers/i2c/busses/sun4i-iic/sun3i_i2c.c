@@ -83,20 +83,7 @@ struct awxx_i2c {
 	 unsigned int debug_state; /* log the twi machine state */
 	 
 };
-//add by young
-static void* __iomem gpio_addr = NULL;
 
-
-//for testing added by young
-// gpio twi0
-#define _PIO_BASE_ADDRESS    (0x01c20800)
-#define _Pn_CFG0(n) ( (n)*0x24 + 0x00 + gpio_addr )
-#define _Pn_DRV0(n) ( (n)*0x24 + 0x14 + gpio_addr )
-#define _Pn_PUL0(n) ( (n)*0x24 + 0x1C + gpio_addr )
-    //gpio twi1 twi2
-#define _Pn_CFG1(n) ( (n)*0x24 + 0x08 + gpio_addr )
-#define _Pn_DRV1(n) ( (n)*0x24 + 0x18 + gpio_addr )
-#define _Pn_PUL1(n) ( (n)*0x24 + 0x20 + gpio_addr )
 
 #define SYS_I2C_PIN
 
@@ -244,28 +231,6 @@ static int aw_twi_request_gpio(struct awxx_i2c *i2c)
             return -1;
         }         
     }  
-
-	//add by young
-	/*{
-		printk("gpio_addr va is: 0x%x", gpio_addr);
-		printk("set pb0,1, pc6,pc7 . \n");
-		//config reigster, CLEAR pb0
-		unsigned int  reg_val = readl(_Pn_CFG0(1));
-		printk("addr is 0x%x, get pb6,7 is 0x%x", _Pn_CFG0(1), reg_val);
-		reg_val &= ~(0x77);
-		printk("write pb6,7 is: 0x%x", reg_val);
-		writel(reg_val, _Pn_CFG0(1));  
-		
-		//config reigster, set pc6
-		reg_val = readl(_Pn_CFG0(2));
-		printk("addr is 0x%x, get pc6,7 is 0x%x", _Pn_CFG0(2), reg_val);
-		printk("get pc6,7 is: 0x%x", reg_val);
-		reg_val &= ~(0xff000000);
-		reg_val |= 0x44000000;
-		printk("write pc6,7 is: 0x%x", reg_val);
-		writel(reg_val, _Pn_CFG0(2));  
-		
-	}*/
 	
 
 #endif
@@ -472,7 +437,7 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
     
     state = aw_twi_query_irq_status(base_addr);
     
-   //printk(" state = %x\n", state);
+    //printk(" state = %x\n", state);
   
     switch(state) 
     {
@@ -911,15 +876,6 @@ static int i2c_awxx_probe(struct platform_device *dev)
 	}
 	//printk("!!! base_Addr = 0x%x \n", i2c->base_addr );
 
-//add by young
-{
-    gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x1000);
-    if(!gpio_addr) {
-        ret = -EIO;
-        goto ereqirq;   
-    }
-
-}
 
 #ifndef SYS_I2C_PIN
 	gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x1000);
@@ -973,13 +929,6 @@ eadapt:
 	clk_disable(i2c->clk);
 	
 ereqirq:
-//added by young
-{
-    if(gpio_addr){
-        iounmap(gpio_addr);
-    }
-
-}
 #ifndef SYS_I2C_PIN
     if(gpio_addr){
         iounmap(gpio_addr);
@@ -1156,7 +1105,6 @@ struct platform_device aw_twi2_device = {
 
 
 // should be in the system initialization.
-/*
 static struct i2c_board_info __initdata i2c_info_hdmi[] =  {
 	{
 		I2C_BOARD_INFO("anx7150_0", 0x76),
@@ -1175,13 +1123,13 @@ static struct i2c_board_info __initdata i2c_info_power[] =  {
 	},
 };
 
-static struct i2c_board_info __initdata i2c_info_twi[] =  {
+static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 	{
 		I2C_BOARD_INFO("ft5x0x_ts", 0x70),
 		.platform_data	= NULL,
 	},
 };
-*/
+
 
 
 /*
@@ -1208,14 +1156,14 @@ static int __init i2c_adap_awxx_init(void)
 {
 	int status = 0;
 	// bus-0
-	/*status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
-	printk("power, status = %d \n",status);*/
+	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
+	printk("power, status = %d \n",status);
 	// bus-1
-	/*status = i2c_register_board_info(1, i2c_info_hdmi, ARRAY_SIZE(i2c_info_hdmi));	
-	printk("hdmi, status = %d \n",status);*/
+	status = i2c_register_board_info(1, i2c_info_hdmi, ARRAY_SIZE(i2c_info_hdmi));	
+	printk("hdmi, status = %d \n",status);
     // bus-0
-	/*status = i2c_register_board_info(0, i2c_info_twi, ARRAY_SIZE(i2c_info_twi));	
-	printk("tp, status = %d \n",status);*/
+	status = i2c_register_board_info(0, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));	
+	printk("tp, status = %d \n",status);
 
 
 	

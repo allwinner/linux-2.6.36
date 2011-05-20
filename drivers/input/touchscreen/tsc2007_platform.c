@@ -37,6 +37,8 @@
 #include <linux/i2c.h>
 #include <linux/i2c/tsc2007.h>
 
+#define GPIO_ENABLE
+
 /* TSC2007 Touchscreen */
 // gpio base address
 #define PIO_BASE_ADDRESS             (0x01c20800)
@@ -97,9 +99,9 @@ static void aw_clear_penirq(void)
 	//clear the IRQ_EINT29 interrupt pending
 	//printk("clear pend irq pending\n");
 	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
-	writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
+	//writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
     
-    if(reg_val&(1<<(IRQ_EINT29)))
+    if((reg_val = (reg_val&(1<<(IRQ_EINT29)))))
     {
         //printk("==IRQ_EINT29=\n");              
         writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
@@ -127,11 +129,23 @@ static int aw_set_irq_mode(void)
     int reg_val;
 
     //config gpio to int mode
-    reg_val = readl(gpio_addr + PIOI_CFG3_OFFSET);
-    reg_val &= (~(7<<20)); 
-    reg_val |= (3<<20);
-    writel(reg_val,gpio_addr + PIOI_CFG3_OFFSET);
     printk("config gpio to int mode. \n");
+    #ifndef GPIO_ENABLE
+        reg_val = readl(gpio_addr + PIOI_CFG3_OFFSET);
+        reg_val &= (~(7<<20)); 
+        reg_val |= (3<<20);
+        writel(reg_val,gpio_addr + PIOI_CFG3_OFFSET);
+    #else
+        if(gpio_hdle)
+        {
+            gpio_release(gpio_hdle, 2);
+        }
+        gpio_hdle = gpio_request_ex("tp_para", "tp_int_port");
+        if(!gpio_hdle)
+        {
+            printk("request tp_int_port failed. \n");
+        }
+    #endif
     //Config IRQ_EINT29 Negative Edge Interrupt
     reg_val = readl(gpio_addr + PIO_INT_CFG3_OFFSET);
     reg_val &=(~(7<<20));
@@ -152,15 +166,27 @@ static int aw_set_irq_mode(void)
 
 static int aw_set_gpio_mode(void)
 {
-    int reg_val;
+    //int reg_val;
 
     //config gpio to io mode
-    reg_val = readl(gpio_addr + PIOI_CFG3_OFFSET);
-    reg_val &= (~(7<<20)); 
-    //reg_val |= (0<<20);
-    writel(reg_val,gpio_addr + PIOI_CFG3_OFFSET);
     printk("config gpio to io mode. \n");
-
+    #ifndef GPIO_ENABLE
+        reg_val = readl(gpio_addr + PIOI_CFG3_OFFSET);
+        reg_val &= (~(7<<20)); 
+        //reg_val |= (0<<20);
+        writel(reg_val,gpio_addr + PIOI_CFG3_OFFSET);
+    #else
+        if(gpio_hdle)
+        {
+            gpio_release(gpio_hdle, 2);
+        }
+        gpio_hdle = gpio_request_ex("tp_para", "tp_io_port");
+        if(!gpio_hdle)
+        {
+            printk("request tp_io_port failed. \n");
+        }
+    #endif
+    
     return 0;
 }
 
