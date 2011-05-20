@@ -1,15 +1,19 @@
-/* linux/arch/arm/plat-sw/dma.c
- *
- * Copyright (c) 2003-2005,2006 Simtec Electronics
- *	Ben Dooks <ben@simtec.co.uk>
- *
- * SW DMA core
- *
- * http://armlinux.simtec.co.uk/
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+/*
+**************************************************************************************************************
+*											         eLDK
+*						            the Easy Portable/Player Develop Kits
+*									           desktop system 
+*
+*						        	 (c) Copyright 2009-2012, ,HUANGXIN China
+*											 All Rights Reserved
+*
+* File    	: dma.c
+* By      	: HUANGXIN
+* Func		: 
+* Version	: v1.0
+* ============================================================================================================
+* 2011-5-9 10:37:48  HUANGXIN create this file, implements the fundemental interface;
+**************************************************************************************************************
 */
 //#define DEBUG
 
@@ -46,46 +50,104 @@ static struct sw_dma_selection dma_sel;
 struct sw_dma_chan sw_chans[SW_DMA_CHANNELS];
 
 unsigned long xfer_arr[DMAXFER_MAX]={
-	(X_SIGLE << 23) | (X_BYTE << 24) | (X_SIGLE <<7) | (X_BYTE << 8),
-	(X_SIGLE << 23) | (X_BYTE << 24) | (X_SIGLE <<7) | (X_HALF << 8),
-	(X_SIGLE << 23) | (X_BYTE << 24) | (X_SIGLE <<7) | (X_WORD << 8),
-	(X_SIGLE << 23) | (X_HALF << 24) | (X_SIGLE <<7) | (X_BYTE << 8),
-	(X_SIGLE << 23) | (X_HALF << 24) | (X_SIGLE <<7) | (X_HALF << 8),
-	(X_SIGLE << 23) | (X_HALF << 24) | (X_SIGLE <<7) | (X_WORD << 8),
-	(X_SIGLE << 23) | (X_WORD << 24) | (X_SIGLE <<7) | (X_BYTE << 8),
-	(X_SIGLE << 23) | (X_WORD << 24) | (X_SIGLE <<7) | (X_HALF << 8),
-	(X_SIGLE << 23) | (X_WORD << 24) | (X_SIGLE <<7) | (X_WORD << 8),
+	/*des:X_SIGLE  src:X_SIGLE*/
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_WORD << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_WORD << 9),	
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_WORD << 9),		
 	
-	(X_BURST << 23) | (X_BYTE << 24) | (X_BURST <<7) | (X_BYTE << 8),
-	(X_BURST << 23) | (X_BYTE << 24) | (X_BURST <<7) | (X_HALF << 8),
-	(X_BURST << 23) | (X_BYTE << 24) | (X_BURST <<7) | (X_WORD << 8),
-	(X_BURST << 23) | (X_HALF << 24) | (X_BURST <<7) | (X_BYTE << 8),
-	(X_BURST << 23) | (X_HALF << 24) | (X_BURST <<7) | (X_HALF << 8),
-	(X_BURST << 23) | (X_HALF << 24) | (X_BURST <<7) | (X_WORD << 8),
-	(X_BURST << 23) | (X_WORD << 24) | (X_BURST <<7) | (X_BYTE << 8),
-	(X_BURST << 23) | (X_WORD << 24) | (X_BURST <<7) | (X_HALF << 8),
-	(X_BURST << 23) | (X_WORD << 24) | (X_BURST <<7) | (X_WORD << 8),
+	/*des:X_SIGLE   src:X_BURST*/
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_WORD << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_WORD << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_WORD << 9),
+
+	/*des:X_SIGLE   src:X_TIPPL*/
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_SIGLE << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_WORD << 9),
 	
-	(X_SIGLE << 23) | (X_BYTE << 24) | (X_BURST <<7) | (X_BYTE << 8),
-	(X_SIGLE << 23) | (X_BYTE << 24) | (X_BURST <<7) | (X_HALF << 8),
-	(X_SIGLE << 23) | (X_BYTE << 24) | (X_BURST <<7) | (X_WORD << 8),
-	(X_SIGLE << 23) | (X_HALF << 24) | (X_BURST <<7) | (X_BYTE << 8),
-	(X_SIGLE << 23) | (X_HALF << 24) | (X_BURST <<7) | (X_HALF << 8),
-	(X_SIGLE << 23) | (X_HALF << 24) | (X_BURST <<7) | (X_WORD << 8),
-	(X_SIGLE << 23) | (X_WORD << 24) | (X_BURST <<7) | (X_BYTE << 8),
-	(X_SIGLE << 23) | (X_WORD << 24) | (X_BURST <<7) | (X_HALF << 8),
-	(X_SIGLE << 23) | (X_WORD << 24) | (X_BURST <<7) | (X_WORD << 8),
+	/*des:X_BURST  src:X_BURST*/
+	(X_BURST << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_WORD << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_WORD << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_WORD << 9),
 	
-	(X_BURST << 23) | (X_BYTE << 24) | (X_SIGLE <<7) | (X_BYTE << 8),
-	(X_BURST << 23) | (X_BYTE << 24) | (X_SIGLE <<7) | (X_HALF << 8),
-	(X_BURST << 23) | (X_BYTE << 24) | (X_SIGLE <<7) | (X_WORD << 8),
-	(X_BURST << 23) | (X_HALF << 24) | (X_SIGLE <<7) | (X_BYTE << 8),
-	(X_BURST << 23) | (X_HALF << 24) | (X_SIGLE <<7) | (X_HALF << 8),
-	(X_BURST << 23) | (X_HALF << 24) | (X_SIGLE <<7) | (X_WORD << 8),
-	(X_BURST << 23) | (X_WORD << 24) | (X_SIGLE <<7) | (X_BYTE << 8),
-	(X_BURST << 23) | (X_WORD << 24) | (X_SIGLE <<7) | (X_HALF << 8),
-	(X_BURST << 23) | (X_WORD << 24) | (X_SIGLE <<7) | (X_WORD << 8),
+	/*des:X_BURST   src:X_SIGLE*/	
+	(X_BURST << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_WORD << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_WORD << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_WORD << 9),
+
+	/*des:X_BURST   src:X_TIPPL*/	
+	(X_BURST << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_BURST << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+		
+	/*des:X_TIPPL   src:X_TIPPL*/
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_TIPPL <<7) | (X_WORD << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_TIPPL <<7) | (X_WORD << 9),
 	
+	/*des:X_TIPPL   src:X_SIGLE*/
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_SIGLE <<7) | (X_WORD << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_SIGLE <<7) | (X_WORD << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_SIGLE <<7) | (X_WORD << 9),	
+		
+	/*des:X_TIPPL   src:X_BURST*/
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_BYTE << 25) | (X_BURST <<7) | (X_WORD << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_HALF << 25) | (X_BURST <<7) | (X_WORD << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_BYTE << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_HALF << 9),
+	(X_TIPPL << 23) | (X_WORD << 25) | (X_BURST <<7) | (X_WORD << 9),	
 };
 
 unsigned long addrtype_arr[DMAADDRT_MAX]={
@@ -116,156 +178,144 @@ unsigned long addrtype_arr[DMAADDRT_MAX]={
 };
 
 unsigned long n_drqsrc_arr[DRQ_TYPE_MAX]={
-	N_DRQSRC_SRAM,       	//DRQ_TYPE_SRAM,    
-	N_DRQSRC_SDRAM,      	//DRQ_TYPE_SDRAM,  
-	DRQ_INVALID, 	  		//DRQ_TYPE_LCD0,
+	N_DRQSRC_SRAM,       		//DRQ_TYPE_SRAM
+	N_DRQSRC_SDRAM,      		//DRQ_TYPE_SDRAM
+	DRQ_INVALID, 	  			//DRQ_TYPE_PATA,
+	DRQ_INVALID,         		//DRQ_TYPE_NAND,    
+	DRQ_INVALID,         		//DRQ_TYPE_USB0,    
+	DRQ_INVALID,         		//DRQ_TYPE_EMAC,    
+	N_DRQSRC_SPI1RX,         	//DRQ_TYPE_SPI1,     
+	DRQ_INVALID,         		//DRQ_TYPE_SS,     
+	DRQ_INVALID,         		//DRQ_TYPE_MS,     
+	N_DRQSRC_SPI0RX,       		//DRQ_TYPE_SPI0,      
+	N_DRQSRC_SPI2RX,       		//DRQ_TYPE_SPI2,  
+	N_DRQSRC_SPI3RX,       		//DRQ_TYPE_SPI3,      
+	DRQ_INVALID,				//DRQ_TYPE_TCON0
+	DRQ_INVALID,				//DRQ_TYPE_TCON1
+	N_DRQSRC_HDMIDDCRX,			//DRQ_TYPE_HDMI			
+	DRQ_INVALID,				//DRQ_TYPE_HDMIAUDIO
+					
+	N_DRQSRC_IR0RX,       		//DRQ_TYPE_IR0,      
+	N_DRQSRC_IR1RX,    			//DRQ_TYPE_IR1,   
+	N_DRQSRC_SPDIFRX,      		//DRQ_TYPE_SPDIF,     
+	N_DRQSRC_IISRX,     		//DRQ_TYPE_IIS,    
+	N_DRQSRC_AC97RX,     		//DRQ_TYPE_AC97,    
+	N_DRQSRC_UART0RX,     		//DRQ_TYPE_UART0,    
+	N_DRQSRC_UART1RX,			//DRQ_TYPE_UART1
+	N_DRQSRC_UART2RX,    		//DRQ_TYPE_UART2,   
+	N_DRQSRC_UART3RX,    		//DRQ_TYPE_UART3,   
+	N_DRQSRC_UART4RX,    		//DRQ_TYPE_UART4,   
+	N_DRQSRC_UART5RX,    		//DRQ_TYPE_UART5,   
+	N_DRQSRC_UART6RX,    		//DRQ_TYPE_UART6,   
+	N_DRQSRC_UART7RX,       	//DRQ_TYPE_UART7,   	
+	N_DRQSRC_AUDIOCDAD,    		//DRQ_TYPE_AUDIO,  		
+	N_DRQSRC_TPAD,	    		//DRQ_TYPE_TPAD   		
+}; 
+                      	                  
+unsigned long n_drqdst_arr[DRQ_TYPE_MAX]={
+	N_DRQDST_SRAM,       	//DRQ_TYPE_SRAM
+	N_DRQDST_SDRAM,      	//DRQ_TYPE_SDRAM
+	DRQ_INVALID, 	  		//DRQ_TYPE_PATA,
 	DRQ_INVALID,         	//DRQ_TYPE_NAND,    
 	DRQ_INVALID,         	//DRQ_TYPE_USB0,    
-	DRQ_INVALID,         	//DRQ_TYPE_USB1,    
-	DRQ_INVALID,         	//DRQ_TYPE_SD1,     
-	DRQ_INVALID,         	//DRQ_TYPE_SD2,     
-	DRQ_INVALID,         	//DRQ_TYPE_SD3,     
-	DRQ_INVALID,         	//DRQ_TYPE_MS,      
-	DRQ_INVALID,         	//DRQ_TYPE_EMACRX,  
-	DRQ_INVALID,         	//DRQ_TYPE_SSRX      
-	DRQ_INVALID,         	//DRQ_TYPE_USB2,  
-	DRQ_INVALID,         	//DRQ_TYPE_ATA    
-	DRQ_INVALID,         	//DRQ_TYPE_LCD1    
-
-	N_DRQSRC_IRRX,       	//DRQ_TYPE_IR,      
-	N_DRQSRC_SPDIFRX,    	//DRQ_TYPE_SPDIF,   
-	N_DRQSRC_IISRX,      	//DRQ_TYPE_IIS,     
-	N_DRQSRC_AC97RX,     	//DRQ_TYPE_AC97,    
-	N_DRQSRC_SPI0RX,     	//DRQ_TYPE_SPI0,    
-	N_DRQSRC_SPI1RX,     	//DRQ_TYPE_SPI1,    
-	N_DRQSRC_SPI2RX,
-	N_DRQSRC_UART0RX,    	//DRQ_TYPE_UART0,   
-	N_DRQSRC_UART1RX,    	//DRQ_TYPE_UART1,   
-	N_DRQSRC_UART2RX,    	//DRQ_TYPE_UART2,   
-	N_DRQSRC_UART3RX,    	//DRQ_TYPE_UART3,   
-	N_DRQSRC_AUDIOAD,    	//DRQ_TYPE_AUDIO,   
-	N_DRQSRC_TPAD,       	//DRQ_TYPE_TPAD,   
-	N_DRQSRC_SRAM,       	//DRQ_TYPE_NSRAM,   
-	N_DRQSRC_SDRAM,       	//DRQ_TYPE_NSDRAM,  
-	N_DRQSRC_UART4RX,    	//DRQ_TYPE_UART4   
-	N_DRQSRC_UART5RX,    	//DRQ_TYPE_UART5   
-	N_DRQSRC_UART6RX,    	//DRQ_TYPE_UART6   
-	N_DRQSRC_UART7RX,    	//DRQ_TYPE_UART7     
+	DRQ_INVALID,         	//DRQ_TYPE_EMAC,    
+	N_DRQDST_SPI1TX,       	//DRQ_TYPE_SPI1,     
+	DRQ_INVALID,         	//DRQ_TYPE_SS,     
+	DRQ_INVALID,         	//DRQ_TYPE_MS,     
+	N_DRQDST_SPI0TX,       	//DRQ_TYPE_SPI0,      
+	N_DRQDST_SPI2TX,       	//DRQ_TYPE_SPI2,  
+	N_DRQDST_SPI3TX,       	//DRQ_TYPE_SPI3,      
+	DRQ_INVALID,			//DRQ_TYPE_TCON0
+	DRQ_INVALID,			//DRQ_TYPE_TCON1
+	N_DRQDST_HDMIDDCTX,		//DRQ_TYPE_HDMI	
+	DRQ_INVALID,			//DRQ_TYPE_HDMIAUDIO
 	
+	N_DRQDST_IR0TX,       	//DRQ_TYPE_IR0,      
+	N_DRQDST_IR1TX,    		//DRQ_TYPE_IR1,   
+	N_DRQDST_SPDIFTX,      	//DRQ_TYPE_SPDIF,     
+	N_DRQDST_IISTX,     	//DRQ_TYPE_IIS,    
+	N_DRQDST_AC97TX,     	//DRQ_TYPE_AC97,    
+	N_DRQDST_UART0TX,     	//DRQ_TYPE_UART0,    
+	N_DRQDST_UART1TX,		//DRQ_TYPE_UART1,
+	N_DRQDST_UART2TX,    	//DRQ_TYPE_UART2,   
+	N_DRQDST_UART3TX,    	//DRQ_TYPE_UART3,   
+	N_DRQDST_UART4TX,    	//DRQ_TYPE_UART4,   
+	N_DRQDST_UART5TX,    	//DRQ_TYPE_UART5,   
+	N_DRQDST_UART6TX,    	//DRQ_TYPE_UART6,   
+	N_DRQDST_UART7TX,       //DRQ_TYPE_UART7,   
+	N_DRQDST_AUDIOCDAD,    	//DRQ_TYPE_AUDIO,  
+	DRQ_INVALID,	    	//DRQ_TYPE_TPAD   		
+};                                      
+      
+unsigned long d_drqsrc_arr[DRQ_TYPE_MAX]={
+	D_DRQSRC_SRAM,       	//DRQ_TYPE_SRAM
+	D_DRQSRC_SDRAM,      	//DRQ_TYPE_SDRAM
+	D_DRQSRC_PATA, 	  		//DRQ_TYPE_PATA,
+	D_DRQSRC_NAND,         	//DRQ_TYPE_NAND,    
+	D_DRQSRC_USB0,         	//DRQ_TYPE_USB0,    
+	D_DRQSRC_EMACRX,       	//DRQ_TYPE_EMAC,    
+	D_DRQSRC_SPI1RX,       	//DRQ_TYPE_SPI1,     
+	D_DRQSRC_SECRX,       	//DRQ_TYPE_SS,     
+	D_DRQSRC_MS,         	//DRQ_TYPE_MS,     
+	D_DRQSRC_SPI0RX,       	//DRQ_TYPE_SPI0,      
+	D_DRQSRC_SPI2RX,       	//DRQ_TYPE_SPI2,  
+	D_DRQSRC_SPI3RX,       	//DRQ_TYPE_SPI3,      
+	DRQ_INVALID,			//DRQ_TYPE_TCON0,
+	DRQ_INVALID,			//DRQ_TYPE_TCON1,
+	DRQ_INVALID,			//DRQ_TYPE_HDMI,	
+	DRQ_INVALID,			//DRQ_TYPE_HDMIAUDIO
 	
-};                       	                  
-
-unsigned long n_drqdst_arr[DRQ_TYPE_MAX]={
-	N_DRQDST_SRAM,          //DRQ_TYPE_SRAM,  
-	N_DRQDST_SDRAM,         //DRQ_TYPE_SDRAM, 
-	DRQ_INVALID,            //DRQ_TYPE_LCD0,   
-	DRQ_INVALID,            //DRQ_TYPE_NAND,  
-	DRQ_INVALID,            //DRQ_TYPE_USB0,  
-	DRQ_INVALID,            //DRQ_TYPE_USB1,  
-	DRQ_INVALID,            //DRQ_TYPE_SD1,   
-	DRQ_INVALID,            //DRQ_TYPE_SD2,   
-	DRQ_INVALID,            //DRQ_TYPE_SD3,   
-	DRQ_INVALID,            //DRQ_TYPE_MS,    
-	DRQ_INVALID,            //DRQ_TYPE_EMACTX,
-	DRQ_INVALID,            //DRQ_TYPE_SSTX   
-	DRQ_INVALID,            //DRQ_TYPE_USB2,
-	DRQ_INVALID,            //DRQ_TYPE_ATA ,   
-	DRQ_INVALID,            //DRQ_TYPE_LCD1, 
-	                                 
-	N_DRQDST_IRTX,          //DRQ_TYPE_IR,    
-	N_DRQDST_SPDIFTX,       //DRQ_TYPE_SPDIF, 
-	N_DRQDST_IISTX,         //DRQ_TYPE_IIS,   
-	N_DRQDST_AC97TX,        //DRQ_TYPE_AC97,  
-	N_DRQDST_SPI0TX,        //DRQ_TYPE_SPI0,  
-	N_DRQDST_SPI1TX,        //DRQ_TYPE_SPI1,  
-	N_DRQDST_SPI2TX,
-	N_DRQDST_UART0TX,       //DRQ_TYPE_UART0, 
-	N_DRQDST_UART1TX,       //DRQ_TYPE_UART1, 
-	N_DRQDST_UART2TX,       //DRQ_TYPE_UART2, 
-	N_DRQDST_UART3TX,       //DRQ_TYPE_UART3, 
-	N_DRQDST_AUDIODA,       //DRQ_TYPE_AUDIO, 
-	DRQ_INVALID,            //DRQ_TYPE_TPAD, 
-	N_DRQDST_SRAM,			//DRQ_TYPE_SRAM, 
-	N_DRQDST_SDRAM,			//DRQ_TYPE_SDRAM, 
-	N_DRQDST_UART4TX,       //DRQ_TYPE_UART4, 
-	N_DRQDST_UART5TX,       //DRQ_TYPE_UART5, 
-	N_DRQDST_UART6TX,       //DRQ_TYPE_UART6, 
-	N_DRQDST_UART7TX,       //DRQ_TYPE_UART7,  
-};                                           
-                                             
-unsigned long d_drqsrc_arr[DRQ_TYPE_MAX]={   
-	D_DRQSRC_SRAM,          //DRQ_TYPE_SRAM,  
-	D_DRQSRC_SDRAM,         //DRQ_TYPE_SDRAM,  
-	D_DRQSRC_LCD0,			//DRQ_TYPE_LCD0
-	D_DRQSRC_NAND,          //DRQ_TYPE_NAND,  
-	D_DRQSRC_USB0,          //DRQ_TYPE_USB0,  
-	D_DRQSRC_USB1,          //DRQ_TYPE_USB1,  
-	D_DRQSRC_SD1,           //DRQ_TYPE_SD1,   
-	D_DRQSRC_SD2,           //DRQ_TYPE_SD2,   
-	D_DRQSRC_SD3,           //DRQ_TYPE_SD3,   
-	D_DRQSRC_MS,            //DRQ_TYPE_MS,    
-	D_DRQSRC_EMAC,          //DRQ_TYPE_EMACRX,
-	D_DRQSRC_SSRX,          //DRQ_TYPE_SSRX   
-	D_DRQSRC_USB2,          //DRQ_TYPE_USB2
-	D_DRQSRC_ATA,           //DRQ_TYPE_ATA  
-	D_DRQSRC_LCD1,			//DRQ_TYPE_LCD1 
-	                                          
-	DRQ_INVALID,            //DRQ_TYPE_IR,    
-	DRQ_INVALID,            //DRQ_TYPE_SPDIF, 
-	DRQ_INVALID,            //DRQ_TYPE_IIS,   
-	DRQ_INVALID,            //DRQ_TYPE_AC97,  
-	DRQ_INVALID,            //DRQ_TYPE_SPI0,  
-	DRQ_INVALID,            //DRQ_TYPE_SPI1,  
-	DRQ_INVALID,            //DRQ_TYPE_UART0, 
-	DRQ_INVALID,            //DRQ_TYPE_UART1, 
-	DRQ_INVALID,            //DRQ_TYPE_UART2, 
-	DRQ_INVALID,            //DRQ_TYPE_UART3, 
-	DRQ_INVALID,            //DRQ_TYPE_AUDIO, 
-	DRQ_INVALID,            //DRQ_TYPE_TPAD, 
-	DRQ_INVALID,            //DRQ_TYPE_NSRAM, 
-	DRQ_INVALID,            //DRQ_TYPE_NSDRAM, 	
-	DRQ_INVALID,            //DRQ_TYPE_UART4, 
-	DRQ_INVALID,            //DRQ_TYPE_UART5, 
-	DRQ_INVALID,            //DRQ_TYPE_UART6, 
-	DRQ_INVALID,            //DRQ_TYPE_UART7, 
-};
-
+	DRQ_INVALID,       		//DRQ_TYPE_IR0,      
+	DRQ_INVALID,    		//DRQ_TYPE_IR1,   
+	DRQ_INVALID,      		//DRQ_TYPE_SPDIF,     
+	DRQ_INVALID,     		//DRQ_TYPE_IIS,    
+	DRQ_INVALID,     		//DRQ_TYPE_AC97,    
+	DRQ_INVALID,     		//DRQ_TYPE_UART0,    
+	DRQ_INVALID,			//DRQ_TYPE_UART1,
+	DRQ_INVALID,    		//DRQ_TYPE_UART2,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART3,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART4,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART5,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART6,   
+	DRQ_INVALID,       		//DRQ_TYPE_UART7,   
+	DRQ_INVALID,    		//DRQ_TYPE_AUDIO,  
+	DRQ_INVALID,	    	//DRQ_TYPE_TPAD     		
+};                                      
 unsigned long d_drqdst_arr[DRQ_TYPE_MAX]={
-	D_DRQDST_SRAM,          //DRQ_TYPE_SRAM,  
-	D_DRQDST_SDRAM,         //DRQ_TYPE_SDRAM, 
-	D_DRQDST_LCD0,          //DRQ_TYPE_LCD0,   
-	D_DRQDST_NAND,          //DRQ_TYPE_NAND,  
-	D_DRQDST_USB0,          //DRQ_TYPE_USB0,  
-	D_DRQDST_USB1,          //DRQ_TYPE_USB1,  
-	D_DRQDST_SD1,           //DRQ_TYPE_SD1,   
-	D_DRQDST_SD2,           //DRQ_TYPE_SD2,   
-	D_DRQDST_SD3,           //DRQ_TYPE_SD3,   
-	D_DRQDST_MS,            //DRQ_TYPE_MS,    
-	D_DRQDST_EMAC,          //DRQ_TYPE_EMACRX,
-	D_DRQDST_SSTX,          //DRQ_TYPE_SSTX,
-	D_DRQDST_USB2,          //DRQ_TYPE_USB2,
-	D_DRQDST_ATA,           //DRQ_TYPE_ATA,
-	D_DRQDST_LCD1,          //DRQ_TYPE_LCD1,  
-	                                          
-	DRQ_INVALID,            //DRQ_TYPE_IR,    
-	DRQ_INVALID,            //DRQ_TYPE_SPDIF, 
-	DRQ_INVALID,            //DRQ_TYPE_IIS,   
-	DRQ_INVALID,            //DRQ_TYPE_AC97,  
-	DRQ_INVALID,            //DRQ_TYPE_SPI0,  
-	DRQ_INVALID,            //DRQ_TYPE_SPI1,  
-	DRQ_INVALID,            //DRQ_TYPE_UART0, 
-	DRQ_INVALID,            //DRQ_TYPE_UART1, 
-	DRQ_INVALID,            //DRQ_TYPE_UART2, 
-	DRQ_INVALID,            //DRQ_TYPE_UART3, 
-	DRQ_INVALID,            //DRQ_TYPE_AUDIO, 
-	DRQ_INVALID,            //DRQ_TYPE_TPAD, 
-	DRQ_INVALID,            //DRQ_TYPE_NSRAM, 
-	DRQ_INVALID,            //DRQ_TYPE_NSDRAM,  
-	DRQ_INVALID,            //DRQ_TYPE_UART4, 
-	DRQ_INVALID,            //DRQ_TYPE_UART5, 
-	DRQ_INVALID,            //DRQ_TYPE_UART6, 
-	DRQ_INVALID,            //DRQ_TYPE_UART7, 
-};
+	D_DRQDST_SRAM,       	//DRQ_TYPE_SRAM
+	D_DRQDST_SDRAM,      	//DRQ_TYPE_SDRAM
+	D_DRQDST_PATA, 	  		//DRQ_TYPE_PATA,
+	D_DRQDST_NAND,         	//DRQ_TYPE_NAND,    
+	D_DRQDST_USB0,         	//DRQ_TYPE_USB0,    
+	D_DRQDST_EMACTX,       	//DRQ_TYPE_EMAC,    
+	D_DRQDST_SPI1TX,       	//DRQ_TYPE_SPI1,     
+	D_DRQDST_SECTX,       	//DRQ_TYPE_SS,     
+	D_DRQDST_MS,         	//DRQ_TYPE_MS,     
+	D_DRQDST_SPI0TX,       	//DRQ_TYPE_SPI0,      
+	D_DRQDST_SPI2TX,       	//DRQ_TYPE_SPI2,  
+	D_DRQDST_SPI3TX,       	//DRQ_TYPE_SPI3,      
+	DRQ_INVALID,			//DRQ_TYPE_TCON0,
+	DRQ_INVALID,			//DRQ_TYPE_TCON1,
+	DRQ_INVALID,			//DRQ_TYPE_HDMI,	
+	D_DRQDST_HDMIAUDIO,		//DRQ_TYPE_HDMIAUDIO,
+	
+	DRQ_INVALID,       		//DRQ_TYPE_IR0,      
+	DRQ_INVALID,    		//DRQ_TYPE_IR1,   
+	DRQ_INVALID,      		//DRQ_TYPE_SPDIF,     
+	DRQ_INVALID,     		//DRQ_TYPE_IIS,    
+	DRQ_INVALID,     		//DRQ_TYPE_AC97,    
+	DRQ_INVALID,     		//DRQ_TYPE_UART0,    
+	DRQ_INVALID,			//DRQ_TYPE_UART1,
+	DRQ_INVALID,    		//DRQ_TYPE_UART2,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART3,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART4,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART5,   
+	DRQ_INVALID,    		//DRQ_TYPE_UART6,   
+	DRQ_INVALID,       		//DRQ_TYPE_UART7,   
+	DRQ_INVALID,    		//DRQ_TYPE_AUDIO,
+	DRQ_INVALID,	    	//DRQ_TYPE_TPAD    
+		
+};             
 
 /* debugging functions */
 
@@ -364,8 +414,8 @@ static struct sw_dma_chan *lookup_dma_channel(unsigned int channel)
 inline void DMA_COPY_HW_CONF(struct dma_hw_conf *to, struct dma_hw_conf *from)
 { 
 	to->xfer_type    = from->xfer_type;
-	to->drqsrc_type     = from->drqsrc_type;
-	to->drqdst_type     = from->drqdst_type;
+	to->drqsrc_type  = from->drqsrc_type;
+	to->drqdst_type  = from->drqdst_type;
 	to->address_type = from->address_type;
 	to->dir          = from->dir;
 	to->reload       = from->reload;
@@ -466,7 +516,7 @@ static inline int sw_dma_loadbuffer(struct sw_dma_chan *chan, struct sw_dma_buf 
 		dmawarn("state is SW_DMALOAD_1LOADED_1RUNNING\n");
 	}
 
-	if(chan->dcon & SW_DCONF_CONTI || chan->load_state == SW_DMALOAD_NONE){
+	if(chan->dcon & SW_NDMA_CONF_CONTI || chan->dcon & SW_DDMA_CONF_CONTI || chan->load_state == SW_DMALOAD_NONE){
 		writel(__virt_to_bus(buf->data), chan->addr_reg);
 		dma_wrreg(chan, SW_DMA_DCNT, buf->size);
 	}
@@ -825,7 +875,7 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		 */
 
 		chan->load_state = SW_DMALOAD_1LOADED;
-		if(!(chan->dcon & SW_DCONF_CONTI)){
+		if(!(( chan->dcon & SW_NDMA_CONF_CONTI) || (chan->dcon & SW_DDMA_CONF_CONTI))){
 			struct sw_dma_buf  *next = chan->curr->next;
 			
 			writel(__virt_to_bus(next->data), chan->addr_reg);
@@ -869,7 +919,7 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 	} else {
 	}
 
-	if(chan->load_state == SW_DMALOAD_1LOADED && !(chan->dcon & SW_DCONF_CONTI)){
+	if(chan->load_state == SW_DMALOAD_1LOADED && !((chan->dcon & SW_NDMA_CONF_CONTI)||(chan->dcon & SW_DDMA_CONF_CONTI))){
 
 		writel(__virt_to_bus(chan->curr->data), chan->addr_reg);
 		dma_wrreg(chan, SW_DMA_DCNT, chan->curr->size);
@@ -1104,7 +1154,7 @@ static void sw_dma_waitforstop(struct sw_dma_chan *chan)
 	while (timeout-- > 0) {
 		tmp = dma_rdreg(chan, SW_DMA_DCONF);
 
-		if (!(tmp & SW_DCONF_BUSY))
+		if (!(tmp & SW_DCONF_LOADING))
 			return;
 	}
 
@@ -1329,7 +1379,12 @@ int sw_dma_config(unsigned int channel, struct dma_hw_conf* user_conf)
 
 	dcon |= xfer_arr[hw_conf->xfer_type];
 	dcon |= addrtype_arr[hw_conf->address_type];
-	dcon |= hw_conf->reload ? SW_DCONF_CONTI : 0;
+	if(IS_DADECATE_DMA(chan)){
+		dcon |= hw_conf->reload ? SW_DDMA_CONF_CONTI : 0;
+	}
+	else{
+		dcon |= hw_conf->reload ? SW_NDMA_CONF_CONTI : 0;
+	}
 	dcon |= (1 << 15);   //backdoor: byte counter register shows the remain bytes for transfer
 	chan->dcon = dcon;
 
@@ -1505,7 +1560,7 @@ static int sw_dma_suspend(struct sys_device *dev, pm_message_t state)
 
 	printk(KERN_DEBUG "suspending dma channel %d\n", cp->number);
 
-	if (dma_rdreg(cp, SW_DMA_DCONF) & SW_DCONF_BUSY) {
+	if (dma_rdreg(cp, SW_DMA_DCONF) & SW_DCONF_LOADING) {
 		/* the dma channel is still working, which is probably
 		 * a bad thing to do over suspend/resume. We stop the
 		 * channel and assume that the client is either going to

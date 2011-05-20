@@ -1,15 +1,20 @@
-/* arch/arm/mach-softwinner/include/mach/dma.h
- *
- * Copyright (C) 2003,2004,2006 Simtec Electronics
- *	Ben Dooks <ben@simtec.co.uk>
- *
- * Softwinner DMA support
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+/*
+**************************************************************************************************************
+*											         eLDK
+*						            the Easy Portable/Player Develop Kits
+*									           desktop system 
+*
+*						        	 (c) Copyright 2009-2012, ,HUANGXIN China
+*											 All Rights Reserved
+*
+* File    	: dma.h
+* By      	: HUANGXIN
+* Func		: 
+* Version	: v1.0
+* ============================================================================================================
+* 2011-5-9 10:37:24  HUANGXIN create this file, implements the fundemental interface;
+**************************************************************************************************************
 */
-
 #ifndef __ASM_ARCH_DMA_H
 #define __ASM_ARCH_DMA_H __FILE__
 
@@ -27,11 +32,12 @@
  * can be attached to any DMA source. We therefore let the DMA core handle
  * the allocation of hardware channels to clients.
 */
-
 enum sw_dma_ch {
+	/*NDMA*/
 	DMACH_NSPI0,
 	DMACH_NSPI1,
 	DMACH_NSPI2,
+	DMACH_NSPI3,	
 	DMACH_NUART0,
 	DMACH_NUART1,
 	DMACH_NUART2,
@@ -39,29 +45,38 @@ enum sw_dma_ch {
 	DMACH_NUART4,
 	DMACH_NUART5,
 	DMACH_NUART6,
-	DMACH_NUART7,
-	DMACH_NXRAM,
-	DMACH_NADDA,
+	DMACH_NUART7,	
+	DMACH_NSRAM,
+	DMACH_NSDRAM,
+	DMACH_NTPAD,
+	DMACH_NADDA,//audio
 	DMACH_NIIS,
-	DMACH_NIR,
+	DMACH_NIR0,
+	DMACH_NIR1,
 	DMACH_NSPDIF,
 	DMACH_NAC97,
-	
-	DMACH_DMMC1,
-	DMACH_DMMC2,
-	DMACH_DMMC3,
+	DMACH_NHDMI,//HDMI
+	/*DDMA*/	
+	DMACH_DSRAM,
+	DMACH_DSDRAM,
+	DMACH_DPATA,
 	DMACH_DNAND,
 	DMACH_DUSB0,
-	DMACH_DUSB1,
-	DMACH_DUSB2,
-	DMACH_DMS,
-	DMACH_DLCD0,
-	DMACH_DLCD1,
 	DMACH_DEMACR,
 	DMACH_DEMACT,
-	DMACH_DTSC,
-	DMACH_MAX, /* 8 NDMAs, 8 DDMAs */
+	DMACH_DSPI1,
+	DMACH_DSSR,
+	DMACH_DSST,
+	DMACH_TCON0,
+	DMACH_TCON1,
+	DMACH_HDMIAUDIO,//HDMIAUDIO	
+	DMACH_DMS,
+	DMACH_DSPI0,
+	DMACH_DSPI2,
+	DMACH_DSPI3,
+	DMACH_MAX,/* 8 NDMAs, 8 DDMAs */
 };
+
 
 #define N_DRQSRC_SHIFT		0
 #define N_DRQDST_SHIFT		16
@@ -69,126 +84,134 @@ enum sw_dma_ch {
 #define D_DRQDST_SHIFT		16
 #define DRQ_INVALID			0xff
 
-#define N_DRQSRC_IRRX		0b00000
-#define N_DRQSRC_SPDIFRX	0b00001
-#define N_DRQSRC_IISRX		0b00010
-#define N_DRQSRC_AC97RX		0b00011
-#define N_DRQSRC_SPI0RX		0b00100
-#define N_DRQSRC_SPI1RX		0b00101
-#define N_DRQSRC_SPI2RX		0b00110
+/*normal DMA Source*/
+#define N_DRQSRC_IR0RX		0b00000
+#define N_DRQSRC_IR1RX 		0b00001
+#define N_DRQSRC_SPDIFRX	0b00010
+#define N_DRQSRC_IISRX		0b00011
+#define N_DRQSRC_AC97RX		0b00101
 #define N_DRQSRC_UART0RX	0b01000
-#define N_DRQSRC_UART1RX	0b01001
+#define N_DRQSRC_UART1RX 	0b01001
 #define N_DRQSRC_UART2RX	0b01010
 #define N_DRQSRC_UART3RX	0b01011
-#define N_DRQSRC_AUDIOAD	0b01100
-#define N_DRQSRC_TPAD		0b01101
-#define N_DRQSRC_NFC		0b01111
-#define N_DRQSRC_SRAM		0b10000
-#define N_DRQSRC_SDRAM		0b10001
-#define N_DRQSRC_UART4RX	0b10010
-#define N_DRQSRC_UART5RX	0b10011
-#define N_DRQSRC_UART6RX	0b10100
-#define N_DRQSRC_UART7RX	0b10101
+#define N_DRQSRC_UART4RX	0b01100
+#define N_DRQSRC_UART5RX	0b01101
+#define N_DRQSRC_UART6RX	0b01110
+#define N_DRQSRC_UART7RX	0b01111
+#define N_DRQSRC_HDMIDDCRX	0b10000
+#define N_DRQSRC_AUDIOCDAD	0b10011	//Audio Codec D/A
+#define N_DRQSRC_SRAM		0b10101
+#define N_DRQSRC_SDRAM		0b10110
+#define N_DRQSRC_TPAD		0b10111	//TP A/D
+#define N_DRQSRC_SPI0RX		0b11000
+#define N_DRQSRC_SPI1RX		0b11001
+#define N_DRQSRC_SPI2RX		0b11010
+#define N_DRQSRC_SPI3RX		0b11011
 
-#define N_DRQDST_IRTX		0b00000
-#define N_DRQDST_SPDIFTX	0b00001
-#define N_DRQDST_IISTX		0b00010
-#define N_DRQDST_AC97TX		0b00011
-#define N_DRQDST_SPI0TX		0b00100
-#define N_DRQDST_SPI1TX		0b00101
-#define N_DRQDST_SPI2TX		0b00110
+/*normal DMA destination*/
+#define N_DRQDST_IR0TX		0b00000
+#define N_DRQDST_IR1TX 		0b00001
+#define N_DRQDST_SPDIFTX	0b00010
+#define N_DRQDST_IISTX		0b00011
+#define N_DRQDST_AC97TX		0b00101
 #define N_DRQDST_UART0TX	0b01000
-#define N_DRQDST_UART1TX	0b01001
+#define N_DRQDST_UART1TX 	0b01001
 #define N_DRQDST_UART2TX	0b01010
 #define N_DRQDST_UART3TX	0b01011
-#define N_DRQDST_AUDIODA	0b01100
-#define N_DRQDST_NFC		0b01111
-#define N_DRQDST_SRAM		0b10000
-#define N_DRQDST_SDRAM		0b10001
-#define N_DRQDST_UART4TX	0b10010
-#define N_DRQDST_UART5TX	0b10011
-#define N_DRQDST_UART6TX	0b10100
-#define N_DRQDST_UART7TX	0b10101
+#define N_DRQDST_UART4TX	0b01100
+#define N_DRQDST_UART5TX	0b01101
+#define N_DRQDST_UART6TX	0b01110 
+#define N_DRQDST_UART7TX	0b01111
+#define N_DRQDST_HDMIDDCTX	0b10000	//HDMI DDC TX
+#define N_DRQDST_AUDIOCDAD	0b10011	//Audio Codec D/A
+#define N_DRQDST_SRAM		0b10101
+#define N_DRQDST_SDRAM		0b10110
+#define N_DRQDST_SPI0TX		0b11000
+#define N_DRQDST_SPI1TX		0b11001
+#define N_DRQDST_SPI2TX		0b11010
+#define N_DRQDST_SPI3TX		0b11011
 
-#define D_DRQSRC_SRAM		0b00000
-#define D_DRQSRC_SDRAM		0b00001
-#define D_DRQSRC_LCD0		0b00010
-#define D_DRQSRC_NAND		0b00011
-#define D_DRQSRC_USB0		0b00100
-#define D_DRQSRC_USB1		0b00101
-#define D_DRQSRC_SD1		0b00111
-#define D_DRQSRC_SD2		0b01000
-#define D_DRQSRC_SD3		0b01001
-#define D_DRQSRC_MS			0b01010
-#define D_DRQSRC_EMAC		0b01100
-#define D_DRQSRC_SSRX		0b01110
-#define D_DRQSRC_USB2		0b01111
-#define D_DRQSRC_ATA		0b10000
-#define D_DRQSRC_LCD1		0b10001
+/*Dedicated DMA Source*/
+#define D_DRQSRC_SRAM		0b00000//0x0 SRAM memory
+#define D_DRQSRC_SDRAM		0b00001//0x1 SDRAM memory
+#define D_DRQSRC_PATA		0b00010//0x2 PATA
+#define D_DRQSRC_NAND 		0b00011//0x3 NAND Flash Controller(NFC)
+#define D_DRQSRC_USB0 		0b00100//0x4 USB0
+#define D_DRQSRC_EMACRX		0b00111//0x7 Ethernet MAC Rx
+#define D_DRQSRC_SPI1RX		0b01001//0x9 SPI1 RX
+#define D_DRQSRC_SECRX 		0b01011//0xB Security System Rx
+#define D_DRQSRC_MS 		0b10111//0x17 Memory Stick Controller(MSC)
+#define D_DRQSRC_SPI0RX		0b11011//0x1B SPI0 RX
+#define D_DRQSRC_SPI2RX		0b11101//0x1D SPI2 RX
+#define D_DRQSRC_SPI3RX		0b11111//0x1F SPI3 RX
 
-#define D_DRQDST_SRAM		0b00000
-#define D_DRQDST_SDRAM		0b00001
-#define D_DRQDST_LCD0		0b00010
-#define D_DRQDST_NAND		0b00011
-#define D_DRQDST_USB0		0b00100
-#define D_DRQDST_USB1		0b00101
-#define D_DRQDST_SD1		0b00111
-#define D_DRQDST_SD2		0b01000
-#define D_DRQDST_SD3		0b01001
-#define D_DRQDST_MS			0b01010
-#define D_DRQDST_EMAC		0b01011
-#define D_DRQDST_SSTX		0b01101
-#define D_DRQDST_USB2		0b01111
-#define D_DRQDST_ATA		0b10000
-#define D_DRQDST_LCD1		0b10001
 
-enum drq_type {
-	DRQ_TYPE_SRAM,
-	DRQ_TYPE_SDRAM,
-	DRQ_TYPE_LCD0,
-	DRQ_TYPE_NAND,
-	DRQ_TYPE_USB0,
-	DRQ_TYPE_USB1,
-	DRQ_TYPE_SD1,
-	DRQ_TYPE_SD2,
-	DRQ_TYPE_SD3,
-	DRQ_TYPE_MS,
-	DRQ_TYPE_EMAC,
-	DRQ_TYPE_SSRX,
-	DRQ_TYPE_USB2,
-	DRQ_TYPE_ATA,
-	DRQ_TYPE_LCD1,
+/*Dedicated DMA Destination*/
+#define D_DRQDST_SRAM		0b00000//0x0 SRAM memory
+#define D_DRQDST_SDRAM		0b00001//0x1 SDRAM memory
+#define D_DRQDST_PATA		0b00010//0x2 PATA
+#define D_DRQDST_NAND 		0b00011//0x3 NAND Flash Controller(NFC)
+#define D_DRQDST_USB0 		0b00100//0x4 USB0
+#define D_DRQDST_EMACTX		0b00110//0x6 Ethernet MAC Rx
+#define D_DRQDST_SPI1TX		0b01000//0x8 SPI1 RX
+#define D_DRQDST_SECTX 		0b01010//0xA Security System Rx
+#define D_DRQDST_TCON0 		0b01110//0xE TCON0
+#define D_DRQDST_TCON1 		0b01111//0xF TCON1
+#define D_DRQDST_MS			0b10111//0x17 Memory Stick Controller(MSC)
+#define D_DRQDST_HDMIAUDIO	0b11000//0x18 HDMI Audio
+#define D_DRQDST_SPI0TX		0b11010//0x1A SPI0 TX
+#define D_DRQDST_SPI2TX		0b11100//0x1C SPI2 TX
+#define D_DRQDST_SPI3TX		0b11110//0x1E SPI3 TX
 
-	DRQ_TYPE_IR,
-	DRQ_TYPE_SPDIF,
-	DRQ_TYPE_IIS,
-	DRQ_TYPE_AC97,
-	DRQ_TYPE_SPI0,
-	DRQ_TYPE_SPI1,
-	DRQ_TYPE_SPI2,
-	DRQ_TYPE_UART0,
-	DRQ_TYPE_UART1,
-	DRQ_TYPE_UART2,
-	DRQ_TYPE_UART3,
-	DRQ_TYPE_AUDIO,
-	DRQ_TYPE_TPAD,
-	DRQ_TYPE_NSRAM,
-	DRQ_TYPE_NSDRAM,
-	DRQ_TYPE_UART4,
-	DRQ_TYPE_UART5,
-	DRQ_TYPE_UART6,
-	DRQ_TYPE_UART7,
-	
-	DRQ_TYPE_MAX,
+
+enum drq_type {	
+		DRQ_TYPE_SRAM,
+		DRQ_TYPE_SDRAM,
+		DRQ_TYPE_PATA,
+		DRQ_TYPE_NAND,
+		DRQ_TYPE_USB0,
+		DRQ_TYPE_EMAC,
+		DRQ_TYPE_SPI1,
+		DRQ_TYPE_SS,//Security System 
+		DRQ_TYPE_MS,//Memory Stick Control
+		DRQ_TYPE_SPI0,
+		DRQ_TYPE_SPI2,
+		DRQ_TYPE_SPI3,		
+		DRQ_TYPE_TCON0,
+		DRQ_TYPE_TCON1,
+		DRQ_TYPE_HDMI,
+		
+		DRQ_TYPE_HDMIAUDIO,
+		DRQ_TYPE_IR0,
+		DRQ_TYPE_IR1,
+		DRQ_TYPE_SPDIF,
+		DRQ_TYPE_IIS,
+		DRQ_TYPE_AC97,
+		DRQ_TYPE_UART0,
+		DRQ_TYPE_UART1,
+		DRQ_TYPE_UART2,
+		DRQ_TYPE_UART3,
+		DRQ_TYPE_UART4,
+		DRQ_TYPE_UART5,
+		DRQ_TYPE_UART6,
+		DRQ_TYPE_UART7,
+		DRQ_TYPE_AUDIO,
+		DRQ_TYPE_TPAD,	
+		DRQ_TYPE_MAX,
 };
 
-/* DMAXFER_(dist)_(sigle/burst)_(byte/half/word)_(src)_(sigle/burst)_(byte/half/word) */
+
+/* DMAXFER_(dist)_(sigle/burst/tippl)_(byte/half/word)_(src)_(sigle/burst/tippl)_(byte/half/word) */
+#define X_SIGLE   0
+#define X_BURST   1
+#define X_TIPPL	  2
 #define X_BYTE    0
 #define X_HALF    1
 #define X_WORD    2
-#define X_SIGLE   0
-#define X_BURST   1
+
+/*data length and burst length combination in DDMA and NDMA */
 enum xferunit {
+	/*des:X_SIGLE  src:X_SIGLE*/
 	DMAXFER_D_SBYTE_S_SBYTE,
 	DMAXFER_D_SBYTE_S_SHALF,
 	DMAXFER_D_SBYTE_S_SWORD,
@@ -199,16 +222,7 @@ enum xferunit {
 	DMAXFER_D_SWORD_S_SHALF,
 	DMAXFER_D_SWORD_S_SWORD,
 	
-	DMAXFER_D_BBYTE_S_BBYTE,
-	DMAXFER_D_BBYTE_S_BHALF,
-	DMAXFER_D_BBYTE_S_BWORD,
-	DMAXFER_D_BHALF_S_BBYTE,
-	DMAXFER_D_BHALF_S_BHALF,
-	DMAXFER_D_BHALF_S_BWORD,
-	DMAXFER_D_BWORD_S_BBYTE,
-	DMAXFER_D_BWORD_S_BHALF,
-	DMAXFER_D_BWORD_S_BWORD,
-
+	/*des:X_SIGLE  src:X_BURST*/
 	DMAXFER_D_SBYTE_S_BBYTE,
 	DMAXFER_D_SBYTE_S_BHALF,
 	DMAXFER_D_SBYTE_S_BWORD,
@@ -219,6 +233,29 @@ enum xferunit {
 	DMAXFER_D_SWORD_S_BHALF,
 	DMAXFER_D_SWORD_S_BWORD,
 	
+	/*des:X_SIGLE   src:X_TIPPL*/
+	DMAXFER_D_SBYTE_S_TBYTE,
+	DMAXFER_D_SBYTE_S_THALF,
+	DMAXFER_D_SBYTE_S_TWORD,
+	DMAXFER_D_SHALF_S_TBYTE,
+	DMAXFER_D_SHALF_S_THALF,
+	DMAXFER_D_SHALF_S_TWORD,
+	DMAXFER_D_SWORD_S_TBYTE,
+	DMAXFER_D_SWORD_S_THALF,
+	DMAXFER_D_SWORD_S_TWORD,
+	
+	/*des:X_BURST  src:X_BURST*/
+	DMAXFER_D_BBYTE_S_BBYTE,
+	DMAXFER_D_BBYTE_S_BHALF,
+	DMAXFER_D_BBYTE_S_BWORD,
+	DMAXFER_D_BHALF_S_BBYTE,
+	DMAXFER_D_BHALF_S_BHALF,
+	DMAXFER_D_BHALF_S_BWORD,
+	DMAXFER_D_BWORD_S_BBYTE,
+	DMAXFER_D_BWORD_S_BHALF,
+	DMAXFER_D_BWORD_S_BWORD,
+
+	/*des:X_BURST   src:X_SIGLE*/	
 	DMAXFER_D_BBYTE_S_SBYTE,
 	DMAXFER_D_BBYTE_S_SHALF,
 	DMAXFER_D_BBYTE_S_SWORD,
@@ -228,6 +265,50 @@ enum xferunit {
 	DMAXFER_D_BWORD_S_SBYTE,
 	DMAXFER_D_BWORD_S_SHALF,
 	DMAXFER_D_BWORD_S_SWORD,
+	
+	/*des:X_BURST   src:X_TIPPL*/	
+	DMAXFER_D_BBYTE_S_TBYTE,
+	DMAXFER_D_BBYTE_S_THALF,
+	DMAXFER_D_BBYTE_S_TWORD,
+	DMAXFER_D_BHALF_S_TBYTE,
+	DMAXFER_D_BHALF_S_THALF,
+	DMAXFER_D_BHALF_S_TWORD,
+	DMAXFER_D_BWORD_S_TBYTE,
+	DMAXFER_D_BWORD_S_THALF,
+	DMAXFER_D_BWORD_S_TWORD,
+	
+	/*des:X_TIPPL   src:X_TIPPL*/
+	DMAXFER_D_TBYTE_S_TBYTE,
+	DMAXFER_D_TBYTE_S_THALF,
+	DMAXFER_D_TBYTE_S_TWORD,
+	DMAXFER_D_THALF_S_TBYTE,
+	DMAXFER_D_THALF_S_THALF,
+	DMAXFER_D_THALF_S_TWORD,
+	DMAXFER_D_TWORD_S_TBYTE,
+	DMAXFER_D_TWORD_S_THALF,
+	DMAXFER_D_TWORD_S_TWORD,
+		
+	/*des:X_TIPPL   src:X_SIGLE*/
+	DMAXFER_D_TBYTE_S_SBYTE,
+	DMAXFER_D_TBYTE_S_SHALF,
+	DMAXFER_D_TBYTE_S_SWORD,
+	DMAXFER_D_THALF_S_SBYTE,
+	DMAXFER_D_THALF_S_SHALF,
+	DMAXFER_D_THALF_S_SWORD,
+	DMAXFER_D_TWORD_S_SBYTE,
+	DMAXFER_D_TWORD_S_SHALF,
+	DMAXFER_D_TWORD_S_SWORD,
+	
+	/*des:X_TIPPL   src:X_BURST*/
+	DMAXFER_D_TBYTE_S_BBYTE,
+	DMAXFER_D_TBYTE_S_BHALF,
+	DMAXFER_D_TBYTE_S_BWORD,
+	DMAXFER_D_THALF_S_BBYTE,
+	DMAXFER_D_THALF_S_BHALF,
+	DMAXFER_D_THALF_S_BWORD,
+	DMAXFER_D_TWORD_S_BBYTE,
+	DMAXFER_D_TWORD_S_BHALF,
+	DMAXFER_D_TWORD_S_BWORD,
 	DMAXFER_MAX
 };
 
@@ -238,12 +319,15 @@ enum xferunit {
 #define A_IO      0x1
 #define A_PH      0x2
 #define A_PV      0x3
+
 enum addrt {
+	/*NDMA address type*/
 	DMAADDRT_D_INC_S_INC,
 	DMAADDRT_D_INC_S_FIX,
 	DMAADDRT_D_FIX_S_INC,
 	DMAADDRT_D_FIX_S_FIX,
-
+	
+	/*DDMA address type*/
 	DMAADDRT_D_LN_S_LN,
 	DMAADDRT_D_LN_S_IO,
 	DMAADDRT_D_LN_S_PH,
@@ -267,13 +351,13 @@ enum addrt {
 	DMAADDRT_MAX
 };
 
-#define DMACH_LOW_LEVEL	(1<<28)	/* use this to specifiy hardware ch no */
+/* use this to specifiy hardware channel number */
+#define DMACH_LOW_LEVEL	(1<<28)	
 
 /* we have 16 dma channels */
 #define SW_DMA_CHANNELS		(16)
 
 /* types */
-
 enum sw_dma_state {
 	SW_DMA_IDLE,
 	SW_DMA_RUNNING,
@@ -456,6 +540,7 @@ struct sw_dma_chan {
 	void * dev_id;
 };
 
+/*the channel number of above 8 is DDMA channel.*/
 #define IS_DADECATE_DMA(ch) (ch->number >= 8)
 
 struct dma_hw_conf{
