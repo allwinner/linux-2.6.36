@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Thu May 19 16:08:39 2011
+# Fri May 20 11:41:05 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -645,6 +645,7 @@ CONFIG_INPUT_TOUCHSCREEN=y
 CONFIG_TOUCHSCREEN_TSC2007=y
 # CONFIG_TOUCHSCREEN_W90X900 is not set
 # CONFIG_TOUCHSCREEN_TPS6507X is not set
+# CONFIG_TOUCHSCREEN_FT is not set
 # CONFIG_INPUT_MISC is not set
 
 #

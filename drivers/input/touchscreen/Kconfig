@@ -644,4 +644,10 @@ config TOUCHSCREEN_STMPE
 	  To compile this driver as a module, choose M here: the
 	  module will be called stmpe-ts.
 
+config  TOUCHSCREEN_FT
+       tristate  "ft5x06 touchscreen driver"
+       help
+          ft5x06 touchscreen driver
+
+
 endif
