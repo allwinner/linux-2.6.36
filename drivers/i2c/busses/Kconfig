@@ -807,4 +807,18 @@ config SCx200_ACB
 	  This support is also available as a module.  If so, the module
 	  will be called scx200_acb.
 
+config SUN3I_IIC
+	tristate "SUN3I I2C bus driver"
+	depends on ARM_AMBA && ARCH_SUN3I
+	help
+	  "SUN3I i2c bus driver"
+
+
+config SUN4I_IIC
+	tristate "SUN4I I2C bus driver"
+	depends on ARM_AMBA && ARCH_SUN4I
+	help
+	  "SUN4I i2c bus driver"
+
+
 endmenu

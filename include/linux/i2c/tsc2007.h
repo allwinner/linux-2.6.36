@@ -12,6 +12,10 @@ struct tsc2007_platform_data {
 						   interrupt source */
 	int	(*init_platform_hw)(void);
 	void	(*exit_platform_hw)(void);
+	int (*set_irq_mode)(void);
+       int (*set_gpio_mode)(void);
+       int (*judge_int_occur)(void);
+
 };
 
 #endif

@@ -80,6 +80,7 @@ int script_parser_init(char *script_buf)
 {
 	script_head_t   *script_head;
 
+	printk("%s(%d)-%s, script_buf addr is %x:\n",__FILE__,__LINE__,__FUNCTION__, script_buf);
 	if(script_buf)
 	{
 		script_mod_buf = script_buf;
@@ -87,10 +88,12 @@ int script_parser_init(char *script_buf)
 
 		script_main_key_count = script_head->main_key_count;
 
+		printk("succeed: %s(%d)-%s\n",__FILE__,__LINE__,__FUNCTION__);
 		return SCRIPT_PARSER_OK;
 	}
 	else
 	{
+		printk("failed: %s(%d)-%s\n",__FILE__,__LINE__,__FUNCTION__);
 		return SCRIPT_PARSER_EMPTY_BUFFER;
 	}
 }
@@ -143,6 +146,7 @@ int script_parser_fetch(char *main_name, char *sub_name, int value[], int count)
 	int    i, j;
 	int    pattern, word_count;
 
+	printk("enter script parse fetch. \n");
 	//检查脚本buffer是否存在
 	if(!script_mod_buf)
 	{
@@ -173,7 +177,8 @@ int script_parser_fetch(char *main_name, char *sub_name, int value[], int count)
 		strncpy(sub_bkname, sub_name, 31);
 		sub_char = sub_bkname;
 	}
-
+	printk("gpio: main name is : %s, sub_name is: %s", main_char, sub_char);
+	
 	for(i=0;i<script_main_key_count;i++)
 	{
 		main_key = (script_main_key_t *)(script_mod_buf + (sizeof(script_head_t)) + i * sizeof(script_main_key_t));
@@ -191,6 +196,7 @@ int script_parser_fetch(char *main_name, char *sub_name, int value[], int count)
 			}
 			pattern    = (sub_key->pattern>>16) & 0xffff;             //获取数据的类型
 			word_count = (sub_key->pattern>> 0) & 0xffff;             //获取所占用的word个数
+			printk("pattern is: 0x%x, word_count is: 0x%x, ", pattern, word_count);
 			//取出数据
 			switch(pattern)
 			{
@@ -434,11 +440,14 @@ int script_parser_mainkey_get_gpio_cfg(char *main_name, void *gpio_cfg, int gpio
 			continue;
 		}
 		//主键匹配，寻找子键名称匹配
+        printk("mainkey name = %s\n", main_key->main_name);
 		user_index = 0;
 		for(j=0;j<main_key->lenth;j++)
 		{
 			sub_key = (script_sub_key_t *)(script_mod_buf + (main_key->offset<<2) + (j * sizeof(script_sub_key_t)));
+            printk("subkey name = %s\n", sub_key->sub_name);
 			pattern    = (sub_key->pattern>>16) & 0xffff;             //获取数据的类型
+			printk("subkey pattern = %d\n", pattern);
 			//取出数据
 			if(DATA_TYPE_GPIO_WORD == pattern)
 			{

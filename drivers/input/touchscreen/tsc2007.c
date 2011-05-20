@@ -19,74 +19,15 @@
  *  it under the terms of the GNU General Public License version 2 as
  *  published by the Free Software Foundation.
  */
+#include <linux/delay.h>
 
-#include <linux/module.h>
-#include <linux/slab.h>
-#include <linux/input.h>
-#include <linux/interrupt.h>
-#include <linux/i2c.h>
-#include <linux/i2c/tsc2007.h>
-
-#define TS_POLL_DELAY			1 /* ms delay between samples */
-#define TS_POLL_PERIOD			1 /* ms delay between samples */
-
-#define TSC2007_MEASURE_TEMP0		(0x0 << 4)
-#define TSC2007_MEASURE_AUX		(0x2 << 4)
-#define TSC2007_MEASURE_TEMP1		(0x4 << 4)
-#define TSC2007_ACTIVATE_XN		(0x8 << 4)
-#define TSC2007_ACTIVATE_YN		(0x9 << 4)
-#define TSC2007_ACTIVATE_YP_XN		(0xa << 4)
-#define TSC2007_SETUP			(0xb << 4)
-#define TSC2007_MEASURE_X		(0xc << 4)
-#define TSC2007_MEASURE_Y		(0xd << 4)
-#define TSC2007_MEASURE_Z1		(0xe << 4)
-#define TSC2007_MEASURE_Z2		(0xf << 4)
-
-#define TSC2007_POWER_OFF_IRQ_EN	(0x0 << 2)
-#define TSC2007_ADC_ON_IRQ_DIS0		(0x1 << 2)
-#define TSC2007_ADC_OFF_IRQ_EN		(0x2 << 2)
-#define TSC2007_ADC_ON_IRQ_DIS1		(0x3 << 2)
-
-#define TSC2007_12BIT			(0x0 << 1)
-#define TSC2007_8BIT			(0x1 << 1)
-
-#define	MAX_12BIT			((1 << 12) - 1)
-
-#define ADC_ON_12BIT	(TSC2007_12BIT | TSC2007_ADC_ON_IRQ_DIS0)
-
-#define READ_Y		(ADC_ON_12BIT | TSC2007_MEASURE_Y)
-#define READ_Z1		(ADC_ON_12BIT | TSC2007_MEASURE_Z1)
-#define READ_Z2		(ADC_ON_12BIT | TSC2007_MEASURE_Z2)
-#define READ_X		(ADC_ON_12BIT | TSC2007_MEASURE_X)
-#define PWRDOWN		(TSC2007_12BIT | TSC2007_POWER_OFF_IRQ_EN)
-
-struct ts_event {
-	u16	x;
-	u16	y;
-	u16	z1, z2;
-};
-
-struct tsc2007 {
-	struct input_dev	*input;
-	char			phys[32];
-	struct delayed_work	work;
-
-	struct i2c_client	*client;
-
-	u16			model;
-	u16			x_plate_ohms;
-
-	bool			pendown;
-	int			irq;
-
-	int			(*get_pendown_state)(void);
-	void			(*clear_penirq)(void);
-};
+#include "tsc2007_private.h"
 
 static inline int tsc2007_xfer(struct tsc2007 *tsc, u8 cmd)
 {
 	s32 data;
 	u16 val;
+   // printk("iicaddress = %x\n",tsc->client->addr);
 
 	data = i2c_smbus_read_word_data(tsc->client, cmd);
 	if (data < 0) {
@@ -107,17 +48,23 @@ static inline int tsc2007_xfer(struct tsc2007 *tsc, u8 cmd)
 
 static void tsc2007_read_values(struct tsc2007 *tsc, struct ts_event *tc)
 {
+
+    int i;
 	/* y- still on; turn on only y+ (and ADC) */
 	tc->y = tsc2007_xfer(tsc, READ_Y);
+	//printk("y = %d\n",tc->y );
 
 	/* turn y- off, x+ on, then leave in lowpower */
 	tc->x = tsc2007_xfer(tsc, READ_X);
+	//printk("x = %d\n",tc->x );
 
 	/* turn y+ off, x- on; we'll use formula #1 */
 	tc->z1 = tsc2007_xfer(tsc, READ_Z1);
 	tc->z2 = tsc2007_xfer(tsc, READ_Z2);
 
 	/* Prepare for next touch reading - power down ADC, enable PENIRQ */
+	tsc2007_xfer(tsc, PWRDOWN);
+	for(i = 0; i < 100; i++);
 	tsc2007_xfer(tsc, PWRDOWN);
 }
 
@@ -171,18 +118,22 @@ static void tsc2007_work(struct work_struct *work)
 	 * and IRQ). Unfortunately such callback is not always available,
 	 * in that case we have rely on the pressure anyway.
 	 */
+	//printk("Work server\n");
 	if (ts->get_pendown_state) {
+		//printk("get down state\n");
 		if (unlikely(!ts->get_pendown_state())) {
 			tsc2007_send_up_event(ts);
 			ts->pendown = false;
+			printk("pen up\n");
 			goto out;
 		}
 
-		dev_dbg(&ts->client->dev, "pen is still down\n");
+		//printk(&ts->client->dev, "pen is still down\n");
 	}
 
 	tsc2007_read_values(ts, &tc);
-
+	printk("tx = %d,ty = %d\n",tc.x,tc.y);
+	
 	rt = tsc2007_calculate_pressure(ts, &tc);
 	if (rt > MAX_12BIT) {
 		/*
@@ -190,7 +141,9 @@ static void tsc2007_work(struct work_struct *work)
 		 * beyond the maximum. Don't report it to user space,
 		 * repeat at least once more the measurement.
 		 */
-		dev_dbg(&ts->client->dev, "ignored pressure %d\n", rt);
+		//printk(&ts->client->dev, "ignored pressure %d\n", rt);
+		//printk("ignored pressure\n");
+		//printk("ts->pendown state: %d", ts->pendown);
 		goto out;
 
 	}
@@ -205,6 +158,7 @@ static void tsc2007_work(struct work_struct *work)
 			ts->pendown = true;
 		}
 
+		//printk("tx = %d,ty = %d\n",tc.x,tc.y);
 		input_report_abs(input, ABS_X, tc.x);
 		input_report_abs(input, ABS_Y, tc.y);
 		input_report_abs(input, ABS_PRESSURE, rt);
@@ -226,31 +180,54 @@ static void tsc2007_work(struct work_struct *work)
 
  out:
 	if (ts->pendown)
+	{
+		//printk("tp work queue: ignore pressure out. \n");
 		schedule_delayed_work(&ts->work,
-				      msecs_to_jiffies(TS_POLL_PERIOD));
+	    msecs_to_jiffies(TS_POLL_PERIOD));
+	}
 	else
+	{
+		printk(" enable irq.\n");
+		ts->set_irq_mode();
 		enable_irq(ts->irq);
+
+	}
+	
 }
 
 static irqreturn_t tsc2007_irq(int irq, void *handle)
 {
-	struct tsc2007 *ts = handle;
-
-	if (!ts->get_pendown_state || likely(ts->get_pendown_state())) {
-		disable_irq_nosync(ts->irq);
-		schedule_delayed_work(&ts->work,
-				      msecs_to_jiffies(TS_POLL_DELAY));
-	}
-
-	if (ts->clear_penirq)
-		ts->clear_penirq();
-
-	return IRQ_HANDLED;
+    struct tsc2007 *ts = handle;
+    
+   // printk("IRQ SERVER\n");
+    //need to modidy.!
+    if(!ts->judge_int_occur())
+    {
+        ts->set_gpio_mode();
+        if (!ts->get_pendown_state || likely(ts->get_pendown_state())) {  //really press down
+           	disable_irq_nosync(ts->irq);
+        	printk("disable irq\n");
+        	schedule_delayed_work(&ts->work,
+        			      msecs_to_jiffies(TS_POLL_DELAY));
+        }       
+        else      //noise    
+        {
+             printk("irq noise . \n");
+             ts->set_irq_mode();
+			 
+        }
+              
+        if (ts->clear_penirq)
+        	ts->clear_penirq();           
+           
+    }
+    return IRQ_HANDLED;    
 }
 
 static void tsc2007_free_irq(struct tsc2007 *ts)
 {
 	free_irq(ts->irq, ts);
+
 	if (cancel_delayed_work_sync(&ts->work)) {
 		/*
 		 * Work was pending, therefore we need to enable
@@ -294,11 +271,15 @@ static int __devinit tsc2007_probe(struct i2c_client *client,
 	ts->x_plate_ohms      = pdata->x_plate_ohms;
 	ts->get_pendown_state = pdata->get_pendown_state;
 	ts->clear_penirq      = pdata->clear_penirq;
-
+	ts->set_irq_mode      = pdata->set_irq_mode;
+	ts->set_gpio_mode     = pdata->set_gpio_mode;
+	ts->judge_int_occur   = pdata->judge_int_occur;
+	
+	
 	snprintf(ts->phys, sizeof(ts->phys),
 		 "%s/input0", dev_name(&client->dev));
 
-	input_dev->name = "TSC2007 Touchscreen";
+	input_dev->name = INPUT_DEV_NAME;
 	input_dev->phys = ts->phys;
 	input_dev->id.bustype = BUS_I2C;
 
