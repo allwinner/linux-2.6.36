@@ -252,6 +252,22 @@ config USB_PXA25X_SMALL
 	default y if USB_ETH
 	default y if USB_G_SERIAL
 
+config USB_SW_SUN3I_UDC0
+	boolean "SoftWinner SUN3I USB Peripheral Controller"
+	depends on USB_SW_USB_MANAGER && (USB_SW_SUN3I_USB0_DEVICE_ONLY || USB_SW_SUN3I_USB0_OTG)
+	select USB_GADGET_DUALSPEED
+	select USB_GADGET_SELECTED
+	help
+	   USB device only
+
+config USB_SW_SUN4I_UDC0
+	boolean "SoftWinner SUN4I USB Peripheral Controller"
+	depends on USB_SW_SUN4I_USB_MANAGER && (USB_SW_SUN4I_USB0_DEVICE_ONLY || USB_SW_SUN4I_USB0_OTG)
+	select USB_GADGET_DUALSPEED
+	select USB_GADGET_SELECTED
+	help
+	   USB device only
+
 config USB_GADGET_R8A66597
 	boolean "Renesas R8A66597 USB Peripheral Controller"
 	select USB_GADGET_DUALSPEED
