@@ -74,7 +74,9 @@ static int timer_set_next_event(unsigned long evt, struct clock_event_device *un
 	/* clear any pending before continue */
 	ctrl = readl(SW_TIMER0_CTL_REG);
 	writel(evt, SW_TIMER0_CNTVAL_REG);
-	writel(ctrl | 0x1, SW_TIMER_INT_STA_REG);
+    ctrl |= (1<<1);
+	writel(ctrl, SW_TIMER0_CTL_REG);
+	writel(ctrl | 0x1, SW_TIMER0_CTL_REG);
 
 	return 0;
 }
@@ -137,7 +139,7 @@ static void softwinner_irq_mask(unsigned int irq)
     }else if(irq < 96){
         irq -= 64;
         writel(readl(SW_INT_ENABLE_REG2) & ~(1<<irq), SW_INT_ENABLE_REG2);
-        writel(readl(SW_INT_MASK_REG2) | (1 << irq), SW_INT_MASK_REG2);    
+        writel(readl(SW_INT_MASK_REG2) | (1 << irq), SW_INT_MASK_REG2);
     }
 }
 
@@ -157,7 +159,7 @@ static void softwinner_irq_unmask(unsigned int irq)
         irq -= 64;
         writel(readl(SW_INT_ENABLE_REG2) | (1<<irq), SW_INT_ENABLE_REG2);
         writel(readl(SW_INT_MASK_REG2) & ~(1 << irq), SW_INT_MASK_REG2);
-    } 
+    }
 }
 
 static struct irq_chip sw_f23_sic_chip = {
@@ -175,11 +177,11 @@ void __init softwinner_init_irq(void)
     writel(0, SW_INT_ENABLE_REG0);
     writel(0, SW_INT_ENABLE_REG1);
     writel(0, SW_INT_ENABLE_REG2);
-    
+
     writel(0xffffffff, SW_INT_MASK_REG0);
     writel(0xffffffff, SW_INT_MASK_REG1);
     writel(0xffffffff, SW_INT_MASK_REG2);
-    
+
     writel(0xffffffff, SW_INT_IRQ_PENDING_REG0);
     writel(0xffffffff, SW_INT_IRQ_PENDING_REG1);
     writel(0xffffffff, SW_INT_IRQ_PENDING_REG2);
@@ -191,7 +193,7 @@ void __init softwinner_init_irq(void)
     writel(0x01, SW_INT_PROTECTION_REG);
     /*config the external interrupt source type*/
     writel(0x00, SW_INT_NMI_CTRL_REG);
-    
+
     for (i = SW_INT_START; i < SW_INT_END; i++) {
         set_irq_chip(i, &sw_f23_sic_chip);
         set_irq_handler(i, handle_level_irq);
@@ -254,7 +256,9 @@ static void __init softwinner_timer_init(void)
         setup_irq(SW_INT_IRQNO_TIMER0, &softwinner_timer_irq);
 
 	    /* Enable time0 interrupt */
-        writel(0x1, SW_TIMER_INT_CTL_REG);
+        val = readl(SW_TIMER_INT_CTL_REG);
+        val |= (1<<0);
+        writel(val, SW_TIMER_INT_CTL_REG);
 
         timer0_clockevent.mult = div_sc(2048, NSEC_PER_SEC, timer0_clockevent.shift);
         timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
