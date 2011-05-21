@@ -1146,5 +1146,11 @@ config RAMOOPS
 	  This enables panic and oops messages to be logged to a circular
 	  buffer in RAM where it can be read back at some later point.
 
+
+# menuconfig SUN4I_G2D
+#	---help---
+
+source "drivers/char/sun4i_g2d/Kconfig"
+
 endmenu
 

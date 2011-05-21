@@ -140,3 +140,6 @@ $(obj)/defkeymap.c: $(obj)/%.c: $(src)/%.map
 	rm $@.tmp
 
 endif
+
+obj-$(CONFIG_SUN4I_G2D) += sun4i_g2d/
+
