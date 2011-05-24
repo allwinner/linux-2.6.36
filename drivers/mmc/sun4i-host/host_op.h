@@ -1,0 +1,239 @@
+/*
+*********************************************************************************************************
+*                                                    eBase
+*                                           the Abstract of Hardware
+*
+*                                   (c) Copyright 2006-2010, holigun China
+*                                                All Rights Reserved
+*
+* File        :  host_op.h
+* Date        :  2012-11-25 14:24:12
+* Author      :  Aaron.Maoye
+* Version     :  v1.00
+* Description:
+*                            Register-based Operation for SD3.0 Controller module, aw1620
+* History     :
+*      <author>         <time>                  <version >      <desc>
+*       Maoye           2012-11-25 14:25:25     1.0             create this file
+*
+*********************************************************************************************************
+*/
+#ifndef _SUN4I_HOST_OP_H_
+#define _SUN4I_HOST_OP_H_ "host_op.h"
+
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+#include <linux/init.h>
+#include <linux/io.h>
+#include <linux/device.h>
+#include <linux/interrupt.h>
+#include <linux/delay.h>
+#include <linux/err.h>
+#include <linux/clk.h>
+#include <linux/platform_device.h>
+#include <linux/cpufreq.h>
+#include <linux/spinlock.h>
+#include <linux/scatterlist.h>
+#include <linux/dma-mapping.h>
+#include <linux/slab.h>
+
+#include <linux/mmc/host.h>
+#include <linux/mmc/mmc.h>
+#include <linux/mmc/core.h>
+
+#include <mach/dma.h>
+//#include <mach/clock.h>
+//#include <mach/gpio.h>
+//#include <mach/platform.h>
+
+#define AW1623_FPGA
+
+#define DRIVER_NAME "f20-smc"
+/* SMC Select Mask */
+#define  SMC_GROUP_0_ENB        0x10
+#define  SMC_GROUP_1_ENB        0x1000
+#define  SMC_GROUP_2_ENB        0x100000
+#define  SMC_GROUP_3_ENB        0x10000000
+
+#define CARD_DETECT_BY_GPIO     (1)
+#define CARD_DETECT_BY_DATA3    (2)        /* mmc detected by status of data3 */
+#define CARD_ALWAYS_PRESENT     (3)        /* mmc always present, without detect pin */
+
+/* SDMMC Control registers definition */
+#define  SMC0_BASE              0x01C0f000
+#define  SMC1_BASE              0x01C10000
+#define  SMC2_BASE              0x01C11000
+#define  SMC3_BASE              0x01C12000
+
+/* interrupt number */
+#define  INTC_IRQNO_SMC0       32
+#define  INTC_IRQNO_SMC1       33
+#define  INTC_IRQNO_SMC2       34
+#define  INTC_IRQNO_SMC3       35
+
+/* 
+ * SDMMC PINS MAPPING:
+ * SDC0 - D1-PF0, D0-PF1, CLK-PF2, CMD-PF3, D3-PF4, D4-PF5
+ * SDC1-A - CMD-PE12, CLK-PE13, D0-PE14, D1-PE15, D2-PE16, D3-PE17
+ * SDC1-B - CMD-PC3, CLK-PC5, DATA-PC12,13,14,15
+ * SDC2-A - CMD-PC6, CLK-PC7, D0-PC8, D1-PC9, D2-PC10, D3-PC11
+ * SDC2-B - D1-PF0, D0-PF1, CLK-PF2, CMD-PF3, D3-PF4, D4-PF5
+ * SDC3-A - D3-PA4, D2-PA5, D1-PA6, D0-PA7, CLK-PA8, CMD-PA9
+ * SDC3-B - CMD-PE26, CLK-PE27, D0-PE28, D1-PE29, D2-PE30, D3-PE31
+ */
+ 
+/* register operation */
+#define  sdc_write(addr, val)   writel(val, addr)
+#define  sdc_read(addr)         readl(addr)
+
+#ifdef CONFIG_SUN4I_MMC_SW_DBG         
+#define SMC_DBG         1
+#define SMC_DBG_ERR     2
+#define awsmc_dbg(...)  do {                                        \
+                            if(smc_debug&SMC_DBG) {                 \
+                                printk("[mmc]: "__VA_ARGS__);  \
+                            }                                       \
+                        } while(0)
+#define awsmc_dbg_err(...)  do {                                                            \
+                                if(smc_debug&SMC_DBG_ERR) {                                 \
+                                    printk("[mmc]: %s(L%d): ", __FUNCTION__, __LINE__);  \
+                                    printk(__VA_ARGS__);                                  \
+                                }                                                           \
+                            } while(0)
+#define awsmc_msg(...)  do {printk("[mmc]: "__VA_ARGS__);} while(0)
+
+#define ENTER()  do {if(smc_debug&SMC_DBG) printk("[mmc]:-Enter-: %s, %s:%d\n", __FUNCTION__, __FILE__, __LINE__);} while(0)
+#define LEAVE()  do {if(smc_debug&SMC_DBG) printk("[mmc]:-Leave-: %s, %s:%d\n", __FUNCTION__, __FILE__, __LINE__);} while(0)
+
+#else  //#ifdef AWSMC_DBG
+
+#define awsmc_dbg(...)
+#define awsmc_dbg_err(...) do {                                                        \
+                                printk("[mmc]: %s(L%d): ", __FUNCTION__, __LINE__);  \
+                                printk(__VA_ARGS__);                                  \
+                            } while(0)
+#define awsmc_msg(...) do {printk("[mmc]: "__VA_ARGS__);} while(0)
+#define ENTER()
+#define LEAVE()
+
+#endif  //#ifdef AWSMC_DBG
+
+
+struct awsmc_pdata {
+	unsigned int	detect_invert : 1;   /* set => detect active high. */
+
+	unsigned int	gpio_detect;
+	unsigned long	ocr_avail;
+	void            (*set_power)(unsigned char power_mode, unsigned short vdd);
+};
+
+struct awsmc_host;
+struct mmc_request;
+struct smc_idma_des;
+
+typedef struct {
+    void    (*send_request)(struct awsmc_host* host, struct mmc_request* request);
+    s32     (*finalize_requset)(struct awsmc_host* host);
+    void    (*check_status)(struct awsmc_host* host);
+} sdc_req_ops;
+
+struct awsmc_host {
+    
+    struct platform_device      *pdev;
+    struct mmc_host             *mmc;
+    
+    void __iomem	            *smc_base;          /* sdc I/O base address  */       
+     
+    struct resource	            *smc_base_res;      /* resources found       */
+    
+    /* clock management */
+    struct clk                  *hclk;              //
+    struct clk                  *mclk;              //
+    u32                         clk_source;         // clock, source, 0-video pll, 1-ac320 pll
+    
+    u32                         power_save;         // power save, 0-normal, 1-power save
+    u32                         mod_clk;            // source clock of controller
+    u32                         cclk;               // requested card clock frequence
+    u32                         real_cclk;          // real card clock to output
+    u32                         bus_width;
+    
+    /* irq */
+    int                         irq;                // irq number
+    volatile u32				irq_flag;
+    volatile u32                sdio_int;
+    volatile u32                int_sum;
+    
+    int                         dma_no;             //dma number
+    volatile u32                dodma;              //transfer with dma mode
+    volatile u32                todma;
+    volatile u32                dma_done;           //dma complete
+    volatile u32                ahb_done;           //dma complete
+    volatile u32                dataover;           //dma complete
+    struct smc_idma_des*        pdes;
+    
+    struct mmc_request	        *mrq;
+    sdc_req_ops                 ops;
+    
+    volatile u32                with_autostop;
+    volatile u32                wait;
+#define SDC_WAIT_NONE           (1<<0)
+#define SDC_WAIT_CMD_DONE       (1<<1)
+#define SDC_WAIT_DATA_OVER      (1<<2)
+#define SDC_WAIT_AUTOCMD_DONE   (1<<3)
+#define SDC_WAIT_READ_DONE      (1<<4)
+#define SDC_WAIT_DMA_ERR        (1<<5)
+#define SDC_WAIT_ERROR          (1<<6)
+#define SDC_WAIT_FINALIZE       (1<<7)
+
+    volatile u32                error;
+    spinlock_t		            lock;
+	struct tasklet_struct       tasklet;
+	
+    volatile u32                present;
+    volatile u32                change;
+    
+    struct timer_list           cd_timer;
+    s32                         cd_gpio;
+    s32                         cd_mode;
+    u32                         pio_hdle;
+    
+#ifdef CONFIG_CPU_FREQ
+	struct notifier_block       freq_transition;
+#endif
+
+#ifdef CONFIG_DEBUG_FS
+	struct dentry		        *debug_root;
+	struct dentry		        *driver_version;
+	struct dentry		        *host_info;
+	struct dentry		        *debug_level;
+	struct dentry		        *debug_regs;
+#endif
+};
+
+
+extern void _eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes);
+
+static __inline void eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes)
+{
+    _eLIBs_CleanFlushDCacheRegion(adr, bytes + (1 << 5) * 2 - 2);
+}
+
+#define MEM_ADDR_IN_SDRAM(addr) ((addr) >= 0x80000000)
+
+#define RESSIZE(res)        (((res)->end - (res)->start)+1)
+
+void awsmc_dumpreg(struct awsmc_host* smc_host);
+
+#include <mach/platform.h>
+#if 0 
+static inline void uart_send_char(char c)
+{
+    while (!(sdc_read(SW_VA_UART0_IO_BASE + 0x7c) &  (1<<1)));
+	sdc_write(SW_VA_UART0_IO_BASE, c);
+}
+#else
+#define uart_send_char(c) 
+#endif
+
+#endif

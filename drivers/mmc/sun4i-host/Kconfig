@@ -1,0 +1,19 @@
+#
+# MMC/SD host controller drivers
+#
+
+comment "MMC/SD/SDIO Host Controller Drivers"
+
+config SUN4I_MMC_SW
+	tristate "SW SUN4I Card Interface support"
+	depends on MMC
+	help
+	  This selects Allwinner SUN4I card support.  If you have an ARM(R)
+	  platform with a Multimedia Card slot, say Y or M here.
+
+	  If unsure, say N.
+	  
+config SUN4I_MMC_SW_DBG
+	tristate "SW SUN4I Card Host driver debug control"
+	depends on SUN4I_MMC_SW
+
