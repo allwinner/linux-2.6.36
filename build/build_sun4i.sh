@@ -22,6 +22,7 @@ arm-none-linux-gnueabi-objcopy -R .note.gnu.build-id -S -O binary vmlinux vmlinu
 
 cp vmlinux.bin output/bImage
 cp arch/arm/boot/zImage output/zImage
+cp arch/arm/boot/uImage output/uImage
 
 
 #
