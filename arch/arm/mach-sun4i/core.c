@@ -33,6 +33,12 @@
 
 #include "core.h"
 
+#define AW1623_FPGA
+#ifdef AW1623_FPGA
+    #define TMR_INTER_VAL   320
+#else
+    #define TMR_INTER_VAL   20
+#endif
 
 /**
  * Global vars definitions
@@ -45,7 +51,7 @@ static void timer_set_mode(enum clock_event_mode mode, struct clock_event_device
 	switch (mode) {
 	case CLOCK_EVT_MODE_PERIODIC:
 		printk("timer_set_mode: periodic\n");
-		writel(20, SW_TIMER0_INTVAL_REG); /* interval (999+1) */
+		writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG); /* interval (999+1) */
 		ctrl = readl(SW_TIMER0_CTL_REG);
 		ctrl &= ~(1<<7);    //continuous mode
                 ctrl |= 1;  //enable
@@ -244,7 +250,7 @@ static void __init softwinner_timer_init(void)
 {
         volatile u32  val = 0;
 
-        writel(20, SW_TIMER0_INTVAL_REG);
+        writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG);
         val = 0;
         writel(val, SW_TIMER0_CTL_REG);
         val = readl(SW_TIMER0_CTL_REG); /* 2KHz */
@@ -263,7 +269,6 @@ static void __init softwinner_timer_init(void)
         timer0_clockevent.mult = div_sc(2048, NSEC_PER_SEC, timer0_clockevent.shift);
         timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
         timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &timer0_clockevent);
-
         timer0_clockevent.cpumask = cpumask_of(0);
         clockevents_register_device(&timer0_clockevent);
 }

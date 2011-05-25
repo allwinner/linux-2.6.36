@@ -201,6 +201,12 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
     TMR_REG_IRQ_STAT = (1<<1);
     #endif
 
+    /* time value timer must larger than 50 cycles at least, suggested by david 2011-5-25 11:41 */
+    if(delta < 50)
+    {
+        delta = 50;
+    }
+
     /* disable timer and clear pending first    */
     TMR_REG_TMR1_CTL &= ~(1<<0);
     /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
