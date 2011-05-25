@@ -5,6 +5,6 @@ obj-y += dma/
 obj-y += clock/
 obj-y += pin/
 obj-y += pm/
-obj-y += cache.o core.o
+obj-y += cache.o core.o devices.o
 
 

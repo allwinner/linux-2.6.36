@@ -57,6 +57,12 @@ config ANDROID_PMEM
 	bool "Android pmem allocator"
 	default y
 
+config ANDROID_PMEM_SIZE
+	int "Android pmem size(in MB)"
+	default 16
+	help
+	  pmem size in MB. We have 2 pmem internal, the real size reserved mem is x2
+
 config ATMEL_PWM
 	tristate "Atmel AT32/AT91 PWM support"
 	depends on AVR32 || ARCH_AT91SAM9263 || ARCH_AT91SAM9RL || ARCH_AT91CAP9
