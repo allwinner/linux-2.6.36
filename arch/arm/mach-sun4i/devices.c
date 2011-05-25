@@ -76,7 +76,11 @@ static int __init init_pmem_devs(void)
 	void *pmem_base = NULL;
 	unsigned long size = CONFIG_ANDROID_PMEM_SIZE;
 
-	pmem_base = alloc_bootmem(size * 2 * 1024 * 1024);
+	pmem_base = (void *)CONFIG_ANDROID_PMEM_BASE;
+
+	pr_info("[pmem] base = %p, size = %lu\n", pmem_base, size);
+
+	//reserve_bootmem(CONFIG_ANDROID_PMEM_BASE, size * 2 * 1024 * 1024, BOOTMEM_DEFAULT);
 
 	if (!pmem_base) {
 		pr_err("[pmem] alloc bootmem failed, size=%lu\n",

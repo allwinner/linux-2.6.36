@@ -57,6 +57,12 @@ config ANDROID_PMEM
 	bool "Android pmem allocator"
 	default y
 
+config ANDROID_PMEM_BASE
+	hex "Android pmem base address"
+	default 0x46000000
+	help
+	  pmem base address
+
 config ANDROID_PMEM_SIZE
 	int "Android pmem size(in MB)"
 	default 16
