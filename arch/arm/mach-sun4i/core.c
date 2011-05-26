@@ -218,6 +218,7 @@ static struct map_desc softwinner_io_desc[] __initdata = {
 	{ SW_VA_PORTC_IO_BASE,       __phys_to_pfn(SW_PA_PORTC_IO_BASE),          SZ_1K,     MT_DEVICE },
 	{ SW_VA_TIMERC_IO_BASE,      __phys_to_pfn(SW_PA_TIMERC_IO_BASE),         SZ_1K,     MT_DEVICE },
 	{ SW_VA_UART0_IO_BASE,       __phys_to_pfn(SW_PA_UART0_IO_BASE),          SZ_1K,     MT_DEVICE },
+	{ SW_VA_SID_IO_BASE,         __phys_to_pfn(SW_PA_SID_IO_BASE), SZ_1K, MT_DEVICE },
 };
 
 void __init softwinner_map_io(void)

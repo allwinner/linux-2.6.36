@@ -14,6 +14,7 @@
 #include <linux/clockchips.h>
 #include <linux/bootmem.h>
 #include <linux/fs.h>
+#include <linux/proc_fs.h>
 #include <linux/android_pmem.h>
 
 #include <asm/clkdev.h>
@@ -122,6 +123,33 @@ int __init aw_pdevs_init(void)
 
 	return 0;
 }
-
 arch_initcall(aw_pdevs_init);
+
+static int read_chip_sid(char* page, char** start, off_t off, int count,
+	int* eof, void* data)
+{
+
+	return sprintf(page, "%08x-%08x-%08x-%08x\n", 
+		readl(SW_VA_SID_IO_BASE + 0x0),
+		readl(SW_VA_SID_IO_BASE + 0x4),
+		readl(SW_VA_SID_IO_BASE + 0x8),
+		readl(SW_VA_SID_IO_BASE + 0xc));
+}
+
+
+static int __init platform_proc_init(void)
+{
+	struct proc_dir_entry *sid_entry = NULL;
+
+	sid_entry = create_proc_read_entry("sid", 0400,
+			NULL, read_chip_sid, NULL);
+
+	if (!sid_entry) {
+		pr_err("Create sid at /proc failed\n");
+	}		
+
+	return 0;
+}
+module_init(platform_proc_init);
+
 
