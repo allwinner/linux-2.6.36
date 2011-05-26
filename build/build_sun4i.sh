@@ -42,7 +42,7 @@ build_kernel()
 
     fi
 
-    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} uImage modules all
+    make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} uImage modules
 
     rm -rf output/*
     ${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux output/bImage
