@@ -18,7 +18,13 @@ export STRIP=${CROSS_COMPILE}strip
 export OBJCOPY=${CROSS_COMPILE}objcopy
 export OBJDUMP=${CROSS_COMPILE}objdump
 
-KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`
+#KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`
+KERNEL_VERSION="2.6.36-android+"
+
+if [ -r include/generated/utsrelease.h ]; then
+    KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`
+fi
+
 LICHEE_KDIR=`pwd`
 LICHEE_MOD_DIR=${LICHEE_KDIR}/output/lib/modules/${KERNEL_VERSION}
 CONFIG_CHIP_ID=1123
