@@ -1,0 +1,56 @@
+HOSTDRIVER_DIR ?= $(shell pwd)/../..
+-include $(HOSTDRIVER_DIR)/platform/defs.inc
+include $(HOSTDRIVER_DIR)/platform/$(PLATFORM)/platform.inc
+include $(HOSTDRIVER_DIR)/common.inc
+
+
+V?=0
+
+ifeq ($V,0)
+Q=@
+endif	
+
+CFLAGS += $(filter-out -pipe, $(shell echo 'blorg:;@echo $$(CFLAGS) $$(MODFLAGS)' | $(MAKE) -s -C $(KERNEL_DIR) -f Makefile -f - blorg))
+CFLAGS += $(DEFS) $(WIFI_FLAGS) $(DEBUG_FLAGS) $(PLATFORM_FLAGS)
+CFLAGS += $(addprefix -I$(HOSTDRIVER_DIR)/, $(WIFI_ENGINE_INC) $(NANO_SDIO_INC) $(NANO_IF_INC) $(PLATFORM_INC))
+CFLAGS += $(KERNEL_INC) $(TRANSPORT_FLAGS)
+
+OBJ = $(addprefix $(HOSTDRIVER_DIR)/, $(NANO_SDIO_OBJ) $(PLATFORM_OBJ))
+
+# Ugly fix for mm6p_clock.o
+all:: oo nano_sdio.mod
+
+nano_sdio.mod: $(OBJ)
+	@echo LD $(notdir $@)
+	$(Q)$(LD) -r $^ -o $@
+
+oo:
+	$(Q)for oo in $(OO_FILES); do \
+		cp $(HOSTDRIVER_DIR)/$$oo.oo $(HOSTDRIVER_DIR)/$$oo.o; \
+	done
+
+
+%.o: %.c
+	@echo CC $(notdir $<)
+	$(Q)$(CC) $(CFLAGS) $< -c -o $@
+
+%.d: %.c
+	@echo DEPS $(notdir $<)
+	$(Q)$(CC) $(CFLAGS) -MM -MG $< | \
+	sed 's%^\(.*\)\.o\:%$(dir $@)\1.d $(dir $@)\1.o:%' > $@	
+
+clean:
+	rm -f $(OBJ)
+	rm -f $(patsubst %.o,%.d,$(OBJ))
+	rm -f *.mod *~ *.ko
+
+strip:
+	$(STRIP) -g nano_sdio.mod
+
+
+
+
+ifneq ($(MAKECMDGOALS),clean)
+-include $(OBJ:.o=.d)
+endif
+

@@ -1,0 +1,73 @@
+HostDriverRegistry 
+ version: FA220C46 
+ general 
+  macAddress: 00:50:C2:6A:F0:60 
+ network 
+  basic 
+   enableCoredump: 0 
+   restartTargetAfterCoredump: 0 
+   timeout: 800 
+   connectionPolicy 
+    fastScan: 1 
+    defaultBssType: 1 
+    joinTimeout: 4 
+    probeDelay: 1 
+    normalTimeouts 
+     minChannelTime: 10 
+     maxChannelTime: 400 
+    fastTimeouts 
+     minChannelTime: 10 
+     maxChannelTime: 400 
+    backgroundScanPeriod: 5000 
+    backgroundScanMinChannelTime: 2 
+    backgroundScanMaxChannelTime: 10 
+    scanResultLifetime: 20000 
+    periodicScanInterval: 2000 
+   supportedRateSet: 02,04,0B,0C,12,16,18,24,30,48,60,6C 
+   multiDomainCapabilityEnabled: 1 
+   multiDomainCapabilityEnforced: 0 
+   regionalChannels: 14 01,02,03,04,05,06,07,08,09,0A,0B,0C,0D,0E 
+   desiredSSID: FF 
+   desiredBSSID: FF:FF:FF:FF:FF:FF 
+   lvl1AdaptiveTxRate: 3 
+   enableWMM: 0 
+   wmmPsPeriod: 0 
+   QoSinfo 
+    ac_vo: 1 
+    ac_vi: 1 
+    ac_bk: 1 
+    ac_be: 1 
+   qosMaxServicePeriodLength: 0 
+   linkSupervision
+    enable: 1
+    beaconCount: 20
+    beaconTimeout: 0
+    TxFailureCount: 0
+    roundtripCount: 0
+    roundtripSilent: -1
+   activeScanMode: 0 
+   enableBackgroundScan: 0 
+   scanPolicy 
+    ssid: FF 
+    bssid: FF:FF:FF:FF:FF:FF 
+    bssType: 3 
+   enableBTCoex: 0 
+   activityTimeout: 0 
+  ibssBeacon 
+   dtim_period: 0 
+   beacon_period: 100 
+   tx_channel: 03 001 1 
+   atim_set: 06 002  
+   supportedRateSet: 82,84,8B,8C,12,96,18,24,30,48,60,6C 
+ powerManagement 
+  mode: 1 
+  enableIdlePs: 1 
+  enablePsPoll: 0 
+  receiveAll_DTIM: 1 
+  listenInterval: 20 
+  psTrafficTimeout: 5 
+ hostDriver 
+  delayAfterReset: 0 
+  enableJTagBoot: 1 
+  enable20MHzSdioClock: 0 
+  txPktWinSize: 6 
