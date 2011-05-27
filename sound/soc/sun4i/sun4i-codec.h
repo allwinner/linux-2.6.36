@@ -1,0 +1,140 @@
+
+#ifndef _SW_CODEC_H
+#define _SW_CODEC_H
+
+
+//Codec Register
+#define CODEC_BASSADDRESS         (0x01c23c00)
+#define SW_DAC_DPC                (0x00)
+#define SW_DAC_FIFOC              (0x04)
+#define SW_DAC_FIFOS              (0x08)
+#define SW_DAC_TXDATA             (0x0c)
+#define SW_DAC_ACTL               (0x10)
+#define SW_DAC_TUNE               (0x14)
+#define SW_DAC_DEBUG              (0x18)
+#define SW_ADC_FIFOC              (0x1c)
+#define SW_ADC_FIFOS              (0x20)
+#define SW_ADC_RXDATA             (0x24)
+#define SW_ADC_ACTL               (0x28)
+#define SW_ADC_DEBUG              (0x2c)
+#define SW_DAC_TXCNT              (0x30)
+#define SW_ADC_RXCNT              (0x34)
+#define SW_CODEC_REGS_NUM         (13)
+
+#define DAIFMT_16BITS             (16)
+#define DAIFMT_20BITS             (20)
+
+#define DAIFMT_BS_MASK            (~(1<<16))  //FIFO big small mode mask
+#define DAIFMT_BITS_MASK          (~(1<<6))		//FIFO Bits slect mask
+#define SAMPLE_RATE_MASK          (~(7<<29))  //Sample Rate slect mask
+
+#define DAC_EN                    (31)
+#define DIGITAL_VOL               (12)
+
+
+#define LAST_SE                   (17)
+#define TX_FIFO_MODE              (16)
+#define TX_TRI_LEVEL              (12)
+#define DAC_MODE                  (7)
+#define TASR                      (6)
+#define DAC_DRQ                   (4)
+#define DAC_FIFO_FLUSH            (0)
+
+#define VOLUME                    (0)
+#define PA_MUTE                   (6)
+#define MIXPAS                    (7)
+#define DACPAS                    (8)
+#define MIXEN                     (30)
+#define DACAEN_L                  (30)
+#define DACAEN_R                  (31)
+
+#define ADC_DIG_EN                (28)
+#define RX_FIFO_MODE              (16)
+#define RX_TRI_LEVEL              (12)
+#define ADC_MODE                  (7)
+#define RASR                      (6)
+#define ADC_DRQ                   (4)
+#define ADC_FIFO_FLUSH            (0)
+
+#define  ADC_EN                    (30)
+#define  ADC_LF_EN                (31)
+#define  ADC_RI_EN                (30)
+#define  MIC1_EN                  (29)
+#define  MIC2_EN                  (28)
+#define  VMIC_EN                  (27)
+#define  MIC_GAIN                 (25)
+#define  ADC_SELECT               (17)
+#define  PA_ENABLE                (4)
+#define  HP_DIRECT                (3)
+
+
+enum m1_codec_config {
+	CMD_MIC_SEL =0,
+	CMD_ADC_SEL,
+};
+
+
+void  __iomem *baseaddr;
+//void  __iomem *clkbaseaddr;
+#define AUDIO_RATE_DEFAULT	44100
+#define ST_RUNNING		(1<<0)
+#define ST_OPENED		(1<<1)
+//struct sw_dma_client 
+//{
+//	char *name;
+//};
+struct sw_pcm_dma_params {
+	struct sw_dma_client *client;	/* stream identifier */
+	unsigned int channel;				/* Channel ID */
+	dma_addr_t dma_addr;
+	int dma_size;			/* Size of the DMA transfer */
+};
+
+
+#define codec_rdreg(reg)	    readl((baseaddr+(reg)))
+#define codec_wrreg(reg,val)  writel((val),(baseaddr+(reg)))
+
+/*
+* Convenience kcontrol builders
+*/
+#define CODEC_SINGLE_VALUE(xreg, xshift, xmax,	xinvert)\
+		((unsigned long)&(struct codec_mixer_control)\
+		{.reg	=	xreg,	.shift	=	xshift,	.rshift	=	xshift,	.max	=	xmax,\
+   	.invert	=	xinvert})
+
+
+
+#define CODEC_SINGLE(xname,	reg,	shift,	max,	invert)\
+{	.iface	= SNDRV_CTL_ELEM_IFACE_MIXER, .name = xname,\
+	.info	= snd_codec_info_volsw,	.get = snd_codec_get_volsw,\
+	.put	= snd_codec_put_volsw,\
+	.private_value	= CODEC_SINGLE_VALUE(reg, shift, max, invert)}
+	
+	
+
+   	
+
+#define CODEC_ENUM(xname, reg, where, shift, mask, invert)\
+{   .iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = xname,\
+    .info  = snd_codec_info_enum,\
+    .get   = snd_codec_get_enum,\
+    .put   = snd_codec_put_enum,\
+    .private_value = where|(reg<<5)|(shift<<11)|(mask<<16)|(invert<<20)}
+
+
+/*	mixer control*/	
+struct	codec_mixer_control{
+	int	min;
+	int     max;
+	int     where;
+	unsigned int mask;
+	unsigned int reg;
+	unsigned int rreg;
+	unsigned int shift;
+	unsigned int rshift;
+	unsigned int invert;
+	unsigned int value;
+};
+
+extern int __init snd_chip_codec_mixer_new(struct snd_card *card);
+#endif

@@ -1,0 +1,29 @@
+#------------------------------------------------------------
+# sun4i alsa audio out driver
+#------------------------------------------------------------
+
+#------------------------------------------------------------
+#@version: Alsa_Vers1_0
+#@Author : Cplan, xuzhengdi
+#@Date   : 2011-4-07
+#@Description:
+#    The Final version of sound card driver, all functions 
+#have been tested passed!
+#
+#------------------------------------------------------------
+#@version: Alsa_Vers0_02
+#@Author : Cplan, xuzhengdi, Truby.Zong
+#@Date   : 2011-3-26
+#@Description:
+#    Fixed I2S-HDMI audio sample rate bug, all sample rate 
+# test passed
+
+#------------------------------------------------------------
+#@version: Alsa_Vers0_01
+#@Author : Cplan, xuzhengdi, Truby.Zong
+#@Date   : 2011-3-21
+#@Description:
+#    The first version of audio out dirver, including APB codec
+# and I2s-hdmi audio out, all test passed!
+#-------------------------------------------------------------
+
