@@ -1,41 +1,60 @@
+/*
+*********************************************************************************************************
+*                                                    LINUX-KERNEL
+*                                        AllWinner Linux Platform Develop Kits
+*                                                   Kernel Module
+*
+*                                    (c) Copyright 2006-2011, kevin.z China
+*                                             All Rights Reserved
+*
+* File    : clock.h
+* By      : kevin.z
+* Version : v1.0
+* Date    : 2011-5-13 16:43
+* Descript:
+* Update  : date                auther      ver     notes
+*********************************************************************************************************
+*/
+#ifndef __AW_CLOCK_H__
+#define __AW_CLOCK_H__
 
-#ifndef _AW_CLOCK_H_
-#define _AW_CLOCK_H_
+#include <linux/kernel.h>
+#include "aw_ccu.h"
+
+/* define clock type            */
+typedef enum __CCU_CLK_TYPE
+{
+    CCU_CLK_TYPE_SYS,
+    CCU_CLK_TYPE_MOD,
+
+} __ccu_clk_type_e;
+
+typedef enum __CCU_CLK_CHANGE
+{
+    CCU_CLK_CHANGE_NONE,
+    CCU_CLK_CHANGE_PREPARE,
+    CCU_CLK_CHANGE_DONE,
+
+} __ccu_clk_change_e;
 
 
+typedef struct clk
+{
+    __aw_ccu_clk_t  *clk;       /* clock handle from ccu csp                            */
+    __s32           usr_cnt;    /* user count                                           */
+    __s32           hash;       /* hash value, for fast search without string compare   */
+
+    __aw_ccu_clk_t  *(*get_clk)(__s32 id);
+                                /* set clock                                            */
+    __aw_ccu_err_e  (*set_clk)(__aw_ccu_clk_t *clk);
+                                /* get clock                                            */
+    struct clk      *parent;    /* parent clock node pointer                            */
+    struct clk      *child;     /* child clock node pinter                              */
+    struct clk      *left;      /* left brother node pointer                            */
+    struct clk      *right;     /* right bother node pointer                            */
+
+} __ccu_clk_t;
 
 
-
-struct clk{
-
-    s16 clk_id;       // clock id ,  get at the initial
-    s16 parent_id;    // source id , get at the initial
-    
-    u8 usrcnt;       // source clock counter, counter the num of children clock tree
-    u8 used;				// reference, resource lock.
-    s16 onoff; // mod clock ,gate on or off 1: on, 0: off    ; source clock
-    
-    struct clk *parent;//get at the initial,if no parent,set NULL.
-    const char *name;// name of moudle,get at the intial
-    
-    u32 freq;  // src clock, get at the initial
-    u16 div;   // module clock, divide ratio, get at the initial
-    u16 div_max; // module clock divider max 
-    
-    
-    int  (*enable)(struct clk *clk);  // clock on,this  function must be called after clk_get
-    void (*disable)(struct clk *clk); // clock off,when module quit or for power managment    
-    int  (*set_parent)(struct clk *parent, struct clk *clk); // it will disable clock,change,then enable clock.
-    struct clk* (*get_parent)(struct clk *clk); // get the parent of clock,NULL means no parent.
-    int (*set_rate)(struct clk *clk, unsigned long rate);//sys clk: frequency; mod clk: divider.
-    unsigned long (*get_rate)(struct clk *clk);   // sys clk: frequency; mod clk: divider.
-    int (*mod_reset)(struct clk *clk, int reset); // for image0-1, scale0-1, usb0-2, etc...
-  //  int (*set_bias_current)(struct clk *clk, unsigned int bias); // for future 
-
-    struct list_head node; /* parent list, temporary not used */
-
-};
-
-
-#endif
+#endif  /* #ifndef __AW_CLOCK_H__ */
 
