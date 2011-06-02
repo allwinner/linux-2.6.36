@@ -175,7 +175,7 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_mod_clk_e id);
 static __s64 mod_clk_get_rate(__aw_ccu_mod_clk_e id);
 static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id);
 
-static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent);
+static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent);
 static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e status);
 static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate);
 static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset);
@@ -413,11 +413,13 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             switch(aw_ccu_reg->Lcd0Ch0Clk.ClkSrc)
             {
                 case 0:
-                case 2:
                     return AW_SYS_CLK_PLL3;
                 case 1:
-                case 3:
                     return AW_SYS_CLK_PLL7;
+                case 2:
+                    return AW_SYS_CLK_PLL3X2;
+                case 3:
+                    return AW_SYS_CLK_PLL7X2;
                 default:
                     return AW_SYS_CLK_NONE;
             }
@@ -428,11 +430,13 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             switch(aw_ccu_reg->Lcd1Ch0Clk.ClkSrc)
             {
                 case 0:
-                case 2:
                     return AW_SYS_CLK_PLL3;
                 case 1:
-                case 3:
                     return AW_SYS_CLK_PLL7;
+                case 2:
+                    return AW_SYS_CLK_PLL3X2;
+                case 3:
+                    return AW_SYS_CLK_PLL7X2;
                 default:
                     return AW_SYS_CLK_NONE;
             }
@@ -460,10 +464,15 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             switch(aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Src)
             {
                 case 0:
-                case 2:
                     return AW_SYS_CLK_PLL3;
-                default:
+                case 1:
                     return AW_SYS_CLK_PLL7;
+                case 2:
+                    return AW_SYS_CLK_PLL3X2;
+                case 3:
+                    return AW_SYS_CLK_PLL7X2;
+                default:
+                    return AW_SYS_CLK_NONE;
             }
             return AW_SYS_CLK_NONE;
         }
@@ -472,10 +481,15 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             switch(aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Src)
             {
                 case 0:
-                case 2:
                     return AW_SYS_CLK_PLL3;
-                default:
+                case 1:
                     return AW_SYS_CLK_PLL7;
+                case 2:
+                    return AW_SYS_CLK_PLL3X2;
+                case 3:
+                    return AW_SYS_CLK_PLL7X2;
+                default:
+                    return AW_SYS_CLK_NONE;
             }
             return AW_SYS_CLK_NONE;
         }
@@ -486,11 +500,13 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
                 case 0:
                     return AW_SYS_CLK_HOSC;
                 case 1:
-                case 5:
                     return AW_SYS_CLK_PLL3;
                 case 2:
-                case 6:
                     return AW_SYS_CLK_PLL7;
+                case 5:
+                    return AW_SYS_CLK_PLL3X2;
+                case 6:
+                    return AW_SYS_CLK_PLL7X2;
                 default:
                     return AW_SYS_CLK_NONE;
             }
@@ -498,16 +514,18 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
         }
         case AW_MOD_CLK_CSI1:
         {
-            switch(aw_ccu_reg->Csi1Clk.ClkSrc)
+            switch(aw_ccu_reg->Csi0Clk.ClkSrc)
             {
                 case 0:
                     return AW_SYS_CLK_HOSC;
                 case 1:
-                case 5:
                     return AW_SYS_CLK_PLL3;
                 case 2:
-                case 6:
                     return AW_SYS_CLK_PLL7;
+                case 5:
+                    return AW_SYS_CLK_PLL3X2;
+                case 6:
+                    return AW_SYS_CLK_PLL7X2;
                 default:
                     return AW_SYS_CLK_NONE;
             }
@@ -528,11 +546,13 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             switch(aw_ccu_reg->HdmiClk.ClkSrc)
             {
                 case 0:
-                case 2:
                     return AW_SYS_CLK_PLL3;
                 case 1:
-                case 3:
                     return AW_SYS_CLK_PLL7;
+                case 2:
+                    return AW_SYS_CLK_PLL3X2;
+                case 3:
+                    return AW_SYS_CLK_PLL7X2;
                 default:
                     return AW_SYS_CLK_NONE;
             }
@@ -1085,7 +1105,7 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
 *
 *********************************************************************************************************
 */
-static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent)
+static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent)
 {
     switch(id)
     {
@@ -1182,8 +1202,14 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent
                 case AW_SYS_CLK_PLL3:
                     aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 0;
                     return 0;
+                case AW_SYS_CLK_PLL3X2:
+                    aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 2;
+                    return 0;
                 case AW_SYS_CLK_PLL7:
                     aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 1;
+                    return 0;
+                case AW_SYS_CLK_PLL7X2:
+                    aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 3;
                     return 0;
                 default:
                     return -1;
@@ -1197,8 +1223,14 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent
                 case AW_SYS_CLK_PLL3:
                     aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 0;
                     return 0;
+                case AW_SYS_CLK_PLL3X2:
+                    aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 2;
+                    return 0;
                 case AW_SYS_CLK_PLL7:
                     aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 1;
+                    return 0;
+                case AW_SYS_CLK_PLL7X2:
+                    aw_ccu_reg->Lcd0Ch0Clk.ClkSrc = 3;
                     return 0;
                 default:
                     return -1;
@@ -1248,8 +1280,14 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent
                 case AW_SYS_CLK_PLL3:
                     aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Src = 0;
                     return 0;
+                case AW_SYS_CLK_PLL3X2:
+                    aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Src = 2;
+                    return 0;
                 case AW_SYS_CLK_PLL7:
                     aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Src = 1;
+                    return 0;
+                case AW_SYS_CLK_PLL7X2:
+                    aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Src = 3;
                     return 0;
                 default:
                     return -1;
@@ -1263,8 +1301,14 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent
                 case AW_SYS_CLK_PLL3:
                     aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Src = 0;
                     return 0;
+                case AW_SYS_CLK_PLL3X2:
+                    aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Src = 2;
+                    return 0;
                 case AW_SYS_CLK_PLL7:
                     aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Src = 1;
+                    return 0;
+                case AW_SYS_CLK_PLL7X2:
+                    aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Src = 3;
                     return 0;
                 default:
                     return -1;
@@ -1299,8 +1343,14 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent
                 case AW_SYS_CLK_PLL3:
                     aw_ccu_reg->Csi1Clk.ClkSrc = 1;
                     return 0;
+                case AW_SYS_CLK_PLL3X2:
+                    aw_ccu_reg->Csi1Clk.ClkSrc = 5;
+                    return 0;
                 case AW_SYS_CLK_PLL7:
                     aw_ccu_reg->Csi1Clk.ClkSrc = 2;
+                    return 0;
+                case AW_SYS_CLK_PLL7X2:
+                    aw_ccu_reg->Csi1Clk.ClkSrc = 6;
                     return 0;
                 default:
                     return -1;
@@ -1337,9 +1387,19 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_mod_clk_e parent
                     aw_ccu_reg->HdmiClk.ClkSrc = 0;
                     return 0;
                 }
+                case AW_SYS_CLK_PLL3X2:
+                {
+                    aw_ccu_reg->HdmiClk.ClkSrc = 2;
+                    return 0;
+                }
                 case AW_SYS_CLK_PLL7:
                 {
                     aw_ccu_reg->HdmiClk.ClkSrc = 1;
+                    return 0;
+                }
+                case AW_SYS_CLK_PLL7X2:
+                {
+                    aw_ccu_reg->HdmiClk.ClkSrc = 3;
                     return 0;
                 }
                 default:

@@ -148,25 +148,9 @@ int clk_init(void)
         }
     }
 
-    /* initial some system clock for module use */
-    ccu_sys_clk[AW_SYS_CLK_PLL1].clk->rate = 480000000;
-    aw_ccu_set_sys_clk(ccu_sys_clk[AW_SYS_CLK_PLL1].clk);
-
-    ccu_sys_clk[AW_SYS_CLK_PLL3].clk->rate = 270000000;
-    aw_ccu_set_sys_clk(ccu_sys_clk[AW_SYS_CLK_PLL3].clk);
-
-    ccu_sys_clk[AW_SYS_CLK_PLL4].clk->rate = 210000000;
-    aw_ccu_set_sys_clk(ccu_sys_clk[AW_SYS_CLK_PLL4].clk);
-
-    ccu_sys_clk[AW_SYS_CLK_PLL6].clk->rate = 480000000;
-    aw_ccu_set_sys_clk(ccu_sys_clk[AW_SYS_CLK_PLL6].clk);
-
-    ccu_sys_clk[AW_SYS_CLK_PLL7].clk->rate = 270000000;
-    aw_ccu_set_sys_clk(ccu_sys_clk[AW_SYS_CLK_PLL7].clk);
-
     return 0;
 }
-fs_initcall(clk_init);
+arch_initcall(clk_init);
 
 
 struct clk * clk_get(struct device *dev, const char *id)
