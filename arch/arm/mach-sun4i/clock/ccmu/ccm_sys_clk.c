@@ -221,6 +221,11 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
 {
     switch(id)
     {
+        case AW_SYS_CLK_NONE:
+        {
+            return 1;
+        }
+
         case AW_SYS_CLK_LOSC:
         {
             return 32768;

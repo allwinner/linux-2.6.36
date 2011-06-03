@@ -47,7 +47,7 @@
 //#include <mach/gpio.h>
 //#include <mach/platform.h>
 
-#define AW1623_FPGA
+//#define AW1623_FPGA
 
 #define DRIVER_NAME "f20-smc"
 /* SMC Select Mask */

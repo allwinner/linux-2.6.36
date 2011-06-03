@@ -56,7 +56,7 @@
 #define AW_HPET_CLK_SRC     TMR_CLK_SRC_24MHOSC
 #define AW_HPET_CLK_EVT     TMR_CLK_SRC_32KLOSC
 
-#define AW1623_FPGA
+//#define AW1623_FPGA
 
 
 /* aw HPET clock source frequency */

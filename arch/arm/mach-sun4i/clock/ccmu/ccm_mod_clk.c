@@ -2333,6 +2333,58 @@ __s32 aw_ccu_get_mod_clk_cnt(void)
 
 /*
 *********************************************************************************************************
+*                           mod_clk_get_rate_hz
+*
+*Description: get module clock rate based on hz;
+*
+*Arguments  : id    module clock id;
+*
+*Return     : module clock division;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static __s64 mod_clk_get_rate_hz(__aw_ccu_mod_clk_e id)
+{
+    __s64               tmpRate;
+    __aw_ccu_clk_t      *tmpParent;
+
+    tmpRate = mod_clk_get_rate(id);
+    tmpParent = aw_ccu_get_sys_clk(mod_clk_get_parent(id));
+
+    return ccu_clk_uldiv(tmpParent->rate, tmpRate);
+}
+
+
+/*
+*********************************************************************************************************
+*                           mod_clk_set_rate_hz
+*
+*Description: set module clock rate based on hz;
+*
+*Arguments  : id    module clock id;
+*             rate  module clock division;
+*
+*Return     : result
+*               0,  set module clock rate successed;
+*              !0,  set module clock rate failed;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static __s32 mod_clk_set_rate_hz(__aw_ccu_mod_clk_e id, __s64 rate)
+{
+    __aw_ccu_clk_t      *tmpParent;
+
+    tmpParent = aw_ccu_get_sys_clk(mod_clk_get_parent(id));
+    return mod_clk_set_rate(id, ccu_clk_uldiv((tmpParent->rate + rate - 1), rate));
+}
+
+
+/*
+*********************************************************************************************************
 *                           aw_ccu_get_mod_clk
 *
 *Description: get module clock information by clock id.
@@ -2359,7 +2411,7 @@ __aw_ccu_clk_t *aw_ccu_get_mod_clk(__aw_ccu_mod_clk_e id)
     /* query module clock information from hardware */
     aw_ccu_mod_clk[tmpIdx].parent = mod_clk_get_parent(id);
     aw_ccu_mod_clk[tmpIdx].onoff  = mod_clk_get_status(id);
-    aw_ccu_mod_clk[tmpIdx].rate   = mod_clk_get_rate(id);
+    aw_ccu_mod_clk[tmpIdx].rate   = mod_clk_get_rate_hz(id);
     aw_ccu_mod_clk[tmpIdx].reset  = mod_clk_get_reset(id);
     aw_ccu_mod_clk[tmpIdx].hash   = ccu_clk_calc_hash(aw_ccu_mod_clk[tmpIdx].name);
 
@@ -2395,12 +2447,12 @@ __aw_ccu_err_e aw_ccu_set_mod_clk(__aw_ccu_clk_t *clk)
     tmpClk.parent = mod_clk_get_parent(clk->id);
     tmpClk.onoff  = mod_clk_get_status(clk->id);
     tmpClk.reset  = mod_clk_get_reset(clk->id);
-    tmpClk.rate   = mod_clk_get_rate(clk->id);
+    tmpClk.rate   = mod_clk_get_rate_hz(clk->id);
 
     /* try to set new parameter */
     if(!mod_clk_set_parent(clk->id, clk->parent))
     {
-        if(!mod_clk_set_rate(clk->id, clk->rate))
+        if(!mod_clk_set_rate_hz(clk->id, clk->rate))
         {
             if(!mod_clk_set_status(clk->id, clk->onoff))
             {
@@ -2428,7 +2480,7 @@ __aw_ccu_err_e aw_ccu_set_mod_clk(__aw_ccu_clk_t *clk)
             }
 
             /* restore clock rate */
-            mod_clk_set_rate(clk->id, tmpClk.rate);
+            mod_clk_set_rate_hz(clk->id, tmpClk.rate);
         }
         else
         {

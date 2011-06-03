@@ -33,7 +33,8 @@
 
 #include "core.h"
 
-#define AW1623_FPGA
+//#define AW1623_FPGA
+
 #ifdef AW1623_FPGA
     #define TMR_INTER_VAL   320
 #else
