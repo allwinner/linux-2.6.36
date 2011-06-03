@@ -594,7 +594,7 @@ __u8 TVE_csc_init(__u32 sel,__u8 type)
 
 __u8 TVE_csc_enable(__u32 sel)
 {                                              
-	TVE_SET_BIT(sel,TVE_040, 0x1<<31);
+	TVE_SET_BIT(sel,TVE_040, (__u32)(0x1<<31));
 	return 0;	
 }
 

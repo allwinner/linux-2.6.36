@@ -17,148 +17,71 @@
 #include "OSAL_Clock.h"
 
 #if 0
+
+#define CLK_DEBE0_AHB_ON	    0x00000001
+#define CLK_DEBE0_MOD_ON 	    0x00000002
+#define CLK_DEBE0_DRAM_ON	    0x00000004
+#define CLK_DEBE1_AHB_ON	    0x00000010
+#define CLK_DEBE1_MOD_ON 	    0x00000020
+#define CLK_DEBE1_DRAM_ON	    0x00000040
+#define CLK_DEFE0_AHB_ON	    0x00000100
+#define CLK_DEFE0_MOD_ON 	    0x00000200
+#define CLK_DEFE0_DRAM_ON	    0x00000400
+#define CLK_DEFE1_AHB_ON	    0x00001000
+#define CLK_DEFE1_MOD_ON 	    0x00002000
+#define CLK_DEFE1_DRAM_ON	    0x00004000
+#define CLK_LCDC0_AHB_ON	    0x00010000
+#define CLK_LCDC0_CH0_MOD_ON  	0x00020000
+#define CLK_LCDC0_CH1_MOD1x_ON  0x00040000
+#define CLK_LCDC0_CH1_MOD2x_ON  0x00080000
+#define CLK_LCDC1_AHB_ON	    0x00100000
+#define CLK_LCDC1_CH0_MOD_ON  	0x00200000
+#define CLK_LCDC1_CH1_MOD1x_ON  0x00400000
+#define CLK_LCDC1_CH1_MOD2x_ON  0x00800000
+#define CLK_TVE0_AHB_ON		    0x01000000	
+#define CLK_TVE1_AHB_ON		    0x02000000	
+#define CLK_HDMI_AHB_ON		    0x04000000	
+#define CLK_HDMI_MOD_ON		    0x08000000	
+#define CLK_LVDS_MOD_ON 	    0x10000000
+
 static char* _sysClkName[CSP_CCM_SYS_CLK_TOTAL_NUM] =
 {
-    "hosc",
-    "losc",
-
-    "core_pll",
-    "ve_pll",
     "sdram_pll",
-    "audio_pll",
     "video_pll0",
     "video_pll1",
-
-    "audio_pll_4x", 
-    "audio_pll_8x",  
     "video_pll0_2x",
     "video_pll1_2x",
-
-    "cpu",
-    "ahb",
-    "apb",
-    "sdram",    
-    "tvenc_0",
-    "tvenc_1",     
 };
 
 static char* _modClkName[CSP_CCM_MOD_CLK_TOTAL_NUM] =
 {
-    "nfc",
-    "msc",//memory stick controller
-    "sdc0",
-    "sdc1",
-    "sdc2",
-    "sdc3",
-    "de_image1",
     "de_image0",
-    "de_scale1",
+    "de_image1",
     "de_scale0",
-    "ve",
-    "csi1",
-    "csi0",
-    "ir",
-
-    "ac97",
-    "i2s",
-    "spdif",
-    "audio_codec",
-    "ace",//audio/compressed engine
-
-    "ss",
-    "ts",
-
-    "usb_phy0",
-    "usb_phy1",
-    "usb_phy2",
-    "avs",
-
-    "ata",
-
-    "de_mix",
-
-    "key_pad",
-    "com",
-
-    "tvenc_1x",
-    "tvenc_2x",
-
-    "tcon0_0",
-    "tcon0_1",
-    "tcon1_0",
-    "tcon1_1",
+    "de_scale1",
+    "lcd0_ch0",
+    "lcd0_ch1_clk2",
+    "lcd0_ch1_clk1",
+    "lcd1_ch0",
+    "lcd1_ch1_clk2",
+    "lcd1_ch1_clk1",
     "lvds",
+    "hdmi",
 
-
-    "ahb_usb0",
-    "ahb_usb1",
-    "ahb_ss",
-    "ahb_ata",
-    "ahb_tvenc",
-    "ahb_csi0",
-    "dmac",
-    "ahb_sdc0",
-    "ahb_sdc1",
-    "ahb_sdc2",
-    "ahb_sdc3",
-    "ahb_msc",
-    "ahb_nfc",
-    "ahb_sdramc",
-    "ahb_tcon0",
-    "ahb_ve",
-    "bist",
-    "emac",
-    "ahb_ts",
-    "spi0",
-    "spi1",
-    "spi2",
-    "ahb_usb2",
-    "ahb_csi1",
-    "ahb_com",
-    "ahb_ace",
-    "ahb_de_scale0",
     "ahb_de_image0",
-    "ahb_de_mix",
-    "ahb_de_scale1",
     "ahb_de_image1",
-    "ahb_tcon1",
+    "ahb_de_scale0",
+    "ahb_de_scale1",
+    "ahb_lcd0",
+    "ahb_lcd1",
+    "ahb_tvenc0",
+    "ahb_tvenc1",
+    "ahb_hdmi"
 
-
-    "key_pad",
-    "twi2",
-    "twi0",
-    "twi1",
-    "pio",
-    "uart0",
-    "uart1",
-    "uart2",
-    "uart3",
-    "apb_audio_codec",
-    "apb_ir",
-    "apb_i2s",
-    "apb_spdif",
-    "apb_ac97",
-    "ps0",
-    "ps1",
-    "uart4",
-    "uart5",
-    "uart6",
-    "uart7",
-    "can",
-    "smc",//smart card controller
-
-    "sdram_output",
-    "sdram_de_scale0",
-    "sdram_de_scale1",
     "sdram_de_image0",
     "sdram_de_image1",
-    "sdram_csi0",
-    "sdram_csi1",
-    "sdram_de_mix",
-    "sdram_ve",
-    "sdram_ace",//audio/compress engine
-    "sdram_ts",
-    "sdram_com_engine",
+    "sdram_de_scale0",
+    "sdram_de_scale1",
 };
 
 __s32 OSAL_CCMU_SetSrcFreq( CSP_CCM_sysClkNo_t nSclkNo, __u32 nFreq )
@@ -376,3 +299,4 @@ __s32 OSAL_CCMU_MclkReset(__hdle hMclk, __s32 bReset)
     return 0;
 }
 #endif
+

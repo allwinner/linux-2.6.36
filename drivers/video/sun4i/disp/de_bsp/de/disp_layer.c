@@ -790,7 +790,6 @@ __s32 BSP_disp_layer_set_screen_window(__u32 sel, __u32 hid,__disp_rect_t * regn
     __disp_rectsz_t      outsize;
     __u32           cpu_sr;
     __layer_man_t * layer_man;
-    __disp_scaler_t * scaler;
     
     hid = HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
@@ -815,7 +814,6 @@ __s32 BSP_disp_layer_set_screen_window(__u32 sel, __u32 hid,__disp_rect_t * regn
             __s32           ret;
 
             //when scaler display on a interlace screen(480i, ntsc etc), scaler window must be even vertical offset
-            scaler = &(gdisp.scaler[layer_man->scaler_index]);
             regn->y &= ((gdisp.screen[sel].b_out_interlace== 1)?0xfffffffe:0xffffffff);
             
             outsize.height = regn->height;

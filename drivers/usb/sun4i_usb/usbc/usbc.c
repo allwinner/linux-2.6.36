@@ -286,12 +286,6 @@ void USBC_ConfigFIFO_Base(__hdle hUSB, __u32 sram_base, __u32 fifo_mode)
 		usbc_info->port0_fifo_size = (8 * 1024);	//8k
     }
 
-	/* 1623 fpga, ½«phyÇÐ»»¸øotg0 sie */
-	reg_value =  USBC_Readl(sram_base + 0x04);
-    reg_value |= 0x1;
-    reg_value |= 0x80;
-    USBC_Writel(reg_value, (sram_base + 0x04)); 
-
 	return ;    
 }
 

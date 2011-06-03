@@ -1402,95 +1402,94 @@ typedef union
 //device define
 typedef struct __DE_SCAL_DEV
 {
-	SCAL_EN_REG              		modl_en            ;
-	SCAL_FRM_CTRL_REG        		frm_ctrl           ;
-	SCAL_BYPASS_REG          		bypass             ;
-	SCAL_AGTH_SEL_REG        		agth_sel           ;
-	SCAL_LINT_CTRL_REG       		lint_ctrl          ;
-	SCAL_RESERVED_REG               res0x14[3]         ;    
-	SCAL_BUF_ADDR0_REG       		buf_addr0          ;
-	SCAL_BUF_ADDR1_REG       		buf_addr1          ;
-	SCAL_BUF_ADDR2_REG       		buf_addr2          ;
-	SCAL_FIELD_CTRL_REG      		field_ctrl         ;
-	SCAL_MB_OFF0_REG         		mb_off0            ;
-	SCAL_MB_OFF1_REG         		mb_off1            ;
-	SCAL_MB_OFF2_REG         		mb_off2            ;
-	SCAL_RESERVED_REG               res0x3c            ;  //0x3c
-	SCAL_LINESTRD0_REG       		linestrd0          ;
-	SCAL_LINESTRD1_REG       		linestrd1          ;
-	SCAL_LINESTRD2_REG       		linestrd2          ;
-	SCAL_INPUT_FMT_REG       		input_fmt          ;
-	SCAL_WB_ADDR0_REG        		wb_addr0           ;
-	SCAL_WB_ADDR1_REG        		wb_addr1           ;
-	SCAL_WB_ADDR2_REG        		wb_addr2           ;
-	SCAL_OUTPUT_FMT_REG      		output_fmt         ;
-	SCAL_INT_EN_REG          		int_en             ;
-	SCAL_INT_STATUS_REG      		int_status         ;
-	SCAL_STATUS_REG          		status             ;
-	SCAL_RESERVED_REG               res0x6c            ;  //0x6c
-	SCAL_CSC_COEF03_REG             csc_coef[12]       ;  //0x70~0x9C
-	SCAL_DI_CTRL_REG         		di_ctrl            ;
-	SCAL_DI_DIAGINTP_REG     		di_diagintp        ;
-	SCAL_DI_TEMPDIFF_REG     		di_tempdiff        ;
-	SCAL_DI_SAWTOOTH_REG     		di_sawtooth        ;
-	SCAL_DI_SPATCOMP_REG     		di_spatcomp        ;
-	SCAL_DI_BURSTLEN_REG     		di_burstlen        ;
-	SCAL_DI_PRELUMA_REG      		di_preluma         ;
-	SCAL_DI_BLKFLAG_REG      		di_blkflag         ;
-	SCAL_DI_FLAGLINESTRD_REG 		di_flaglinestrd    ;
-	SCAL_RESERVED_REG               res0xc4[3]         ; //
-	SCAL_WB_LINESTRD_EN_REG  		wb_linestrd_en     ;
-	SCAL_WB_LINESTRD0_REG    		wb_linestrd0       ;
-	SCAL_WB_LINESTRD1_REG    		wb_linestrd1       ;
-	SCAL_WB_LINESTRD2_REG    		wb_linestrd2       ;
-	SCAL_3D_CTRL_REG         		trd_ctrl           ; 
-	SCAL_3D_BUF_ADDR0_REG    		trd_buf_addr0      ; 
-	SCAL_3D_BUF_ADDR1_REG    		trd_buf_addr1      ; 
-	SCAL_3D_BUF_ADDR2_REG    		trd_buf_addr2      ; 
-	SCAL_3D_MB_OFF0_REG      		trd_mb_off0        ; 
-	SCAL_3D_MB_OFF1_REG      		trd_mb_off1        ; 
-	SCAL_3D_MB_OFF2_REG      		trd_mb_off2        ;
-	SCAL_RESERVED_REG               res0xfc            ;  //0xfc 
-	SCAL_CH0_INSIZE_REG      		ch0_insize         ;
-	SCAL_CH0_OUTSIZE_REG     		ch0_outsize        ;
-	SCAL_CH0_HORZFACT_REG    		ch0_horzfact       ;
-	SCAL_CH0_VERTFACT_REG    		ch0_vertfact       ;
-	SCAL_CH0_HORZPHASE_REG   		ch0_horzphase      ;
-	SCAL_CH0_VERTPHASE0_REG  		ch0_vertphase0     ;
-	SCAL_CH0_VERTPHASE1_REG  		ch0_vertphase1     ;
-	SCAL_RESERVED_REG               res0x11c           ;
-	SCAL_CH0_HORZTAP0_REG    		ch0_horztap0       ;
-	SCAL_CH0_HORZTAP1_REG    		ch0_horztap1       ;
-	SCAL_CH0_VERTTAP_REG     		ch0_verttap        ;
-	SCAL_RESERVED_REG               res0x12c[53]       ;  //0x12c~0x1FF
-	SCAL_CH1_INSIZE_REG      		ch1_insize         ;
-	SCAL_CH1_OUTSIZE_REG     		ch1_outsize        ;
-	SCAL_CH1_HORZFACT_REG    		ch1_horzfact       ;
-	SCAL_CH1_VERTFACT_REG    		ch1_vertfact       ;
-	SCAL_CH1_HORZPHASE_REG   		ch1_horzphase      ;
-	SCAL_CH1_VERTPHASE0_REG  		ch1_vertphase0     ;
-	SCAL_CH1_VERTPHASE1_REG  		ch1_vertphase1     ;
-	SCAL_RESERVED_REG               res0x21c           ;
-	SCAL_CH1_HORZTAP0_REG    		ch1_horztap0       ;
-	SCAL_CH1_HORZTAP1_REG    		ch1_horztap1       ;
-	SCAL_CH1_VERTTAP_REG     		ch1_verttap        ;
-	SCAL_RESERVED_REG               res0x22c[117]      ;  //0x22c~0x3FF
-	SCAL_CH0_HORZCOEF0_REGN  		ch0_horzcoef0[32]  ;	
-	SCAL_CH0_HORZCOEF1_REGN  		ch0_horzcoef1[32]  ;	
-	SCAL_CH0_VERTCOEF_REGN   		ch0_vertcoef[32]   ;	
-	SCAL_RESERVED_REG               res0x580[32]       ;  //0x580~0x5ff
-	SCAL_CH1_HORZCOEF0_REGN  		ch1_horzcoef0[32]  ;	
-	SCAL_CH1_HORZCOEF1_REGN  		ch1_horzcoef1[32]  ;	
-	                                                       
-	SCAL_CH1_VERTCOEF_REGN   		ch1_vertcoef[32]   ;	
-	SCAL_RESERVED_REG               res0x780[32]       ;  //0x780~0x7ff
-	SCAL_RESERVED_REG               res0x800[128]      ;  //0x800~0x9ff
+	SCAL_EN_REG              		modl_en            ;//0x00
+	SCAL_FRM_CTRL_REG        		frm_ctrl           ;//0x04
+	SCAL_BYPASS_REG          		bypass             ;//0x08
+	SCAL_AGTH_SEL_REG        		agth_sel           ;//0x0c
+	SCAL_LINT_CTRL_REG       		lint_ctrl          ;//0x10
+	SCAL_RESERVED_REG               res0x14[3]         ;//0x14~0x1f
+	SCAL_BUF_ADDR0_REG       		buf_addr0          ;//0x20
+	SCAL_BUF_ADDR1_REG       		buf_addr1          ;//0x24
+	SCAL_BUF_ADDR2_REG       		buf_addr2          ;//0x28
+	SCAL_FIELD_CTRL_REG      		field_ctrl         ;//0x2c
+	SCAL_MB_OFF0_REG         		mb_off0            ;//0x30
+	SCAL_MB_OFF1_REG         		mb_off1            ;//0x34
+	SCAL_MB_OFF2_REG         		mb_off2            ;//0x38
+	SCAL_RESERVED_REG               res0x3c            ;//0x3c
+	SCAL_LINESTRD0_REG       		linestrd0          ;//0x40
+	SCAL_LINESTRD1_REG       		linestrd1          ;//0x44
+	SCAL_LINESTRD2_REG       		linestrd2          ;//0x48
+	SCAL_INPUT_FMT_REG       		input_fmt          ;//0x4c
+	SCAL_WB_ADDR0_REG        		wb_addr0           ;//0x50
+	SCAL_WB_ADDR1_REG        		wb_addr1           ;//0x54
+	SCAL_WB_ADDR2_REG        		wb_addr2           ;//0x58
+	SCAL_OUTPUT_FMT_REG      		output_fmt         ;//0x5c
+	SCAL_INT_EN_REG          		int_en             ;//0x60
+	SCAL_INT_STATUS_REG      		int_status         ;//0x64
+	SCAL_STATUS_REG          		status             ;//0x68
+	SCAL_RESERVED_REG               res0x6c            ;//0x6c
+	SCAL_CSC_COEF03_REG             csc_coef[12]       ;//0x70~0x9f
+	SCAL_DI_CTRL_REG         		di_ctrl            ;//0xa0
+	SCAL_DI_DIAGINTP_REG     		di_diagintp        ;//0xa4
+	SCAL_DI_TEMPDIFF_REG     		di_tempdiff        ;//0xa8
+	SCAL_DI_SAWTOOTH_REG     		di_sawtooth        ;//0xac
+	SCAL_DI_SPATCOMP_REG     		di_spatcomp        ;//0xb0
+	SCAL_DI_BURSTLEN_REG     		di_burstlen        ;//0xb4
+	SCAL_DI_PRELUMA_REG      		di_preluma         ;//0xb8
+	SCAL_DI_BLKFLAG_REG      		di_blkflag         ;//0xbc
+	SCAL_DI_FLAGLINESTRD_REG 		di_flaglinestrd    ;//0xc0
+	SCAL_RESERVED_REG               res0xc4[3]         ;//0xc4~0xcf
+	SCAL_WB_LINESTRD_EN_REG  		wb_linestrd_en     ;//0xd0
+	SCAL_WB_LINESTRD0_REG    		wb_linestrd0       ;//0xd4
+	SCAL_WB_LINESTRD1_REG    		wb_linestrd1       ;//0xd8
+	SCAL_WB_LINESTRD2_REG    		wb_linestrd2       ;//0xdc
+	SCAL_3D_CTRL_REG         		trd_ctrl           ;//0xe0
+	SCAL_3D_BUF_ADDR0_REG    		trd_buf_addr0      ;//0xe4 
+	SCAL_3D_BUF_ADDR1_REG    		trd_buf_addr1      ;//0xe8
+	SCAL_3D_BUF_ADDR2_REG    		trd_buf_addr2      ;//0xec 
+	SCAL_3D_MB_OFF0_REG      		trd_mb_off0        ;//0xf0 
+	SCAL_3D_MB_OFF1_REG      		trd_mb_off1        ;//0xf4 
+	SCAL_3D_MB_OFF2_REG      		trd_mb_off2        ;//0xf8
+	SCAL_RESERVED_REG               res0xfc            ;//0xfc 
+	SCAL_CH0_INSIZE_REG      		ch0_insize         ;//0x100
+	SCAL_CH0_OUTSIZE_REG     		ch0_outsize        ;//0x104
+	SCAL_CH0_HORZFACT_REG    		ch0_horzfact       ;//0x108
+	SCAL_CH0_VERTFACT_REG    		ch0_vertfact       ;//0x10c
+	SCAL_CH0_HORZPHASE_REG   		ch0_horzphase      ;//0x110
+	SCAL_CH0_VERTPHASE0_REG  		ch0_vertphase0     ;//0x114
+	SCAL_CH0_VERTPHASE1_REG  		ch0_vertphase1     ;//0x118
+	SCAL_RESERVED_REG               res0x11c           ;//0x11c
+	SCAL_CH0_HORZTAP0_REG    		ch0_horztap0       ;//0x120
+	SCAL_CH0_HORZTAP1_REG    		ch0_horztap1       ;//0x124
+	SCAL_CH0_VERTTAP_REG     		ch0_verttap        ;//0x128
+	SCAL_RESERVED_REG               res0x12c[53]       ;//0x12c~0x1FF
+	SCAL_CH1_INSIZE_REG      		ch1_insize         ;//0x200
+	SCAL_CH1_OUTSIZE_REG     		ch1_outsize        ;//0x204
+	SCAL_CH1_HORZFACT_REG    		ch1_horzfact       ;//0x208
+	SCAL_CH1_VERTFACT_REG    		ch1_vertfact       ;//0x20c
+	SCAL_CH1_HORZPHASE_REG   		ch1_horzphase      ;//0x210
+	SCAL_CH1_VERTPHASE0_REG  		ch1_vertphase0     ;//0x214
+	SCAL_CH1_VERTPHASE1_REG  		ch1_vertphase1     ;//0x218
+	SCAL_RESERVED_REG               res0x21c           ;//0x21c
+	SCAL_CH1_HORZTAP0_REG    		ch1_horztap0       ;//0x220
+	SCAL_CH1_HORZTAP1_REG    		ch1_horztap1       ;//0x224
+	SCAL_CH1_VERTTAP_REG     		ch1_verttap        ;//0x228
+	SCAL_RESERVED_REG               res0x22c[117]      ;//0x22c~0x3FF
+	SCAL_CH0_HORZCOEF0_REGN  		ch0_horzcoef0[32]  ;//0x400~0x47f	
+	SCAL_CH0_HORZCOEF1_REGN  		ch0_horzcoef1[32]  ;//0x480~0x4ff	
+	SCAL_CH0_VERTCOEF_REGN   		ch0_vertcoef[32]   ;//0x500~0x5ff	
+	SCAL_RESERVED_REG               res0x580[32]       ;//0x580~0x57f
+	SCAL_CH1_HORZCOEF0_REGN  		ch1_horzcoef0[32]  ;//0x600~0x67f	
+	SCAL_CH1_HORZCOEF1_REGN  		ch1_horzcoef1[32]  ;//0x680~6ff	
+	SCAL_CH1_VERTCOEF_REGN   		ch1_vertcoef[32]   ;//0x700~0x77f	
+	SCAL_RESERVED_REG               res0x780[32]       ;//0x780~0x7ff
+	SCAL_RESERVED_REG               res0x800[128]      ;//0x800~0x9ff
 	SCAL_VPP_EN_REG          		vpp_en             ;//0xA00
-	SCAL_VPP_DCTI_REG        		vpp_dcti           ;
-	SCAL_VPP_LP1_REG         		vpp_lp1            ;
-	SCAL_VPP_LP2_REG         		vpp_lp2            ;
-	SCAL_VPP_WLE_REG         		vpp_wle            ;
-	SCAL_VPP_BLE_REG         	    vpp_ble            ;
+	SCAL_VPP_DCTI_REG        		vpp_dcti           ;//0xa04
+	SCAL_VPP_LP1_REG         		vpp_lp1            ;//0xa08
+	SCAL_VPP_LP2_REG         		vpp_lp2            ;//0xa0c
+	SCAL_VPP_WLE_REG         		vpp_wle            ;//0xa10
+	SCAL_VPP_BLE_REG         	    vpp_ble            ;//0xa14
 }__de_scal_dev_t;
 
 

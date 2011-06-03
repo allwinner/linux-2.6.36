@@ -12,12 +12,25 @@ static __lcd_panel_fun_t    lcd_panel_fun[2];
 extern void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun);
 extern void LCD_get_panel_funs_1(__lcd_panel_fun_t * fun);
 
-void LCD_get_init_para(__lcd_panel_init_para_t *para)
+static void panel_tcon_sel(__panel_para_t *panel_info)
+{
+	if(panel_info->lcd_x > 1024 || panel_info->lcd_y > 1024)
+	{
+		panel_info->tcon_index = 1;
+	}
+	else
+	{
+		panel_info->tcon_index = 0;
+	}
+}
+
+void LCD_get_reg_bases(__reg_bases_t *para)
 {
 	para->base_lcdc0 = gdisp.init_para.base_lcdc0;
 	para->base_lcdc1 = gdisp.init_para.base_lcdc1;
 	para->base_pioc = gdisp.init_para.base_pioc;
 	para->base_ccmu = gdisp.init_para.base_ccmu;
+	para->base_pwm  = gdisp.init_para.base_pwm;
 }
 
 void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay)
@@ -47,7 +60,6 @@ void TCON_open(__u32 sel)
         TCON1_open(sel);
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
     }
-    
 }
 
 void TCON_close(__u32 sel)
@@ -64,7 +76,63 @@ void TCON_close(__u32 sel)
     }
 }
 
-//lcd_pwm_div = log2(24K/(16*pwm_freq));
+__s32 LCD_PWM_EN(__u32 sel, __bool b_en)
+{
+    __u32 tmp = 0;
+
+    if(b_en)
+    {
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp |= (1<<4);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);
+    }
+    else
+    {
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp &= (~(1<<4));
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);    
+    }
+
+    return 0;
+}
+
+__s32 LCD_BL_EN(__u32 sel, __bool b_en)
+{
+    /*user_gpio_set_t  gpio_info;
+    __hdle hdl;
+    
+    script_parser_fetch("lcd0_para","LCD_BL_EN", (int *)&gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+    
+    if(!b_en)
+    {
+        gpio_info.data = (gpio_info.data==0)?1:0;
+    }
+
+    hdl = OSAL_GPIO_Request(&gpio_info, 1);
+    OSAL_GPIO_Release(hdl, 2);*/
+
+    return 0;
+}
+
+__s32 LCD_PWR_EN(__u32 sel, __bool b_en)
+{
+    /*user_gpio_set_t  gpio_info;
+    __hdle hdl;
+    
+    script_parser_fetch("lcd0_para","LCD_PWM_EN", (int *)&gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+    
+    if(!b_en)
+    {
+        gpio_info.data = (gpio_info.data==0)?1:0;
+    }
+
+    hdl = OSAL_GPIO_Request(&gpio_info, 1);
+    OSAL_GPIO_Release(hdl, 2);*/
+
+    return 0;
+}
+
+//lcd_pwm_div = log2(24000/(16*pwm_freq));
 __s32 Disp_pwm_cfg(__u32 sel)
 {
     __u32 tmp;
@@ -73,9 +141,9 @@ __s32 Disp_pwm_cfg(__u32 sel)
     __u32 i;
     __u32 mul_val = 1;
     __u32 pwm_freq = gpanel_info[sel].lcd_pwm_freq;
-    __u32 PWM_SOUCE_FREQ = 24000;
+    __u32 PWM_SOUCE_FREQ = 24000;//24M
     __u32 PWM_LEVEL = 16;
-    __u32 j;
+    __u32 cycle_num = 0;
 	
     if(pwm_freq)
     {
@@ -98,45 +166,56 @@ __s32 Disp_pwm_cfg(__u32 sel)
         mul_val = mul_val * 2;
     }
 
-    if(gdisp.screen[sel].pwm_index == 0)//pwm0
+    if(gpanel_info[sel].lcd_pwm_pol == 0)
     {
-        tmp = sys_get_wvalue(gdisp.init_para.base_ccmu+0xe0);
-        tmp &= 0xffffff00;//clear bit8~0
+        cycle_num = 0xc * PWM_LEVEL / 16;
+    }
+    else
+    {
+        cycle_num = 0x4 * PWM_LEVEL / 16;
+    }
+
+    if(gpanel_info[sel].port_index == 0)
+    {
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x04, ((PWM_LEVEL - 1)<< 16) + cycle_num);
+        
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp &= 0xffffff00;
         tmp |= ((1<<6) | (1<<5) | lcd_pwm_div);//bit6:gatting the special clock for pwm0; bit5:pwm0  active state is high level
-        sys_put_wvalue(gdisp.init_para.base_ccmu+0xe0,tmp);
-    	for(j=0; j<1000000; j++)
-    	{
-    	}
-    	
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);
+
         tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
         tmp &= 0xfffff8ff;
         sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
     }
-    else//pwm1
+    else
     {
-        tmp = sys_get_wvalue(gdisp.init_para.base_ccmu+0xe0);
-        tmp &= 0xff807fff;//clear bit23~15
-        tmp |= ((1<<21) | (1<<20) | lcd_pwm_div);//bit21:gatting the special clock for pwm0; bit20:pwm0  active state is high level
-        sys_put_wvalue(gdisp.init_para.base_ccmu+0xe0,tmp);
-    	for(j=0; j<1000000; j++)
-    	{
-    	}
-    	
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x08, ((PWM_LEVEL - 1)<< 16) + cycle_num);
+        
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp &= 0xff807fff;
+        tmp |= ((1<<21) | (1<<20) | (lcd_pwm_div<<15));//bit21:gatting the special clock for pwm1; bit20:pwm1  active state is high level
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);
+
         tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x120);
         tmp &= 0xffff8fff;
         sys_put_wvalue(gdisp.init_para.base_pioc+0x120,tmp | (2<<12));//pwm io,PI3, bit14:12
     }
-    
+
 	return DIS_SUCCESS;
 }
 
 //lcd pin:
 	//pD0~pD27; 2:lcd0, 4:lcd1
 	//pH0~pH27; 2:lcd1
+
+//pwm pin
+	//pB2: 2:pwm0
+	//pI3:  2:pwm1
 __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
 {   
     __u32 tmp = 0;
-    
+
     if(bon)
     {
         if(sel == 0)
@@ -148,7 +227,8 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x22222222);
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x22222222);
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x22222222);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,0x00002222);
+                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff0000;
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00002222);
                     break;
                 case DISP_OUTPUT_TYPE_VGA:
                     tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x6c) & 0xffff00ff;
@@ -160,31 +240,65 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
         }
         else if(sel == 1)
         {
-            switch(out_type)
+            if(gpanel_info[sel].port_index == 0)
             {
+                switch(out_type)
+                {
+                    case DISP_OUTPUT_TYPE_LCD:
+                    case DISP_OUTPUT_TYPE_HDMI:
+                        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x44444444);
+                        sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x44444444);
+                        sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x44444444);
+                        tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff0000;
+                        sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00004444);
+                        break;
+                    case DISP_OUTPUT_TYPE_VGA:
+                        tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x6c) & 0xffff00ff;
+                        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,tmp | 0x00004400);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else
+            {
+                switch(out_type)
+                {
                 case DISP_OUTPUT_TYPE_LCD:
                 case DISP_OUTPUT_TYPE_HDMI:
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x44444444);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x44444444);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x44444444);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,0x00004444);
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
+                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff0000;
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002222);
                     break;
                 case DISP_OUTPUT_TYPE_VGA:
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x6c) & 0xffff00ff;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,tmp | 0x00004400);
+                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0xfc) & 0xffff00ff;
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,tmp | 0x00002200);
                     break;
                 default:
                     break;
+            }
             }
         }
 
     }
     else
     {
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x00000000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x00000000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x00000000);
-        sys_put_wvalue(gdisp.init_para.base_pioc+0x78,0x00000000);
+        if(gpanel_info[sel].port_index == 0)
+        {
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x78,0x00000000);
+        }
+        else
+        {
+            sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0xf0,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0xf4,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0xf8,0x00000000);
+        }
     }
 
 	return DIS_SUCCESS;
@@ -232,11 +346,11 @@ __s32 Disp_lcdc_init(__u32 sel)
     lcdc_clk_on(sel);	//??need to be open
     LCDC_init(sel);
     lcdc_clk_off(sel);
-    Disp_pwm_cfg(sel);
     
     if(sel == 0)
     {
         LCD_get_panel_funs_0(&lcd_panel_fun[sel]);
+        
         OSAL_RegISR(INTC_IRQNO_LCDC0,0,Disp_lcdc_event_proc,(void*)sel,0,0);
 #ifdef __MELIS_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_LCDC0);
@@ -245,12 +359,16 @@ __s32 Disp_lcdc_init(__u32 sel)
     else
     {
         LCD_get_panel_funs_1(&lcd_panel_fun[sel]);
+        
         OSAL_RegISR(INTC_IRQNO_LCDC1,0,Disp_lcdc_event_proc,(void*)sel,0,0);
 #ifdef __MELIS_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_LCDC1);
 #endif
     }
+
     lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
+    Disp_pwm_cfg(sel);
+    panel_tcon_sel(&gpanel_info[sel]);
 
 
     return DIS_SUCCESS;
@@ -504,13 +622,9 @@ __s32 BSP_disp_get_screen_width(__u32 sel)
     {
     	width = vga_mode_to_width(gdisp.screen[sel].vga_mode);
     }
-    else if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_LCD)
-    {
-    	width = gpanel_info[sel].lcd_x;
-    }
     else
     {
-        width = gdisp.screen[sel].screen_width;
+    	width = gpanel_info[sel].lcd_x;
     }
 
     return width;
@@ -532,13 +646,9 @@ __s32 BSP_disp_get_screen_height(__u32 sel)
     {
     	height = vga_mode_to_height(gdisp.screen[sel].vga_mode);
     }
-    else if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_LCD)
-    {
-    	height = gpanel_info[sel].lcd_y;
-    }
     else
     {
-        height = gdisp.screen[sel].screen_height;
+    	height = gpanel_info[sel].lcd_y;
     }
 
     return height;
@@ -579,11 +689,11 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
 
     if(gpanel_info[sel].tcon_index == 0)
     {
-        TCON0_cfg(sel,(__ebios_panel_para_t*)&gpanel_info[sel]);
+        TCON0_cfg(sel,(__panel_para_t*)&gpanel_info[sel]);
     }
     else
     {
-        TCON1_cfg_ex(sel,(__ebios_panel_para_t*)&gpanel_info[sel]);
+        TCON1_cfg_ex(sel,(__panel_para_t*)&gpanel_info[sel]);
     }
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);
@@ -659,7 +769,7 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
     {
         __u32 value = 0;
         __u32    tmp;
-  		__u32 j;
+
         if(gpanel_info[sel].lcd_pwm_pol == 0)
         {
             if(bright == DISP_LCD_BRIGHT_LEVEL15)
@@ -683,14 +793,16 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
             }
         }
         
-    	tmp = sys_get_wvalue(gdisp.init_para.base_ccmu+0xe4);
-		  for(j=0; j<1000000; j++)
-		  {
-			}
-        sys_put_wvalue(gdisp.init_para.base_ccmu+0xe4,(tmp & 0xffff0000) | value);
-			for(j=0; j<1000000; j++)
-			{
-			}
+        if(gpanel_info[sel].port_index== 0)
+        {
+    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x04);
+            sys_put_wvalue(gdisp.init_para.base_pwm+0x04,(tmp & 0xffff0000) | value);
+        }
+        else
+        {
+    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x08);
+            sys_put_wvalue(gdisp.init_para.base_pwm+0x08,(tmp & 0xffff0000) | value);
+        }
     }
 
     return DIS_SUCCESS;
@@ -700,9 +812,17 @@ __s32 BSP_disp_lcd_get_bright(__u32 sel)
 {
     __u32    value;
     __s32	bright = 0;
-    
-    value = sys_get_wvalue(gdisp.init_para.base_ccmu+0xe4);
-    value = value & 0x0000ffff;
+
+    if(gpanel_info[sel].port_index== 0)
+    {
+        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x04);
+        value = value & 0x0000ffff;
+    }
+    else
+    {
+        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x08);
+        value = value & 0x0000ffff;
+    }
 
     if(gpanel_info[sel].lcd_pwm_pol == 0)
     {

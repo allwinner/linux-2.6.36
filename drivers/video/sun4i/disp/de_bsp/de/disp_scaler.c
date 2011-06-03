@@ -159,6 +159,89 @@ __s32  Scaler_sw_para_to_reg(__u8 type, __u8 value)
     return DIS_FAIL;
 }
 
+// 0: 3d in mode
+// 1: 3d out mode
+__s32 Scaler_3d_sw_para_to_reg(__u32 type, __disp_3d_src_mode_t mode, __bool b_out_interlace)
+{
+    if(type == 0)
+    {
+        switch (mode)
+        {
+        case DISP_3D_SRC_MODE_TB:
+            return DE_SCAL_3DIN_TB;
+            
+        case DISP_3D_SRC_MODE_FP:
+            return DE_SCAL_3DIN_FP;
+
+        case DISP_3D_SRC_MODE_SSF:
+            return DE_SCAL_3DIN_SSF;
+
+        case DISP_3D_SRC_MODE_SSH:
+            return DE_SCAL_3DIN_SSH;
+
+        case DISP_3D_SRC_MODE_LI:
+            return DE_SCAL_3DIN_LI;
+
+        default:
+            DE_WRN("not supported 3d in mode:%d in Scaler_3d_sw_para_to_reg\n", mode);
+            return DIS_FAIL;
+        }
+    }
+    else if(type == 1)
+    {
+        switch (mode)
+        {
+        case DISP_3D_OUT_MODE_CI_1:
+            return DE_SCAL_3DOUT_CI_1;
+            
+        case DISP_3D_OUT_MODE_CI_2:
+            return DE_SCAL_3DOUT_CI_2;
+
+        case DISP_3D_OUT_MODE_CI_3:
+            return DE_SCAL_3DOUT_CI_3;
+
+        case DISP_3D_OUT_MODE_CI_4:
+            return DE_SCAL_3DOUT_CI_4;
+
+        case DISP_3D_OUT_MODE_LIRGB:
+            return DE_SCAL_3DOUT_LIRGB;
+            
+        case DISP_3D_OUT_MODE_TB:
+            return DE_SCAL_3DOUT_HDMI_TB;
+            
+        case DISP_3D_OUT_MODE_FP:
+        {
+            if(b_out_interlace == TRUE)
+            {
+                return DE_SCAL_3DOUT_HDMI_FPI;
+            }
+            else
+            {
+                return DE_SCAL_3DOUT_HDMI_FPP;
+            }
+        }
+
+        case DISP_3D_OUT_MODE_SSF:
+            return DE_SCAL_3DOUT_HDMI_SSF;
+
+        case DISP_3D_OUT_MODE_SSH:
+            return DE_SCAL_3DOUT_HDMI_SSH;
+
+        case DISP_3D_OUT_MODE_LI:
+            return DE_SCAL_3DOUT_HDMI_LI;
+            
+        case DISP_3D_OUT_MODE_FA:
+            return DE_SCAL_3DOUT_HDMI_FA;
+
+        default:
+            DE_WRN("not supported 3d output mode:%d in Scaler_3d_sw_para_to_reg\n", mode);
+            return DIS_FAIL;
+        }
+    }
+
+    return DIS_FAIL;
+}
+
 #ifdef __MELIS_OSAL__
 __s32 Scaler_event_proc(void *parg)
 #endif
@@ -358,7 +441,26 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
 		scaler->in_fb.cs_mode = DISP_BT601;
 	}
 
-	DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+    if(scaler->in_fb.b_trd_src)
+    {
+        __scal_3d_inmode_t inmode;
+        __scal_3d_outmode_t outmode = 0;
+        __scal_buf_addr_t scal_addr_right;
+
+        inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+
+    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
+    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
+    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
+
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+    }
+    else
+    {
+	    DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+	}
 	DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
     if(scaler->enhance_en == TRUE)
     {
@@ -497,7 +599,26 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
 		scaler->in_fb.cs_mode = DISP_BT601;
 	}
 
-	DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+    if(scaler->in_fb.b_trd_src)
+    {
+        __scal_3d_inmode_t inmode;
+        __scal_3d_outmode_t outmode = 0;
+        __scal_buf_addr_t scal_addr_right;
+
+        inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+
+    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
+    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
+    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
+
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+    }
+    else
+    {
+	    DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+	}
 	DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
     
@@ -578,7 +699,26 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 		scaler->in_fb.cs_mode = DISP_BT601;
 	}
 
-	DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+    if(scaler->in_fb.b_trd_src)
+    {
+        __scal_3d_inmode_t inmode;
+        __scal_3d_outmode_t outmode = 0;
+        __scal_buf_addr_t scal_addr_right;
+
+        inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+
+    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
+    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
+    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
+
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+    }
+    else
+    {
+	    DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+	}
 	DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
 	DE_SCAL_Set_Init_Phase(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
 	if(scaler->enhance_en == TRUE)
@@ -785,7 +925,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     __scal_scan_mod_t in_scan;
     __scal_scan_mod_t out_scan;
     __u32 size = 0;
-    __u32 scaler_idx = 0;
+    __s32 scaler_idx = 0;
     __s32 ret = 0;
 
     if(para==NULL)

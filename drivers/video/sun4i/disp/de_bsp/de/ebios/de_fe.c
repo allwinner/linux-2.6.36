@@ -770,6 +770,7 @@ __s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 i
         }
     }
 
+    csc_pass = 0;
     if(!csc_pass)
     {
       for(i=0; i<12; i++)
@@ -1517,36 +1518,23 @@ __s32 DE_SCAL_Get_3D_InSize(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size
 {
 	switch(inmode)
 	{
-		case DE_SCAL_3DIN_TB_P:;
-		case DE_SCAL_3DIN_TB_M:;
-		case DE_SCAL_3DIN_FP_P:;
-		case DE_SCAL_3DIN_FP_M:;
-		case DE_SCAL_3DIN_TB_ITL_P:;
-		case DE_SCAL_3DIN_TB_ITL_M:;
-		case DE_SCAL_3DIN_FP_ITL_P:;
-		case DE_SCAL_3DIN_FP_ITL_M:
+		case DE_SCAL_3DIN_TB:
+		case DE_SCAL_3DIN_FP:
 			singlesize->src_width = fullsize->src_width; 
 			singlesize->scal_width = fullsize->scal_width;
 			singlesize->scal_height = fullsize->scal_height>>1;
 			singlesize->x_off = fullsize->x_off;
 			singlesize->y_off = fullsize->y_off;		
 			break;		
-		case DE_SCAL_3DIN_SSF_P:;
-		case DE_SCAL_3DIN_SSF_M:;
-		case DE_SCAL_3DIN_SSH_P:;
-		case DE_SCAL_3DIN_SSH_M:;
-		case DE_SCAL_3DIN_SSF_ITL_P:;
-		case DE_SCAL_3DIN_SSF_ITL_M:;
-		case DE_SCAL_3DIN_SSH_ITL_P:;
-		case DE_SCAL_3DIN_SSH_ITL_M:
+		case DE_SCAL_3DIN_SSF:
+		case DE_SCAL_3DIN_SSH:
 			singlesize->src_width = fullsize->src_width>>1; 
 			singlesize->scal_width = fullsize->scal_width>>1;
 			singlesize->scal_height = fullsize->scal_height;
 			singlesize->x_off = fullsize->x_off;
 			singlesize->y_off = fullsize->y_off;		
 			break;
-		case DE_SCAL_3DIN_LI_P:;
-		case DE_SCAL_3DIN_LI_M:
+		case DE_SCAL_3DIN_LI:
 			singlesize->src_width = fullsize->src_width; 
 			singlesize->scal_width = fullsize->scal_width;
 			singlesize->scal_height = fullsize->scal_height>>1;
@@ -1578,19 +1566,19 @@ __s32 DE_SCAL_Get_3D_OutSize(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_s
 {
 	switch(outmode)
 	{
-		case DE_SCAL_3DOUT_CI_1:;
-		case DE_SCAL_3DOUT_CI_2:;
-		case DE_SCAL_3DOUT_CI_3:;
-		case DE_SCAL_3DOUT_CI_4:;
-		case DE_SCAL_3DOUT_HDMI_SSF:;
+		case DE_SCAL_3DOUT_CI_1:
+		case DE_SCAL_3DOUT_CI_2:
+		case DE_SCAL_3DOUT_CI_3:
+		case DE_SCAL_3DOUT_CI_4:
+		case DE_SCAL_3DOUT_HDMI_SSF:
 		case DE_SCAL_3DOUT_HDMI_SSH:
 			fullsize->height = singlesize->height;
 			fullsize->width  = singlesize->width<<1;
 			break;
-		case DE_SCAL_3DOUT_LIRGB:;
-		case DE_SCAL_3DOUT_HDMI_TB:;
-		case DE_SCAL_3DOUT_HDMI_FPP:;
-		case DE_SCAL_3DOUT_HDMI_FPI:;
+		case DE_SCAL_3DOUT_LIRGB:
+		case DE_SCAL_3DOUT_HDMI_TB:
+		case DE_SCAL_3DOUT_HDMI_FPP:
+		case DE_SCAL_3DOUT_HDMI_FPI:
 		case DE_SCAL_3DOUT_HDMI_LI:
 			fullsize->height = singlesize->height<<1;
 			fullsize->width  = singlesize->width;
@@ -1660,8 +1648,7 @@ __s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode,
 
 	switch(inmode)
 	{
-		case DE_SCAL_3DIN_LI_P:;
-		case DE_SCAL_3DIN_LI_M:
+		case DE_SCAL_3DIN_LI:;
 			in_li_en = 1;
 			break;
 		default:
@@ -1790,7 +1777,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
     	y_off1 = y_off0;
     }
 
-	if((trdinmode == DE_SCAL_3DIN_TB_P) || (trdinmode == DE_SCAL_3DIN_TB_ITL_P))
+	if((trdinmode == DE_SCAL_3DIN_TB) && (type->mod == DE_SCAL_PLANNAR))
 	{
 	    scal_dev[sel]->linestrd0.dwval = image_w0;
 		scal_dev[sel]->linestrd1.dwval = image_w1;
@@ -1813,7 +1800,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 		
 	}
-	else if((trdinmode == DE_SCAL_3DIN_FP_P) || (trdinmode == DE_SCAL_3DIN_FP_ITL_P))
+	else if((trdinmode == DE_SCAL_3DIN_FP) && (type->mod == DE_SCAL_PLANNAR))
 	{
 	    scal_dev[sel]->linestrd0.dwval = image_w0;
 		scal_dev[sel]->linestrd1.dwval = image_w1;
@@ -1837,8 +1824,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
 	}
-	else if((trdinmode == DE_SCAL_3DIN_SSF_P) || (trdinmode == DE_SCAL_3DIN_SSF_ITL_P)||
-		    (trdinmode == DE_SCAL_3DIN_SSH_P) || (trdinmode == DE_SCAL_3DIN_SSH_ITL_P))
+	else if(((trdinmode == DE_SCAL_3DIN_SSF) || (trdinmode == DE_SCAL_3DIN_SSH)) && (type->mod == DE_SCAL_PLANNAR))
 	{
 	    scal_dev[sel]->linestrd0.dwval = image_w0<<1;
 		scal_dev[sel]->linestrd1.dwval = image_w1<<1;
@@ -1860,7 +1846,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
-	else if((trdinmode == DE_SCAL_3DIN_LI_P))
+	else if((trdinmode == DE_SCAL_3DIN_LI) && (type->mod == DE_SCAL_PLANNAR))
 	{
 	    scal_dev[sel]->linestrd0.dwval = image_w0;
 		scal_dev[sel]->linestrd1.dwval = image_w1;
@@ -1882,7 +1868,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
-	else if((trdinmode == DE_SCAL_3DIN_TB_M) || (trdinmode == DE_SCAL_3DIN_TB_ITL_M))
+	else if((trdinmode == DE_SCAL_3DIN_TB) && (type->mod == DE_SCAL_UVCOMBINEDMB))
 	{
 	    scal_dev[sel]->linestrd0.dwval = (((image_w0+0x1f)&0xffe0) - 0x1f)<<0x05;;
 		scal_dev[sel]->linestrd1.dwval = (((((image_w1)<<1)+0x1f)&0xffe0) - 0x1f) << 0x05;
@@ -1929,7 +1915,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
-	else if((trdinmode == DE_SCAL_3DIN_FP_M) || (trdinmode == DE_SCAL_3DIN_FP_ITL_M))
+	else if((trdinmode == DE_SCAL_3DIN_FP) && (type->mod == DE_SCAL_UVCOMBINEDMB))
 	{
 		de_scal_trd_fp_en = 1;
 	    scal_dev[sel]->linestrd0.dwval = (((image_w0+0x1f)&0xffe0) - 0x1f)<<0x05;;
@@ -1975,8 +1961,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
 	}
-	else if((trdinmode == DE_SCAL_3DIN_SSF_M) || (trdinmode == DE_SCAL_3DIN_SSF_ITL_M)
-		  ||(trdinmode == DE_SCAL_3DIN_SSH_M) || (trdinmode == DE_SCAL_3DIN_SSH_ITL_M))
+	else if(((trdinmode == DE_SCAL_3DIN_SSF) ||(trdinmode == DE_SCAL_3DIN_SSH)) && (type->mod == DE_SCAL_UVCOMBINEDMB))
 	{
 	    scal_dev[sel]->linestrd0.dwval = (((2*image_w0+0x1f)&0xffe0) - 0x1f)<<0x05;;
 		scal_dev[sel]->linestrd1.dwval = (((((2*image_w1)<<1)+0x1f)&0xffe0) - 0x1f) << 0x05;
@@ -2023,7 +2008,7 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
-	else if((trdinmode == DE_SCAL_3DIN_LI_M))
+	else if((trdinmode == DE_SCAL_3DIN_LI) && (type->mod == DE_SCAL_UVCOMBINEDMB))
 	{
 	    scal_dev[sel]->linestrd0.dwval = ((((image_w0+0x1f)&0xffe0) - 0x1f)<<0x05);
 		scal_dev[sel]->linestrd1.dwval = ((((((image_w1)<<1)+0x1f)&0xffe0) - 0x1f) << 0x05);

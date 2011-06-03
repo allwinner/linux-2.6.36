@@ -1,0 +1,72 @@
+
+#ifndef __LCD_PANNEL_CFG_H__
+#define __LCD_PANNEL_CFG_H__
+
+#include "../bsp_display.h"
+
+static void LCD_power_on(__u32 sel);
+static void LCD_power_off(__u32 sel);
+static void LCD_bl_open(__u32 sel);//打开LCD背光
+static void LCD_bl_close(__u32 sel);//关闭LCD背光
+
+extern void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
+extern void LCD_CLOSE_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
+extern void LCD_get_reg_bases(__reg_bases_t *para);
+extern void TCON_open(__u32 sel);//打开LCD控制器
+extern void TCON_close(__u32 sel);//关闭LCD控制器
+extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
+extern __s32 LCD_BL_EN(__u32 sel, __bool b_en);
+extern __s32 LCD_PWR_EN(__u32 sel, __bool b_en);
+extern void LCD_CPU_register_irq(__u32 sel, void (*Lcd_cpuisr_proc) (void));
+extern void LCD_CPU_WR(__u32 sel, __u32 index, __u32 data);
+extern void LCD_CPU_WR_INDEX(__u32 sel,__u32 index);
+extern void LCD_CPU_WR_DATA(__u32 sel, __u32 data);
+extern void LCD_CPU_AUTO_FLUSH(__u32 sel, __bool en);
+
+//assume cpu runs at 300Mhz,10 clock one cycle
+#define LCD_delay_ms(ms)                               \
+{                                                   \
+    volatile __u32 time;                            \
+    for(time = 0; time < (ms*300*1000/10);time++);  \
+}                                                   \
+
+
+#define BIT0          0x00000001  
+#define BIT1		  0x00000002  
+#define BIT2		  0x00000004  
+#define BIT3		  0x00000008  
+#define BIT4		  0x00000010  
+#define BIT5		  0x00000020  
+#define BIT6		  0x00000040  
+#define BIT7		  0x00000080  
+#define BIT8		  0x00000100  
+#define BIT9		  0x00000200  
+#define BIT10		  0x00000400  
+#define BIT11		  0x00000800  
+#define BIT12		  0x00001000  
+#define BIT13		  0x00002000  
+#define BIT14		  0x00004000  
+#define BIT15		  0x00008000  
+#define BIT16		  0x00010000  
+#define BIT17		  0x00020000  
+#define BIT18		  0x00040000  
+#define BIT19		  0x00080000  
+#define BIT20		  0x00100000  
+#define BIT21		  0x00200000  
+#define BIT22		  0x00400000  
+#define BIT23		  0x00800000  
+#define BIT24		  0x01000000  
+#define BIT25		  0x02000000  
+#define BIT26		  0x04000000  
+#define BIT27		  0x08000000  
+#define BIT28		  0x10000000  
+#define BIT29		  0x20000000  
+#define BIT30		  0x40000000  
+#define BIT31		  0x80000000 
+
+#define sys_get_wvalue(n)   (*((volatile __u32 *)(n)))          /* word input */
+#define sys_put_wvalue(n,c) (*((volatile __u32 *)(n))  = (c))   /* word output */
+
+
+#endif
+

@@ -66,8 +66,9 @@ typedef struct
 	__disp_tv_mode_t        tv_mode;
 	__disp_tv_mode_t        hdmi_mode;
 	__disp_tv_dac_source    dac_source[4];
+	__bool                  b_trd_out;
+	__disp_3d_out_mode_t    trd_out_mode;
 
-	__u32                   pwm_index;
     __s32                   (*LCD_CPUIF_XY_Swap)(__s32 mode);
     void                    (*LCD_CPUIF_ISR)(void);
 	__u32	                pll_use_status;	//lcdc0/lcdc1 using which video pll(0 or 1)

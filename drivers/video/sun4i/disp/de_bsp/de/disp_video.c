@@ -96,7 +96,26 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
 		scaler->out_fb.cs_mode = DISP_BT601;
 	}	
 
-	DE_SCAL_Config_Src(scaler_index,&scal_addr,&in_size,&in_type,g_video[scaler_index].fetch_field,FALSE);
+    if(scaler->in_fb.b_trd_src)
+    {
+        __scal_3d_inmode_t inmode;
+        __scal_3d_outmode_t outmode = 0;
+        __scal_buf_addr_t scal_addr_right;
+
+        inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+
+    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[0]));
+    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[1]));
+    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[2]));
+
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+    }
+    else
+    {
+	    DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+	}
 	DE_SCAL_Set_Init_Phase(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
 	DE_SCAL_Set_Scaling_Factor(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
 	DE_SCAL_Set_Scaling_Coef(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type,  scaler->smooth_mode);

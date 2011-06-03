@@ -4,39 +4,6 @@
 #include "ebios/ebios_de.h"
 #include "ebios/ebios_lcdc_tve.h"
 
-#include "linux/kernel.h"
-#include "linux/mm.h"
-#include <asm/uaccess.h>
-#include <asm/memory.h>
-#include <asm/unistd.h>
-#include "linux/semaphore.h"
-#include <linux/vmalloc.h>
-#include <linux/fs.h>
-#include <linux/dma-mapping.h>
-#include <linux/fb.h>
-#include <linux/sched.h>   //wake_up_process()
-#include <linux/kthread.h> //kthread_create()¡¢kthread_run()
-#include <linux/err.h> //IS_ERR()¡¢PTR_ERR()
-#include <linux/delay.h>
-#include <linux/platform_device.h>
-#include "asm-generic/int-ll64.h"
-
-#include <linux/errno.h>
-#include <linux/slab.h>
-#include <linux/delay.h>
-#include <linux/init.h>
-#include <linux/dma-mapping.h>
-#include <linux/interrupt.h>
-#include <linux/platform_device.h>
-#include <linux/clk.h>
-#include <linux/cdev.h>
-
-#include "../../OSAL/OSAL.h"
-
-#define __LINUX_OSAL__
-//#define __MELIS_OSAL__
-//#define __WINCE_OSAL__
-
 #ifdef __LINUX_OSAL__
 #define OSAL_IRQ_RETURN IRQ_HANDLED
 #endif
@@ -52,7 +19,6 @@
 #define INTC_IRQNO_SCALER1  48
 #define INTC_IRQNO_LCDC0    44
 #define INTC_IRQNO_LCDC1    45
-#define INTC_IRQNO_TVENC    59
 
 #define MAX_SPRITE_BLOCKS	32
 

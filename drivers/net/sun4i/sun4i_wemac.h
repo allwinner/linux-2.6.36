@@ -6,6 +6,7 @@
 #define _WEMACX_H_
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~registers define~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//#define PHY_8210cp
 #define PHY_1000M
 
 //EMAC register

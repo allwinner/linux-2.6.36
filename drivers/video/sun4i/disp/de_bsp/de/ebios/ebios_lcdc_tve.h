@@ -1,20 +1,16 @@
 #ifndef _LCDC_TVE_H_
 #define _LCDC_TVE_H_
 
-#include "../../../include/eBSP_common_inc.h"
-#include "../../../bsp_display.h"
+#include "../../bsp_display.h"
 
-typedef enum
-{
-	LCDC_VBI_LCD_EN     =    0x80000000,
-	LCDC_VBI_HD_EN      =    0x40000000,
-	LCDC_LTI_LCD_EN		=	 0x20000000,
-	LCDC_LTI_HD_EN		=	 0x10000000,
-	LCDC_VBI_LCD        =    0x00008000,
-	LCDC_VBI_HD         =    0x00004000,
-	LCDC_LTI_LCD_FLAG	=	 0x00002000,
-	LCDC_LTI_HD_FLAG    =    0x00001000,	
-}__lcdc_intr_t;
+#define LCDC_VBI_LCD_EN 0x80000000
+#define LCDC_VBI_HD_EN 0x40000000
+#define LCDC_LTI_LCD_EN 0x20000000
+#define LCDC_LTI_HD_EN 0x10000000
+#define LCDC_VBI_LCD 0x00008000
+#define LCDC_VBI_HD 0x00004000
+#define LCDC_LTI_LCD_FLAG 0x00002000
+#define LCDC_LTI_HD_FLAG 0x00001000
                     
 typedef enum
 {
@@ -40,72 +36,6 @@ typedef enum
     LCDC_FRM_RGB666 	= 	1,
     LCDC_FRM_RGB656 	= 	2,
 }__lcdc_frm_t;
-                  
-typedef struct
-{
-	__u32   tcon_index; //0:tcon0, 1:tcon1
-
-	__u8    lcd_if;
-	__u8    lcd_swap;
-	__u16   lcd_x;
-	__u16   lcd_y;
-	__u16   lcd_dclk_freq;
-
-	__u8    lcd_uf;
-	__u16   lcd_vt;
-	__u16   lcd_ht;
-	__u16   lcd_vbp;
-	__u16   lcd_hbp;
-
-	__u8    lcd_hv_if;
-	__u8    lcd_hv_smode;
-	__u8    lcd_hv_s888_if;
-	__u8    lcd_hv_syuv_if;
-	__u8    lcd_hv_vspw;
-	__u16   lcd_hv_hspw;
-
-	__u8    lcd_hv_lde_used;
-	__u8    lcd_hv_lde_iovalue;
-
-	__u32   lcd_ttl_stvh;
-	__u32   lcd_ttl_stvdl;
-	__u32   lcd_ttl_stvdp;
-
-	__u32   lcd_ttl_ckvt;
-	__u32   lcd_ttl_ckvh;
-	__u32   lcd_ttl_ckvd;
-
-	__u32   lcd_ttl_oevt;
-	__u32   lcd_ttl_oevh;
-	__u32   lcd_ttl_oevd;
-
-	__u32   lcd_ttl_sthh;
-	__u32   lcd_ttl_sthd;
-	__u32   lcd_ttl_oehh;
-	__u32   lcd_ttl_oehd;
-
-	__u32   lcd_ttl_revd;
-
-	__u32   lcd_ttl_datarate;
-	__u32   lcd_ttl_revsel;
-	__u32   lcd_ttl_datainv_en;
-	__u32   lcd_ttl_datainv_sel;
-	__u8    lcd_cpu_if;
-	__u8    lcd_cpu_da;
-
-	__u8    lcd_frm;
-
-	__u32   lcd_io_cfg0;
-	__u32   lcd_io_cfg1;
-
-	__u32   lcd_srgb;
-	__u32   lcd_io_strength;
-
-	__u32   lcd_pwm_freq;
-	__u32   lcd_pwm_pol;
-
-	__u32   start_delay;
-}__ebios_panel_para_t;
 
 typedef struct
 {
@@ -202,7 +132,7 @@ void    LCD_XY_SWAP(__u32 sel);
 
 __s32   TCON0_open(__u32 sel);
 __s32   TCON0_close(__u32 sel);
-void    TCON0_cfg(__u32 sel, __ebios_panel_para_t * info);
+void    TCON0_cfg(__u32 sel, __panel_para_t * info);
 __s32   TCON0_get_width(__u32 sel);
 __s32   TCON0_get_height(__u32 sel);
 __s32   TCON0_set_dclk_div(__u32 sel, __u8 div);
@@ -211,7 +141,7 @@ __s32   TCON0_select_src(__u32 sel, __u8 src);
 __u32 	TCON1_open(__u32 sel);
 __u32 	TCON1_close	(__u32 sel);
 __u32   TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg);
-__u32   TCON1_cfg_ex(__u32 sel, __ebios_panel_para_t * info);
+__u32   TCON1_cfg_ex(__u32 sel, __panel_para_t * info);
 __u32 	TCON1_set_hdmi_mode(__u32 sel, __u8 mode);
 __u32 	TCON1_set_tv_mode(__u32 sel,__u8 mode);
 __s32   TCON1_set_vga_mode(__u32 sel, __u8 mode);

@@ -1,9 +1,7 @@
 #ifndef __EBIOS_DE_H__
 #define __EBIOS_DE_H__
 
-//#include "string.h"
-#include "../../../include/eBSP_common_inc.h"
-#include "../../../bsp_display.h"
+#include "../../bsp_display.h"
 
 #define DE_WB_END_IE    			(1<<7)      /*write back end interrupt */
 #define DE_FE_INTEN_ALL             0x1ff     /*front-end all interrupt enable*/
@@ -99,26 +97,15 @@ typedef enum __SCAL_OUTFMT
 	DE_SCAL_OUTPYUV422, 
 	DE_SCAL_OUTPYUV411 
 }__scal_outfmt_t;
+//for 3D inmod,  source mod must  be DE_SCAL_PLANNAR or DE_SCAL_UVCOMBINEDMB
+//DE_SCAL_INTER_LEAVED and DE_SCAL_UVCOMBINED maybe supported in future====
 typedef enum __SCAL_3D_INMODE
 {
-	DE_SCAL_3DIN_TB_P=0,
-	DE_SCAL_3DIN_TB_M,
-	DE_SCAL_3DIN_FP_P,
-	DE_SCAL_3DIN_FP_M,
-	DE_SCAL_3DIN_SSF_P,
-	DE_SCAL_3DIN_SSF_M,
-	DE_SCAL_3DIN_SSH_P,
-	DE_SCAL_3DIN_SSH_M,
-	DE_SCAL_3DIN_LI_P,
-	DE_SCAL_3DIN_LI_M,
-	DE_SCAL_3DIN_TB_ITL_P,
-	DE_SCAL_3DIN_TB_ITL_M,
-	DE_SCAL_3DIN_FP_ITL_P,
-	DE_SCAL_3DIN_FP_ITL_M,
-	DE_SCAL_3DIN_SSF_ITL_P,
-	DE_SCAL_3DIN_SSF_ITL_M,
-	DE_SCAL_3DIN_SSH_ITL_P,
-	DE_SCAL_3DIN_SSH_ITL_M		
+	DE_SCAL_3DIN_TB=0,
+	DE_SCAL_3DIN_FP=1,
+	DE_SCAL_3DIN_SSF=2,
+	DE_SCAL_3DIN_SSH=3,
+	DE_SCAL_3DIN_LI=4,
 }__scal_3d_inmode_t;
 
 typedef enum __SCAL_3D_OUTMODE
@@ -134,7 +121,7 @@ typedef enum __SCAL_3D_OUTMODE
 	DE_SCAL_3DOUT_HDMI_FA,
 	DE_SCAL_3DOUT_HDMI_SSH,
 	DE_SCAL_3DOUT_HDMI_SSF,
-	DE_SCAL_3DOUT_HDMI_LI	
+	DE_SCAL_3DOUT_HDMI_LI,
 }__scal_3d_outmode_t;
 
 typedef struct layer_input_src

@@ -71,7 +71,7 @@ __s32 BSP_disp_get_palette_table(__u32 sel, __u32 * pbuffer, __u32 offset,__u32 
 {
     if((pbuffer == NULL) || ((offset+size)>1024))
     {
-        DE_WRN("para invalid in BSP_disp_set_palette_table,offset:0x%x,size:0x%x\n",offset, size);
+        DE_WRN("para invalid in BSP_disp_get_palette_table,offset:0x%x,size:0x%x\n",offset, size);
         return DIS_FAIL;
     }
 

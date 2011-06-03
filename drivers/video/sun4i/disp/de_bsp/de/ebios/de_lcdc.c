@@ -136,13 +136,13 @@ __s32 LCDC_set_int_line(__u32 sel,__u32 tcon_index, __u32 num)
 	return 0;
 }
 
-__s32 LCDC_enable_int(__u32 sel, __lcdc_intr_t irqsrc)
+__s32 LCDC_enable_int(__u32 sel, __u32 irqsrc)
 {
 	LCDC_SET_BIT(sel,LCDC_GINT0_OFF,irqsrc);
     return 0;
 }
 
-__s32 LCDC_disable_int(__u32 sel,__lcdc_intr_t irqsrc)
+__s32 LCDC_disable_int(__u32 sel,__u32 irqsrc)
 {
 	LCDC_CLR_BIT(sel,LCDC_GINT0_OFF,irqsrc);
     return 0;
@@ -157,7 +157,7 @@ __u32 LCDC_query_int(__u32 sel)
     return  tmp ;
 }
 
-__s32 LCDC_clear_int(__u32 sel,__lcdc_intr_t irqsrc)
+__s32 LCDC_clear_int(__u32 sel,__u32 irqsrc)
 {
 	LCDC_CLR_BIT(sel,LCDC_GINT0_OFF,irqsrc);
 	return 0;
@@ -179,7 +179,7 @@ __s32 TCON0_close(__u32 sel)
 	return 0;
 }
 
-void TCON0_cfg(__u32 sel, __ebios_panel_para_t * info)
+void TCON0_cfg(__u32 sel, __panel_para_t * info)
 {
     __u32 tmp;
 	__u32 vblank_len;
@@ -239,7 +239,7 @@ void TCON0_cfg(__u32 sel, __ebios_panel_para_t * info)
 	
 	if(info->lcd_frm == LCDC_FRM_RGB666)
 	{
-		LCDC_CLR_BIT(sel,LCDC_FRM0_OFF,0x7<<4);
+		LCDC_CLR_BIT(sel,LCDC_FRM0_OFF,(__u32)0x7<<4);
 	}
 	else if(info->lcd_frm == LCDC_FRM_RGB656)
 	{
@@ -262,7 +262,7 @@ void TCON0_cfg(__u32 sel, __ebios_panel_para_t * info)
 	 	LCDC_WUINT32(sel, LCDC_FRM2_OFF+0x04,0x15151111);	
 	 	LCDC_WUINT32(sel, LCDC_FRM2_OFF+0x08,0x57575555);	
 		LCDC_WUINT32(sel, LCDC_FRM2_OFF+0x0c,0x7f7f7777);
-		LCDC_SET_BIT(sel,LCDC_FRM0_OFF,LCDC_BIT31); 				
+		LCDC_SET_BIT(sel,LCDC_FRM0_OFF,LCDC_BIT31);
 	}
 
 	LCDC_WUINT32(sel, LCDC_IOCTL0_OFF,info->lcd_io_cfg0);
@@ -397,7 +397,7 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     return 0;
 }
 
-__u32 TCON1_cfg_ex(__u32 sel, __ebios_panel_para_t * info)
+__u32 TCON1_cfg_ex(__u32 sel, __panel_para_t * info)
 {
     __tcon1_cfg_t tcon1_cfg;
 

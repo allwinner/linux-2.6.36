@@ -159,7 +159,7 @@
         0x000001b0:    e50b3038    80..    STR      r3,[r11,#-0x38]
         0x000001b4:    e59f30e4    .0..    LDR      r3,[pc,#228]  ; [DRV_hdmi_get_HPD_status = 0x2a0] = 0
         0x000001b8:    e50b3034    40..    STR      r3,[r11,#-0x34]
-        0x000001bc:    e59f30e0    .0..    LDR      r3,[pc,#224]  ; [disp_int_process = 0x2a4] = 0
+        0x000001bc:    e59f30e0    .0..    LDR      r3,[pc,#224]  ; [DRV_disp_int_process = 0x2a4] = 0
         0x000001c0:    e50b3030    00..    STR      r3,[r11,#-0x30]
         0x000001c4:    ebfffffe    ....    BL       __memzero  ;
         0x000001c8:    e5980004    ....    LDR      r0,[r8,#4]
@@ -218,7 +218,7 @@
         0x00000298:    00000000    ....    DCD    0 ; DRV_Hdmi_close
         0x0000029c:    00000000    ....    DCD    0 ; DRV_hdmi_mode_support
         0x000002a0:    00000000    ....    DCD    0 ; DRV_hdmi_get_HPD_status
-        0x000002a4:    00000000    ....    DCD    0 ; disp_int_process
+        0x000002a4:    00000000    ....    DCD    0 ; DRV_disp_int_process
         0x000002a8:    0000008c    ....    DCD    140 ; [Section 10]
         0x000002ac:    000000b1    ....    DCD    177 ; [Section 10]
     DRV_scaler_finish
@@ -460,13 +460,13 @@
     $d
         0x0000061c:    0000022a    *...    DCD    554 ; [Section 10]
         0x00000620:    00000000    ....    DCD    0 ; [Section 17]
-    disp_wait_cmd_finish
+    DRV_disp_wait_cmd_finish
     $a
         0x00000624:    e1a0c00d    ....    MOV      r12,r13
         0x00000628:    e92dd800    ..-.    PUSH     {r11,r12,r14,pc}
         0x0000062c:    e24cb004    ..L.    SUB      r11,r12,#4
         0x00000630:    e89da800    ....    LDM      r13,{r11,r13,pc}
-    disp_int_process
+    DRV_disp_int_process
         0x00000634:    e1a0c00d    ....    MOV      r12,r13
         0x00000638:    e92dd800    ..-.    PUSH     {r11,r12,r14,pc}
         0x0000063c:    e24cb004    ..L.    SUB      r11,r12,#4

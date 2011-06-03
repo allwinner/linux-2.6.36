@@ -1,8 +1,47 @@
-#ifndef __DRV_DISPLAY_H__
-#define __DRV_DISPLAY_H__
 
-#include "types.h"
-#define __bool signed char
+#ifndef __EBSP_DISPLAY_H__
+#define __EBSP_DISPLAY_H__
+
+#define __LINUX_OSAL__
+//#define __MELIS_OSAL__
+//#define __WINCE_OSAL__
+
+#ifdef __LINUX_OSAL__
+#include "linux/kernel.h"
+#include "linux/mm.h"
+#include <asm/uaccess.h>
+#include <asm/memory.h>
+#include <asm/unistd.h>
+#include "linux/semaphore.h"
+#include <linux/vmalloc.h>
+#include <linux/fs.h>
+#include <linux/dma-mapping.h>
+#include <linux/fb.h>
+#include <linux/sched.h>   //wake_up_process()
+#include <linux/kthread.h> //kthread_create()、kthread_run()
+#include <linux/err.h> //IS_ERR()、PTR_ERR()
+#include <linux/delay.h>
+#include <linux/platform_device.h>
+#include "asm-generic/int-ll64.h"
+#include <linux/errno.h>
+#include <linux/slab.h>
+#include <linux/delay.h>
+#include <linux/init.h>
+#include <linux/dma-mapping.h>
+#include <linux/interrupt.h>
+#include <linux/platform_device.h>
+#include <linux/clk.h>
+#include <linux/cdev.h>
+#include "../OSAL/OSAL.h"
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+#endif
+
+#ifdef __MELIS_OSAL__
+#include "string.h"
+#include "D:/winners/eBase/eBSP/BSP/sun_20/common_inc.h"
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef __BSP_DRV_DISPLAY_H__
 #define __BSP_DRV_DISPLAY_H__
@@ -332,7 +371,6 @@ typedef struct
     //__disp_rect_t   out_regn;
 }__disp_scaler_para_t;
 
-
 typedef struct
 {
     __disp_fb_t       fb;
@@ -431,224 +469,221 @@ typedef struct
 }__reg_bases_t;
 #endif
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+typedef void (*LCD_FUNC) (__u32 sel);
+typedef struct lcd_function
+{
+    LCD_FUNC func;
+    __u32 delay;//ms
+}__lcd_function_t;
+
+typedef struct lcd_flow
+{
+    __lcd_function_t func[5];
+    __u32 func_num;
+}__lcd_flow_t;
+
+
 typedef struct
 {
-	__disp_layer_work_mode_t mode;
-	__u32 width;
-	__u32 height;
-	__u32 line_length;//in byte unit
-	__u32 smem_len;
-	__u32 ch1_offset;
-	__u32 ch2_offset;
-	__u32 b_double_buffer;
-	__u32 b_dual_screen;
-}__disp_fb_create_para_t;
+	__u32 base_image0;
+	__u32 base_image1;
+	__u32 base_scaler0;
+	__u32 base_scaler1;
+	__u32 base_lcdc0;
+	__u32 base_lcdc1;
+	__u32 base_tvec0;
+	__u32 base_tvec1;
+	__u32 base_pioc;
+	__u32 base_sdram;
+	__u32 base_ccmu;
+	__u32 base_pwm;
 
+	__s32 (*scaler_begin) (__u32 sel);
+	void (*scaler_finish) (__u32 sel);
+	void (*tve_interrup) (__u32 sel);
+	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
+	__s32 (*Hdmi_open)(void);
+	__s32 (*Hdmi_close)(void);
+	__s32 (*hdmi_mode_support)(__u8 mode);
+	__s32 (*hdmi_get_HPD_status)(void);
+	__s32 (*disp_int_process)(__u32 sel);
+}__disp_bsp_init_para;
 
-typedef enum tag_DISP_CMD
+typedef struct
 {
-//----disp global----
-    DISP_CMD_RESERVE0 = 0x00,
-    DISP_CMD_RESERVE1 = 0x01,
-    DISP_CMD_SET_BKCOLOR = 0x3f,//fail when the value is 0x02 in linux,why???
-    DISP_CMD_GET_BKCOLOR = 0x03,
-    DISP_CMD_SET_COLORKEY = 0x04,
-    DISP_CMD_GET_COLORKEY = 0x05,
-    DISP_CMD_SET_PALETTE_TBL = 0x06,
-    DISP_CMD_GET_PALETTE_TBL = 0x07,
-    DISP_CMD_SCN_GET_WIDTH = 0x08,
-    DISP_CMD_SCN_GET_HEIGHT = 0x09,
-    DISP_CMD_GET_OUTPUT_TYPE = 0x0a,
-    DISP_CMD_SET_EXIT_MODE = 0x0c,
-    DISP_CMD_SET_GAMMA_TABLE = 0x0d,
-    DISP_CMD_GAMMA_CORRECTION_ON = 0x0e,
-    DISP_CMD_GAMMA_CORRECTION_OFF = 0x0f,
-    DISP_CMD_START_CMD_CACHE =0x10,
-    DISP_CMD_EXECUTE_CMD_AND_STOP_CACHE = 0x11,
-    DISP_CMD_SET_BRIGHT = 0x12,
-    DISP_CMD_SET_CONTRAST = 0x13,
-    DISP_CMD_SET_SATURATION = 0x14,
-    DISP_CMD_GET_BRIGHT = 0x16,
-    DISP_CMD_GET_CONTRAST = 0x17,
-    DISP_CMD_GET_SATURATION = 0x18,
-    DISP_CMD_ENHANCE_ON = 0x1a,
-    DISP_CMD_ENHANCE_OFF = 0x1b,
-    DISP_CMD_GET_ENHANCE_EN = 0x1c,
-    DISP_CMD_CLK_ON = 0x1d,
-    DISP_CMD_CLK_OFF = 0x1e,
-    DISP_CMD_SET_SCREEN_SIZE = 0x1f,//when the screen is not used to display(lcd/tv/vga/hdmi) directly, maybe capture the screen and scaler to dram, or as a layer of another screen
-    DISP_CMD_CAPTURE_SCREEN = 0x20,//caputre screen and scaler to dram
+    void (*cfg_panel_info)(__panel_para_t * info);
+    __s32 (*cfg_open_flow)(__u32 sel);
+    __s32 (*cfg_close_flow)(__u32 sel);
+}__lcd_panel_fun_t;
 
-//----layer----
-    DISP_CMD_LAYER_REQUEST = 0x40,
-    DISP_CMD_LAYER_RELEASE = 0x41,
-    DISP_CMD_LAYER_OPEN = 0x42,
-    DISP_CMD_LAYER_CLOSE = 0x43,
-    DISP_CMD_LAYER_SET_FB = 0x44,
-    DISP_CMD_LAYER_GET_FB = 0x45,
-    DISP_CMD_LAYER_SET_SRC_WINDOW = 0x46,
-    DISP_CMD_LAYER_GET_SRC_WINDOW = 0x47,
-    DISP_CMD_LAYER_SET_SCN_WINDOW = 0x48,
-    DISP_CMD_LAYER_GET_SCN_WINDOW = 0x49,
-    DISP_CMD_LAYER_SET_PARA = 0x4a,
-    DISP_CMD_LAYER_GET_PARA = 0x4b,
-    DISP_CMD_LAYER_ALPHA_ON = 0x4c,
-    DISP_CMD_LAYER_ALPHA_OFF = 0x4d,
-    DISP_CMD_LAYER_GET_ALPHA_EN = 0x4e,
-    DISP_CMD_LAYER_SET_ALPHA_VALUE = 0x4f,
-    DISP_CMD_LAYER_GET_ALPHA_VALUE = 0x50,
-    DISP_CMD_LAYER_CK_ON = 0x51,
-    DISP_CMD_LAYER_CK_OFF = 0x52,
-    DISP_CMD_LAYER_GET_CK_EN = 0x53,
-    DISP_CMD_LAYER_SET_PIPE = 0x54,
-    DISP_CMD_LAYER_GET_PIPE = 0x55,
-    DISP_CMD_LAYER_TOP = 0x56,
-    DISP_CMD_LAYER_BOTTOM = 0x57,
-    DISP_CMD_LAYER_GET_PRIO = 0x58,
-    DISP_CMD_LAYER_SET_SMOOTH = 0x59,
-    DISP_CMD_LAYER_GET_SMOOTH = 0x5a,
-    DISP_CMD_LAYER_SET_BRIGHT = 0x5b,//亮度
-    DISP_CMD_LAYER_SET_CONTRAST = 0x5c,//对比度
-    DISP_CMD_LAYER_SET_SATURATION = 0x5d,//饱和度
-    DISP_CMD_LAYER_SET_HUE = 0x5e,//色调,色度
-    DISP_CMD_LAYER_GET_BRIGHT = 0x5f,
-    DISP_CMD_LAYER_GET_CONTRAST = 0x60,
-    DISP_CMD_LAYER_GET_SATURATION = 0x61,
-    DISP_CMD_LAYER_GET_HUE = 0x62,
-    DISP_CMD_LAYER_ENHANCE_ON = 0x63,
-    DISP_CMD_LAYER_ENHANCE_OFF = 0x64,
-    DISP_CMD_LAYER_GET_ENHANCE_EN = 0x65,
-    DISP_CMD_LAYER_VPP_ON = 0x67,
-    DISP_CMD_LAYER_VPP_OFF = 0x68,
-    DISP_CMD_LAYER_GET_VPP_EN = 0x69,
-    DISP_CMD_LAYER_SET_LUMA_SHARP_LEVEL = 0x6a,
-    DISP_CMD_LAYER_GET_LUMA_SHARP_LEVEL = 0x6b,
-    DISP_CMD_LAYER_SET_CHROMA_SHARP_LEVEL = 0x6c,
-    DISP_CMD_LAYER_GET_CHROMA_SHARP_LEVEL = 0x6d,
-    DISP_CMD_LAYER_SET_WHITE_EXTERN_LEVEL = 0x6e,
-    DISP_CMD_LAYER_GET_WHITE_EXTERN_LEVEL = 0x6f,
-    DISP_CMD_LAYER_SET_BLACK_EXTERN_LEVEL = 0x70,
-    DISP_CMD_LAYER_GET_BLACK_EXTERN_LEVEL = 0x71,
+extern __s32 BSP_disp_clk_on(void);
+extern __s32 BSP_disp_clk_off(void);
+extern __s32 BSP_disp_init(__disp_bsp_init_para * para);
+extern __s32 BSP_disp_exit(__u32 mode);
+extern __s32 BSP_disp_open(void);
+extern __s32 BSP_disp_close(void);
+extern __s32 BSP_disp_cmd_cache(__u32 sel);
+extern __s32 BSP_disp_cmd_submit(__u32 sel);
+extern __s32 BSP_disp_set_bk_color(__u32 sel, __disp_color_t *color);
+extern __s32 BSP_disp_get_bk_color(__u32 sel, __disp_color_t *color);
+extern __s32 BSP_disp_set_color_key(__u32 sel, __disp_colorkey_t *ck_mode);
+extern __s32 BSP_disp_get_color_key(__u32 sel, __disp_colorkey_t *ck_mode);
+extern __s32 BSP_disp_set_palette_table(__u32 sel, __u32 *pbuffer, __u32 offset, __u32 size);
+extern __s32 BSP_disp_get_palette_table(__u32 sel, __u32 * pbuffer, __u32 offset,__u32 size);
+extern __s32 BSP_disp_get_screen_height(__u32 sel);
+extern __s32 BSP_disp_get_screen_width(__u32 sel);
+extern __s32 BSP_disp_get_output_type(__u32 sel);
+extern __s32 BSP_disp_gamma_correction_enable(__u32 sel);
+extern __s32 BSP_disp_gamma_correction_disable(__u32 sel);
+extern __s32 BSP_disp_set_bright(__u32 sel, __u32 bright);
+extern __s32 BSP_disp_get_bright(__u32 sel);
+extern __s32 BSP_disp_set_contrast(__u32 sel, __u32 contrast);
+extern __s32 BSP_disp_get_contrast(__u32 sel);
+extern __s32 BSP_disp_set_saturation(__u32 sel, __u32 saturation);
+extern __s32 BSP_disp_get_saturation(__u32 sel);
+extern __s32 BSP_disp_enhance_enable(__u32 sel, __bool enable);
+extern __s32 BSP_disp_get_enhance_enable(__u32 sel);
+extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para);
+extern __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size);
 
-//----scaler----
-    DISP_CMD_SCALER_REQUEST = 0x80,
-    DISP_CMD_SCALER_RELEASE = 0x81,
-    DISP_CMD_SCALER_EXECUTE = 0x82,
+extern __s32 BSP_disp_layer_request(__u32 sel, __disp_layer_work_mode_t mode);
+extern __s32 BSP_disp_layer_release(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_open(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_close(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_framebuffer(__u32 sel, __u32 hid,__disp_fb_t *fbinfo);
+extern __s32 BSP_disp_layer_get_framebuffer(__u32 sel, __u32 hid,__disp_fb_t*fbinfo);
+extern __s32 BSP_disp_layer_set_src_window(__u32 sel, __u32 hid,__disp_rect_t *regn);
+extern __s32 BSP_disp_layer_get_src_window(__u32 sel, __u32 hid,__disp_rect_t *regn);
+extern __s32 BSP_disp_layer_set_screen_window(__u32 sel, __u32 hid,__disp_rect_t* regn);
+extern __s32 BSP_disp_layer_get_screen_window(__u32 sel, __u32 hid,__disp_rect_t *regn);
+extern __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid, __disp_layer_info_t * layer_para);
+extern __s32 BSP_disp_layer_get_para(__u32 sel, __u32 hid, __disp_layer_info_t * layer_para);
+extern __s32 BSP_disp_layer_set_top(__u32 sel, __u32  handle);
+extern __s32 BSP_disp_layer_set_bottom(__u32 sel, __u32  handle);
+extern __s32 BSP_disp_layer_set_alpha_value(__u32 sel, __u32 hid,__u8 value);
+extern __s32 BSP_disp_layer_get_alpha_value(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_alpha_enable(__u32 sel, __u32 hid, __bool enable);
+extern __s32 BSP_disp_layer_get_alpha_enable(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_pipe(__u32 sel, __u32 hid,__u8 pipe);
+extern __s32 BSP_disp_layer_get_pipe(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_get_piro(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_colorkey_enable(__u32 sel, __u32 hid, __bool enable);
+extern __s32 BSP_disp_layer_get_colorkey_enable(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_smooth(__u32 sel, __u32 hid, __disp_video_smooth_t  mode);
+extern __s32 BSP_disp_layer_get_smooth(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_bright(__u32 sel, __u32 hid, __u32 bright);
+extern __s32 BSP_disp_layer_set_contrast(__u32 sel, __u32 hid, __u32 contrast);
+extern __s32 BSP_disp_layer_set_saturation(__u32 sel, __u32 hid, __u32 saturation);
+extern __s32 BSP_disp_layer_set_hue(__u32 sel, __u32 hid, __u32 hue);
+extern __s32 BSP_disp_layer_enhance_enable(__u32 sel, __u32 hid, __bool enable);
+extern __s32 BSP_disp_layer_get_bright(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_get_contrast(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_get_saturation(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_get_hue(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_get_enhance_enable(__u32 sel, __u32 hid);
 
-//----hwc----
-    DISP_CMD_HWC_OPEN = 0xc0,
-    DISP_CMD_HWC_CLOSE = 0xc1,
-    DISP_CMD_HWC_SET_POS = 0xc2,
-    DISP_CMD_HWC_GET_POS = 0xc3,
-    DISP_CMD_HWC_SET_FB = 0xc4,
-    DISP_CMD_HWC_SET_PALETTE_TABLE = 0xc5,
+extern __s32 BSP_disp_layer_vpp_enable(__u32 sel, __u32 hid, __bool enable);
+extern __s32 BSP_disp_layer_get_vpp_enable(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_luma_sharp_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_layer_get_luma_sharp_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_chroma_sharp_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_layer_get_chroma_sharp_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_white_extern_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_layer_get_white_extern_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_black_extern_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_layer_get_black_extern_level(__u32 sel, __u32 hid);
 
-//----video----
-    DISP_CMD_VIDEO_START = 0x100,
-    DISP_CMD_VIDEO_STOP = 0x101,
-    DISP_CMD_VIDEO_SET_FB = 0x102,
-    DISP_CMD_VIDEO_GET_FRAME_ID = 0x103,
-    DISP_CMD_VIDEO_GET_DIT_INFO = 0x104,
+extern __s32 BSP_disp_scaler_get_smooth(__u32 sel);
+extern __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode);
+extern __s32 BSP_disp_scaler_request(void);
+extern __s32 BSP_disp_scaler_release(__u32 handle);
+extern __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *scl);
 
-//----lcd----
-    DISP_CMD_LCD_ON = 0x140,
-    DISP_CMD_LCD_OFF = 0x141,
-    DISP_CMD_LCD_SET_BRIGHTNESS = 0x142,
-    DISP_CMD_LCD_GET_BRIGHTNESS = 0x143,
-    DISP_CMD_LCD_SET_COLOR = 0x144,
-    DISP_CMD_LCD_GET_COLOR = 0x145,
-    DISP_CMD_LCD_CPUIF_XY_SWITCH = 0x146,
-    DISP_CMD_LCD_CHECK_OPEN_FINISH = 0x14a,
-    DISP_CMD_LCD_CHECK_CLOSE_FINISH = 0x14b,
-    DISP_CMD_LCD_SET_SRC = 0x14c,
+extern __s32 BSP_disp_hwc_enable(__u32 sel, __bool enable);
+extern __s32 BSP_disp_hwc_set_pos(__u32 sel, __disp_pos_t *pos);
+extern __s32 BSP_disp_hwc_get_pos(__u32 sel, __disp_pos_t *pos);
+extern __s32 BSP_disp_hwc_set_framebuffer(__u32 sel, __disp_hwc_pattern_t *patmem);
+extern __s32 BSP_disp_hwc_set_palette(__u32 sel, void *palette,__u32 offset, __u32 palette_size);
 
-//----tv----
-    DISP_CMD_TV_ON = 0x180,
-    DISP_CMD_TV_OFF = 0x181,
-    DISP_CMD_TV_SET_MODE = 0x182,
-    DISP_CMD_TV_GET_MODE = 0x183,
-    DISP_CMD_TV_AUTOCHECK_ON = 0x184,
-    DISP_CMD_TV_AUTOCHECK_OFF = 0x185,
-    DISP_CMD_TV_GET_INTERFACE = 0x186,
-    DISP_CMD_TV_SET_SRC = 0x187,
-    DISP_CMD_TV_GET_DAC_STATUS = 0x188,
-    DISP_CMD_TV_SET_DAC_SOURCE = 0x189,
-    DISP_CMD_TV_GET_DAC_SOURCE = 0x18a,
+extern __s32 BSP_disp_video_set_fb(__u32 sel, __u32 hid, __disp_video_fb_t *in_addr);
+extern __s32 BSP_disp_video_get_frame_id(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_video_get_dit_info(__u32 sel, __u32 hid, __disp_dit_info_t * dit_info);
+extern __s32 BSP_disp_video_start(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_video_stop(__u32 sel, __u32 hid);
 
-//----hdmi----
-    DISP_CMD_HDMI_ON = 0x1c0,
-    DISP_CMD_HDMI_OFF = 0x1c1,
-    DISP_CMD_HDMI_SET_MODE = 0x1c2,
-    DISP_CMD_HDMI_GET_MODE = 0x1c3,
-    DISP_CMD_HDMI_SUPPORT_MODE = 0x1c4,
-    DISP_CMD_HDMI_GET_HPD_STATUS = 0x1c5,
-	DISP_CMD_HDMI_SET_SRC = 0x1c6,
+extern __s32 BSP_disp_lcd_open_before(__u32 sel);
+extern __s32 BSP_disp_lcd_open_after(__u32 sel);
+extern __lcd_flow_t * BSP_disp_lcd_get_open_flow(__u32 sel);
+extern __s32 BSP_disp_lcd_close_befor(__u32 sel);
+extern __s32 BSP_disp_lcd_close_after(__u32 sel);
+extern __lcd_flow_t * BSP_disp_lcd_get_close_flow(__u32 sel);
+extern __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode);
+extern __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size);
+extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright);
+extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
+extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
 
-//----vga----
-    DISP_CMD_VGA_ON = 0x200,
-    DISP_CMD_VGA_OFF = 0x201,
-    DISP_CMD_VGA_SET_MODE = 0x202,
-    DISP_CMD_VGA_GET_MODE = 0x203,
-	DISP_CMD_VGA_SET_SRC = 0x204,
+extern __s32 BSP_disp_tv_open(__u32 sel);
+extern __s32 BSP_disp_tv_close(__u32 sel);
+extern __s32 BSP_disp_tv_set_mode(__u32 sel, __disp_tv_mode_t tv_mod);
+extern __s32 BSP_disp_tv_get_mode(__u32 sel);
+extern __s32 BSP_disp_tv_get_interface(__u32 sel);
+extern __s32 BSP_disp_tv_auto_check_enable(__u32 sel);
+extern __s32 BSP_disp_tv_auto_check_disable(__u32 sel);
+extern __s32 BSP_disp_tv_set_src(__u32 sel, __disp_lcdc_src_t src);
+extern __s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index);
+extern __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source source);
+extern __s32 BSP_disp_tv_get_dac_source(__u32 sel, __u32 index);
 
-//----sprite----
-    DISP_CMD_SPRITE_OPEN = 0x240,
-    DISP_CMD_SPRITE_CLOSE = 0x241,
-    DISP_CMD_SPRITE_SET_FORMAT = 0x242,
-    DISP_CMD_SPRITE_GLOBAL_ALPHA_ENABLE = 0x243,
-    DISP_CMD_SPRITE_GLOBAL_ALPHA_DISABLE = 0x244,
-    DISP_CMD_SPRITE_GET_GLOBAL_ALPHA_ENABLE = 0x252,
-    DISP_CMD_SPRITE_SET_GLOBAL_ALPHA_VALUE = 0x245,
-    DISP_CMD_SPRITE_GET_GLOBAL_ALPHA_VALUE = 0x253,
-    DISP_CMD_SPRITE_SET_ORDER = 0x246,
-    DISP_CMD_SPRITE_GET_TOP_BLOCK = 0x250,
-    DISP_CMD_SPRITE_GET_BOTTOM_BLOCK = 0x251,
-    DISP_CMD_SPRITE_SET_PALETTE_TBL = 0x247,
-    DISP_CMD_SPRITE_GET_BLOCK_NUM = 0x259,
-    DISP_CMD_SPRITE_BLOCK_REQUEST = 0x248,
-    DISP_CMD_SPRITE_BLOCK_RELEASE = 0x249,
-    DISP_CMD_SPRITE_BLOCK_OPEN = 0x257,
-    DISP_CMD_SPRITE_BLOCK_CLOSE = 0x258,
-    DISP_CMD_SPRITE_BLOCK_SET_SOURCE_WINDOW = 0x25a,
-    DISP_CMD_SPRITE_BLOCK_GET_SOURCE_WINDOW = 0x25b,
-    DISP_CMD_SPRITE_BLOCK_SET_SCREEN_WINDOW = 0x24a,
-    DISP_CMD_SPRITE_BLOCK_GET_SCREEN_WINDOW = 0x24c,
-    DISP_CMD_SPRITE_BLOCK_SET_FB = 0x24b,
-    DISP_CMD_SPRITE_BLOCK_GET_FB = 0x24d,
-    DISP_CMD_SPRITE_BLOCK_SET_PARA = 0x25c,
-    DISP_CMD_SPRITE_BLOCK_GET_PARA = 0x25d,
-    DISP_CMD_SPRITE_BLOCK_SET_TOP = 0x24e,
-    DISP_CMD_SPRITE_BLOCK_SET_BOTTOM = 0x24f,
-    DISP_CMD_SPRITE_BLOCK_GET_PREV_BLOCK = 0x254,
-    DISP_CMD_SPRITE_BLOCK_GET_NEXT_BLOCK = 0x255,
-    DISP_CMD_SPRITE_BLOCK_GET_PRIO = 0x256,
+extern __s32 BSP_disp_hdmi_open(__u32 sel);
+extern __s32 BSP_disp_hdmi_close(__u32 sel);
+extern __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t  mode);
+extern __s32 BSP_disp_hdmi_get_mode(__u32 sel);
+extern __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode);
+extern __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel);
+extern __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src);
+extern __s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func);
 
-//----framebuffer----
-	DISP_CMD_FB_REQUEST = 0x280,
-	DISP_CMD_FB_RELEASE = 0x281,
-	
-//---for Displayer Test --------	
-	DISP_CMD_MEM_REQUEST = 0x2c0,
-	DISP_CMD_MEM_RELASE = 0x2c1,
-	DISP_CMD_MEM_GETADR = 0x2c2,
-	DISP_CMD_MEM_SELIDX = 0x2c3,
-	
-	DISP_CMD_SUSPEND = 0x2c4,
-	DISP_CMD_RESUME = 0x2c5,
-	 
+extern __s32 BSP_disp_vga_open(__u32 sel);
+extern __s32 BSP_disp_vga_close(__u32 sel);
+extern __s32 BSP_disp_vga_set_mode(__u32 sel, __disp_vga_mode_t  mode);
+extern __s32 BSP_disp_vga_get_mode(__u32 sel);
+extern __s32 BSP_disp_vga_set_src(__u32 sel, __disp_lcdc_src_t src);
 
-}__disp_cmd_t;
-
-#define FBIOGET_LAYER_HDL 0x4700
-#define FBIO_CLOSE 0x4701
-#define FBIO_OPEN 0x4702
-#define FBIO_ALPHA_ON 0x4703
-#define FBIO_ALPHA_OFF 0x4704
-#define FBIOPUT_ALPHA_VALUE 0x4705
-#define FBIO_DISPLAY_SCREEN0_ONLY 0x4706 //used when dual screen mode
-#define FBIO_DISPLAY_SCREEN1_ONLY 0x4707 //used when dual screen mode
-#define FBIO_DISPLAY_DUAL_SCREEN 0x4708 //used when dual screen mode
+extern __s32 BSP_disp_sprite_init(__u32 sel);
+extern __s32 BSP_disp_sprite_exit(__u32 sel);
+extern __s32 BSP_disp_sprite_open(__u32 sel);
+extern __s32 BSP_disp_sprite_close(__u32 sel);
+extern __s32 BSP_disp_sprite_alpha_enable(__u32 sel);
+extern __s32 BSP_disp_sprite_alpha_disable(__u32 sel);
+extern __s32 BSP_disp_sprite_get_alpha_enable(__u32 sel);
+extern __s32 BSP_disp_sprite_set_alpha_vale(__u32 sel, __u32 alpha);
+extern __s32 BSP_disp_sprite_get_alpha_value(__u32 sel);
+extern __s32 BSP_disp_sprite_set_format(__u32 sel, __disp_pixel_fmt_t format, __disp_pixel_seq_t pixel_seq);
+extern __s32 BSP_disp_sprite_set_palette_table(__u32 sel, __u32 *buffer, __u32 offset, __u32 size);
+extern __s32 BSP_disp_sprite_set_order(__u32 sel, __s32 hid,__s32 dst_hid);
+extern __s32 BSP_disp_sprite_get_top_block(__u32 sel);
+extern __s32 BSP_disp_sprite_get_bottom_block(__u32 sel);
+extern __s32 BSP_disp_sprite_get_block_number(__u32 sel);
+extern __s32 BSP_disp_sprite_block_request(__u32 sel, __disp_sprite_block_para_t *para);
+extern __s32 BSP_disp_sprite_block_release(__u32 sel, __s32 hid);
+extern __s32 BSP_disp_sprite_block_set_screen_win(__u32 sel, __s32 hid, __disp_rect_t * scn_win);
+extern __s32 BSP_disp_sprite_block_get_srceen_win(__u32 sel, __s32 hid, __disp_rect_t * scn_win);
+extern __s32 BSP_disp_sprite_block_set_src_win(__u32 sel, __s32 hid, __disp_rect_t * scn_win);
+extern __s32 BSP_disp_sprite_block_get_src_win(__u32 sel, __s32 hid, __disp_rect_t * scn_win);
+extern __s32 BSP_disp_sprite_block_set_framebuffer(__u32 sel, __s32 hid, __disp_fb_t * fb);
+extern __s32 BSP_disp_sprite_block_get_framebufer(__u32 sel, __s32 hid,__disp_fb_t *fb);
+extern __s32 BSP_disp_sprite_block_set_top(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_set_bottom(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_get_pre_block(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_get_next_block(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_get_prio(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_open(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_close(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_sprite_block_set_para(__u32 sel, __u32 hid,__disp_sprite_block_para_t *para);
+extern __s32 BSP_disp_sprite_block_get_para(__u32 sel, __u32 hid,__disp_sprite_block_para_t *para);
 
 #endif
