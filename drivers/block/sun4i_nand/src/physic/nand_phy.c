@@ -561,7 +561,7 @@ __s32 _read_sectors_for_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 	else if(NandStorageInfo.EccMode == 1)
 	  ecc_size = 46;
 	else if(NandStorageInfo.EccMode == 2)
-	  ecc_size = 53;
+	  ecc_size = 54;
 	else if(NandStorageInfo.EccMode == 3)
 	  ecc_size = 60;	
 	else
