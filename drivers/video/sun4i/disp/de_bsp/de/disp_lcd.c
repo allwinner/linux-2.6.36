@@ -6,11 +6,8 @@
 
 static __lcd_flow_t         open_flow[2];
 static __lcd_flow_t         close_flow[2];
-__panel_para_t       gpanel_info[2];
+__panel_para_t              gpanel_info[2];
 static __lcd_panel_fun_t    lcd_panel_fun[2];
-
-extern void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun);
-extern void LCD_get_panel_funs_1(__lcd_panel_fun_t * fun);
 
 static void panel_tcon_sel(__panel_para_t *panel_info)
 {
@@ -82,15 +79,15 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
 
     if(b_en)
     {
-        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
         tmp |= (1<<4);
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);
     }
     else
     {
-        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
         tmp &= (~(1<<4));
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);    
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);    
     }
 
     return 0;
@@ -177,12 +174,13 @@ __s32 Disp_pwm_cfg(__u32 sel)
 
     if(gpanel_info[sel].port_index == 0)
     {
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x04, ((PWM_LEVEL - 1)<< 16) + cycle_num);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x204, ((PWM_LEVEL - 1)<< 16) + cycle_num);
+        printk("----204:%x\n", sys_get_wvalue(gdisp.init_para.base_pwm+0x204));
         
-        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
         tmp &= 0xffffff00;
         tmp |= ((1<<6) | (1<<5) | lcd_pwm_div);//bit6:gatting the special clock for pwm0; bit5:pwm0  active state is high level
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);
 
         tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
         tmp &= 0xfffff8ff;
@@ -190,12 +188,12 @@ __s32 Disp_pwm_cfg(__u32 sel)
     }
     else
     {
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x08, ((PWM_LEVEL - 1)<< 16) + cycle_num);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x208, ((PWM_LEVEL - 1)<< 16) + cycle_num);
         
-        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x00);
+        tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
         tmp &= 0xff807fff;
         tmp |= ((1<<21) | (1<<20) | (lcd_pwm_div<<15));//bit21:gatting the special clock for pwm1; bit20:pwm1  active state is high level
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x00,tmp);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);
 
         tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x120);
         tmp &= 0xffff8fff;
@@ -795,13 +793,14 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
         
         if(gpanel_info[sel].port_index== 0)
         {
-    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x04);
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x04,(tmp & 0xffff0000) | value);
+    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
+            sys_put_wvalue(gdisp.init_para.base_pwm+0x204,(tmp & 0xffff0000) | value);
+            printk("--------204:%x\n", sys_get_wvalue(gdisp.init_para.base_pwm+0x204));
         }
         else
         {
-    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x08);
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x08,(tmp & 0xffff0000) | value);
+    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
+            sys_put_wvalue(gdisp.init_para.base_pwm+0x208,(tmp & 0xffff0000) | value);
         }
     }
 
@@ -815,12 +814,12 @@ __s32 BSP_disp_lcd_get_bright(__u32 sel)
 
     if(gpanel_info[sel].port_index== 0)
     {
-        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x04);
+        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
         value = value & 0x0000ffff;
     }
     else
     {
-        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x08);
+        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
         value = value & 0x0000ffff;
     }
 

@@ -35,6 +35,7 @@
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/irq.h>
+#include <linux/clk.h>
 
 #include <asm/delay.h>
 #include <asm/irq.h>
@@ -768,9 +769,21 @@ void emac_sys_setup(wemac_board_info_t * db)
 	
 	
 	//set up clock gating
-	reg_val = readl(db->ccmu_vbase + CCM_AHB_GATING_REG);
-	reg_val |= 0x1<<17;			//EMAC
-	writel(reg_val, db->ccmu_vbase + CCM_AHB_GATING_REG);
+  if(1){
+    struct clk *tmpClk;
+    tmpClk = clk_get(NULL, "ahb_emac");
+    clk_enable(tmpClk);     
+    printk("[EMAC] ahb clk enable \n");
+    printk("[EMAC] ahb gate clk: 0x%x \n", *((__u32 *)0xf1c20060));
+  }
+
+	
+//	reg_val = readl(db->ccmu_vbase + CCM_AHB_GATING_REG);
+//	printk("db->ccmu_vbase: %x, ccmu ahb gate:¡¡0x%x\n",db->ccmu_vbase + CCM_AHB_GATING_REG , reg_val);
+//	reg_val |= 0x1<<17;			//EMAC
+//	writel(reg_val, db->ccmu_vbase + CCM_AHB_GATING_REG);
+//	reg_val = readl(db->ccmu_vbase + CCM_AHB_GATING_REG);
+//	printk("db->ccmu_vbase: %x, ccmu ahb gate:¡¡0x%x\n",db->ccmu_vbase + CCM_AHB_GATING_REG , reg_val);
 	
 	
 }
@@ -907,7 +920,6 @@ unsigned int emac_setup(struct net_device *ndev )
 	//set MAC CTL1
 	reg_val = readl(db->emac_vbase + EMAC_MAC_CTL1_REG);
 
-#ifdef PHY_8210cp
 	//phy setup
 	if(!PHY_AUTO_NEGOTIOATION)
 	{
@@ -950,37 +962,6 @@ unsigned int emac_setup(struct net_device *ndev )
 		else
 			reg_val &= (~(0x1<<0));
 	}
-#endif
-#ifdef PHY_1000M
-	phy_val = wemac_phy_read(ndev, 0, 0);
-	phy_val |= (0x01<<15);
-	wemac_phy_write(ndev, 0, 0, phy_val);
-	udelay(100);
-	dev_dbg(db->dev, "PHY reg0: %08x\n", phy_val);
-	if(wemac_phy_read(ndev, 0, 0) & (0x01<<15))
-		dev_dbg(db->dev, "PHY reg0: %08x\n", wemac_phy_read(ndev, 0, 0));
-	if(wemac_phy_read(ndev, 0, 0) & (0x01 << 10)){
-		phy_val = wemac_phy_read(ndev, 0, 0);
-		phy_val &= (~(0x01<<10));
-		wemac_phy_write(ndev, 0, 0, phy_val);
-	}
-	udelay(100);
-	dev_dbg(db->dev, "PHY reg0: %08x\n", wemac_phy_read(ndev, 0, 0));
-	dev_dbg(db->dev, "PHY reg1: %08x\n", wemac_phy_read(ndev, 0, 1));
-
-	/* set 100M mode */
-	phy_val = wemac_phy_read(ndev, 0, 0);
-	phy_val &= (~(0x01<<6));
-	phy_val |= (0x01<<13);
-	phy_val &= (~(0x01<<12));
-	wemac_phy_write(ndev, 0, 0, phy_val);
-	udelay(100);
-	dev_dbg(db->dev, "phy set 100M reg0: %08x\n", wemac_phy_read(ndev, 0, 0));
-	if(EMAC_MAC_FULL)
-		reg_val |= (0x01<<0);
-	else
-		reg_val &= (~(0x01<<0));
-#endif
 		
 	if(EMAC_MAC_FLC)
 		reg_val |= (0x1<<1);
@@ -1106,6 +1087,9 @@ unsigned int wemac_powerup(struct net_device *ndev )
 	//set up EMAC
 	emac_setup(ndev);
 
+	//writel(mac_addr[5]<<8 | mac_addr[4], db->emac_vbase + EMAC_MAC_A0_REG);
+	//writel(mac_addr[3]<<8 | mac_addr[2], db->emac_vbase + EMAC_MAC_A1_REG);
+	//writel(mac_addr[1]<<8 | mac_addr[0], db->emac_vbase + EMAC_MAC_A2_REG);
 	writel(mac_addr[0]<<16 | mac_addr[1]<<8 | mac_addr[2], db->emac_vbase + EMAC_MAC_A1_REG);
 	writel(mac_addr[3]<<16 | mac_addr[4]<<8 | mac_addr[5], db->emac_vbase + EMAC_MAC_A0_REG);
 
@@ -1264,10 +1248,8 @@ static int wemac_set_mac_address(struct net_device *dev, void *p)
 
 	memcpy(dev->dev_addr, addr->sa_data, ETH_ALEN);
 
-	writel(dev->dev_addr[0]<<16 | dev->dev_addr[1]<<8 | dev->dev_addr[2], \
-			db->emac_vbase + EMAC_MAC_A1_REG);
-	writel(dev->dev_addr[3]<<16 | dev->dev_addr[4]<<8 | dev->dev_addr[5], \
-			db->emac_vbase + EMAC_MAC_A0_REG);
+	writel(dev->dev_addr[0]<<16 | dev->dev_addr[1]<<8 | dev->dev_addr[2], db->emac_vbase + EMAC_MAC_A1_REG);
+	writel(dev->dev_addr[3]<<16 | dev->dev_addr[4]<<8 | dev->dev_addr[5], db->emac_vbase + EMAC_MAC_A0_REG);
 	
 	return 0;
 }
@@ -1757,20 +1739,21 @@ wemac_phy_read(struct net_device *dev, int phyaddr_unused, int reg)
 
 	spin_lock_irqsave(&db->lock,flags);
 	/* issue the phy address and reg */
-	writel(WEMAC_PHY | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
+    writel(WEMAC_PHY | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
 	/* pull up the phy io line */
-	writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
-	spin_unlock_irqrestore(&db->lock,flags);
+    writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
+    spin_unlock_irqrestore(&db->lock,flags);
 
+//    wemac_msleep(db, 1);		/* Wait read complete */
 	udelay(100);
 
 	/* push down the phy io line and read data */
 	spin_lock_irqsave(&db->lock,flags);
 	/* push down the phy io line */
-	writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
+    writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
 	/* and write data */
-	ret = readl(db->emac_vbase + EMAC_MAC_MRDD_REG);
-	spin_unlock_irqrestore(&db->lock,flags);
+    ret = readl(db->emac_vbase + EMAC_MAC_MRDD_REG);
+    spin_unlock_irqrestore(&db->lock,flags);
 
 	mutex_unlock(&db->addr_lock);
 
@@ -1791,9 +1774,9 @@ wemac_phy_write(struct net_device *dev,
 
 	spin_lock_irqsave(&db->lock,flags);
 	/* issue the phy address and reg */
-	writel(WEMAC_PHY | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
+    writel(WEMAC_PHY | reg, db->emac_vbase + EMAC_MAC_MADR_REG);
 	/* pull up the phy io line */
-	writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
+    writel(0x1, db->emac_vbase + EMAC_MAC_MCMD_REG);
 	spin_unlock_irqrestore(&db->lock, flags);
 
 	//wemac_msleep(db, 1);		/* Wait write complete */
@@ -1801,9 +1784,9 @@ wemac_phy_write(struct net_device *dev,
 
 	spin_lock_irqsave(&db->lock,flags);
 	/* push down the phy io line */
-	writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
+    writel(0x0, db->emac_vbase + EMAC_MAC_MCMD_REG);
 	/* and write data */
-	writel(value, db->emac_vbase + EMAC_MAC_MWTD_REG);
+    writel(value, db->emac_vbase + EMAC_MAC_MWTD_REG);
 	spin_unlock_irqrestore(&db->lock, flags);
 
 	mutex_unlock(&db->addr_lock);
@@ -2078,9 +2061,12 @@ wemac_probe(struct platform_device *pdev)
 
 	mac_src = "eeprom";
 
-	
 	for (i = 0; i < 6; i++)
 		ndev->dev_addr[i] = DEFAULT_MAC_ADDR[i];
+
+//	/* try reading the node address from the attached EEPROM */
+//	for (i = 0; i < 6; i += 2)
+//		wemac_read_eeprom(db, i / 2, ndev->dev_addr+i);
 
 	if (!is_valid_ether_addr(ndev->dev_addr) && pdata != NULL) {
 		mac_src = "platform data";
@@ -2089,14 +2075,17 @@ wemac_probe(struct platform_device *pdev)
 
 	if (!is_valid_ether_addr(ndev->dev_addr)) {
 		mac_src = "chip";
+		//*(unsigned short*)(ndev->dev_addr+4) = readw(db->emac_vbase + EMAC_MAC_A0_REG);
+		//*(unsigned short*)(ndev->dev_addr+2) = readw(db->emac_vbase + EMAC_MAC_A1_REG);
+		//*(unsigned short*)(ndev->dev_addr+0) = readw(db->emac_vbase + EMAC_MAC_A2_REG);
 		reg_val = readl(db->emac_vbase + EMAC_MAC_A1_REG);
-		ndev->dev_addr[0] = (u8)reg_val>>16;
-		ndev->dev_addr[1] = (u8)reg_val>>8;
-		ndev->dev_addr[2] = (u8)reg_val;
+		*(ndev->dev_addr+0) = (reg_val>>16) & 0xff;
+		*(ndev->dev_addr+1) = (reg_val>>8) & 0xff;
+		*(ndev->dev_addr+2) = (reg_val>>0) & 0xff;
 		reg_val = readl(db->emac_vbase + EMAC_MAC_A0_REG);
-		ndev->dev_addr[3] = (u8)reg_val>>16;
-		ndev->dev_addr[4] = (u8)reg_val>>8;
-		ndev->dev_addr[5] = (u8)reg_val;
+		*(ndev->dev_addr+3) = (reg_val>>16) & 0xff;
+		*(ndev->dev_addr+4) = (reg_val>>8) & 0xff;
+		*(ndev->dev_addr+5) = (reg_val>>0) & 0xff;
 	}
 
 	if (!is_valid_ether_addr(ndev->dev_addr))

@@ -21,38 +21,9 @@
 #ifndef  __OSAL_H__
 #define  __OSAL_H__
 
-#include "linux/kernel.h"
-#include "linux/mm.h"
-#include <asm/uaccess.h>
-#include <asm/memory.h>
-#include <asm/unistd.h>
-#include "linux/semaphore.h"
-#include <linux/vmalloc.h>
-#include <linux/fs.h>
-#include <linux/dma-mapping.h>
-#include <linux/fb.h>
-#include <linux/sched.h>   //wake_up_process()
-#include <linux/kthread.h> //kthread_create()¡¢kthread_run()
-#include <linux/err.h> //IS_ERR()¡¢PTR_ERR()
-#include <linux/delay.h>
-#include <linux/platform_device.h>
-#include "asm-generic/int-ll64.h"
-
-#include <linux/errno.h>
-#include <linux/slab.h>
-#include <linux/delay.h>
-#include <linux/init.h>
-#include <linux/dma-mapping.h>
-#include <linux/interrupt.h>
-#include <linux/platform_device.h>
-#include <linux/clk.h>
-#include <linux/cdev.h>
-
-
 #include "../include/eBSP_common_inc.h"
 #include "csp_include_all_para.h"
-
-
+#include "../de_bsp/bsp_display.h"
 
 #include  "OSAL_Cache.h"
 #include  "OSAL_Clock.h"
@@ -64,6 +35,7 @@
 #include  "OSAL_Lib_C.h"
 #include  "OSAL_Int.h"
 #include  "OSAL_IrqLock.h"
+#include  "OSAL_Pin.h"
 
 #endif   //__OSAL_H__
 

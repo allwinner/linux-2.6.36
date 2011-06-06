@@ -18,70 +18,180 @@
 
 #if 0
 
-#define CLK_DEBE0_AHB_ON	    0x00000001
-#define CLK_DEBE0_MOD_ON 	    0x00000002
-#define CLK_DEBE0_DRAM_ON	    0x00000004
-#define CLK_DEBE1_AHB_ON	    0x00000010
-#define CLK_DEBE1_MOD_ON 	    0x00000020
-#define CLK_DEBE1_DRAM_ON	    0x00000040
-#define CLK_DEFE0_AHB_ON	    0x00000100
-#define CLK_DEFE0_MOD_ON 	    0x00000200
-#define CLK_DEFE0_DRAM_ON	    0x00000400
-#define CLK_DEFE1_AHB_ON	    0x00001000
-#define CLK_DEFE1_MOD_ON 	    0x00002000
-#define CLK_DEFE1_DRAM_ON	    0x00004000
-#define CLK_LCDC0_AHB_ON	    0x00010000
-#define CLK_LCDC0_CH0_MOD_ON  	0x00020000
-#define CLK_LCDC0_CH1_MOD1x_ON  0x00040000
-#define CLK_LCDC0_CH1_MOD2x_ON  0x00080000
-#define CLK_LCDC1_AHB_ON	    0x00100000
-#define CLK_LCDC1_CH0_MOD_ON  	0x00200000
-#define CLK_LCDC1_CH1_MOD1x_ON  0x00400000
-#define CLK_LCDC1_CH1_MOD2x_ON  0x00800000
-#define CLK_TVE0_AHB_ON		    0x01000000	
-#define CLK_TVE1_AHB_ON		    0x02000000	
-#define CLK_HDMI_AHB_ON		    0x04000000	
-#define CLK_HDMI_MOD_ON		    0x08000000	
-#define CLK_LVDS_MOD_ON 	    0x10000000
-
-static char* _sysClkName[CSP_CCM_SYS_CLK_TOTAL_NUM] =
+static char* _sysClkName[AW_SYS_CLK_CNT] =
 {
-    "sdram_pll",
+    "none",
+
+    "losc",
+    "hosc",
+
+    "core_pll",
+    "audio_pll",
     "video_pll0",
+    "ve_pll",
+    "sdram_pll",
+    "sdram_pll_m",
+    "sdram_pll_p",
+    "sata_pll",
     "video_pll1",
-    "video_pll0_2x",
-    "video_pll1_2x",
+    "200m_pll",
+
+    "cpu",
+    "axi",
+    "ahb",
+    "apb",
+    "apb1",
 };
 
-static char* _modClkName[CSP_CCM_MOD_CLK_TOTAL_NUM] =
+static char* _modClkName[AW_MOD_CLK_CNT] =
 {
+    "none",
+
+    "nfc",
+    "msc",
+    "sdc0",
+    "sdc1",
+    "sdc2",
+    "sdc3",
+    "ts",
+    "ss",
+    "spi0",
+    "spi1",
+    "spi2",
+    "pata",
+    "ir0",
+    "ir1",
+    "i2s",
+    "ac97",
+    "spdif",
+    "key_pad",
+    "sata",
+    "usb_phy",
+    "usb_phy0",
+    "usb_phy1",
+    "usb_phy2",
+    "usb_ohci0",
+    "usb_ohci1",
+    "com",
+    "spi3",
     "de_image0",
     "de_image1",
     "de_scale0",
     "de_scale1",
+    "de_mix",
     "lcd0_ch0",
-    "lcd0_ch1_clk2",
-    "lcd0_ch1_clk1",
     "lcd1_ch0",
-    "lcd1_ch1_clk2",
-    "lcd1_ch1_clk1",
+    "csi_isp",
+    "tvd",
+    "lcd0_ch1",
+    "lcd1_ch1",
+    "csi0",
+    "csi1",
+    "ve",
+    "audio_codec",
+    "avs",
+    "ace",
     "lvds",
     "hdmi",
+    "mali",
+    "twi0",
+    "twi1",
+    "twi2",
+    "can",
+    "scr",
+    "ps0",
+    "ps1",
+    "uart0",
+    "uart1",
+    "uart2",
+    "uart3",
+    "uart4",
+    "uart5",
+    "uart6",
+    "uart7",
 
+    /* clock gating for hang to AXI bus */
+    "axi_dram",
+
+    /* clock gating for hang to AHB bus */
+    "ahb_usb0",
+    "ahb_usb1",
+    "ahb_usb2",
+    "ahb_ss",
+    "ahb_dma",
+    "ahb_bist",
+    "ahb_sdc0",
+    "ahb_sdc1",
+    "ahb_sdc2",
+    "ahb_sdc3",
+    "ahb_msc",
+    "ahb_nfc",
+    "ahb_sdramc",
+    "ahb_ace",
+    "ahb_emac",
+    "ahb_ts",
+    "ahb_spi0",
+    "ahb_spi1",
+    "ahb_spi2",
+    "ahb_spi3",
+    "ahb_pata",
+    "ahb_sata",
+    "ahb_com",
+    "ahb_ve",
+    "ahb_tvd",
+    "ahb_tve0",
+    "ahb_tve1",
+    "ahb_lcd0",
+    "ahb_lcd1",
+    "ahb_csi0",
+    "ahb_csi1",
+    "ahb_hdmi",
     "ahb_de_image0",
     "ahb_de_image1",
     "ahb_de_scale0",
     "ahb_de_scale1",
-    "ahb_lcd0",
-    "ahb_lcd1",
-    "ahb_tvenc0",
-    "ahb_tvenc1",
-    "ahb_hdmi"
+    "ahb_de_mix",
+    "ahb_mali",
 
-    "sdram_de_image0",
-    "sdram_de_image1",
+    /* clock gating for hang APB bus */
+    "apb_audio_codec",
+    "apb_spdif",
+    "apb_ac97",
+    "apb_i2s",
+    "apb_pio",
+    "apb_ir0",
+    "apb_ir1",
+    "apb_key_pad",
+    "apb_twi0",
+    "apb_twi1",
+    "apb_twi2",
+    "apb_can",
+    "apb_scr",
+    "apb_ps0",
+    "apb_ps1",
+    "apb_uart0",
+    "apb_uart1",
+    "apb_uart2",
+    "apb_uart3",
+    "apb_uart4",
+    "apb_uart5",
+    "apb_uart6",
+    "apb_uart7",
+
+    /* clock gating for access dram */
+    "sdram_ve",
+    "sdram_csi0",
+    "sdram_csi1",
+    "sdram_ts",
+    "sdram_tvd",
+    "sdram_tve0",
+    "sdram_tve1",
     "sdram_de_scale0",
     "sdram_de_scale1",
+    "sdram_de_image0",
+    "sdram_de_image1",
+    "sdram_de_mix",
+    "sdram_ace",
 };
 
 __s32 OSAL_CCMU_SetSrcFreq( CSP_CCM_sysClkNo_t nSclkNo, __u32 nFreq )

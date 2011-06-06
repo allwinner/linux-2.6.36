@@ -801,7 +801,10 @@ __s32 Fb_Init(void)
 
     DRV_lcd_open(0);
 
-    BSP_disp_set_bright(0, DISP_LCD_BRIGHT_LEVEL12);
+    //BSP_disp_tv_set_mode(0, DISP_TV_MOD_480P);
+    //BSP_disp_tv_open(0);
+    
+    BSP_disp_lcd_set_bright(0, DISP_LCD_BRIGHT_LEVEL12);
 
     color.red = 0xff;
     color.green = 0x00;
@@ -812,7 +815,7 @@ __s32 Fb_Init(void)
     {
         DRV_lcd_open(1);
         
-        BSP_disp_set_bright(1, DISP_LCD_BRIGHT_LEVEL12);
+        BSP_disp_lcd_set_bright(1, DISP_LCD_BRIGHT_LEVEL12);
         
         color.red = 0x00;
         color.green = 0xff;

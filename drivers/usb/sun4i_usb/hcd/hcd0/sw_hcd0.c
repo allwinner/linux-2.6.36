@@ -131,21 +131,32 @@ static __u32 usbc_no = 0;
 */
 static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
- 	DMSG_INFO("open_usb_clock\n");
+	u32 reg_value = 0;
+	u32 ccmu_base = SW_VA_CCM_IO_BASE;
 
-	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && !sw_hcd_io->clk_is_open){
-	   	clk_enable(sw_hcd_io->sie_clk);
-		msleep(10);
+	DMSG_INFO("open_usb_clock\n");
 
-	    clk_enable(sw_hcd_io->phy_clk);
-		clk_reset(sw_hcd_io->phy_clk, 0);
-		msleep(10);
+	//Gating AHB clock for USB_phy0
+	reg_value = USBC_Readl(ccmu_base + 0x60);
+	reg_value |= (1 << 0);	            /* AHB clock gate usb0 */
+	USBC_Writel(reg_value, (ccmu_base + 0x60));
 
-		sw_hcd_io->clk_is_open = 1;
-	}else{
-		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), open(%d)\n",
-			       sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->clk_is_open);
-	}
+	//delay to wati SIE stable
+	reg_value = 10000;
+	while(reg_value--);
+
+	//Enable module clock for USB phy0
+	reg_value = USBC_Readl(ccmu_base + 0xcc);
+	reg_value |= (1 << 8);
+	reg_value |= (1 << 0);          //disable reset
+	USBC_Writel(reg_value, (ccmu_base + 0xcc));
+
+	//delay some time 
+	reg_value = 10000;
+	while(reg_value--);
+
+	sw_hcd_io->clk_is_open = 1;
+
 
 	return 0;
 }
@@ -170,17 +181,31 @@ static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 */
 static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
+	u32 reg_value = 0;
+	u32 ccmu_base = SW_VA_CCM_IO_BASE;
+
 	DMSG_INFO("close_usb_clock\n");
 
-	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->clk_is_open){
-	    clk_disable(sw_hcd_io->sie_clk);
-	    clk_disable(sw_hcd_io->phy_clk);
-		clk_reset(sw_hcd_io->phy_clk, 1);
-		sw_hcd_io->clk_is_open = 0;
-	}else{
-		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), open(%d)\n",
-			       sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->clk_is_open);
-	}
+	//Gating AHB clock for USB_phy0
+	reg_value = USBC_Readl(ccmu_base + 0x60);
+	reg_value &= ~(1 << 0);	            /* AHB clock gate usb0 */
+	USBC_Writel(reg_value, (ccmu_base + 0x60));
+
+	//等sie的时钟变稳
+	reg_value = 10000;
+	while(reg_value--);
+
+	//Enable module clock for USB phy0
+	reg_value = USBC_Readl(ccmu_base + 0xcc);
+	reg_value &= ~(1 << 8);
+	reg_value &= ~(1 << 0);          //disable reset
+	USBC_Writel(reg_value, (ccmu_base + 0xcc));
+
+	//延时
+	reg_value = 10000;
+	while(reg_value--);
+
+	sw_hcd_io->clk_is_open = 0;
 
 	return 0;
 }

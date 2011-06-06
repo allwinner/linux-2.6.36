@@ -700,9 +700,9 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     
     //compute the fir coeficient address for each channel in horizontal and vertical direction
     ch0v_fir_coef_addr = (ch0v_fir_coef_ofst<<7);
-    ch0h_fir_coef_addr = (ch0h_fir_coef_ofst<<7) + ((al1_size + 1)<<7) + (ch0h_fir_coef_ofst<<8);
+    ch0h_fir_coef_addr = ((al1_size + 1)<<7) + (ch0h_fir_coef_ofst<<8);
     ch1v_fir_coef_addr = (ch1v_fir_coef_ofst<<7);
-    ch1h_fir_coef_addr = (ch1h_fir_coef_ofst<<7) + ((al1_size + 1)<<7) + (ch1h_fir_coef_ofst<<8);
+    ch1h_fir_coef_addr = ((al1_size + 1)<<7) + (ch1h_fir_coef_ofst<<8);
 
     for(i=0; i<32; i++)
     {

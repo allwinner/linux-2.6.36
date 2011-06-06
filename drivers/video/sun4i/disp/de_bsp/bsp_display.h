@@ -32,9 +32,9 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/cdev.h>
-#include "../OSAL/OSAL.h"
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include "../OSAL/OSAL.h"
 #endif
 
 #ifdef __MELIS_OSAL__
@@ -395,66 +395,63 @@ typedef struct
 
 typedef struct
 {
-	__u32   port_index;
+	__u32   lcd_x;
+	__u32   lcd_y;
+	__u32   lcd_dclk_freq;
+	__u32   lcd_pwm_freq;
+	__u32   lcd_pwm_pol;
+	__u32   lcd_srgb;
+	__u32   lcd_swap;
 
-	__u8    lcd_if; //0:hv(sync+de); 1:8080; 2:ttl; 3:lvds
-	__u8    lcd_swap;
-	__u16   lcd_x;
-	__u16   lcd_y;
-	__u16   lcd_dclk_freq;
+	__u32   lcd_if; //0:hv(sync+de); 1:8080; 2:ttl; 3:lvds
 
-	__u8    lcd_uf;
-	__u16   lcd_vt;
-	__u16   lcd_ht;
-	__u16   lcd_vbp;
-	__u16   lcd_hbp;
+	__u32   lcd_uf;
+	__u32   lcd_vt;
+	__u32   lcd_ht;
+	__u32   lcd_vbp;
+	__u32   lcd_hbp;
 
-	__u8    lcd_hv_if;
-	__u8    lcd_hv_smode;
-	__u8    lcd_hv_s888_if;
-	__u8    lcd_hv_syuv_if;
-	__u8    lcd_hv_vspw;
-	__u16   lcd_hv_hspw;
-
-	__u8    lcd_hv_lde_used;
-	__u8    lcd_hv_lde_iovalue;
+	__u32   lcd_hv_if;
+	__u32   lcd_hv_smode;
+	__u32   lcd_hv_s888_if;
+	__u32   lcd_hv_syuv_if;
+	__u32   lcd_hv_vspw;
+	__u32   lcd_hv_hspw;
+	__u32   lcd_hv_lde_used;
+	__u32   lcd_hv_lde_iovalue;
 
 	__u32   lcd_ttl_stvh;
 	__u32   lcd_ttl_stvdl;
 	__u32   lcd_ttl_stvdp;
-
 	__u32   lcd_ttl_ckvt;
 	__u32   lcd_ttl_ckvh;
 	__u32   lcd_ttl_ckvd;
-
 	__u32   lcd_ttl_oevt;
 	__u32   lcd_ttl_oevh;
 	__u32   lcd_ttl_oevd;
-
 	__u32   lcd_ttl_sthh;
 	__u32   lcd_ttl_sthd;
 	__u32   lcd_ttl_oehh;
 	__u32   lcd_ttl_oehd;
-
 	__u32   lcd_ttl_revd;
-
 	__u32   lcd_ttl_datarate;
 	__u32   lcd_ttl_revsel;
 	__u32   lcd_ttl_datainv_en;
 	__u32   lcd_ttl_datainv_sel;
-	__u8    lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
-	__u8    lcd_cpu_da;
+	
+	__u32   lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
+	__u32   lcd_cpu_da;
 	__u32   lcd_frm;
+
+	__u32   lvds_channel;// 1: single channel; 2:dual channel
+	__u32   lvds_mode;// 0:NS mode; 1:JEIDA mode
+	__u32   lvds_datawidth;// 0:24bit; 1:18bit
 
 	__u32   lcd_io_cfg0;
 	__u32   lcd_io_cfg1;
-
-	__u32   lcd_srgb;
 	__u32   lcd_io_strength;
 
-	__u32   lcd_pwm_freq;
-	__u32   lcd_pwm_pol;
-
+	__u32   port_index;
 	__u32   start_delay;//not need to config for user
 	__u32   tcon_index; //not need to config for user
 }__panel_para_t;

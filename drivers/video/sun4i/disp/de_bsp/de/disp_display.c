@@ -12,48 +12,30 @@
 __disp_dev_t gdisp;
 
 
-//clock define
-#define AC328_PLL         360  //*******can not be modify for sim******
-#define MEDIA_PLL         288  //*******can not be modify for sim******
-#define AUDIO_PLL         0    //
-#define DRAM_PLL          360 //*******can not be modify for sim******
 #define VIDEO_PLL0        270  //when tv mode enable, this value will be changed
-#define VIDEO_PLL1        210  //when tv mode enable, this value will be changed
-#define APB_CLK_DIV       1  //apb bus clock       //0: ahb clk/2, 1:ahb clk/2,2:ahb clk/4,3:ahb clk/8, 
-#define AHB_CLK_DIV       1  //ahb bus clock       //0: ac328 clk/1, 1: ac328 clk/2, 2: ac328 clk/4, 3: ac328 clk/8
-//#define DRAM_CLK_DIV      0  //dram bus divide     //0: dram_pll/1, 1:dram_pll/4 3:dram_pll/8
-#define AC328_CLK_DIV     1  //ac320 bus divide     //0: ac328 pll/1, 1: ac328 pll/2, 2: ac328 pll/3, 3:ac328 pll/4
-//display clock setting
+#define VIDEO_PLL1        270  //when tv mode enable, this value will be changed
+
 #define DEIM0_CLK_SEL     2  //image0 clock source //0: video pll0, 1: video pll1, 2: dram pll
 #define DEIM0_CLK_DIV     1  //image0 clock divide //0: im0pll/1,  1: im0pll/2,  2: im0pll/3....15:im0pll/16
 #define DEIM1_CLK_SEL     2  //image1 clock source //0: video pll0, 1: video pll1, 2: dram pll
 #define DEIM1_CLK_DIV     1  //image1 clock divide //0: im1pll/1,  1: im1pll/2,  2: im1pll/3...,15:im1pll/16
 
-#define TCON0_CLK_SEL     0  //tcon0 clcok source  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
-#define TCON1_CLK_SEL     0  //tcon1 clock divide  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
-#define DEMP_CLK_SEL      2 //mp clock sel, 0: video pll1, 1: video pll2, 2: dram pll
-#define DEMP_CLK_DIV      0 //mp clock div, 0: mppll/1,  1: mppll/2....... 15: /16
-#define TVD_CLK_SEL       0 //tvd clock sel, 0: video pll0, 1:video pll1
-
-#define TCON0_CH1_CLK_SEL     0  //tcon0 ch1(tve0) clock source  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
-#define TCON0_CH1_CLK_DIV     0  //tcon0 ch1(tve0) clock divide  //0: tve0pll/1,  1: tve0pll/2,...,15: tve0pll/16
-#define TCON1_CH1_CLK_SEL     0  //tcon1 ch1(tve1)clock divide  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
-#define TCON1_CH1_CLK_DIV     0  //tcon0 ch1(tve1) clock divide  //0: tve1pll/1,  1: tve1pll/2,...,15: tve1pll/16
-
-#define CSI0_CLK_SEL      0   //csi0 clock source //0:osc24m, 1:video pll0(1x), 2: video pll1(1x), 5: video pll0(2x), 6: video pll1(2x)
-#define CSI0_CLK_DIV      0   //csi0 clock divide //0:csi0pll/1, ......, 31: csi0pll/32
-#define CSI1_CLK_SEL      0   //csi1 clock source //0:osc24m, 1:video pll0(1x), 2: video pll1(1x), 5: video pll0(2x), 6: video pll1(2x)
-#define CSI1_CLK_DIV      0   //csi1 clock divide //0:csi1pll/1, ......, 31: csi1pll/32
-
-#define HDMI_CLK_SEL      0  //HDMI clock source //0:pll3(1x), 1:pll7(1x), 2: pll3(2x), 3:pll7(2x)
-#define HDMI_CLK_DIV      0  //HDMI clcok divide //0:hdmipll/1, 1:hdmipll/2, 2:hdmipll/2,,,15:hdmipll/16
-#define MALI_CLK_SEL      1  //MALI clock source //0:pll3, 1:pll4, 2:pll5, 3:pll7
-#define MALI_CLK_DIV      0  //MALI clock divide //0:mailpll/1, 1:malipll/2,,,,15:malipll/16
 #define SCAL0_CLK_SEL     0  //scaler0 clock source //0: video pll0, 1: video pll1, 2: dram pll
 #define SCAL0_CLK_DIV     0  //scaler0 clock divide //0: sc0pll/1,  1: sc0pll/2..... 15:sc0pll/16
 #define SCAL1_CLK_SEL     0  //scaler1 clock source //0: video pll0, 1: video pll1, 2: dram pll
 #define SCAL1_CLK_DIV     0  //scaler1 clock divide //0: sc1pll/1,  1: sc1pll/2.....15:sc1pll/16
- 
+
+#define TCON0_CLK_SEL     0  //tcon0 clcok source  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
+#define TCON1_CLK_SEL     0  //tcon1 clock divide  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
+#define TCON0_CH1_CLK_SEL     1  //tcon0 ch1(tve0) clock source  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
+#define TCON0_CH1_CLK_DIV     4  //tcon0 ch1(tve0) clock divide  //0: tve0pll/1,  1: tve0pll/2,...,15: tve0pll/16
+#define TCON1_CH1_CLK_SEL     0  //tcon1 ch1(tve1)clock divide  //0: video pll0(1x), 1: video pll1(1x), 2: video pll0(2x), 3: video pll1(2x)
+#define TCON1_CH1_CLK_DIV     0  //tcon0 ch1(tve1) clock divide  //0: tve1pll/1,  1: tve1pll/2,...,15: tve1pll/16
+
+#define HDMI_CLK_SEL      0  //HDMI clock source //0:pll3(1x), 1:pll7(1x), 2: pll3(2x), 3:pll7(2x)
+#define HDMI_CLK_DIV      0  //HDMI clcok divide //0:hdmipll/1, 1:hdmipll/2, 2:hdmipll/2,,,15:hdmipll/16
+
+
 
 //CCM register
 #define CCM_BASE           			0xf1c20000
@@ -132,7 +114,7 @@ void pll_cfg(void)
 {
 	__u32 reg_val;
 	
-	//set up video pll0  --pll3
+	//set up video pll3
 	reg_val = sys_get_wvalue(CCM_VIDEO_PLL3_REG);
 	reg_val &= (~(0x1<<15));    //mode select
 	reg_val |= (0x0<<15);       //mode select, 0: integer mode, 1: fractional mode
@@ -141,7 +123,7 @@ void pll_cfg(void)
 	reg_val |= 0x1<<31;			//video PLL0 enable
 	sys_put_wvalue(CCM_VIDEO_PLL3_REG, reg_val);
 	
-	//set up video pll1  --pll7
+	//set up video pll7
 	reg_val = sys_get_wvalue(CCM_VIDEO_PLL7_REG);
 	reg_val &= (~(0x1<<15));    //mode select
 	reg_val |= (0x0<<15);       //mode select, 0: integer mode, 1: fractional mode
@@ -290,7 +272,7 @@ __s32  de_ccu_set(void)
 	reg_val = sys_get_wvalue(CCM_SDRAM_CLK_REG);
 	//reg_val |= 0x1<<30;  //gpu 3d
 	//reg_val |= 0x1<<29;  //gpu 2d avg
-	reg_val |= 0x1<<28;  //demp
+	//reg_val |= 0x1<<28;  //demp
 	reg_val |= 0x1<<27;  //image 1
 	reg_val |= 0x1<<26;  //image 0
 	reg_val |= 0x1<<25;  //scaler 1

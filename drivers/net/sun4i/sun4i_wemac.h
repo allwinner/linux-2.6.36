@@ -6,8 +6,6 @@
 #define _WEMACX_H_
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~registers define~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//#define PHY_8210cp
-#define PHY_1000M
 
 //EMAC register
 #define EMAC_BASE			           0x01C0B000   //form aw1615 fpga

@@ -9,7 +9,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
 //屏的基本信息
     info->lcd_x                   = 800;
     info->lcd_y                   = 480;
-    info->lcd_dclk_freq           = 60;  //33MHz
+    info->lcd_dclk_freq           = 33;  //33MHz
     info->lcd_pwm_freq            = 1;  //KHz
     info->lcd_srgb                = 0x00202020;
     info->lcd_swap                = 0;
@@ -66,10 +66,12 @@ static void LCD_power_off(__u32 sel)
 ////////////////////////////////////////   back light   ////////////////////////////////////////////////////////////////////
 static void LCD_bl_open(__u32 sel)
 {
+    LCD_PWM_EN(sel, 1);
 }
 
 static void LCD_bl_close(__u32 sel)
 {
+    LCD_PWM_EN(sel, 0);
 }
 
 
