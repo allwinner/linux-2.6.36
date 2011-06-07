@@ -649,5 +649,9 @@ config  TOUCHSCREEN_FT
        help
           ft5x06 touchscreen driver
 
+config  TOUCHSCREEN_F3X_TS
+       tristate  "f3x-ts touchscreen driver"
+       help
+           f3x-ts touchscreen driver
 
 endif
