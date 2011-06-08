@@ -148,6 +148,27 @@ int clk_init(void)
         }
     }
 
+    /* enable pll for use, it need be modified to dynamic */
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL2];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL3];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL4];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL7];
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+
     return 0;
 }
 arch_initcall(clk_init);

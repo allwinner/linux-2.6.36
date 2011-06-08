@@ -97,7 +97,7 @@ void clk_put(struct clk *clk);
  * Returns rounded clock rate in Hz, or negative errno.
  */
 long clk_round_rate(struct clk *clk, unsigned long rate);
- 
+
 /**
  * clk_set_rate - set the clock rate for a clock source
  * @clk: clock source
@@ -106,7 +106,7 @@ long clk_round_rate(struct clk *clk, unsigned long rate);
  * Returns success (0) or negative errno.
  */
 int clk_set_rate(struct clk *clk, unsigned long rate);
- 
+
 /**
  * clk_set_parent - set the parent clock source for this clock
  * @clk: clock source
@@ -155,4 +155,14 @@ struct clk *clk_get_sys(const char *dev_id, const char *con_id);
 int clk_add_alias(const char *alias, const char *alias_dev_name, char *id,
 			struct device *dev);
 
+/**
+ * clk_reset - module reset control
+ * @clk: clock source
+ * @reset: reset operation, 0-disable reset, 1-enable reset;
+ *
+ * Enable module enter reset state or not;
+ */
+int clk_reset(struct clk *clk, int reset);
+
 #endif
+
