@@ -72,7 +72,7 @@ module_param(g_dev_minor, int, S_IRUGO);
 #define IMAGE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x24)
 #define SCALE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x28)
 
-void *reserved_mem = (void *)(CONFIG_SW_SYSMEM_RESERVED_BASE + 64*1024);
+void *reserved_mem = (void *)((CONFIG_SW_SYSMEM_RESERVED_BASE + 64*1024) + 0x80000000);
 int cedarmem_size = CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 64*1024;
 
 struct iomap_para{

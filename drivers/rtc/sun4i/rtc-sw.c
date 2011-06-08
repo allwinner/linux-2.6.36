@@ -18,6 +18,14 @@
 
 #include "regs-rtc.h"
 
+/*
+* notice: IN 23 A version, operation(eg. write date, time reg) 
+* that will affect losc reg, will also affect pwm reg at the same time
+* it is a ic bug needed to be fixed,
+* right now, before write date, time reg, we need to backup pwm reg
+* after writing, we should restore pwm reg.
+*/
+#define BACKUP_PWM
 /*说明 f23最大变化为16年的时间
 该驱动支持2010年～2025年的时间*/
 
@@ -160,6 +168,10 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	unsigned int crystal_data = 0;
 	unsigned int timeout = 0;
 	int leap_year = 0;
+	#ifdef BACKUP_PWM
+	unsigned int pwm_ctrl_reg_backup = 0;
+	unsigned int pwm_ch0_period_backup = 0;
+	#endif
     
     //int tm_year; years from 1900
     //int tm_mon; months since jan 0-11 
@@ -191,28 +203,71 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 
 	time_tmp = (TIME_SET_SEC_VALUE(tm->tm_sec)|TIME_SET_MIN_VALUE(tm->tm_min)
                     |TIME_SET_HOUR_VALUE(tm->tm_hour));
+   	#ifdef BACKUP_PWM
+	    pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
+	    pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+	#endif                
 	writel(time_tmp,  base + AW1623_RTC_TIME_REG);
 	timeout = 0xffff;
 	while((readl(base + AW1623_LOSC_CTRL_REG)&(RTC_HHMMSS_ACCESS))&&(--timeout))
 	if(timeout == 0)
     {       
         dev_err(dev, "fail to set rtc time.\n");
+        #ifdef BACKUP_PWM
+    	    writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
+    	    writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+			
+			pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
+	    	pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+			printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+        #endif
         return -1;
     }  
+    #ifdef BACKUP_PWM
+       writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
+       writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+
+	   pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
+	   pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+	   printk("[rtc-pwm] 3 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+    #endif
 
 	if((leap_year%400==0) || ((leap_year%100!=0) && (leap_year%4==0))) {
 		/*Set Leap Year bit*/
 		date_tmp |= LEAP_SET_VALUE(1);     
 	} 
+	
+	#ifdef BACKUP_PWM
+    	pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
+    	pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+		
+	   printk("[rtc-pwm] 4 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+    #endif
 	writel(date_tmp, base + AW1623_RTC_DATE_REG);
 	timeout = 0xffff;
 	while((readl(base + AW1623_LOSC_CTRL_REG)&(RTC_YYMMDD_ACCESS))&&(--timeout))
 	if(timeout == 0)
     {       
         dev_err(dev, "fail to set rtc date.\n");
+        #ifdef BACKUP_PWM
+            writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
+            writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+
+			pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
+	    pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+	    printk("[rtc-pwm] 5 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+        #endif
         return -1;
     }  
-
+    #ifdef BACKUP_PWM
+       writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
+       writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+		
+ 		pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
+	    pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+	    printk("[rtc-pwm] 6 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+    #endif
     //wait about 70us to make sure the the time is really written into target.
     udelay(70);
     
@@ -397,11 +452,14 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 	/* select RTC clock source 
      * on fpga board, internal 32k clk src is the default, and can not be changed                           
      */
-    //RTC CLOCK SOURCE internal 32K HZ    
-    tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
+    //RTC CLOCK SOURCE internal 32K HZ 
+   
+	/*    
+	tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
     tmp_data |= (RTC_SOURCE_INTERNAL | REG_LOSCCTRL_MAGIC);                  
 	writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);
-   
+    */
+
 	_dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);  
 
 	device_init_wakeup(&pdev->dev, 1);
@@ -464,7 +522,7 @@ static struct platform_driver f23_rtc_driver = {
 static int __init f23_rtc_init(void)
 {
 	platform_device_register(&f23_device_rtc);
-	printk("sun4i RTC\n");
+	printk("sun4i RTC version 0.1 \n");
 	return platform_driver_register(&f23_rtc_driver);
 }
 
