@@ -121,8 +121,10 @@ typedef enum __AW_CCU_MOD_CLK
     AW_MOD_CLK_LCD1CH0,     /* "lcd1_ch0"       */
     AW_MOD_CLK_CSIISP,      /* "csi_isp"        */
     AW_MOD_CLK_TVD,         /* "tvd"            */
-    AW_MOD_CLK_LCD0CH1,     /* "lcd0_ch1"       */
-    AW_MOD_CLK_LCD1CH1,     /* "lcd1_ch1"       */
+    AW_MOD_CLK_LCD0CH1_S1,  /* "lcd0_ch1_s1"    */
+    AW_MOD_CLK_LCD0CH1_S2,  /* "lcd0_ch1_s2"    */
+    AW_MOD_CLK_LCD1CH1_S1,  /* "lcd1_ch1_s1"    */
+    AW_MOD_CLK_LCD1CH1_S2,  /* "lcd1_ch1_s2"    */
     AW_MOD_CLK_CSI0,        /* "csi0"           */
     AW_MOD_CLK_CSI1,        /* "csi1"           */
     AW_MOD_CLK_VE,          /* "ve"             */

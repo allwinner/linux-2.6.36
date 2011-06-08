@@ -65,8 +65,10 @@ static __aw_ccu_clk_t aw_ccu_mod_clk[] =
     make_mod_clk_inf(AW_MOD_CLK_LCD1CH0     , "lcd1_ch0"    ),
     make_mod_clk_inf(AW_MOD_CLK_CSIISP      , "csi_isp"     ),
     make_mod_clk_inf(AW_MOD_CLK_TVD         , "tvd"         ),
-    make_mod_clk_inf(AW_MOD_CLK_LCD0CH1     , "lcd0_ch1"    ),
-    make_mod_clk_inf(AW_MOD_CLK_LCD1CH1     , "lcd1_ch1"    ),
+    make_mod_clk_inf(AW_MOD_CLK_LCD0CH1_S1  , "lcd0_ch1_s1" ),
+    make_mod_clk_inf(AW_MOD_CLK_LCD0CH1_S2  , "lcd0_ch1_s2" ),
+    make_mod_clk_inf(AW_MOD_CLK_LCD1CH1_S1  , "lcd1_ch1_s1" ),
+    make_mod_clk_inf(AW_MOD_CLK_LCD1CH1_S2  , "lcd1_ch1_s2" ),
     make_mod_clk_inf(AW_MOD_CLK_CSI0        , "csi0"        ),
     make_mod_clk_inf(AW_MOD_CLK_CSI1        , "csi1"        ),
     make_mod_clk_inf(AW_MOD_CLK_VE          , "ve"          ),
@@ -459,7 +461,8 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
         }
         case AW_MOD_CLK_TVD:
             return aw_ccu_reg->TvdClk.ClkSrc? AW_SYS_CLK_PLL7 : AW_SYS_CLK_PLL3;
-        case AW_MOD_CLK_LCD0CH1:
+        case AW_MOD_CLK_LCD0CH1_S1:
+        case AW_MOD_CLK_LCD0CH1_S2:
         {
             switch(aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Src)
             {
@@ -476,7 +479,8 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             }
             return AW_SYS_CLK_NONE;
         }
-        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_LCD1CH1_S1:
+        case AW_MOD_CLK_LCD1CH1_S2:
         {
             switch(aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Src)
             {
@@ -685,10 +689,14 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->CsiIspClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_TVD:
             return aw_ccu_reg->TvdClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_MOD_CLK_LCD0CH1:
-            return (aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Gate && aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Gate)? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_MOD_CLK_LCD1CH1:
-            return (aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Gate && aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Gate)? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_LCD0CH1_S1:
+            return aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_LCD0CH1_S2:
+            return aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_LCD1CH1_S1:
+            return aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_LCD1CH1_S2:
+            return aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_CSI0:
             return aw_ccu_reg->Csi0Clk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_CSI1:
@@ -964,9 +972,13 @@ static __s64 mod_clk_get_rate(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->CsiIspClk.ClkDiv + 1;
         case AW_MOD_CLK_TVD:
             return 1;
-        case AW_MOD_CLK_LCD0CH1:
+        case AW_MOD_CLK_LCD0CH1_S1:
+            return (aw_ccu_reg->Lcd0Ch1Clk.ClkDiv + 1) * (aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Src + 1);
+        case AW_MOD_CLK_LCD0CH1_S2:
             return aw_ccu_reg->Lcd0Ch1Clk.ClkDiv + 1;
-        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_LCD1CH1_S1:
+            return (aw_ccu_reg->Lcd1Ch1Clk.ClkDiv + 1) * (aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Src + 1);
+        case AW_MOD_CLK_LCD1CH1_S2:
             return aw_ccu_reg->Lcd1Ch1Clk.ClkDiv + 1;
         case AW_MOD_CLK_CSI0:
             return aw_ccu_reg->Csi0Clk.ClkDiv + 1;
@@ -1062,8 +1074,10 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->Lcd1Ch0Clk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_CSIISP:
         case AW_MOD_CLK_TVD:
-        case AW_MOD_CLK_LCD0CH1:
-        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_LCD0CH1_S1:
+        case AW_MOD_CLK_LCD0CH1_S2:
+        case AW_MOD_CLK_LCD1CH1_S1:
+        case AW_MOD_CLK_LCD1CH1_S2:
             return AW_CCU_CLK_NRESET;
         case AW_MOD_CLK_CSI0:
             return aw_ccu_reg->Csi0Clk.Reset? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
@@ -1273,7 +1287,8 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
             }
             return -1;
         }
-        case AW_MOD_CLK_LCD0CH1:
+        case AW_MOD_CLK_LCD0CH1_S1:
+        case AW_MOD_CLK_LCD0CH1_S2:
         {
             switch(parent)
             {
@@ -1294,7 +1309,8 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
             }
             return -1;
         }
-        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_LCD1CH1_S1:
+        case AW_MOD_CLK_LCD1CH1_S2:
         {
             switch(parent)
             {
@@ -1571,34 +1587,18 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
         case AW_MOD_CLK_TVD:
             aw_ccu_reg->TvdClk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
-        case AW_MOD_CLK_LCD0CH1:
-        {
-            if(status == AW_CCU_CLK_OFF)
-            {
-                aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Gate = 0;
-                aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Gate = 0;
-            }
-            else
-            {
-                aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Gate = 1;
-                aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Gate = 1;
-            }
+        case AW_MOD_CLK_LCD0CH1_S1:
+            aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Gate = (status == AW_CCU_CLK_ON)? 1 : 0;
             return 0;
-        }
-        case AW_MOD_CLK_LCD1CH1:
-        {
-            if(status == AW_CCU_CLK_OFF)
-            {
-                aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Gate = 0;
-                aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Gate = 0;
-            }
-            else
-            {
-                aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Gate = 1;
-                aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Gate = 1;
-            }
+        case AW_MOD_CLK_LCD0CH1_S2:
+            aw_ccu_reg->Lcd0Ch1Clk.SpecClk2Gate = (status == AW_CCU_CLK_ON)? 1 : 0;
             return 0;
-        }
+        case AW_MOD_CLK_LCD1CH1_S1:
+            aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Gate = (status == AW_CCU_CLK_ON)? 1 : 0;
+            return 0;
+        case AW_MOD_CLK_LCD1CH1_S2:
+            aw_ccu_reg->Lcd1Ch1Clk.SpecClk2Gate = (status == AW_CCU_CLK_ON)? 1 : 0;
+            return 0;
         case AW_MOD_CLK_CSI0:
             aw_ccu_reg->Csi0Clk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
@@ -2077,7 +2077,22 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
             aw_ccu_reg->CsiIspClk.ClkDiv = rate-1;
             return 0;
         }
-        case AW_MOD_CLK_LCD0CH1:
+        case AW_MOD_CLK_LCD0CH1_S1:
+        {
+            if(rate == (aw_ccu_reg->Lcd0Ch1Clk.ClkDiv+1))
+            {
+                aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Src = 0;
+                return 0;
+            }
+            else if(rate == ((aw_ccu_reg->Lcd0Ch1Clk.ClkDiv+1)>>1))
+            {
+                aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Src = 1;
+                return 0;
+            }
+
+            return -1;
+        }
+        case AW_MOD_CLK_LCD0CH1_S2:
         {
             if((rate < 1) || (rate > 16))
             {
@@ -2086,7 +2101,22 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
             aw_ccu_reg->Lcd0Ch1Clk.ClkDiv = rate-1;
             return 0;
         }
-        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_LCD1CH1_S1:
+        {
+            if(rate == (aw_ccu_reg->Lcd1Ch1Clk.ClkDiv+1))
+            {
+                aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Src = 0;
+                return 0;
+            }
+            else if(rate == ((aw_ccu_reg->Lcd1Ch1Clk.ClkDiv+1)>>1))
+            {
+                aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Src = 1;
+                return 0;
+            }
+
+            return -1;
+        }
+        case AW_MOD_CLK_LCD1CH1_S2:
         {
             if((rate < 1) || (rate > 16))
             {
@@ -2299,8 +2329,10 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
         case AW_MOD_CLK_ADDA:
         case AW_MOD_CLK_CSIISP:
         case AW_MOD_CLK_TVD:
-        case AW_MOD_CLK_LCD0CH1:
-        case AW_MOD_CLK_LCD1CH1:
+        case AW_MOD_CLK_LCD0CH1_S1:
+        case AW_MOD_CLK_LCD0CH1_S2:
+        case AW_MOD_CLK_LCD1CH1_S1:
+        case AW_MOD_CLK_LCD1CH1_S2:
         case AW_MOD_CLK_SPI3:
         case AW_MOD_CLK_AVS:
         case AW_MOD_CLK_HDMI:
