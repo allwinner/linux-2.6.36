@@ -12,6 +12,7 @@
 #include <linux/io.h>
 #include <linux/gfp.h>
 #include <linux/clockchips.h>
+#include <linux/bootmem.h>
 
 #include <asm/clkdev.h>
 #include <asm/system.h>
@@ -241,10 +242,14 @@ static int __init sw_core_init(void)
 }
 core_initcall(sw_core_init);
 
-
 extern int sw_register_clocks(void);
 void __init softwinner_init(void)
 {
+	int ret;
+	printk("sun4i platform init\n");
+	ret = reserve_bootmem(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024, BOOTMEM_EXCLUSIVE);
+	printk("Reserve memory for system, ret=%d\n", ret);
+
 	sysdev_register(&sw_sysdev);
 }
 

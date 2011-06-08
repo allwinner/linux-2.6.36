@@ -180,6 +180,15 @@ obj-y	+= davinci/
 
 obj-$(CONFIG_ARCH_OMAP)	+= omap/
 
+ifeq ($(CONFIG_VIDEO_SUN4I_CEDAR),y)
+  obj-$(CONFIG_VIDEO_SUN4I_CEDAR) += sun4i/
+endif
+
+ifeq ($(CONFIG_VIDEO_SUN3I_CEDAR),y)
+  obj-$(CONFIG_VIDEO_SUN3I_CEDAR) += sun3i/
+endif
+
+
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends
 EXTRA_CFLAGS += -Idrivers/media/common/tuners
