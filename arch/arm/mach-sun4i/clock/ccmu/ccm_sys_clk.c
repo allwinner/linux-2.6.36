@@ -256,7 +256,7 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         }
         case AW_SYS_CLK_PLL3:
         {
-            if(aw_ccu_reg->Pll3Ctl.ModeSel)
+            if(!aw_ccu_reg->Pll3Ctl.ModeSel)
             {
                 if(aw_ccu_reg->Pll3Ctl.FracSet)
                 {
@@ -301,7 +301,7 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         }
         case AW_SYS_CLK_PLL7:
         {
-            if(aw_ccu_reg->Pll7Ctl.ModeSel)
+            if(!aw_ccu_reg->Pll7Ctl.ModeSel)
             {
                 if(aw_ccu_reg->Pll7Ctl.FracSet)
                 {
@@ -650,7 +650,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
             return (rate == 24000000)? 0 : -1;
         case AW_SYS_CLK_PLL1:
         {
-            __s32   tmpFactorN, tmpFactorK, tmpFactorP, tmpFactorM;
+            __s32   tmpFactorN, tmpFactorK, tmpFactorP, tmpFactorM, cycle;
 
             if(rate <= 60000000)
             {
@@ -694,10 +694,17 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
                 CCU_ERR("Rate (%lld) for PLL1 is invalid!\n", rate);
                 return -1;
             }
+            /* set a high division to set on pll */
+            aw_ccu_reg->Pll1Ctl.PLLDivP = 1;
+            aw_ccu_reg->Pll1Ctl.FactorM = 3;
+            for(cycle=0; cycle<10000; cycle++);
+
+            /* set the correct parameter for PLL */
             aw_ccu_reg->Pll1Ctl.FactorN = tmpFactorN;
             aw_ccu_reg->Pll1Ctl.FactorK = tmpFactorK;
             aw_ccu_reg->Pll1Ctl.PLLDivP = tmpFactorP;
             aw_ccu_reg->Pll1Ctl.FactorM = tmpFactorM;
+            for(cycle=0; cycle<200000; cycle++);
 
             return 0;
         }
@@ -735,17 +742,17 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
 
             if(rate == 270000000)
             {
-                aw_ccu_reg->Pll3Ctl.ModeSel = 1;
+                aw_ccu_reg->Pll3Ctl.ModeSel = 0;
                 aw_ccu_reg->Pll3Ctl.FracSet = 0;
             }
             else if(rate == 297000000)
             {
-                aw_ccu_reg->Pll3Ctl.ModeSel = 1;
+                aw_ccu_reg->Pll3Ctl.ModeSel = 0;
                 aw_ccu_reg->Pll3Ctl.FracSet = 1;
             }
             else
             {
-                aw_ccu_reg->Pll3Ctl.ModeSel = 0;
+                aw_ccu_reg->Pll3Ctl.ModeSel = 1;
                 aw_ccu_reg->Pll3Ctl.FactorM = ccu_clk_uldiv(rate + (3000000 - 1), 3000000);
             }
             return 0;
@@ -933,17 +940,17 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
 
             if(rate == 270000000)
             {
-                aw_ccu_reg->Pll7Ctl.ModeSel = 1;
+                aw_ccu_reg->Pll7Ctl.ModeSel = 0;
                 aw_ccu_reg->Pll7Ctl.FracSet = 0;
             }
             else if(rate == 297000000)
             {
-                aw_ccu_reg->Pll7Ctl.ModeSel = 1;
+                aw_ccu_reg->Pll7Ctl.ModeSel = 0;
                 aw_ccu_reg->Pll7Ctl.FracSet = 1;
             }
             else
             {
-                aw_ccu_reg->Pll7Ctl.ModeSel = 0;
+                aw_ccu_reg->Pll7Ctl.ModeSel = 1;
                 aw_ccu_reg->Pll7Ctl.FactorM = ccu_clk_uldiv(rate + (3000000 - 1), 3000000);
             }
             return 0;

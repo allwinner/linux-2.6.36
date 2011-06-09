@@ -414,8 +414,8 @@ typedef struct __CCMU_DRAM_GATE_REG0100
     __u32   reserved0:8;        //bit7,  reserved
     __u32   ClkOutputEn:1;      //bit15, DRAM clock output enable, 0-disable, 1-enable
     __u32   reserved1:8;        //bit16, reserved
-    __u32   DeFe0Gate:1;        //bit24, Gating dram clock for DE_FE0, 0-mask, 1-pass
-    __u32   DeFe1Gate:1;        //bit25, Gating dram clock for DE_FE1, 0-mask, 1-pass
+    __u32   DeFe1Gate:1;        //bit24, Gating dram clock for DE_FE1, 0-mask, 1-pass
+    __u32   DeFe0Gate:1;        //bit25, Gating dram clock for DE_FE0, 0-mask, 1-pass
     __u32   DeBe0Gate:1;        //bit26, Gating dram clock for DE_BE0, 0-mask, 1-pass
     __u32   DeBe1Gate:1;        //bit27, Gating dram clock for DE_BE1, 0-mask, 1-pass
     __u32   DeMpGate:1;         //bit28, Gating dram clock for DE_MP, 0-mask, 1-pass
