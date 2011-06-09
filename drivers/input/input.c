@@ -79,6 +79,9 @@ static void input_pass_event(struct input_dev *dev,
 	struct input_handler *handler;
 	struct input_handle *handle;
 
+	printk("This is line %d of file %s (function %s)\n",\
+			  __LINE__, __FILE__, __func__);
+
 	rcu_read_lock();
 
 	handle = rcu_dereference(dev->grab);
@@ -92,16 +95,33 @@ static void input_pass_event(struct input_dev *dev,
 				continue;
 
 			handler = handle->handler;
+			if(handler->name)
+			{
+				printk("This is line %d of file %s (function %s)\n",\
+											  __LINE__, __FILE__, __func__);
+							
+			}
+
+			if(handle->name)
+			{
+				printk("input_handler 's name is: %s. input_handle 's name is %s", handler->name, handle->name);	
+
+			}
+							  
+
 			if (!handler->filter) {
 				if (filtered)
 					break;
 
 				handler->event(handle, type, code, value);
+				printk("This is line %d of file %s (function %s)\n",\
+						  __LINE__, __FILE__, __func__);
 
 			} else if (handler->filter(handle, type, code, value))
 				filtered = true;
 		}
 	}
+
 
 	rcu_read_unlock();
 }
@@ -217,6 +237,9 @@ static void input_handle_event(struct input_dev *dev,
 {
 	int disposition = INPUT_IGNORE_EVENT;
 
+	printk("This is line %d of file %s (function %s)\n",\
+		  __LINE__, __FILE__, __func__);
+
 	switch (type) {
 
 	case EV_SYN:
@@ -324,6 +347,8 @@ static void input_handle_event(struct input_dev *dev,
 
 	if (disposition & INPUT_PASS_TO_HANDLERS)
 		input_pass_event(dev, type, code, value);
+
+
 }
 
 /**
@@ -347,6 +372,9 @@ void input_event(struct input_dev *dev,
 		 unsigned int type, unsigned int code, int value)
 {
 	unsigned long flags;
+	
+	printk("This is line %d of file %s (function %s)\n",\
+			  __LINE__, __FILE__, __func__);
 
 	if (is_event_supported(type, dev->evbit, EV_MAX)) {
 
@@ -355,6 +383,8 @@ void input_event(struct input_dev *dev,
 		input_handle_event(dev, type, code, value);
 		spin_unlock_irqrestore(&dev->event_lock, flags);
 	}
+	
+
 }
 EXPORT_SYMBOL(input_event);
 
