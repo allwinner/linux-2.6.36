@@ -29,26 +29,25 @@
 #include <asm/io.h>
 #include <linux/timer.h> 
 
-#define  KEY_DEBUG
+//#define  KEY_DEBUG
 //#define  KEY_DEBUG_LEVEL2
 #define  KEY_MAX_CNT  13
-
-#define  IRQ_KEY             (31)
+ 
 #define  KEY_BASSADDRESS     (0xf1c22800)
 #define  LRADC_CTRL          (0x00)
 #define  LRADC_INTC          (0x04)
-#define  LRADC_INTS          (0x08)
+#define  LRADC_INT_STA       (0x08)
 #define  LRADC_DATA0         (0x0c)
 #define  LRADC_DATA1         (0x10)
 
 #define  FIRST_CONCERT_DLY   (2<<24)
 #define  CHAN                (0)
 #define  ADC_CHAN_SELECT     (CHAN<<22)
-#define  KEY_MODE            (1)
-#define  KEY_MODE_SELECT     (KEY_MODE<<12)
+#define  LRADC_KEY_MODE      (1)
+#define  KEY_MODE_SELECT     (LRADC_KEY_MODE<<12)
 #define  LEVELB_VOL          (0<<4)
 
-
+#define  LRADC_HOLD_EN        (1<<6)
 
 #define  LRADC_SAMPLE_32HZ   (3<<2)
 #define  LRADC_SAMPLE_62HZ   (2<<2)
@@ -57,8 +56,6 @@
 
 
 #define  LRADC_EN            (1<<0)
-
-
 
 #define  LRADC_ADC1_UP_EN    (1<<12)
 #define  LRADC_ADC1_DOWN_EN  (1<<9)
@@ -79,7 +76,7 @@
 
 
 MODULE_AUTHOR(" <@>");
-MODULE_DESCRIPTION("sun3i keyboard driver");
+MODULE_DESCRIPTION("sun4i keyboard driver");
 MODULE_LICENSE("GPL");
 
 #define EVB
@@ -130,7 +127,7 @@ static unsigned char keypad_mapindex[64] =
 #endif
 
 #ifdef EVB
-static unsigned int sun3i_scankeycodes[KEY_MAX_CNT]=
+static unsigned int sun4i_scankeycodes[KEY_MAX_CNT]=
 {
 	[0 ] = KEY_NEXTSONG,       
 	[1 ] = KEY_PREVIOUSSONG,      
@@ -151,104 +148,117 @@ static unsigned int sun3i_scankeycodes[KEY_MAX_CNT]=
 
 static volatile unsigned int key_val;
 
-static struct input_dev *sun3ikbd_dev;
+static struct input_dev *sun4ikbd_dev;
 static unsigned char scancode;
 
 
 
-static irqreturn_t sun3i_isr_key(int irq, void *dummy)
+static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 {
 	unsigned int  reg_val;
 	
 	#ifdef KEY_DEBUG
-	printk("Key Interrupt\n");
+	    printk("Key Interrupt\n");
   	#endif
-	reg_val  = readl(KEY_BASSADDRESS+LRADC_INT_STA);
-	writel(reg_val,KEY_BASSADDRESS+LRADC_INT_STA);
+	reg_val  = readl(KEY_BASSADDRESS + LRADC_INT_STA);
+	writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
 	if(reg_val&LRADC_ADC0_DOWNPEND)
 	{
 		#ifdef KEY_DEBUG
-		printk("key down\n");
+		    printk("key down\n");
 		#endif
 	}
 	
 	if(reg_val&LRADC_ADC0_DATAPEND)
 	{
-		key_val = readl(KEY_BASSADDRESS+LRADC_DATA0);
+		key_val = readl(KEY_BASSADDRESS + LRADC_DATA0);
 		scancode = keypad_mapindex[key_val&0x3f];
-		input_report_key(sun3ikbd_dev, sun3i_scankeycodes[scancode], 1);
-		input_sync(sun3ikbd_dev);			
+        #ifdef KEY_DEBUG
+		    printk("key_val == %u \n", key_val);
+        #endif
+
+		input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
+		input_sync(sun4ikbd_dev);			
 	}   
         
 	if(reg_val&LRADC_ADC0_UPPEND)
 	{
-		input_report_key(sun3ikbd_dev, sun3i_scankeycodes[scancode], 0);
-		input_sync(sun3ikbd_dev);	
+		input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 0);
+		input_sync(sun4ikbd_dev);	
 		#ifdef KEY_DEBUG
-		printk("key up \n");
+		    printk("key up \n");
 		#endif	
 	}
-	writel(reg_val,KEY_BASSADDRESS+LRADC_INT_STA);
+	writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
 	return IRQ_HANDLED;
 }
 
-static int __init sun3ikbd_init(void)
+static int __init sun4ikbd_init(void)
 {
 	int i;
 	int err =0;	
 
-	sun3ikbd_dev = input_allocate_device();
-	if (!sun3ikbd_dev) {
-		printk(KERN_ERR "sun3ikbd: not enough memory for input device\n");
+	#ifdef KEY_DEBUG
+	    printk("sun4ikbd_init \n");
+  	#endif
+	sun4ikbd_dev = input_allocate_device();
+	if (!sun4ikbd_dev) {
+		printk(KERN_ERR "sun4ikbd: not enough memory for input device\n");
 		err = -ENOMEM;
 		goto fail1;
 	}
 
-	sun3ikbd_dev->name = "sun3i Keyboard";  
-	sun3ikbd_dev->phys = "sun3ikbd/input0"; 
-	sun3ikbd_dev->id.bustype = BUS_HOST;      
-	sun3ikbd_dev->id.vendor = 0x0001;
-	sun3ikbd_dev->id.product = 0x0001;
-	sun3ikbd_dev->id.version = 0x0100;
+	sun4ikbd_dev->name = "sun4i Keyboard";  
+	sun4ikbd_dev->phys = "sun4ikbd/input0"; 
+	sun4ikbd_dev->id.bustype = BUS_HOST;      
+	sun4ikbd_dev->id.vendor = 0x0001;
+	sun4ikbd_dev->id.product = 0x0001;
+	sun4ikbd_dev->id.version = 0x0100;
 
-	sun3ikbd_dev->evbit[0] = BIT_MASK(EV_KEY)|BIT_MASK(EV_REP) ;
+	sun4ikbd_dev->evbit[0] = BIT_MASK(EV_KEY)|BIT_MASK(EV_REP) ;
 
 	for (i = 0; i < KEY_MAX_CNT; i++)
-		set_bit(sun3i_scankeycodes[i], sun3ikbd_dev->keybit);
+		set_bit(sun4i_scankeycodes[i], sun4ikbd_dev->keybit);
 	
 	#ifdef ONE_CHANNEL
-	writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS+LRADC_INTC);	
-	writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS+LRADC_CTRL);
+	writel(LRADC_ADC0_DOWN_EN|LRADC_ADC0_UP_EN|LRADC_ADC0_DATA_EN,KEY_BASSADDRESS + LRADC_INTC);	
+    writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+	//writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+
 	#else
 	#endif
 
 
-	if (request_irq(IRQ_KEY, sun3i_isr_key, 0, "sun3ikbd",
-			sun3i_isr_key)) {
+	if (request_irq(SW_INT_IRQNO_LRADC, sun4i_isr_key, 0, "sun4ikbd", NULL)){
 		err = -EBUSY;
+		printk("request irq failure. \n");
 		goto fail2;
 	}
-	  
 
-
-
-	err = input_register_device(sun3ikbd_dev);
+	err = input_register_device(sun4ikbd_dev);
 	if (err)
 		goto fail3;
 
 	return 0;
 
- fail3:	free_irq(IRQ_KEY, sun3i_isr_key);
- fail2:	input_free_device(sun3ikbd_dev);
- fail1:	;
+ fail3:	
+     free_irq(SW_INT_IRQNO_LRADC, sun4i_isr_key);
+ fail2:	
+     input_free_device(sun4ikbd_dev);
+ fail1:	
+     ;
+    #ifdef KEY_DEBUG
+		 printk("sun4ikbd_init failed. \n");
+    #endif
+
  return err;
 }
 
-static void __exit sun3ikbd_exit(void)
+static void __exit sun4ikbd_exit(void)
 {
-	free_irq(IRQ_KEY, sun3i_isr_key);
-	input_unregister_device(sun3ikbd_dev);
+	free_irq(SW_INT_IRQNO_LRADC, sun4i_isr_key);
+	input_unregister_device(sun4ikbd_dev);
 }
 
-module_init(sun3ikbd_init);
-module_exit(sun3ikbd_exit);
+module_init(sun4ikbd_init);
+module_exit(sun4ikbd_exit);

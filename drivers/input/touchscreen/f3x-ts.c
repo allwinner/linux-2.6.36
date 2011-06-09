@@ -47,7 +47,7 @@ static int tp_flag = 0;
 #define TOUCH_CHANGE           (3)
 #define TP_DATA_AV_NO          (0x3)
 
-#define CONFIG_TOUCHSCREEN_m1_DEBUG
+//#define CONFIG_TOUCHSCREEN_m1_DEBUG
 
 #define IRQ_TP                 (29)
 #define TP_BASSADDRESS         (0xf1c25000)
@@ -150,7 +150,7 @@ static int  tp_init(void)
 void tp_do_tasklet(unsigned long data)
 {
 	struct m1ts_data *m1 = mtTsData;	
-	int x1,x2,y1,y2;
+	//int x1,x2,y1,y2;
 
 	
 	
@@ -173,14 +173,14 @@ void tp_do_tasklet(unsigned long data)
 
   		case TP_DATA_VA:
   		{
-  				       input_report_abs(m1->input, ABS_MT_TOUCH_MAJOR,800);
-				  	     input_report_abs(m1->input, ABS_MT_POSITION_X, m1->x);
-				  	     input_report_abs(m1->input, ABS_MT_POSITION_Y, m1->y);	
-				  	     #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
-		  							 printk("x = %d, y = %d\n",m1->x,m1->y);
-								 #endif
-				  	     input_mt_sync(m1->input);	        		
-					       input_sync(m1->input);	
+            input_report_abs(m1->input, ABS_MT_TOUCH_MAJOR,800);
+            input_report_abs(m1->input, ABS_MT_POSITION_X, m1->x);
+            input_report_abs(m1->input, ABS_MT_POSITION_Y, m1->y);	
+            #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
+                printk("x = %d, y = %d\n",m1->x,m1->y);
+            #endif
+            input_mt_sync(m1->input);	        		
+            input_sync(m1->input);	
 
 /*
   			if(((m1->dx) > DUAL_TOUCH)&&((m1->dy) > DUAL_TOUCH))
@@ -216,9 +216,9 @@ void tp_do_tasklet(unsigned long data)
 		        	 	 input_report_abs(m1->input, ABS_MT_TOUCH_MAJOR,800);
 				  	     input_report_abs(m1->input, ABS_MT_POSITION_X, m1->x);
 				  	     input_report_abs(m1->input, ABS_MT_POSITION_Y, m1->y);	
-				  	     	#ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
-		  							 printk("x = %d, y = %d\n",m1->x,m1->y);
-								 #endif
+				  	     #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
+		  				     printk("x = %d, y = %d\n",m1->x,m1->y);
+						 #endif
 				  	     input_mt_sync(m1->input);	        		
 					     input_sync(m1->input);				        		
 		        	 }
@@ -247,18 +247,17 @@ static irqreturn_t m1_isr_tp(int irq, void *dev_id)
 	reg_val  = readl(TP_BASSADDRESS + TP_INT_FIFOS);
 	if(reg_val&TP_DOWN_PENDING)
 	{
-
+	    #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
 		    printk("enter press the screen \n");
-
-
+		#endif
 	}
 	
 	if(reg_val&TP_UP_PENDING)
 	{
-
-
-	  printk("enter up the screen \n");
-
+	    #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
+	        printk("enter up the screen \n");
+        #endif
+        
 		m1->status = TP_UP;
 		m1->count  = 0;
 
@@ -268,16 +267,20 @@ static irqreturn_t m1_isr_tp(int irq, void *dev_id)
 	{    		
 		x1  = readl(TP_BASSADDRESS + TP_DATA);
 		y1  = readl(TP_BASSADDRESS + TP_DATA);		
-   	x2 = readl(TP_BASSADDRESS + TP_DATA);
-    y2 = readl(TP_BASSADDRESS + TP_DATA);	
-    z1     = readl(TP_BASSADDRESS + TP_DATA);
-    z2     = readl(TP_BASSADDRESS + TP_DATA);			
-		printk("%d,%d,%d,%d,%d,%d\n",x1,y1,x2,y2,z1,z2);
+   	    x2  = readl(TP_BASSADDRESS + TP_DATA);
+        y2  = readl(TP_BASSADDRESS + TP_DATA);	
+        z1  = readl(TP_BASSADDRESS + TP_DATA);
+        z2  = readl(TP_BASSADDRESS + TP_DATA);
+        #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG			
+		    printk("%d,%d,%d,%d,%d,%d\n",x1,y1,x2,y2,z1,z2);
+		#endif
   	}
+  	
   	writel(reg_val,TP_BASSADDRESS + TP_INT_FIFOS);
-		return IRQ_HANDLED;
+	return IRQ_HANDLED;
 }
 */
+
 static irqreturn_t m1_isr_tp(int irq, void *dev_id)
 {
 	struct platform_device *pdev = dev_id;
@@ -285,8 +288,8 @@ static irqreturn_t m1_isr_tp(int irq, void *dev_id)
 
 	unsigned int reg_val;
 	//unsigned int i;
-	int       ret = -1;
-	int x1,x2,y1,y2,z1,z2;
+	//int       ret = -1;
+	//int x1,x2,y1,y2,z1,z2;
 	
 
 	reg_val  = readl(TP_BASSADDRESS + TP_INT_FIFOS);
@@ -316,24 +319,21 @@ static irqreturn_t m1_isr_tp(int irq, void *dev_id)
 
 	if(reg_val&FIFO_DATA_PENDING)
 	{    		
-		
-		
 		m1->x      = readl(TP_BASSADDRESS + TP_DATA);
 		m1->y      = readl(TP_BASSADDRESS + TP_DATA);		
-   	m1->dx     = readl(TP_BASSADDRESS + TP_DATA);
-    m1->dy     = readl(TP_BASSADDRESS + TP_DATA);	
-    m1->z1     = readl(TP_BASSADDRESS + TP_DATA);
-    m1->z2     = readl(TP_BASSADDRESS + TP_DATA);		
+   	    m1->dx     = readl(TP_BASSADDRESS + TP_DATA);
+        m1->dy     = readl(TP_BASSADDRESS + TP_DATA);	
+        m1->z1     = readl(TP_BASSADDRESS + TP_DATA);
+        m1->z2     = readl(TP_BASSADDRESS + TP_DATA);		
 		m1->status = TP_DATA_VA;		
 		//writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, m1->base_addr+TP_INT_FIFOC);	
 		writel(reg_val,TP_BASSADDRESS + TP_INT_FIFOS);
 		tp_do_tasklet(0);	
 		return IRQ_HANDLED;
   	}
-  
+  	
+  	return IRQ_NONE;
 }
-
-
 
 static int m1ts_open(struct input_dev *dev)
 {
@@ -406,8 +406,9 @@ static int __devinit m1ts_probe(struct platform_device *pdev)
 	struct m1ts_data *m1;	
 	tp_flag = 0;
 
-
-	printk( "m1-ts.c: m1ts_probe: start...\n");
+    #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
+	    printk( "m1-ts.c: m1ts_probe: start...\n");
+	#endif
 
 	m1 = m1ts_data_alloc(pdev);
 	if (!m1) {
@@ -418,8 +419,10 @@ static int __devinit m1ts_probe(struct platform_device *pdev)
 
 	mtTsData = m1; 
 	
-	printk("begin get platform resourec\n");
-
+	#ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
+	    printk("begin get platform resourec\n");
+    #endif
+    
 	m1->res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!m1->res) {
 		err = -ENOMEM;
@@ -427,10 +430,10 @@ static int __devinit m1ts_probe(struct platform_device *pdev)
 		goto err_out1;
 	}
 
-    m1->base_addr = TP_BASSADDRESS;
+    m1->base_addr = (void __iomem *)TP_BASSADDRESS;
 
 	m1->irq = irq;
-    printk("begin request irq \n");
+    
 	err = request_irq(irq, m1_isr_tp,
 		IRQF_DISABLED, pdev->name, pdev);
 	if (err) {
@@ -441,20 +444,22 @@ static int __devinit m1ts_probe(struct platform_device *pdev)
 	
 	platform_set_drvdata(pdev, m1);	
 
-	printk("Input request \n");
+	//printk("Input request \n");
 	/* All went ok, so register to the input system */
 	err = input_register_device(m1->input);
 	if (err)
 		goto err_out3;
-              
-     //?
-	//wait_down(m1);    
-    printk("tp init\n");
+
+	#ifdef CONFIG_TOUCHSCREEN_m1_DEBUG    
+        printk("tp init\n");
+    #endif
+    
     tp_init();
 
-
-	printk( "m1-ts.c: m1ts_probe: end\n");
-
+    #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG
+	    printk( "m1-ts.c: m1ts_probe: end\n");
+    #endif
+    
 	return 0;
 
  err_out3:
@@ -464,8 +469,10 @@ err_out2:
 err_out1:
 	m1ts_data_free(m1);
 err_out: 	
-
-	printk( "m1-ts.c: m1ts_probe: failed!\n");
+    #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG     
+	    printk( "m1-ts.c: m1ts_probe: failed!\n");
+	#endif
+	
 	return err;
 }
 
@@ -482,8 +489,10 @@ static int __devexit m1ts_remove(struct platform_device *pdev)
 	m1ts_data_free(m1);
 	platform_set_drvdata(pdev, NULL);
 
-	return 0;}
-
+	return 0;	
+}
+	
+	
 
 #ifdef CONFIG_PM
 static int m1ts_suspend(struct platform_device *pdev, pm_message_t state)
@@ -544,7 +553,9 @@ struct platform_device m1ts_device = {
 
 static int __init m1ts_init(void)
 {
-	printk("m1-ts.c: m1ts_init: start ...\n");
+    #ifdef CONFIG_TOUCHSCREEN_m1_DEBUG     
+	    printk("m1-ts.c: m1ts_init: start ...\n");
+	#endif
 	platform_device_register(&m1ts_device);
 	return platform_driver_register(&m1ts_driver);
 }
