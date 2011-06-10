@@ -187,8 +187,8 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 		
 	//set channel : mono or stereo
 	reg_val = readl(sun4i_i2s.regs + SUN4I_TXCHMAP);
-	reg_val &= ~SUN4I_TXCHMAP_CH0(8);
-	reg_val &= ~SUN4I_TXCHMAP_CH1(8);
+	reg_val &= ~(SUN4I_TXCHMAP_CH0(8));
+	reg_val &= ~(SUN4I_TXCHMAP_CH1(8));
 	switch(substream->runtime->channels)
 	{
 		case 1:
@@ -220,10 +220,10 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 		return 0;
 		
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
-			    codec_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;
-				codec_dma_conf->drqdst_type  = D_DRQDST_HDMIAUDIO;
-				codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
-				codec_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
+			    codec_dma_conf->drqsrc_type  = DRQ_TYPE_SDRAM;
+				codec_dma_conf->drqdst_type  = DRQ_TYPE_HDMIAUDIO;
+				codec_dma_conf->xfer_type    = DMAXFER_D_BWORD_S_BWORD;
+				codec_dma_conf->address_type = DMAADDRT_D_IO_S_LN;
 				codec_dma_conf->dir          = SW_DMA_WDEV;
 				codec_dma_conf->reload       = 0;
 				codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
@@ -297,7 +297,7 @@ static snd_pcm_uframes_t sun4i_pcm_pointer(struct snd_pcm_substream *substream)
 	snd_pcm_uframes_t offset = 0;
 	//	printk("[IIS]Entered %s\n", __func__);
 	spin_lock(&prtd->lock);
-	sw_dma_getcurposition(DMACH_NIIS, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
+	sw_dma_getcurposition(DMACH_HDMIAUDIO, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
 
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 		res = dmadst - prtd->dma_start;

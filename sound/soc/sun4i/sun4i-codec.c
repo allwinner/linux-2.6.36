@@ -37,35 +37,19 @@ static int flag_id = 0;
  * so we can get a clock in record only mode
  */
 #define FORCE_CLOCK_ADDR		(dma_addr_t)FLUSH_BASE_PHYS
-#define FORCE_CLOCK_SIZE		4096 // was 2048
-#define SW_DAC_FIFO         0x01c23c04
-#define SW_ADC_FIFO         0x01c23c20
+#define FORCE_CLOCK_SIZE		4096 
+#define SW_DAC_FIFO         0x01c22c04
+#define SW_ADC_FIFO         0x01c22c20
 
 
 //CCM register
-#define CCM_BASE    0xf1c20000
+#define CCM_BASE                   0xf1c20000
+#define CCM_REG_PLL2_CTRL 		   (0x008)
+#define CCM_REG_APBCLK_GATE0	   (0x068)
+#define CCM_REG_CodecCLK_CTRL	   (0x140)
 
-#define CCM_AC320_MACC_REG 			(0x00)
-#define CCM_AUDIO_HOSC_REG 			(0x04)
-#define CCM_AHB_APB_REG    			(0x08)
-#define CCM_AHB_GATING_REG 			(0x0c)
-#define CCM_APB_GATING_REG 			(0x10)
-#define CCM_NFC_MS_REG     			(0x14)
-#define CCM_SD01_REG       			(0x18)
-#define CCM_SD23_REG			 	(0x1c)
-#define CCM_DRAM_PLL_REG   			(0x20)
-#define CCM_DE_REG         			(0x24)
-#define CCM_LCD_MACC_REG   			(0x28)
-#define CCM_TV_CSI_REG     			(0x2c)
-#define CCM_VIDEO_PLL_REG  			(0x30)
-#define CCM_IR_CLK_REG     			(0x34)
-#define CCM_AUDIO_CLK_REG  			(0x38)
-#define CCM_TS_CLK_REG   			  (0x3c)
-#define CCM_AVS_USB_CLK_REG 		(0x40)
-#define CCM_PID_CLK_REG       	(0xd0)
-#define CCM_WAKEUP_PENDING_REG	(0xd4)
 
-#define codec_RATES SNDRV_PCM_RATE_8000_48000
+#define codec_RATES SNDRV_PCM_RATE_8000_192000
 #define codec_FORMATS (SNDRV_PCM_FMTBIT_S16_BE | SNDRV_PCM_FMTBIT_S16_LE |\
         SNDRV_PCM_FMTBIT_S16_BE | SNDRV_PCM_FMTBIT_S16_LE )
 
@@ -107,7 +91,7 @@ static const char *adcinput_names[] = {
 	"mic12",
 	"micdiff",
 	"mixlr",
-	"null",
+	"linel_mic1",
 };
 
 
@@ -203,15 +187,15 @@ static struct snd_pcm_hardware sw_pcm_hardware =
 				   SNDRV_PCM_RATE_44100| SNDRV_PCM_RATE_48000 |\
 				   SNDRV_PCM_RATE_KNOT),
 	.rate_min		= 8000,
-	.rate_max		= 48000,
+	.rate_max		= 192000,
 	.channels_min		= 1,
 	.channels_max		= 2,
-	.buffer_bytes_max	= 64*1024,
-	.period_bytes_min	= 1024*8,
-	.period_bytes_max	= 1024*16,
+	.buffer_bytes_max	= 128*1024,
+	.period_bytes_min	= 1024*16,
+	.period_bytes_max	= 1024*32,
 	.periods_min		= 4,
 	.periods_max		= 8,
-	.fifo_size		= 32,
+	.fifo_size	     	= 32,
 };
 
 struct sw_codec{
@@ -223,7 +207,7 @@ struct sw_codec{
 static unsigned int rates[] = {
 	8000,11025,12000,16000,
 	22050,24000,24000,32000,
-	44100,48000,
+	44100,48000,96000,192000
 };
 
 static struct snd_pcm_hw_constraint_list hw_constraints_rates = {
@@ -453,36 +437,36 @@ static  void codec_clock(unsigned char comd, unsigned char clk_mode)
 {
 	unsigned int reg_val;
 	if(clk_mode){
-       reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
-	   reg_val |= (clk_mode << 26) | (clk_mode << 29);
-	   writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+           reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
+	   reg_val |= (clk_mode << 31) | (clk_mode << 27);
+	   writel(reg_val, CCM_BASE + CCM_REG_PLL2_CTRL);
 	}
 	else{
-	   reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
-	   reg_val &= ~(1 << 26)|~(1 << 29);
-	   writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+	   reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
+	   reg_val &= ~(1 << 31)|~(1 << 27);
+	   writel(reg_val, CCM_BASE + CCM_REG_PLL2_CTRL);
 	}
 
 	if(comd){
 
-    	reg_val = readl(CCM_BASE + CCM_APB_GATING_REG);
-		reg_val |= (1 << 9);
-		writel(reg_val, CCM_BASE + CCM_APB_GATING_REG);
+    		reg_val = readl(CCM_BASE + CCM_REG_APBCLK_GATE0);
+		reg_val |= (1 << 0);
+		writel(reg_val, CCM_BASE + CCM_REG_APBCLK_GATE0);
 		
-    	reg_val = readl(CCM_BASE + CCM_AUDIO_CLK_REG);
-		reg_val |= (1 << 3);
-		writel(reg_val, CCM_BASE + CCM_AUDIO_CLK_REG);
+    		reg_val = readl(CCM_BASE + CCM_REG_CodecCLK_CTRL);
+		reg_val |= (1 << 31);
+		writel(reg_val, CCM_BASE + CCM_REG_CodecCLK_CTRL);
 	}
 	else{
 
-    	reg_val = readl(CCM_BASE + CCM_APB_GATING_REG);
-		reg_val &= ~(1 << 9);
-		writel(reg_val, CCM_BASE + CCM_APB_GATING_REG);
+    		reg_val = readl(CCM_BASE + CCM_REG_APBCLK_GATE0);
+		reg_val &= ~(1 << 0);
+		writel(reg_val, CCM_BASE + CCM_REG_APBCLK_GATE0);
 		
 
-        reg_val = readl(CCM_BASE + CCM_AUDIO_CLK_REG);
-		reg_val &= ~(1 << 3);
-		writel(reg_val, CCM_BASE + CCM_AUDIO_CLK_REG);
+        	reg_val = readl(CCM_BASE + CCM_REG_CodecCLK_CTRL);
+		reg_val &= ~(1 << 31);
+		writel(reg_val, CCM_BASE + CCM_REG_CodecCLK_CTRL);
     }
 }
 /**
@@ -498,6 +482,8 @@ static  int codec_init(void)
 	codec_clock(clk_open,1);
 	//enable dac digital 
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
+	//codec version seting
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
 	//set digital volume to maximum
 	codec_wr_control(SW_DAC_DPC, 0x6, DIGITAL_VOL, 0x0);
 	//pa mute
@@ -507,7 +493,7 @@ static  int codec_init(void)
 	//enable headphone direct 
 	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
-	codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3f);
+	codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
 	
 	return 0;
 	
@@ -518,9 +504,11 @@ static int codec_play_open(void)
 	//flush TX FIFO
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
-	codec_wr_control(SW_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0x7);
+	codec_wr_control(SW_DAC_FIFOC ,0x1fff, TX_TRI_LEVEL, 0xf);
 	//send last sample when dac fifo under run
 	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x1);
+	//
+	codec_wr_control(SW_DAC_FIFOC ,0x1, 24, 0x1);
 	//enable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
@@ -596,17 +584,23 @@ static int codec_dev_free(struct snd_device *device)
 
 
 static const struct snd_kcontrol_new codec_snd_controls[] = {
-	CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
+	//FOR NORMAL VERSION
+	//CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
+	//For A VERSION
+	CODEC_SINGLE("Master Playback Volume", SW_DAC_DPC,12,0x3f,0),
 	CODEC_SINGLE("Playback Switch", SW_DAC_ACTL,6,1,0),
 	CODEC_SINGLE("Capture Volume",SW_ADC_ACTL,20,7,0),
 	CODEC_SINGLE("Fm Volume",SW_DAC_ACTL,23,7,0),
-	CODEC_SINGLE("Line Volume",SW_DAC_ACTL,26,7,0),
+	CODEC_SINGLE("Line Volume",SW_DAC_ACTL,26,1,0),
 	CODEC_SINGLE("MicL Volume",SW_ADC_ACTL,25,3,0),
 	CODEC_SINGLE("MicR Volume",SW_ADC_ACTL,23,3,0),
 	CODEC_SINGLE("FmL Switch",SW_DAC_ACTL,17,1,0),
 	CODEC_SINGLE("FmR Switch",SW_DAC_ACTL,16,1,0),
 	CODEC_SINGLE("LineL Switch",SW_DAC_ACTL,19,1,0),
 	CODEC_SINGLE("LineR Switch",SW_DAC_ACTL,18,1,0),
+	CODEC_SINGLE("Ldac Left Mixer",SW_DAC_ACTL,15,1,0),
+	CODEC_SINGLE("Rdac Right Mixer",SW_DAC_ACTL,14,1,0),
+	CODEC_SINGLE("Ldac Right Mixer",SW_DAC_ACTL,13,1,0),
 	//#define CODEC_ENUM(xname, reg, where, shift, max, invert,value)
 	//CODEC_ENUM("Mic Input Mux",SW_DAC_ACTL,0,9,3,0),
 	//CODEC_ENUM("ADC Input Mux",SW_ADC_ACTL,1,17,7,0),
@@ -648,14 +642,13 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
  * place a dma buffer onto the queue for the dma system
  * to handle.
 */
+/*
 static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 {
   struct sw_runtime_data *prtd = substream->runtime->private_data;
 	dma_addr_t pos = prtd->dma_pos;
 	int ret;
 
-	//pr_debug("Entered %s\n", __func__);
-       // pr_debug("prtd->dma_loaded: %8x\n",prtd->dma_loaded);
 	//while (prtd->dma_loaded < (prtd->dma_limit)) {
 	unsigned long len = prtd->dma_period;
 	
@@ -665,14 +658,9 @@ static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 
 	if ((pos + len) > prtd->dma_end) {
 		len  = prtd->dma_end - pos;
-		//pr_debug(KERN_DEBUG "%s: corrected dma len %ld\n",
-		  //     __func__, len);
-		//pr_debug("corrected dma len %ld\n",len);
 	}
-	//pr_debug("corrected dma len %ld\n",len);
-	ret = sw_dma_enqueue(prtd->params->channel,
-		substream,  __bus_to_virt(pos), len);
-	pr_debug("665 pos :%x,ret = %d\n",pos,ret);
+	ret = sw_dma_enqueue(prtd->params->channel, substream,  __bus_to_virt(pos), len);
+
 	if (ret == 0) {
 		prtd->dma_loaded++;
 		pos += prtd->dma_period;
@@ -684,7 +672,6 @@ static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 	 }
 			
 	//}
-	pr_debug(" quit pcm quenue...\n");
 
 	prtd->dma_pos = pos;
 }
@@ -697,32 +684,21 @@ static void sw_audio_buffdone(struct sw_dma_chan *channel,
 	struct snd_pcm_substream *substream = dev_id;
 	struct sw_runtime_data *prtd;
 
-	pr_debug("Entered %s\n", __func__);
 	if (result == SW_RES_ABORT || result == SW_RES_ERR)
 		return;
 	prtd = substream->runtime->private_data;
 	
 	if (substream)
 	{
-		//printk("E\n");
 		snd_pcm_period_elapsed(substream);
-		pr_debug("state0  %d, %d\n",prtd->state,ST_RUNNING);
+		//printk("state0  %d, %d\n",prtd->state,ST_RUNNING);
 	}
 	
 	spin_lock(&prtd->lock);
-
-        pr_debug("state1  %d, %d\n",prtd->state,ST_RUNNING);
-	
-	pr_debug("state2  %d, %d\n",prtd->state,ST_RUNNING);
 	if (prtd->state & ST_RUNNING) {
 		pr_debug("buffdone prtd->dma_loaded:%x\n",prtd->dma_loaded);
 		prtd->dma_loaded--;
-
-                //printk("enqueue\n");
-		sw_pcm_enqueue(substream);
-
-
-		
+		sw_pcm_enqueue(substream);		
 	}
 	
 	
@@ -731,22 +707,81 @@ static void sw_audio_buffdone(struct sw_dma_chan *channel,
 	
 
 }
+*/
+static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
+{
+	struct sw_runtime_data *prtd = substream->runtime->private_data;
+	dma_addr_t pos = prtd->dma_pos;
+	unsigned int limit;
+	int ret;
+	
+	unsigned long len = prtd->dma_period;
+  	limit = prtd->dma_limit;
+  	while(prtd->dma_loaded < limit)
+	{
+		if((pos + len) > prtd->dma_end){
+			len  = prtd->dma_end - pos;
+			//	printk("[SPDIF]%s: corrected dma len %ld\n", __func__, len);
+		}
 
+	ret = sw_dma_enqueue(prtd->params->channel, substream, __bus_to_virt(pos),  len);
+//	 printk("[SPDIF]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
+	if(ret == 0){
+		prtd->dma_loaded++;
+		pos += prtd->dma_period;
+		if(pos >= prtd->dma_end)
+			pos = prtd->dma_start;
+	}else
+	{
+		break;
+	  }
+	  
+	}
+	prtd->dma_pos = pos;
+//	printk("[SPDIF]In the end of %s, dma_start = %#x, dma_end = %#x, dma_pos = %#x\n", __func__, prtd->dma_start, prtd->dma_end, prtd->dma_pos);
+}
+
+static void sw_audio_buffdone(struct sw_dma_chan *channel, 
+		                                  void *dev_id, int size,
+		                                  enum sw_dma_buffresult result)
+{
+//    	printk("[SPDIF]Buffer Done \n");
+		struct sw_runtime_data *prtd;
+		struct snd_pcm_substream *substream = dev_id;
+
+		if (result == SW_RES_ABORT || result == SW_RES_ERR)
+			return;
+			
+		prtd = substream->runtime->private_data;
+			if (substream)
+			{
+				//	printk("[SPDIF]Enter Elapsed\n");
+				snd_pcm_period_elapsed(substream);
+			}	
+	
+		spin_lock(&prtd->lock);
+		{
+			prtd->dma_loaded--;
+			sw_pcm_enqueue(substream);
+		}
+		spin_unlock(&prtd->lock);
+}
 
 static snd_pcm_uframes_t snd_sw_codec_pointer(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	struct sw_runtime_data *prtd = runtime->private_data;
-	unsigned long res;
-        //printk("GET POINTER\n");
+	unsigned long res = 0;
+    //printk("GET POINTER\n");
 	spin_lock(&prtd->lock);
 	sw_dma_getcurposition(DMACH_NADDA, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
-	pr_debug("dmasrc: %x\n",dmasrc);
+	//printk("dmasrc: %x\n",dmasrc);
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 		res = dmadst + prtd->dma_period - prtd->dma_start;
 	else
 	{
 		res = dmasrc + prtd->dma_period - prtd->dma_start;
+		
 	}
 	
 
@@ -866,9 +901,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		switch(substream->runtime->rate)
 		{
 			case 44100:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val &=~(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				//For Version A 
+				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -876,81 +912,99 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val &=~(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 11025:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val &=~(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 48000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
-			case 32000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+			case 96000:
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
+				reg_val = readl(baseaddr + SW_DAC_FIFOC);
+				reg_val &=~(7<<29); 
+				reg_val |=(7<<29);
+				writel(reg_val, baseaddr + SW_DAC_FIFOC);
+				break;
+			case 192000:
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
+				reg_val |=(1<<26);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
+				reg_val = readl(baseaddr + SW_DAC_FIFOC);
+				reg_val &=~(7<<29); 
+				reg_val |=(6<<29);
+				writel(reg_val, baseaddr + SW_DAC_FIFOC);
+				break;
+			case 32000:
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
+				reg_val |=(1<<26);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(1<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 24000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 16000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(3<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 12000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 8000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(5<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			default:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -962,17 +1016,17 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		{
 			case 1:
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
-				reg_val |=(1<<7);
+				reg_val |=(1<<6);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);			
 				break;
 			case 2:
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
-				reg_val &=~(1<<7);
+				reg_val &=~(1<<6);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			default:
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
-				reg_val &=~(1<<7);
+				reg_val &=~(1<<6);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 		}
@@ -981,9 +1035,9 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		switch(substream->runtime->rate)
 		{
 			case 44100:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val &=~(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -991,81 +1045,81 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val &=~(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 11025:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val &=~(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 48000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 32000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(1<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 24000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 16000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(3<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 12000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 8000:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(5<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			default:
-				reg_val = readl(CCM_BASE + CCM_AUDIO_HOSC_REG);
+				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_AUDIO_HOSC_REG);
+				writel(reg_val, CCM_BASE + CCM_REG_PLL2_CTRL);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -1107,9 +1161,9 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	/* return if this is a bufferless transfer e.g.
 	 * codec <--> BT codec or GSM modem -- lg FIXME */
 	if (!prtd->params)
-		return 0;
+		return 0;                            
 
-   if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+   if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){                                       
    	 //open the dac channel register
    	codec_play_open();    
   	codec_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;

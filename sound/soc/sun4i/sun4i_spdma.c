@@ -192,7 +192,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 		return 0;
 		
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
-			  spdif_dma_conf->drqsrc_type  = DRQ_TYPE_SDRAM;
+			  	spdif_dma_conf->drqsrc_type  = DRQ_TYPE_SDRAM;
 				spdif_dma_conf->drqdst_type  = DRQ_TYPE_SPDIF;
 				spdif_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
 				spdif_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
@@ -201,7 +201,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 				spdif_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
 				spdif_dma_conf->from         = prtd->dma_start;
 				spdif_dma_conf->to           = prtd->params->dma_addr;
-			  ret = sw_dma_config(prtd->params->channel,spdif_dma_conf);
+			 	ret = sw_dma_config(prtd->params->channel,spdif_dma_conf);
 	}
    else {
 			 	spdif_dma_conf->drqsrc_type  = DRQ_TYPE_SDRAM;
