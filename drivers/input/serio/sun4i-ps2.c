@@ -20,7 +20,7 @@
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 
-#define AW1623_FPGA
+//#define AW1623_FPGA
 
 #define swps2_msg(...)  printk("[ps2]: " __VA_ARGS__);
 
@@ -28,7 +28,7 @@
 
 /* register define */
 #define SW_PS2_0_PBASE       (0x01C2a000)
-#define SW_PS2_1_PBASE       (0x01c2a300)
+#define SW_PS2_1_PBASE       (0x01c2a400)
 
 #define SW_PS2_GCTRL        (0x00)
 #define SW_PS2_DATA         (0x04)
@@ -87,15 +87,15 @@ static int sw_ps2_resource_request(struct sw_ps2_host* ps2_host)
     
     swps2_msg("ps2 %d request resource\n", ps2_no);
     
-	/* request pins */
-	#ifndef AW1623_FPGA
-	pio_hdle = gpio_request_ex(pio_para[ps2_no], NULL);
+    /* request pins */
+    #ifndef AW1623_FPGA
+    pio_hdle = gpio_request_ex(pio_para[ps2_no], NULL);
     if (!pio_hdle)
     {
         swps2_msg("ps2 %d request pio parameter failed\n", ps2_no);
         goto out;
     }
-	ps2_host->pio_hdle = pio_hdle;
+    ps2_host->pio_hdle = pio_hdle;
     #else
     {
         #include <mach/platform.h>
@@ -103,35 +103,35 @@ static int sw_ps2_resource_request(struct sw_ps2_host* ps2_host)
         u32 rval = readl(pi_cfg2) & (~(0x77<<16));
         writel(rval|(0x22<<16), pi_cfg2);
     }
-	ps2_host->pio_hdle = pio_hdle;
+    ps2_host->pio_hdle = pio_hdle;
     #endif
     
     /* request memory */
     ps2_host->res  = platform_get_resource(pdev, IORESOURCE_MEM, 0);
     if (!ps2_host->res) 
     {
-		swps2_msg("Failed to get io memory region resouce.\n");
-		ret = -ENOENT;
-		goto release_pins;
-	}
-	/* ps2 address remap */
-	ps2_host->res = request_mem_region(ps2_host->res->start, RESSIZE(ps2_host->res), pdev->name);
-	if (!ps2_host->res) 
-	{
-		swps2_msg("Failed to request io memory region.\n");
-		ret = -ENOENT;
-		goto release_pins;
-	}
-	ps2_host->base = ioremap(ps2_host->res->start, RESSIZE(ps2_host->res));
-	if (!ps2_host->base) 
-	{
-		swps2_msg("Failed to ioremap() io memory region.\n");
-		ret = -EINVAL;
-		goto free_mem_region;
-	}
-	
-	goto out;
-	
+        swps2_msg("Failed to get io memory region resouce.\n");
+        ret = -ENOENT;
+        goto release_pins;
+    }
+    /* ps2 address remap */
+    ps2_host->res = request_mem_region(ps2_host->res->start, RESSIZE(ps2_host->res), pdev->name);
+    if (!ps2_host->res) 
+    {
+        swps2_msg("Failed to request io memory region.\n");
+        ret = -ENOENT;
+        goto release_pins;
+    }
+    ps2_host->base = ioremap(ps2_host->res->start, RESSIZE(ps2_host->res));
+    if (!ps2_host->base) 
+    {
+        swps2_msg("Failed to ioremap() io memory region.\n");
+        ret = -EINVAL;
+        goto free_mem_region;
+    }
+    
+    goto out;
+    
 free_mem_region:
     release_mem_region(ps2_host->res->start, RESSIZE(ps2_host->res));
 release_pins:
@@ -152,16 +152,17 @@ static int sw_ps2_resource_release(struct sw_ps2_host* ps2_host)
 
 static int sw_ps2c_set_sclk(struct sw_ps2_host* ps2_host)
 {
-    struct clk* apb_clk = NULL;
+    struct clk* apb1_clk = NULL;
     u32 src_clk = 0;
     u32 clk_scdf;
     u32 clk_pcdf;
     u32 rval;
     
-    apb_clk = clk_get(&ps2_host->pdev->dev, "apb");
-    src_clk = clk_get_rate(apb_clk);
-    clk_put(apb_clk);
+    apb1_clk = clk_get(&ps2_host->pdev->dev, "apb1");
+    src_clk = clk_get_rate(apb1_clk);
+    clk_put(apb1_clk);
     
+    swps2_msg("source clock %d\n", src_clk);
     #ifdef AW1623_FPGA
     src_clk = 24000000;
     #endif
@@ -172,161 +173,170 @@ static int sw_ps2c_set_sclk(struct sw_ps2_host* ps2_host)
         return -1;
     }
         
-	clk_scdf = ((src_clk+(SW_PS2_SAMPLE_CLK>>1))/SW_PS2_SAMPLE_CLK -1);
-	clk_pcdf = ((SW_PS2_SAMPLE_CLK+(SW_PS2_SCLK>>1)) /SW_PS2_SCLK - 1);
-	rval = (clk_scdf<<8) | clk_pcdf;// | (PS2_DEBUG_SEL<<16);
-	writel(rval, ps2_host->base + SW_PS2_CLKDR);
-	
-	return 0;
+    clk_scdf = ((src_clk+(SW_PS2_SAMPLE_CLK>>1))/SW_PS2_SAMPLE_CLK -1);
+    clk_pcdf = ((SW_PS2_SAMPLE_CLK+(SW_PS2_SCLK>>1)) /SW_PS2_SCLK - 1);
+    rval = (clk_scdf<<8) | clk_pcdf;// | (PS2_DEBUG_SEL<<16);
+    writel(rval, ps2_host->base + SW_PS2_CLKDR);
+    
+    return 0;
 }
 
 static int sw_ps2c_init(struct sw_ps2_host* ps2_host)
 {
     u32 rval;
-	
-	//Set Line Control And Enable Interrupt
-	rval = SWPS2_LCTL_TXDTOEN|SWPS2_LCTL_STOPERREN|SWPS2_LCTL_ACKERREN|SWPS2_LCTL_PARERREN|SWPS2_LCTL_RXDTOEN;
-	writel(rval, ps2_host->base + SW_PS2_LCTRL);
+    
+    //Set Line Control And Enable Interrupt
+    rval = SWPS2_LCTL_TXDTOEN|SWPS2_LCTL_STOPERREN|SWPS2_LCTL_ACKERREN|SWPS2_LCTL_PARERREN|SWPS2_LCTL_RXDTOEN;
+    writel(rval, ps2_host->base + SW_PS2_LCTRL);
 
-	//Reset FIFO
-	writel(0x3<<16 | 0x607, ps2_host->base + SW_PS2_FCTRL);
+    //Reset FIFO
+    writel(0x3<<16 | 0x607, ps2_host->base + SW_PS2_FCTRL);
 
-	//Set Clock Divider Register
-	sw_ps2c_set_sclk(ps2_host);
-	
-	//Set Global Control Register
-	rval = SWPS2_RESET|SWPS2_INTEN|SWPS2_MASTER|SWPS2_BUSEN;
-	writel(rval, ps2_host->base + SW_PS2_GCTRL);
-	
-	udelay(100);
-	
-	return 0;		      
+    //Set Clock Divider Register
+    sw_ps2c_set_sclk(ps2_host);
+    
+    //Set Global Control Register
+    rval = SWPS2_RESET|SWPS2_INTEN|SWPS2_MASTER|SWPS2_BUSEN;
+    writel(rval, ps2_host->base + SW_PS2_GCTRL);
+    
+    udelay(100);
+    
+    return 0;    	      
 }
 
 static int sw_ps2_write(struct serio *dev, unsigned char val)
 {
-	struct sw_ps2_host* ps2_host = (struct sw_ps2_host *)dev->port_data;
+    struct sw_ps2_host* ps2_host = (struct sw_ps2_host *)dev->port_data;
     u32 timeout = 10000;
     
-	do {
-		if (readl(ps2_host->base + SW_PS2_FSTAT) & SWPS2_FSTA_TXRDY) {
-//		    swps2_msg("ps2 %d send byte %02x\n", ps2_host->pdev->id, val);
-			writel(val, ps2_host->base + SW_PS2_DATA);
-			return 0;
-		}
-	} while (timeout--);
+    do {
+        if (readl(ps2_host->base + SW_PS2_FSTAT) & SWPS2_FSTA_TXRDY) {
+           // swps2_msg("ps2 %d send byte %02x\n", ps2_host->pdev->id, val);
+        	writel(val, ps2_host->base + SW_PS2_DATA);
+        	return 0;
+        }
+    } while (timeout--);
 
-	return -1;
+    return -1;
 }
 
 static irqreturn_t sw_ps2_irq(int irq, void *dev_id)
 {
-	struct serio *dev = dev_id;
-	struct sw_ps2_host* ps2_host = (struct sw_ps2_host *)dev->port_data;
-	unsigned char byte;
+    struct serio *dev = dev_id;
+    struct sw_ps2_host* ps2_host = (struct sw_ps2_host *)dev->port_data;
+    unsigned char byte;
     u32 rval;
     u32 line_sta;
     u32 fifo_sta;
     u32 error = 0;
     
     line_sta = readl(ps2_host->base + SW_PS2_LSTAT);
-	fifo_sta = readl(ps2_host->base + SW_PS2_FSTAT);
+    fifo_sta = readl(ps2_host->base + SW_PS2_FSTAT);
     
 //    swps2_msg("ps2 %d, irq ls %08x fs %08x\n", ps2_host->pdev->id, line_sta, fifo_sta);
     
-	//Check Line Status Register
-	if (line_sta & 0x10f)
-	{
-	    if (line_sta & 0x08)
-	        swps2_msg("PS/2 Stop Bit Error!\n");
-	    if (line_sta & 0x04)
-	        swps2_msg("PS/2 Acknowledge Error!\n");
-	    if (line_sta & 0x02)
-	        swps2_msg("PS/2 Parity Error!\n");
-	    if (line_sta & 0x100)
-	        swps2_msg("PS/2 Transmit Data Timeout!\n");
-	    if (line_sta & 0x01)
-	        swps2_msg("PS/2 Receive Data Timeout!\n");
-	    
-	    writel(readl(ps2_host->base + SW_PS2_GCTRL)|0x4, ps2_host->base + SW_PS2_GCTRL);//reset PS/2 controller
-	    writel(0x10f, ps2_host->base + SW_PS2_LSTAT);
-	    error = 1;
-	}
-	
-	//Check FIFO Status Register
-	if (fifo_sta & 0x0606)
-	{
-		if (fifo_sta & 0x400)
-	        swps2_msg("PS/2 Tx FIFO Underflow!\n");
-	    if (fifo_sta & 0x200)
-	        swps2_msg("PS/2 Tx FIFO Overflow!\n");
-	    if (fifo_sta & 0x04)
-	        swps2_msg("PS/2 Rx FIFO Underflow!\n");
-	    if (fifo_sta & 0x02)
-	        swps2_msg("PS/2 Rx FIFO Overflow!\n");
-	        
-	    writel(readl(ps2_host->base + SW_PS2_GCTRL)|0x4, ps2_host->base + SW_PS2_GCTRL);//reset PS/2 controller
-	    writel(0x707, ps2_host->base + SW_PS2_FSTAT);
-	    error = 1;
-	}
-	
+    //Check Line Status Register
+    if (line_sta & 0x10f)
+    {
+        if (line_sta & 0x08)
+            swps2_msg("PS/2 %d Stop Bit Error!\n", ps2_host->pdev->id);
+        if (line_sta & 0x04)
+            swps2_msg("PS/2 %d Acknowledge Error!\n", ps2_host->pdev->id);
+        if (line_sta & 0x02)
+            swps2_msg("PS/2 %d Parity Error!\n", ps2_host->pdev->id);
+        if (line_sta & 0x100)
+            swps2_msg("PS/2 %d Transmit Data Timeout!\n", ps2_host->pdev->id);
+        if (line_sta & 0x01)
+            swps2_msg("PS/2 %d Receive Data Timeout!\n", ps2_host->pdev->id);
+        
+        writel(readl(ps2_host->base + SW_PS2_GCTRL)|0x4, ps2_host->base + SW_PS2_GCTRL);//reset PS/2 controller
+        writel(0x10f, ps2_host->base + SW_PS2_LSTAT);
+        error = 1;
+    }
+    
+    //Check FIFO Status Register
+    if (fifo_sta & 0x0606)
+    {
+        if (fifo_sta & 0x400)
+            swps2_msg("PS/2 %d Tx FIFO Underflow!\n", ps2_host->pdev->id);
+        if (fifo_sta & 0x200)
+            swps2_msg("PS/2 %d Tx FIFO Overflow!\n", ps2_host->pdev->id);
+        if (fifo_sta & 0x04)
+            swps2_msg("PS/2 %d Rx FIFO Underflow!\n", ps2_host->pdev->id);
+        if (fifo_sta & 0x02)
+            swps2_msg("PS/2 %d Rx FIFO Overflow!\n", ps2_host->pdev->id);
+            
+        writel(readl(ps2_host->base + SW_PS2_GCTRL)|0x4, ps2_host->base + SW_PS2_GCTRL);//reset PS/2 controller
+        writel(0x707, ps2_host->base + SW_PS2_FSTAT);
+        error = 1;
+    }
+    
     rval = (fifo_sta >> 16) & 0x3;
     while (!error && rval--)
     {
         byte = readl(ps2_host->base + SW_PS2_DATA) & 0xff;
-//		swps2_msg("ps2 %d rcv %02x\n", ps2_host->pdev->id, byte);
-		serio_interrupt(dev, byte, 0);
+        //swps2_msg("ps2 %d rcv %02x\n", ps2_host->pdev->id, byte);
+        serio_interrupt(dev, byte, 0);
     }
     
-	writel(line_sta, ps2_host->base + SW_PS2_LSTAT);
-	writel(fifo_sta, ps2_host->base + SW_PS2_FSTAT);
-	return IRQ_HANDLED;
+    writel(line_sta, ps2_host->base + SW_PS2_LSTAT);
+    writel(fifo_sta, ps2_host->base + SW_PS2_FSTAT);
+    return IRQ_HANDLED;
 }
 
 static int sw_ps2_open(struct serio *dev)
 {
-	struct sw_ps2_host* ps2_host = (struct sw_ps2_host *)dev->port_data;
-	struct platform_device *pdev = ps2_host->pdev;
-    char* ps2_pclk_name[4] = {"ps0", "ps1"};
+    struct sw_ps2_host* ps2_host = (struct sw_ps2_host *)dev->port_data;
+    struct platform_device *pdev = ps2_host->pdev;
+    char* ps2_pclk_name[] = {"apb_ps0", "apb_ps1"};
     int ret;
-    
+    //int i;
+ 
     swps2_msg("ps2 %d open\n", pdev->id);
-    
+/*	
+    for (i=0; i<0x200; i+=4)                                        
+    {                                                            
+        if (!(i&0xf))                                             
+            printk("\n0x%08x : ", i);                     
+        printk("%08x ", readl((void __iomem*)SW_VA_PORTC_IO_BASE + i)); 
+    }                    
+    printk("\n");
+*/
     /* get irq resource*/
-	ps2_host->irq = platform_get_irq(pdev, 0);
-	if (ps2_host->irq == 0) 
-	{
-		swps2_msg("Failed to get interrupt resouce.\n");
-		ret = -EINVAL;
-		goto out;
-	}
+    ps2_host->irq = platform_get_irq(pdev, 0);
+    if (ps2_host->irq == 0) 
+    {
+        swps2_msg("Failed to get interrupt resouce.\n");
+        ret = -EINVAL;
+        goto out;
+    }
 
     /* request irq */
-	if (request_irq(ps2_host->irq, sw_ps2_irq, 0, "sw-ps2", dev)) 
-	{
-		swps2_msg("Failed to request ps2 interrupt.\n");
-		ret = -EBUSY;
-		goto out;
-	}
+    if (request_irq(ps2_host->irq, sw_ps2_irq, 0, "sw-ps2", dev)) 
+    {
+        swps2_msg("Failed to request ps2 interrupt.\n");
+        ret = -EBUSY;
+        goto out;
+    }
     
     /* request clock */
     ps2_host->pclk = clk_get(&pdev->dev, ps2_pclk_name[pdev->id]);
-	if (IS_ERR(ps2_host->pclk)) 
-	{
-		ret = PTR_ERR(ps2_host->pclk);
-		swps2_msg("Error to get ahb clk for %s\n", ps2_pclk_name[pdev->id]);
-		goto free_irq;
-	}
-	clk_enable(ps2_host->pclk);
-	
-	/* initial ps2 controller */
-	ret = sw_ps2c_init(ps2_host);
-	if (ret)
-	    goto close_pclk;
-	    
-	ret = 0;
-	goto out;
-	    
+    if (IS_ERR(ps2_host->pclk)) 
+    {
+        ret = PTR_ERR(ps2_host->pclk);
+        swps2_msg("Error to get ahb clk for %s\n", ps2_pclk_name[pdev->id]);
+        goto free_irq;
+    }
+    clk_enable(ps2_host->pclk);
+    
+    /* initial ps2 controller */
+    ret = sw_ps2c_init(ps2_host);
+    if (ret)
+        goto close_pclk;
+        
+    ret = 0;
+    goto out;
+        
 close_pclk:
     clk_disable(ps2_host->pclk);
     clk_put(ps2_host->pclk);

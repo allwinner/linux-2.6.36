@@ -27,7 +27,7 @@
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 
-#define AW1623_FPGA
+//#define AW1623_FPGA
 #define swkp_msg(...)       printk("[kpad]: "__VA_ARGS__);
 
 /* register define */
