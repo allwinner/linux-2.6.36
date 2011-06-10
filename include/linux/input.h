@@ -1422,10 +1422,6 @@ static inline void input_report_switch(struct input_dev *dev, unsigned int code,
 
 static inline void input_sync(struct input_dev *dev)
 {
-	
-	printk("This is line %d of file %s (function %s)\n",\
-						  __LINE__, __FILE__, __func__);
-	
 	input_event(dev, EV_SYN, SYN_REPORT, 0);
 }
 

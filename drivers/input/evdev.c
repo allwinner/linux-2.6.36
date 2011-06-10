@@ -70,13 +70,7 @@ static void evdev_pass_event(struct evdev_client *client,
 	spin_unlock(&client->buffer_lock);
 
 	if (event->type == EV_SYN)
-	{
-	    printk("This is line %d of file %s (function %s)\n",\
-						  __LINE__, __FILE__, __func__);
 		kill_fasync(&client->fasync, SIGIO, POLL_IN);
-
-	}
-	
 }
 
 /*
