@@ -1,0 +1,31 @@
+menuconfig AW_AXP
+	bool "AXP Power drivers"
+	default n
+	---help---
+	  This option allows you to select AXP power driver
+
+if AW_AXP
+
+config AW_AXP18
+	bool "AXP18 driver"
+	---help---
+	  AXP18 driver
+
+config AW_AXP19
+	tristate "AXP19 driver"
+	default y
+	---help---
+	  AXP19 driver
+	  
+config AW_AXP20
+	tristate "AXP20 driver"
+	default y
+	---help---
+	  AXP20 driver
+	  
+config AXP_CHARGEINIT
+	bool "AXP init charger set"
+	default y
+
+
+endif # !AW_AXP
