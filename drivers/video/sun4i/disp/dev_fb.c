@@ -318,7 +318,7 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
                 y_offset = var->yres / 2;
             }
 
-            screen_num = 0;
+            screen_num = 1;
             y_offset = 0;
             
         	BSP_disp_layer_get_para(sel, hdl, &layer_para);
@@ -383,7 +383,7 @@ static int Fb_set_par(struct fb_info *info)//todo
                 y_offset = var->yres / 2;
             }
 
-            screen_num = 0;
+            screen_num = 1;
             y_offset = 0;
 
             BSP_disp_layer_get_para(sel, hdl, &layer_para);
@@ -888,7 +888,7 @@ __s32 Fb_Init(void)
         }
     }
 
-    if(1)
+    if(0)
     {
 	    __inf("lcd0:\n");
 	    BSP_disp_print_reg((__u32)g_fbi.io[DISP_IO_LCDC0], 256);

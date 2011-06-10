@@ -416,8 +416,8 @@ __s32 lcdc_clk_init(__u32 sel)
 		OSAL_CCMU_SetMclkSrc(h_lcd0ch0mclk0, AW_SYS_CLK_PLL3);	//Default to Video Pll0
 		OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk1, AW_SYS_CLK_PLL3);	//Default to Video Pll0
 		//OSAL_CCMU_SetMclkSrc(h_lcd0ch1mclk2, AW_SYS_CLK_PLL3);	//Default to Video Pll0
-		OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk1, 1);
 		OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk2, 10);
+		OSAL_CCMU_SetMclkDiv(h_lcd0ch1mclk1, 10);
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_lcd0ch0mclk0, RST_INVAILD);
 #endif
@@ -435,8 +435,8 @@ __s32 lcdc_clk_init(__u32 sel)
 		OSAL_CCMU_SetMclkSrc(h_lcd1ch0mclk0, AW_SYS_CLK_PLL3);	//Default to Video Pll0
 		OSAL_CCMU_SetMclkSrc(h_lcd1ch1mclk1, AW_SYS_CLK_PLL3);	//Default to Video Pll0
 		//OSAL_CCMU_SetMclkSrc(h_lcd1ch1mclk2, AW_SYS_CLK_PLL3);	//Default to Video Pll0
-		OSAL_CCMU_SetMclkDiv(h_lcd1ch1mclk1, 1);
 		OSAL_CCMU_SetMclkDiv(h_lcd1ch1mclk2, 10);
+		OSAL_CCMU_SetMclkDiv(h_lcd1ch1mclk1, 10);
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_lcd1ch0mclk0, RST_INVAILD);
 #endif
