@@ -1,10 +1,8 @@
 obj-$(CONFIG_SND_SUN4I_SOC_CODEC) += sun4i-codec.o
 
 # SUN4I Audio Card Support
-obj-$(CONFIG_SND_SUN4I_SOC) += sun4i_iis.o
+obj-$(CONFIG_SND_SUN4I_SOC_I2S) += sun4i_iis.o
 sun4i_iis-objs := sun4i-anx7150.o sun4i-i2s.o anx7150.o sun4i-pcm.o
-#obj-$(CONFIG_SND_SUN4I_SOC) += sun4i_iis.o
-#sun4i_iis-objs := sun4i-tlv320aic23.o sun4i-i2s.o tlv320aic23.o sun4i-pcm.o
  
 # hdmi audio out with i2s interface
 #obj-$(CONFIG_SND_SUN4I_SOC_HDMI) += sun4i-anx7150.o sun4i-i2s.o

@@ -229,16 +229,17 @@
 /* CCM REGISTER */
 #define SUN4I_CCMBASE    (0x01C20000)
 
-#define SUN4I_CCM_AUDIO_HOSC_PLL_REG   (0x04)
-	#define SUN4I_CCM_AUDIO_HOSC_PLL_REG_AUDIOEN		(1<<29)
-	#define SUN4I_CCM_AUDIO_HOSC_PLL_REG_FRE225792MHZ	(0<<26)
-	#define SUN4I_CCM_AUDIO_HOSC_PLL_REG_FRE24576MHZ	(1<<26)
+#define SUN4I_CCM_AUDIO_HOSC_PLL_REG   (0x08)
+	#define SUN4I_CCM_AUDIO_HOSC_PLL_REG_AUDIOEN		(1<<31)
+	#define SUN4I_CCM_AUDIO_HOSC_PLL_REG_FRE225792MHZ	(0<<27)
+	#define SUN4I_CCM_AUDIO_HOSC_PLL_REG_FRE24576MHZ	(1<<27)
 	
-#define SUN4I_CCM_APB_GATE_REG    		 (0x10)
-	#define SUN4I_CCM_APB_GATE_REG_IISGATE				(1<<11)
+#define SUN4I_CCM_APB_GATE_REG    		 (0x68)
+	#define SUN4I_CCM_APB_GATE_REG_IISGATE				(1<<3)
 	
-#define SUN4I_CCM_AUDIO_CLK_REG				(0x38)
-	#define SUN4I_CCM_AUDIO_CLK_REG_IISSPECIALGATE		(1<<1)
+#define SUN4I_CCM_AUDIO_CLK_REG				(0xb8)
+	#define SUN4I_CCM_AUDIO_CLK_REG_IISSPECIALGATE		(1<<31)
+	#define SUN4I_CCM_AUDIO_CLK_REG_DIV(v)					((v)<<16)
 /*------------------------------------------------------------*/
 
 /*------------------------------------------------------------*/

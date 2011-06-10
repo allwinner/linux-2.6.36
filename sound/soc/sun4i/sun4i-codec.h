@@ -4,7 +4,7 @@
 
 
 //Codec Register
-#define CODEC_BASSADDRESS         (0x01c23c00)
+#define CODEC_BASSADDRESS         (0x01c22c00)
 #define SW_DAC_DPC                (0x00)
 #define SW_DAC_FIFOC              (0x04)
 #define SW_DAC_FIFOS              (0x08)
@@ -25,16 +25,18 @@
 #define DAIFMT_20BITS             (20)
 
 #define DAIFMT_BS_MASK            (~(1<<16))  //FIFO big small mode mask
-#define DAIFMT_BITS_MASK          (~(1<<6))		//FIFO Bits slect mask
+#define DAIFMT_BITS_MASK          (~(1<<6))   //FIFO Bits slect mask
 #define SAMPLE_RATE_MASK          (~(7<<29))  //Sample Rate slect mask
 
 #define DAC_EN                    (31)
 #define DIGITAL_VOL               (12)
+//For CODEC OLD VERSION
+#define DAC_VERSION               (23)
 
 
-#define LAST_SE                   (17)
-#define TX_FIFO_MODE              (16)
-#define TX_TRI_LEVEL              (12)
+#define LAST_SE                   (26)
+#define TX_FIFO_MODE              (24)//16 error
+#define TX_TRI_LEVEL              (8)
 #define DAC_MODE                  (7)
 #define TASR                      (6)
 #define DAC_DRQ                   (4)
@@ -44,21 +46,21 @@
 #define PA_MUTE                   (6)
 #define MIXPAS                    (7)
 #define DACPAS                    (8)
-#define MIXEN                     (30)
+#define MIXEN                     (29)
 #define DACAEN_L                  (30)
 #define DACAEN_R                  (31)
 
 #define ADC_DIG_EN                (28)
-#define RX_FIFO_MODE              (16)
-#define RX_TRI_LEVEL              (12)
+#define RX_FIFO_MODE              (24)//16 error
+#define RX_TRI_LEVEL              (8)//12 error
 #define ADC_MODE                  (7)
 #define RASR                      (6)
 #define ADC_DRQ                   (4)
 #define ADC_FIFO_FLUSH            (0)
 
-#define  ADC_EN                    (30)
 #define  ADC_LF_EN                (31)
 #define  ADC_RI_EN                (30)
+#define  ADC_EN                   (30)
 #define  MIC1_EN                  (29)
 #define  MIC2_EN                  (28)
 #define  VMIC_EN                  (27)

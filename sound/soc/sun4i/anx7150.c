@@ -17,7 +17,7 @@
 
 #include "anx7150.h"
 
-#define HDMI
+//#define HDMI
 
 #ifdef HDMI
 static __audio_hdmi_func g_hdmi_func;

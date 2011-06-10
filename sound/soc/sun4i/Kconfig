@@ -6,7 +6,7 @@ config SND_SUN4I_SOC_SPDIF
 	tristate "sun4i On-Chip spdif"
 	default n
 
-config SND_SUN4I_SOC
+config SND_SUN4I_SOC_I2S
 	tristate "SoC Audio for the AllWinner SUN4I chips"
 	default n
 	help
