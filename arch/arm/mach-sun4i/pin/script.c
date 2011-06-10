@@ -80,7 +80,7 @@ int script_parser_init(char *script_buf)
 {
 	script_head_t   *script_head;
 
-	printk("%s(%d)-%s, script_buf addr is %x:\n",__FILE__,__LINE__,__FUNCTION__, script_buf);
+	printk("%s(%d)-%s, script_buf addr is %p:\n",__FILE__,__LINE__,__FUNCTION__, script_buf);
 	if(script_buf)
 	{
 		script_mod_buf = script_buf;

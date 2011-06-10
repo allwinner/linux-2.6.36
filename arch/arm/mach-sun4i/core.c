@@ -171,42 +171,42 @@ static void softwinner_irq_unmask(unsigned int irq)
 }
 
 static struct irq_chip sw_f23_sic_chip = {
-    .name   = "SW_F23_SIC",
-    .ack = softwinner_irq_ack,
+	.name   = "SW_F23_SIC",
+	.ack = softwinner_irq_ack,
 	.mask = softwinner_irq_mask,
 	.unmask = softwinner_irq_unmask,
 };
 
 void __init softwinner_init_irq(void)
 {
-    u32 i = 0;
+	u32 i = 0;
 
-    /* Disable & clear all interrupts */
-    writel(0, SW_INT_ENABLE_REG0);
-    writel(0, SW_INT_ENABLE_REG1);
-    writel(0, SW_INT_ENABLE_REG2);
+	/* Disable & clear all interrupts */
+	writel(0, SW_INT_ENABLE_REG0);
+	writel(0, SW_INT_ENABLE_REG1);
+	writel(0, SW_INT_ENABLE_REG2);
 
-    writel(0xffffffff, SW_INT_MASK_REG0);
-    writel(0xffffffff, SW_INT_MASK_REG1);
-    writel(0xffffffff, SW_INT_MASK_REG2);
+	writel(0xffffffff, SW_INT_MASK_REG0);
+	writel(0xffffffff, SW_INT_MASK_REG1);
+	writel(0xffffffff, SW_INT_MASK_REG2);
 
-    writel(0xffffffff, SW_INT_IRQ_PENDING_REG0);
-    writel(0xffffffff, SW_INT_IRQ_PENDING_REG1);
-    writel(0xffffffff, SW_INT_IRQ_PENDING_REG2);
-    writel(0xffffffff, SW_INT_FIQ_PENDING_REG0);
-    writel(0xffffffff, SW_INT_FIQ_PENDING_REG1);
-    writel(0xffffffff, SW_INT_FIQ_PENDING_REG2);
+	writel(0xffffffff, SW_INT_IRQ_PENDING_REG0);
+	writel(0xffffffff, SW_INT_IRQ_PENDING_REG1);
+	writel(0xffffffff, SW_INT_IRQ_PENDING_REG2);
+	writel(0xffffffff, SW_INT_FIQ_PENDING_REG0);
+	writel(0xffffffff, SW_INT_FIQ_PENDING_REG1);
+	writel(0xffffffff, SW_INT_FIQ_PENDING_REG2);
 
-    /*enable protection mode*/
-    writel(0x01, SW_INT_PROTECTION_REG);
-    /*config the external interrupt source type*/
-    writel(0x00, SW_INT_NMI_CTRL_REG);
+	/*enable protection mode*/
+	writel(0x01, SW_INT_PROTECTION_REG);
+	/*config the external interrupt source type*/
+	writel(0x00, SW_INT_NMI_CTRL_REG);
 
-    for (i = SW_INT_START; i < SW_INT_END; i++) {
-        set_irq_chip(i, &sw_f23_sic_chip);
-        set_irq_handler(i, handle_level_irq);
-        set_irq_flags(i, IRQF_VALID | IRQF_PROBE);
-    }
+	for (i = SW_INT_START; i < SW_INT_END; i++) {
+		set_irq_chip(i, &sw_f23_sic_chip);
+		set_irq_handler(i, handle_level_irq);
+		set_irq_flags(i, IRQF_VALID | IRQF_PROBE);
+	}
 }
 
 static struct map_desc softwinner_io_desc[] __initdata = {
@@ -245,14 +245,46 @@ static int __init sw_core_init(void)
 }
 core_initcall(sw_core_init);
 
+static u32 DRAMC_get_dram_size(void)
+{
+	u32 reg_val;
+	u32 dram_size;
+	u32 chip_den;
+
+	reg_val = readl(SW_DRAM_SDR_DCR);
+	chip_den = (reg_val>>3)&0x7;
+	if(chip_den == 0)
+		dram_size = 32;
+	else if(chip_den == 1)
+		dram_size = 64;
+	else if(chip_den == 2)
+		dram_size = 128;
+	else if(chip_den == 3)
+		dram_size = 256;
+	else if(chip_den == 4)
+		dram_size = 512;
+	else
+		dram_size = 1024;
+	
+	if( ((reg_val>>1)&0x3) == 0x1)
+		dram_size<<=1;
+	if( ((reg_val>>6)&0x7) == 0x3)
+		dram_size<<=1;
+	if( ((reg_val>>10)&0x3) == 0x1)
+		dram_size<<=1;
+
+	return dram_size;
+}
+
+
 extern int sw_register_clocks(void);
 void __init softwinner_init(void)
 {
 	int ret;
-	printk("sun4i platform init\n");
+	pr_info("sun4i platform init\n");
 	ret = reserve_bootmem(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024, BOOTMEM_EXCLUSIVE);
-	printk("Reserve memory for system, ret=%d\n", ret);
-
+	pr_info("Reserve memory for system, ret=%d\n", ret);
+	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
 	sysdev_register(&sw_sysdev);
 }
 
@@ -283,6 +315,20 @@ static void __init softwinner_timer_init(void)
         clockevents_register_device(&timer0_clockevent);
 }
 
+static void __init softwinner_fixup(struct machine_desc *desc,
+				  struct tag *tags, char **cmdline,
+				  struct meminfo *mi)
+{
+#if 0
+	if (tags != phys_to_virt(S3C2410_SDRAM_PA + 0x100)) {
+		mi->nr_banks=1;
+		mi->bank[0].start = 0x30000000;
+		mi->bank[0].size = SZ_64M;
+	}
+#endif
+	pr_info("softwinner_fixup\n");
+}
+
 struct sys_timer softwinner_timer = {
 	.init		= softwinner_timer_init,
 };
@@ -292,6 +338,7 @@ MACHINE_START(SUN4I, "sun4i")
         .phys_io        = 0x01c00000,
         .io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
         .map_io         = softwinner_map_io,
+	.fixup          = softwinner_fixup,
         .init_irq       = softwinner_init_irq,
         .timer          = &softwinner_timer,
         .init_machine   = softwinner_init,

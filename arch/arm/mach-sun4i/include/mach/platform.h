@@ -301,6 +301,7 @@
 *@{
 */
 #define SW_DRAM_SDR_CTL_REG				(SW_VA_DRAM_IO_BASE + 0x0C)
+#define SW_DRAM_SDR_DCR				(SW_VA_DRAM_IO_BASE + 0x04)
 /**
 *@}
 */

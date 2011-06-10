@@ -92,7 +92,6 @@ _real_start:
 	ldmia   r4, {r1, r2}
 
 #elif CONFIG_CHIP_ID == 1123
-#warning "chip id: 1123"
 1:	.long   0xbf8
 	.long   0x81000000
 
