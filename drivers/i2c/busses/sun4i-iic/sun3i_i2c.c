@@ -1,9 +1,9 @@
 /*
- * allwinner 
+ * allwinner
  * victor.wei
  * 2011-03-09
  */
- 
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/i2c.h>
@@ -48,12 +48,12 @@ enum
 {
     I2C_XFER_IDLE    = 0x1,
     I2C_XFER_START   = 0x2,
-    I2C_XFER_RUNNING = 0x4,    
+    I2C_XFER_RUNNING = 0x4,
 };
 
 struct awxx_i2c {
-	
-	int bus_num; 
+
+	int bus_num;
 	unsigned int      status; /* start, running, idle */
 
 	spinlock_t          lock; /* syn */
@@ -64,8 +64,9 @@ struct awxx_i2c {
 	unsigned int		msg_ptr;
 
 	struct i2c_adapter	adap;
-	
+
 	struct clk		 *clk;
+	struct clk       *pclk;
 	unsigned int     bus_freq;
 	unsigned int     gpio_hdle;
 
@@ -73,15 +74,15 @@ struct awxx_i2c {
 
 	unsigned long		iobase; // for remove
 	unsigned long		iosize; // for remove
-	
+
 	int			irq;
-		
+
 #ifdef CONFIG_CPU_FREQ
 	struct notifier_block	freq_transition;
-#endif	
+#endif
 
 	 unsigned int debug_state; /* log the twi machine state */
-	 
+
 };
 
 
@@ -111,34 +112,42 @@ static int i2c_awxx_do_xfer(struct awxx_i2c *i2c, struct i2c_msg *msgs, int num)
 
 
 static int aw_twi_enable_sys_clk(struct awxx_i2c *i2c)
-{	
+{
+    int     result;
+
+	result = clk_enable(i2c->pclk);
+	if(result){
+	    return result;
+	}
+
 	return clk_enable(i2c->clk);
 }
 
 static void aw_twi_disable_sys_clk(struct awxx_i2c *i2c)
 {
-    clk_disable(i2c->clk); 
+    clk_disable(i2c->clk);
+    clk_disable(i2c->pclk);
 }
 
 static int aw_twi_request_gpio(struct awxx_i2c *i2c)
 {
-#ifndef SYS_I2C_PIN	
+#ifndef SYS_I2C_PIN
     #ifdef SYS_FPGA_SIM
         if(i2c->bus_num == 0) {
-        
+
 	        //configuration register
 	        unsigned int  reg_val = readl(_Pn_CFG0(7));
 	        reg_val &= ~(0x77);/* pb0-pb1 TWI0 SDA,SCK */
 	        reg_val |= (0x33);
 	        writel(reg_val, _Pn_CFG0(7));
-	      
+
 	        // pull up resistor
 	        reg_val = readl(_Pn_PUL0(7));
 	        reg_val &= ~(0xf);
 	        reg_val |= 0x5;
-	        writel(reg_val, _Pn_PUL0(7)); 
-	      
-	        //driving default 
+	        writel(reg_val, _Pn_PUL0(7));
+
+	        //driving default
 	        reg_val = readl(_Pn_DRV0(7));
 	        reg_val &= ~(0xf);
 	        reg_val |= 0x5;
@@ -152,14 +161,14 @@ static int aw_twi_request_gpio(struct awxx_i2c *i2c)
 	    reg_val &= ~(0x77);/* pb0-pb1 TWI0 SDA,SCK */
 	    reg_val |= (0x22);
 	    writel(reg_val, _Pn_CFG0(1));
-	
+
 	    // pull up resistor
 	    reg_val = readl(_Pn_PUL0(1));
 	    reg_val &= ~(0xf);
 	    reg_val |= 0x5;
-	    writel(reg_val, _Pn_PUL0(1)); 
-	
-	    //driving default 
+	    writel(reg_val, _Pn_PUL0(1));
+
+	    //driving default
 	    reg_val = readl(_Pn_DRV0(1));
 	    reg_val &= ~(0xf);
 	    reg_val |= 0x5;
@@ -171,18 +180,18 @@ static int aw_twi_request_gpio(struct awxx_i2c *i2c)
 	    reg_val &= ~(0x7700);/* pb18-pb19 TWI1 scl,sda */
 	    reg_val |= (0x2200);
 	    writel(reg_val, _Pn_CFG1(1));
-	
+
 	    // pull up resistor
 	    reg_val = readl(_Pn_PUL1(1));
 	    reg_val &= ~(0xf0);
 	    reg_val |= 0x50;
-	    writel(reg_val, _Pn_PUL1(1)); 
-	
-	    //driving default 
+	    writel(reg_val, _Pn_PUL1(1));
+
+	    //driving default
 	    reg_val = readl(_Pn_DRV1(1));
 	    reg_val &= ~(0xf0);
 	    reg_val |= 0x50;
-	    writel(reg_val, _Pn_DRV1(1));		
+	    writel(reg_val, _Pn_DRV1(1));
 	}
 	else if(i2c->bus_num == 2) {
 	    //configuration register
@@ -190,25 +199,25 @@ static int aw_twi_request_gpio(struct awxx_i2c *i2c)
 	    reg_val &= ~(0x770000);/* pb20-pb21 TWI2 scl,sda */
 	    reg_val |= (0x220000);
 	    writel(reg_val, _Pn_CFG1(1));
-	
+
 	    // pull up resistor
 	    reg_val = readl(_Pn_PUL1(1));
 	    reg_val &= ~(0xf00);
 	    reg_val |= 0x500;
-	    writel(reg_val, _Pn_PUL1(1)); 
-	
-	    //driving default 
+	    writel(reg_val, _Pn_PUL1(1));
+
+	    //driving default
 	    reg_val = readl(_Pn_DRV1(1));
 	    reg_val &= ~(0xf00);
 	    reg_val |= 0x500;
-	    writel(reg_val, _Pn_DRV1(1));		
-	}  	
-	
+	    writel(reg_val, _Pn_DRV1(1));
+	}
+
 #else
     if(i2c->bus_num == 0) {
-        /* pb0-pb1 TWI0 SDA,SCK */        
+        /* pb0-pb1 TWI0 SDA,SCK */
         printk("config i2c gpio with gpio_config api \n");
-        
+
         i2c->gpio_hdle = gpio_request_ex("twi0_para", NULL);
         if(!i2c->gpio_hdle) {
             pr_warning("twi0 request gpio fail!\n");
@@ -221,7 +230,7 @@ static int aw_twi_request_gpio(struct awxx_i2c *i2c)
         if(!i2c->gpio_hdle) {
             pr_warning("twi1 request gpio fail!\n");
             return -1;
-        }           
+        }
     }
     else if(i2c->bus_num == 2) {
         /* pb20-pb21 TWI2 scl,sda */
@@ -229,9 +238,9 @@ static int aw_twi_request_gpio(struct awxx_i2c *i2c)
         if(!i2c->gpio_hdle) {
             pr_warning("twi2 request gpio fail!\n");
             return -1;
-        }         
-    }  
-	
+        }
+    }
+
 
 #endif
     return 0;
@@ -241,60 +250,60 @@ static void aw_twi_release_gpio(struct awxx_i2c *i2c)
 {
 #ifndef SYS_I2C_PIN
 	if(i2c->bus_num == 0) {
-		
+
 	    //config reigster
 	    unsigned int  reg_val = readl(_Pn_CFG0(1));
 	    reg_val &= ~(0x77);
-	    writel(reg_val, _Pn_CFG0(1));    
-	
+	    writel(reg_val, _Pn_CFG0(1));
+
 	    //driving register
 	    reg_val = readl(_Pn_DRV0(1));
 	    reg_val &= ~(0xf);
 	    reg_val |= (0x5);
 	    writel(reg_val, _Pn_DRV0(1));
-	
+
 	    // pull up resistor
 	    reg_val = readl(_Pn_PUL0(1));
 	    reg_val &= ~(0xf);
 	    reg_val |= (0x5);
 	    writel(reg_val, _Pn_PUL0(1));
 	}else if(i2c->bus_num == 1){
-		
+
 	    //config reigster
 	    unsigned int  reg_val = readl(_Pn_CFG1(1));
 	    reg_val &= ~(0x7700);
-	    writel(reg_val, _Pn_CFG1(1));    
-	
+	    writel(reg_val, _Pn_CFG1(1));
+
 	    //driving register
 	    reg_val = readl(_Pn_DRV1(1));
 	    reg_val &= ~(0xf0);
 	    reg_val |= (0x50);
 	    writel(reg_val, _Pn_DRV1(1));
-	
+
 	    // pull up resistor
 	    reg_val = readl(_Pn_PUL1(1));
 	    reg_val &= ~(0xf0);
 	    reg_val |= (0x50);
-	    writel(reg_val, _Pn_PUL1(1));		
+	    writel(reg_val, _Pn_PUL1(1));
 	}else if(i2c->bus_num == 2){
-		
+
 	    //config reigster
 	    unsigned int  reg_val = readl(_Pn_CFG1(1));
 	    reg_val &= ~(0x770000);
-	    writel(reg_val, _Pn_CFG1(1));    
-	
+	    writel(reg_val, _Pn_CFG1(1));
+
 	    //driving register
 	    reg_val = readl(_Pn_DRV1(1));
 	    reg_val &= ~(0xf00);
 	    reg_val |= (0x500);
 	    writel(reg_val, _Pn_DRV1(1));
-	
+
 	    // pull up resistor
 	    reg_val = readl(_Pn_PUL1(1));
 	    reg_val &= ~(0xf00);
 	    reg_val |= (0x500);
-	    writel(reg_val, _Pn_PUL1(1));		
-	}    
+	    writel(reg_val, _Pn_PUL1(1));
+	}
 #else
     if(i2c->bus_num == 0) {
         /* pb0-pb1 TWI0 SDA,SCK */
@@ -302,12 +311,12 @@ static void aw_twi_release_gpio(struct awxx_i2c *i2c)
     }
     else if(i2c->bus_num == 1) {
         /* pb18-pb19 TWI1 scl,sda */
-        gpio_release(i2c->gpio_hdle, 0);   
+        gpio_release(i2c->gpio_hdle, 0);
     }
     else if(i2c->bus_num == 2) {
         /* pb20-pb21 TWI2 scl,sda */
-        gpio_release(i2c->gpio_hdle, 0); 
-    }  
+        gpio_release(i2c->gpio_hdle, 0);
+    }
 
 
 #endif
@@ -321,7 +330,7 @@ static void aw_twi_release_gpio(struct awxx_i2c *i2c)
 static int aw_twi_start(void *base_addr)
 {
     unsigned int timeout = 0xff;
-    
+
     aw_twi_set_start(base_addr);
     while((1 == aw_twi_get_start(base_addr))&&(--timeout));
     if(timeout == 0)
@@ -329,27 +338,27 @@ static int aw_twi_start(void *base_addr)
         printk("START can't sendout!\n");
         return AWXX_I2C_FAIL;
     }
-    
+
     return AWXX_I2C_OK;
 }
 
 static int aw_twi_restart(void  *base_addr)
 {
     int ret = AWXX_I2C_FAIL;
-    
+
     ret = aw_twi_start(base_addr);
     if(ret == AWXX_I2C_FAIL)
     {
         return AWXX_I2C_FAIL;
     }
-    aw_twi_clear_irq_flag(base_addr);    
+    aw_twi_clear_irq_flag(base_addr);
     return AWXX_I2C_OK;
 }
 
 static int aw_twi_stop(void *base_addr)
 {
     unsigned int timeout = 0xff;
-    
+
     aw_twi_set_stop(base_addr);
     aw_twi_clear_irq_flag(base_addr);
 
@@ -357,10 +366,10 @@ static int aw_twi_stop(void *base_addr)
     while(( 1 == aw_twi_get_stop(base_addr))&& (--timeout));
     if(timeout == 0)
     {
-	    printk("1.STOP can't sendout!\n"); 
+	    printk("1.STOP can't sendout!\n");
 	    return AWXX_I2C_FAIL;
     }
-    
+
     timeout = 0xff;
     while((TWI_STAT_IDLE != readl(base_addr + TWI_STAT_REG))&&(--timeout));
     if(timeout == 0)
@@ -368,7 +377,7 @@ static int aw_twi_stop(void *base_addr)
         printk("i2c state isn't idle(0xf8)\n");
         return AWXX_I2C_FAIL;
     }
-    
+
     timeout = 0xff;
     while((TWI_LCR_IDLE_STATUS != readl(base_addr + TWI_LCR_REG))&&(--timeout));
     if(timeout == 0)
@@ -376,7 +385,7 @@ static int aw_twi_stop(void *base_addr)
         printk("2.STOP can't sendout!\n");
         return AWXX_I2C_FAIL;
     }
-   
+
     return AWXX_I2C_OK;
 }
 
@@ -391,16 +400,16 @@ static int aw_twi_stop(void *base_addr)
 *         10bits addr: 1111_11xx_xxxx_xxxx-->1111_0xx_rw,xxxx_xxxx
 *         send the 7 bits addr,or the first part of 10 bits addr
 *  Parameters:
-*       
-*       
+*
+*
 *  Return value:
 *           нч
 *  Notes:
-*       
+*
 ****************************************************************************************************
 */
 static void i2c_awxx_addr_byte(struct awxx_i2c *i2c)
-{  
+{
     unsigned char addr = 0;//address
     unsigned char tmp  = 0;
 
@@ -414,16 +423,16 @@ static void i2c_awxx_addr_byte(struct awxx_i2c *i2c)
     else
     {
         addr = (i2c->msg[i2c->msg_idx].addr & 0x7f) << 1;// 7-1bits addr,xxxx_xxx0
-    }    
+    }
     //read,default value is write
     if (i2c->msg[i2c->msg_idx].flags & I2C_M_RD)
     {
         addr |= 1;
-    } 	
+    }
     //send 7bits+r/w or the first part of 10bits
     aw_twi_put_byte(i2c->base_addr, &addr);
 
-    return;	
+    return;
 }
 
 
@@ -433,52 +442,52 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
     int  ret        = AWXX_I2C_OK;
     int  err_code   = 0;
     unsigned char  state = 0;
-    unsigned char  tmp   = 0;     
-    
+    unsigned char  tmp   = 0;
+
     state = aw_twi_query_irq_status(base_addr);
-    
+
     //printk(" state = %x\n", state);
-  
-    switch(state) 
+
+    switch(state)
     {
     case 0xf8: /* On reset or stop the bus is idle, use only at poll method */
-        {   
-            err_code = 0xf8;  
+        {
+            err_code = 0xf8;
             goto err_out;
         }
     case 0x08: /* A START condition has been transmitted */
     case 0x10: /* A repeated start condition has been transmitted */
-        {     
+        {
             i2c_awxx_addr_byte(i2c);/* send slave address */
             break;
         }
     case 0xd8: /* second addr has transmitted, ACK not received!    */
     case 0x20: /* SLA+W has been transmitted; NOT ACK has been received */
-        {   
+        {
             err_code = 0x20;
             goto err_out;
-        }        
+        }
     case 0x18: /* SLA+W has been transmitted; ACK has been received */
-        {     
+        {
             /* if any, send second part of 10 bits addr */
             if(i2c->msg[i2c->msg_idx].flags & I2C_M_TEN)
             {
                 tmp = i2c->msg[i2c->msg_idx].addr & 0x7f;  /* the remaining 8 bits of address */
                 aw_twi_put_byte(base_addr, &tmp); /* case 0xd0: */
                 break;
-            }             
+            }
             /* for 7 bit addr, then directly send data byte--case 0xd0:  */
         }
-    case 0xd0: /* second addr has transmitted,ACK received!     */      
+    case 0xd0: /* second addr has transmitted,ACK received!     */
     case 0x28: /* Data byte in DATA REG has been transmitted; ACK has been received */
-        {   
+        {
             /* after send register address then START send write data  */
-            if(i2c->msg_ptr < i2c->msg[i2c->msg_idx].len) 
+            if(i2c->msg_ptr < i2c->msg[i2c->msg_idx].len)
             {
                 aw_twi_put_byte(base_addr, &(i2c->msg[i2c->msg_idx].buf[i2c->msg_ptr]));
                 i2c->msg_ptr++;
                 break;
-            }                                  
+            }
 
             i2c->msg_idx++; /* the other msg */
             i2c->msg_ptr = 0;
@@ -486,16 +495,16 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
             {
                 err_code = AWXX_I2C_OK;/* Success,wakeup */
                 goto ok_out;
-            }            
+            }
             else if(i2c->msg_idx < i2c->msg_num)/* for restart pattern */
-            {                    
+            {
                 ret = aw_twi_restart(base_addr);/* read spec, two msgs */
                 if(ret == AWXX_I2C_FAIL)
                 {
                     err_code = AWXX_I2C_SFAIL;
                     goto err_out;/* START can't sendout */
                 }
-            }       
+            }
             else
             {   /* unknown error  */
                 err_code = AWXX_I2C_FAIL;
@@ -504,17 +513,17 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
             break;
         }
     case 0x30: /* Data byte in I2CDAT has been transmitted; NOT ACK has been received */
-        {     
-            err_code = 0x30;//err,wakeup the thread            
+        {
+            err_code = 0x30;//err,wakeup the thread
             goto err_out;
         }
     case 0x38: /* Arbitration lost during SLA+W, SLA+R or data bytes */
-        {                    
+        {
             err_code = 0x38;//err,wakeup the thread
             goto err_out;
         }
     case 0x40: /* SLA+R has been transmitted; ACK has been received */
-        {     
+        {
             /* with Restart,needn't to send second part of 10 bits addr,refer-"I2C-SPEC v2.1" */
             /* enable A_ACK need it(receive data len) more than 1. */
             if(i2c->msg[i2c->msg_idx].len > 1)
@@ -530,41 +539,41 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
             break;
         }
     case 0x48: /* SLA+R has been transmitted; NOT ACK has been received */
-        {    
+        {
             err_code = 0x48;//err,wakeup the thread
             goto err_out;
         }
     case 0x50: /* Data bytes has been received; ACK has been transmitted */
         {
             /* receive first data byte */
-            if (i2c->msg_ptr < i2c->msg[i2c->msg_idx].len) 
-            { 
+            if (i2c->msg_ptr < i2c->msg[i2c->msg_idx].len)
+            {
                 /* more than 2 bytes, the last byte need not to send ACK */
                 if( (i2c->msg_ptr + 2) == i2c->msg[i2c->msg_idx].len )
                 {
                     aw_twi_disable_ack(base_addr);/* last byte no ACK */
-                } 
-                /* get data then clear flag,then next data comming */                
+                }
+                /* get data then clear flag,then next data comming */
                 aw_twi_get_byte(base_addr, &i2c->msg[i2c->msg_idx].buf[i2c->msg_ptr]);
-                i2c->msg_ptr++;  
-               
+                i2c->msg_ptr++;
+
                 break;
             }
             /* err process, the last byte should be @case 0x58 */
             err_code = AWXX_I2C_FAIL;/* err, wakeup */
-            goto err_out;             
+            goto err_out;
         }
     case 0x58: /* Data byte has been received; NOT ACK has been transmitted */
         {    /* received the last byte  */
-            if ( i2c->msg_ptr == i2c->msg[i2c->msg_idx].len - 1 ) 
-            {                
+            if ( i2c->msg_ptr == i2c->msg[i2c->msg_idx].len - 1 )
+            {
                 aw_twi_get_last_byte(base_addr, &i2c->msg[i2c->msg_idx].buf[i2c->msg_ptr]);
-                i2c->msg_idx++; 
+                i2c->msg_idx++;
                 i2c->msg_ptr = 0;
                 if (i2c->msg_idx == i2c->msg_num)
                 {
                     err_code = AWXX_I2C_OK; // succeed,wakeup the thread
-                    goto ok_out;                   
+                    goto ok_out;
                 }
                 else if(i2c->msg_idx < i2c->msg_num)
                 {
@@ -574,26 +583,26 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
                     {
                         err_code = AWXX_I2C_SFAIL;
                         goto err_out;
-                    }                    
-                    break;                
+                    }
+                    break;
                 }
-            } 
-            else 
+            }
+            else
             {
                 err_code = 0x58;
-                goto err_out;            
+                goto err_out;
             }
-        }     
+        }
     case 0x00: /* Bus error during master or slave mode due to illegal level condition */
-        {      
+        {
             err_code = 0xff;
             goto err_out;
-        }      
+        }
     default:
-        {   
+        {
             err_code = state;
             goto err_out;
-        }    
+        }
     }
     i2c->debug_state = state;/* just for debug */
     return ret;
@@ -606,44 +615,44 @@ err_out:
     }
 
     ret = i2c_awxx_xfer_complete(i2c, err_code);/* wake up */
-    
-    i2c->debug_state = state;/* just for debug */    
+
+    i2c->debug_state = state;/* just for debug */
     return ret;
 }
 
 static irqreturn_t  i2c_awxx_handler(int this_irq, void * dev_id)
 {
     struct awxx_i2c *i2c = (struct awxx_i2c *)dev_id;
-    int ret = AWXX_I2C_FAIL;    
-   
+    int ret = AWXX_I2C_FAIL;
+
     if(!aw_twi_query_irq_flag(i2c->base_addr))
     {
         pr_warning("unknown interrupt!");
         return ret;
         //return IRQ_HANDLED;
-    } 
-    
+    }
+
     /* disable irq */
     aw_twi_disable_irq(i2c->base_addr);
-    //twi core process 
+    //twi core process
     ret = i2c_awxx_core_process(i2c);
-    
+
     /* enable irq only when twi is transfering, otherwise,disable irq */
     if(i2c->status != I2C_XFER_IDLE)
     {
-        aw_twi_enable_irq(i2c->base_addr);   
+        aw_twi_enable_irq(i2c->base_addr);
     }
-    
+
     return IRQ_HANDLED;
 }
 
 static int i2c_awxx_xfer_complete(struct awxx_i2c *i2c, int code)
 {
-    int ret = AWXX_I2C_OK; 
-    
+    int ret = AWXX_I2C_OK;
+
     i2c->msg     = NULL;
     i2c->msg_num = 0;
-    i2c->msg_ptr = 0;        
+    i2c->msg_ptr = 0;
     i2c->status  = I2C_XFER_IDLE;
     /* i2c->msg_idx  store the information */
 
@@ -657,11 +666,11 @@ static int i2c_awxx_xfer_complete(struct awxx_i2c *i2c, int code)
     {
         //return the ERROR code, for debug or detect error type
         i2c->msg_idx = code;
-        ret = AWXX_I2C_FAIL;        
+        ret = AWXX_I2C_FAIL;
     }
 
     wake_up(&i2c->wait);
-    
+
     return ret;
 }
 
@@ -672,55 +681,55 @@ static int i2c_awxx_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num
 	int ret = AWXX_I2C_FAIL;
 	int i   = 0;
 
-	for(i = adap->retries; i >= 0; i--) 
-	{	
+	for(i = adap->retries; i >= 0; i--)
+	{
 		ret = i2c_awxx_do_xfer(i2c, msgs, num);
-		
-		if(ret != AWXX_I2C_RETRY) 
+
+		if(ret != AWXX_I2C_RETRY)
 		{
 			goto out;
 		}
 
-		if(i2c_debug) 
+		if(i2c_debug)
 		{
 			dev_dbg(&adap->dev, "Retrying transmission\n");
 		}
-		udelay(100);		
-	}	
-	
+		udelay(100);
+	}
+
 	ret = -EREMOTEIO;
-	
-out:	
+
+out:
 	return ret;
 }
 
 static int i2c_awxx_do_xfer(struct awxx_i2c *i2c, struct i2c_msg *msgs, int num)
 {
 	unsigned long timeout = 0;
-	int ret = AWXX_I2C_FAIL;    
+	int ret = AWXX_I2C_FAIL;
 	//int i = 0, j =0;
-    
+
 	aw_twi_soft_reset(i2c->base_addr);
 	udelay(100);
-    
+
 	/* test the bus is free,already protect by the semaphore at DEV layer */
-	while( TWI_STAT_IDLE != aw_twi_query_irq_status(i2c->base_addr)&& 
-	       TWI_STAT_BUS_ERR != aw_twi_query_irq_status(i2c->base_addr) && 
+	while( TWI_STAT_IDLE != aw_twi_query_irq_status(i2c->base_addr)&&
+	       TWI_STAT_BUS_ERR != aw_twi_query_irq_status(i2c->base_addr) &&
 	       TWI_STAT_ARBLOST_SLAR_ACK != aw_twi_query_irq_status(i2c->base_addr) ) {
 		printk("bus is busy, status = %x\n", aw_twi_query_irq_status(i2c->base_addr));
 		ret = AWXX_I2C_RETRY;
 		goto out;
-	}    	
+	}
 	//printk("bus num = %d\n", i2c->adap.nr);
-	//printk("bus name = %s\n", i2c->adap.name);    
+	//printk("bus name = %s\n", i2c->adap.name);
 	/* may conflict with xfer_complete */
 	spin_lock_irq(&i2c->lock);
 	i2c->msg     = msgs;
 	i2c->msg_num = num;
 	i2c->msg_ptr = 0;
 	i2c->msg_idx = 0;
-	i2c->status  = I2C_XFER_START;	
-	spin_unlock_irq(&i2c->lock);	
+	i2c->status  = I2C_XFER_START;
+	spin_unlock_irq(&i2c->lock);
 /*
 	for(i =0 ; i < num; i++){
 		for(j = 0; j < msgs->len; j++){
@@ -729,19 +738,19 @@ static int i2c_awxx_do_xfer(struct awxx_i2c *i2c, struct i2c_msg *msgs, int num)
 		}
 		printk("\n\n");
 }
-*/ 	
-	aw_twi_enable_irq(i2c->base_addr);  /* enable irq */   
+*/
+	aw_twi_enable_irq(i2c->base_addr);  /* enable irq */
 	aw_twi_disable_ack(i2c->base_addr); /* disabe ACK */
 	aw_twi_set_EFR(i2c->base_addr, 0);  /* set the special function register,default:0. */
-    
+
 	ret = aw_twi_start(i2c->base_addr);/* START signal,needn't clear int flag  */
 	if(ret == AWXX_I2C_FAIL) {
 		aw_twi_soft_reset(i2c->base_addr);
-		aw_twi_disable_irq(i2c->base_addr);  /* disable irq */ 
+		aw_twi_disable_irq(i2c->base_addr);  /* disable irq */
 		i2c->status  = I2C_XFER_IDLE;
 		ret = AWXX_I2C_RETRY;
 		goto out;
-	}    
+	}
 	/* sleep and wait, do the transfer at interrupt handler ,timeout = 5*HZ */
 	timeout = wait_event_timeout(i2c->wait, i2c->msg_num == 0, i2c->adap.timeout);
 	/* return code,if(msg_idx == num) succeed */
@@ -754,7 +763,7 @@ static int i2c_awxx_do_xfer(struct awxx_i2c *i2c, struct i2c_msg *msgs, int num)
 	else if (ret != num){
 		pr_warning("incomplete xfer (%d\n", ret);
 		//dev_dbg(i2c->adap.dev, "incomplete xfer (%d)\n", ret);
-	}	    
+	}
 out:
 	return ret;
 }
@@ -781,17 +790,17 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
     	printk("request i2c gpio failed!\n");
     	return -1;
     }
-    
+
     // enable APB clk
     ret = aw_twi_enable_sys_clk(i2c);
     if(ret == -1){
     	printk("enable i2c clock failed!\n");
     	return -1;
     }
- 
-    // enable twi bus    
+
+    // enable twi bus
     aw_twi_enable_bus(i2c->base_addr);
-    
+
     // set twi module clock
     apb_clk  =  clk_get_rate(i2c->clk);
     if(apb_clk == 0){
@@ -802,15 +811,15 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
     aw_twi_set_clock(apb_clk, i2c->bus_freq, i2c->base_addr);
     // soft reset
     aw_twi_soft_reset(i2c->base_addr);
-    
+
     return ret;
 }
 
 static void i2c_awxx_hw_exit(struct awxx_i2c *i2c)
 {
     void *base_addr = i2c->base_addr;
-   // aw_twi_disable_irq(base_addr);        
-    // disable twi bus    
+   // aw_twi_disable_irq(base_addr);
+    // disable twi bus
     aw_twi_disable_bus(base_addr);
     // disable APB clk
     aw_twi_disable_sys_clk(i2c);
@@ -824,9 +833,10 @@ static int i2c_awxx_probe(struct platform_device *dev)
 	struct resource *res = NULL;
 	struct aw_i2c_platform_data *pdata = NULL;
 	char *i2c_clk[] ={"twi0","twi1","twi2"};
+	char *i2c_pclk[] ={"apb_twi0","apb_twi1","apb_twi2"};
 	int ret;
 	int irq;
-	
+
 	pdata = dev->dev.platform_data;
 	if(pdata == NULL) {
 		return -ENODEV;
@@ -851,22 +861,30 @@ static int i2c_awxx_probe(struct platform_device *dev)
 	strlcpy(i2c->adap.name, "aw16xx-i2c", sizeof(i2c->adap.name));
 	i2c->adap.owner   = THIS_MODULE;
 	i2c->adap.nr      = pdata->bus_num;
-	i2c->adap.retries = 2;		
+	i2c->adap.retries = 2;
 	i2c->adap.timeout = 5*HZ;
-	i2c->adap.class   = I2C_CLASS_HWMON | I2C_CLASS_SPD; 
+	i2c->adap.class   = I2C_CLASS_HWMON | I2C_CLASS_SPD;
 	i2c->bus_freq     = pdata->frequency;
 	i2c->irq 		  = irq;
 	i2c->bus_num      = pdata->bus_num;
-	spin_lock_init(&i2c->lock);	 
+	spin_lock_init(&i2c->lock);
 	init_waitqueue_head(&i2c->wait);
-	
-	i2c->clk = clk_get(NULL, i2c_clk[i2c->adap.nr]);
-	if(NULL == i2c->clk){
-		printk("request i2c clock failed\n");
+
+	i2c->pclk = clk_get(NULL, i2c_pclk[i2c->adap.nr]);
+	if(NULL == i2c->pclk){
+		printk("request apb_i2c clock failed\n");
 		ret = -EIO;
 		goto eremap;
 	}
-	
+
+	i2c->clk = clk_get(NULL, i2c_clk[i2c->adap.nr]);
+	if(NULL == i2c->clk){
+		printk("request i2c clock failed\n");
+        clk_put(i2c->pclk);
+		ret = -EIO;
+		goto eremap;
+	}
+
 	snprintf(i2c->adap.name, sizeof(i2c->adap.name), "aw16xx-i2c.%u", i2c->adap.nr);
 
 	i2c->base_addr = ioremap(res->start, resource_size(res));
@@ -881,7 +899,7 @@ static int i2c_awxx_probe(struct platform_device *dev)
 	gpio_addr = ioremap(_PIO_BASE_ADDRESS, 0x1000);
 	if(!gpio_addr) {
 	    ret = -EIO;
-	    goto ereqirq;	
+	    goto ereqirq;
 	}
 #endif
 
@@ -891,7 +909,7 @@ static int i2c_awxx_probe(struct platform_device *dev)
 	{
 		goto ereqirq;
 	}
-	
+
 	if(-1 == i2c_awxx_hw_init(i2c)){
 		ret = -EIO;
 		goto eadapt;
@@ -913,7 +931,7 @@ static int i2c_awxx_probe(struct platform_device *dev)
 
 	printk(KERN_INFO "I2C: %s: AW16XX I2C adapter\n",
 	       dev_name(&i2c->adap.dev));
-	
+
 	printk("**********start************\n");
 	printk("0x%x \n",readl(i2c->base_addr + 0x0c));
 	printk("0x%x \n",readl(i2c->base_addr + 0x10));
@@ -924,26 +942,26 @@ static int i2c_awxx_probe(struct platform_device *dev)
 
 	return 0;
 
-eadapt:	
+eadapt:
 	free_irq(irq, i2c);
 	clk_disable(i2c->clk);
-	
+
 ereqirq:
 #ifndef SYS_I2C_PIN
     if(gpio_addr){
         iounmap(gpio_addr);
     }
-#endif    
+#endif
 	iounmap(i2c->base_addr);
 	clk_put(i2c->clk);
-	
-eremap:	
+
+eremap:
 	kfree(i2c);
-	
+
 emalloc:
 	release_mem_region(i2c->iobase, i2c->iosize);
-	
-	return ret;	
+
+	return ret;
 }
 
 
@@ -954,12 +972,13 @@ static int __exit i2c_awxx_remove(struct platform_device *dev)
 	platform_set_drvdata(dev, NULL);
 
 	i2c_del_adapter(&i2c->adap);
-	
+
 	free_irq(i2c->irq, i2c);
 
 	i2c_awxx_hw_exit(i2c); // disable clock and release gpio
 	clk_put(i2c->clk);
-	
+	clk_put(i2c->pclk);
+
 	iounmap(i2c->base_addr);
 	release_mem_region(i2c->iobase, i2c->iosize);
 	kfree(i2c);
@@ -986,9 +1005,9 @@ static int i2c_awxx_resume(struct device *dev)
 {
 	struct platform_device *pdev = to_platform_device(dev);
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
-	
+
     printk("[i2c%d] resume okay.. \n", i2c->bus_num);
-    
+
 	//i2c_awxx_hw_init(i2c);
 
 	return 0;
@@ -1134,7 +1153,7 @@ static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 
 /*
 *    0  not used or error
-*    1 used   
+*    1 used
 */
 static int i2c_awxx_get_cfg(int bus_num)
 {
@@ -1142,7 +1161,7 @@ static int i2c_awxx_get_cfg(int bus_num)
     int ret   = 0;
     char *main_name[] = {"twi0_para", "twi1_para", "twi2_para"};
     char *sub_name[] = {"twi0_used","twi1_used","twi2_used"};
-    
+
     ret = script_parser_fetch(main_name[bus_num], sub_name[bus_num], &value, sizeof(int));
     if(ret != SCRIPT_PARSER_OK){
         pr_warning("get twi0 para failed,err code = %d \n",ret);
@@ -1159,14 +1178,14 @@ static int __init i2c_adap_awxx_init(void)
 	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
 	printk("power, status = %d \n",status);
 	// bus-1
-	status = i2c_register_board_info(1, i2c_info_hdmi, ARRAY_SIZE(i2c_info_hdmi));	
+	status = i2c_register_board_info(1, i2c_info_hdmi, ARRAY_SIZE(i2c_info_hdmi));
 	printk("hdmi, status = %d \n",status);
     // bus-0
-	status = i2c_register_board_info(0, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));	
+	status = i2c_register_board_info(0, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));
 	printk("tp, status = %d \n",status);
 
 
-	
+
 	if(i2c_awxx_get_cfg(0)){
 	    aw_register_device(&aw_twi0_device, &aw_twi0_pdata);
 	}
@@ -1177,7 +1196,7 @@ static int __init i2c_adap_awxx_init(void)
 	    aw_register_device(&aw_twi2_device, &aw_twi2_pdata);
 	}
 
-	return platform_driver_register(&twi_awxx_driver);	
+	return platform_driver_register(&twi_awxx_driver);
 }
 
 
