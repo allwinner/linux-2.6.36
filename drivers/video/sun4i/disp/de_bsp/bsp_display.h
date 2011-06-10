@@ -34,6 +34,9 @@
 #include <linux/cdev.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include <mach/clock.h>
+#include <mach/aw_ccu.h>
+
 #include "../OSAL/OSAL.h"
 #endif
 
@@ -545,6 +548,8 @@ extern __s32 BSP_disp_enhance_enable(__u32 sel, __bool enable);
 extern __s32 BSP_disp_get_enhance_enable(__u32 sel);
 extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para);
 extern __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size);
+extern __s32 BSP_disp_print_reg(__u32 base, __u32 size);
+extern __s32 BSP_disp_set_yuv_output(__u32 sel, __bool bout_yuv);
 
 extern __s32 BSP_disp_layer_request(__u32 sel, __disp_layer_work_mode_t mode);
 extern __s32 BSP_disp_layer_release(__u32 sel, __u32 hid);

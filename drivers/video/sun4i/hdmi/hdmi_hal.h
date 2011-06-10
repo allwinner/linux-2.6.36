@@ -39,6 +39,8 @@ typedef enum
 }__hdmi_state_t;
 
 extern void delay_ms(__u32 t);
+
+extern void HDMI_set_reg_base(__u32 base);
 extern __s32 Hdmi_hal_set_display_mode(__u8 hdmi_mode);
 extern __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para);
 extern __s32 Hdmi_hal_audio_enable(__u8 mode, __u8 channel);

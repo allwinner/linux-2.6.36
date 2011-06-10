@@ -1,9 +1,10 @@
 #include "../hdmi_hal.h"
-#include "hdmi_i2c.h"
+#include "hdmi_interface.h"
 #include "hdmi_core.h"
 
 __s32 Hdmi_hal_set_display_mode(__u8 hdmi_mode)
 {
+    HDMI_SET();
     return 0;
 }
 

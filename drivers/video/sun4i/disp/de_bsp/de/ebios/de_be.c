@@ -547,7 +547,7 @@ __s32 DE_BE_Sprite_Set_Palette_Table(__u32 sel, __u32 address, __u32 offset, __u
 //brightness -100~100
 //contrast -100~100
 //saturaion -100~100
-__s32 DE_BE_Set_Enhance(__u8 sel, __s32 brightness, __s32 contrast, __s32 saturaion)
+__s32 DE_BE_Set_Enhance(__u8 sel,__u32 brightness, __u32 contrast, __u32 saturaion)
 {
 	__s32 Rr,Rg,Rb,Rc;
 	__s32 Gr,Gg,Gb,Gc;
@@ -605,7 +605,7 @@ __s32 DE_BE_Set_Enhance(__u8 sel, __s32 brightness, __s32 contrast, __s32 satura
     DE_BE_WUINT32(sel, DE_BE_OUT_COLOR_B_COEFF_OFF + 4, (__s32)Bg);
     DE_BE_WUINT32(sel, DE_BE_OUT_COLOR_B_COEFF_OFF + 8, (__s32)Bb);
     DE_BE_WUINT32(sel, DE_BE_OUT_COLOR_B_CONSTANT_OFF, (__s32)Bc);
-
+    
     return 0;
 }
 
@@ -616,6 +616,51 @@ __s32 DE_BE_enhance_enable(__u32 sel, __bool enable)
     return 0;
 }
 
+__s32 DE_BE_deflicker_enable(__u32 sel, __bool enable)
+{
+	DE_BE_WUINT32(sel, DE_BE_MODE_CTL_OFF,(DE_BE_RUINT32(sel, DE_BE_MODE_CTL_OFF)&(~(1<<4))) | (enable<<4));
+	
+    return 0;
+}
+
+__s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __bool bout_yuv)
+{
+	if(bout_yuv)// RGB2YUV for INTERLACE SCREEN
+	{
+		DE_BE_WUINT32(sel, DE_BE_YG_COEFF_OFF + 0, DE_BE_RUINT32(sel, DE_BE_YG_COEFF_OFF + 0) | (0x0274<<16));
+		DE_BE_WUINT32(sel, DE_BE_YG_COEFF_OFF + 4, DE_BE_RUINT32(sel, DE_BE_YG_COEFF_OFF + 4) | (0x00bb<<16));
+		DE_BE_WUINT32(sel, DE_BE_YG_COEFF_OFF + 8, DE_BE_RUINT32(sel, DE_BE_YG_COEFF_OFF + 8) | (0x003f<<16));
+		DE_BE_WUINT32(sel, DE_BE_YG_CONSTANT_OFF , DE_BE_RUINT32(sel, DE_BE_YG_CONSTANT_OFF) | (0x0100<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_COEFF_OFF + 0, DE_BE_RUINT32(sel, DE_BE_UR_COEFF_OFF + 0) | (0x1ea5<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_COEFF_OFF + 4, DE_BE_RUINT32(sel, DE_BE_UR_COEFF_OFF + 4) | (0x1f98<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_COEFF_OFF + 8, DE_BE_RUINT32(sel, DE_BE_UR_COEFF_OFF + 8) | (0x01c1<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_CONSTANT_OFF, DE_BE_RUINT32(sel, DE_BE_UR_CONSTANT_OFF) | (0x0800<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_COEFF_OFF + 0, DE_BE_RUINT32(sel, DE_BE_VB_COEFF_OFF + 0) | (0x1e67<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_COEFF_OFF + 4, DE_BE_RUINT32(sel, DE_BE_VB_COEFF_OFF + 4) | (0x01c1<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_COEFF_OFF + 8, DE_BE_RUINT32(sel, DE_BE_VB_COEFF_OFF + 8) | (0x1fd7<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_CONSTANT_OFF, DE_BE_RUINT32(sel, DE_BE_VB_CONSTANT_OFF) | (0x0800<<16));
+	}
+	else
+	{
+		DE_BE_WUINT32(sel, DE_BE_YG_COEFF_OFF + 0, DE_BE_RUINT32(sel, DE_BE_YG_COEFF_OFF + 0) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_YG_COEFF_OFF + 4, DE_BE_RUINT32(sel, DE_BE_YG_COEFF_OFF + 4) | (0x0400<<16));
+		DE_BE_WUINT32(sel, DE_BE_YG_COEFF_OFF + 8, DE_BE_RUINT32(sel, DE_BE_YG_COEFF_OFF + 8) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_YG_CONSTANT_OFF , DE_BE_RUINT32(sel, DE_BE_YG_CONSTANT_OFF) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_COEFF_OFF + 0, DE_BE_RUINT32(sel, DE_BE_UR_COEFF_OFF + 0) | (0x0400<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_COEFF_OFF + 4, DE_BE_RUINT32(sel, DE_BE_UR_COEFF_OFF + 4) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_COEFF_OFF + 8, DE_BE_RUINT32(sel, DE_BE_UR_COEFF_OFF + 8) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_UR_CONSTANT_OFF, DE_BE_RUINT32(sel, DE_BE_UR_CONSTANT_OFF) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_COEFF_OFF + 0, DE_BE_RUINT32(sel, DE_BE_VB_COEFF_OFF + 0) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_COEFF_OFF + 4, DE_BE_RUINT32(sel, DE_BE_VB_COEFF_OFF + 4) | (0x0000<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_COEFF_OFF + 8, DE_BE_RUINT32(sel, DE_BE_VB_COEFF_OFF + 8) | (0x0400<<16));
+		DE_BE_WUINT32(sel, DE_BE_VB_CONSTANT_OFF, DE_BE_RUINT32(sel, DE_BE_VB_CONSTANT_OFF) | (0x0000<<16));
+	}
+
+    return 0;
+
+}
+
+#if 0
 __s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __u8 cs_mode)//CS_MODE SET 1:BT709
 {
 	__u32 csc_coef_off;
@@ -639,6 +684,7 @@ __s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __u8 cs_mode)//CS_MODE SET 1:BT709
 
 	return 0;
 }
+#endif
 
 __s32 DE_BE_set_display_size(__u32 sel, __u32 width, __u32 height)
 {

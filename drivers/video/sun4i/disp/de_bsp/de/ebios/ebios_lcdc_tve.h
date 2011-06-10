@@ -177,6 +177,7 @@ __u8    TVE_dac_get_de_bounce(__u32 sel,__u8 index);
 __s32   TVE_dac_set_source(__u32 sel,__u32 index,__u32 source);
 __s32   TVE_get_dac_status(__u32 sel,__u32 index);
 __u8 	TVE_csc_init(__u32 sel,__u8 type);
+__s32   TVE_dac_sel(__u32 sel,__u32 dac, __u32 index);
 
 
 #endif

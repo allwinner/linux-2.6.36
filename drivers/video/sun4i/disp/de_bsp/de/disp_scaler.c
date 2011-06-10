@@ -161,7 +161,7 @@ __s32  Scaler_sw_para_to_reg(__u8 type, __u8 value)
 
 // 0: 3d in mode
 // 1: 3d out mode
-__s32 Scaler_3d_sw_para_to_reg(__u32 type, __disp_3d_src_mode_t mode, __bool b_out_interlace)
+__s32 Scaler_3d_sw_para_to_reg(__u32 type, __u32 mode, __bool b_out_interlace)
 {
     if(type == 0)
     {
@@ -1060,6 +1060,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
         Image_close(sel);
     }
     DE_BE_Output_Select(sel, sel);
+
     return ret;
 
 }

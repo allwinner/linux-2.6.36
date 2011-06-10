@@ -770,7 +770,6 @@ __s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 i
         }
     }
 
-    csc_pass = 0;
     if(!csc_pass)
     {
       for(i=0; i<12; i++)

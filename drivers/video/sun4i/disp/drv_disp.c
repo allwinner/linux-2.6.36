@@ -91,7 +91,7 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
         timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1, timeout);
         if(timeout == 0)
         {
-            __wrn("wait cmd finished timeout\n");
+            __inf("wait cmd finished timeout\n");
         }
     }
 }

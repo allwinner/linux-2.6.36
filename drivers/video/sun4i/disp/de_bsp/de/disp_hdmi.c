@@ -9,6 +9,8 @@
 
 __s32 Display_Hdmi_Init(void)
 {
+    hdmi_clk_init();
+    
 	gdisp.screen[0].hdmi_mode = DISP_TV_MOD_720P_50HZ;
 	gdisp.screen[1].hdmi_mode = DISP_TV_MOD_720P_50HZ;
 
@@ -17,6 +19,8 @@ __s32 Display_Hdmi_Init(void)
 
 __s32 Display_Hdmi_Exit(void)
 {
+    hdmi_clk_exit();
+    
 	return DIS_SUCCESS;
 }
 
@@ -27,13 +31,15 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
     	__disp_tv_mode_t     tv_mod;
 
     	tv_mod = gdisp.screen[sel].hdmi_mode;
-    
+
+        hdmi_clk_on();
     	lcdc_clk_on(sel);
     	image_clk_on(sel);
 		Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     	disp_clk_cfg(sel,DISP_OUTPUT_TYPE_HDMI, tv_mod);
     	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_HDMI, 1);
 
+        BSP_disp_set_yuv_output(sel, FALSE);
     	DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
     	DE_BE_Output_Select(sel, sel);
     	TCON1_set_hdmi_mode(sel,tv_mod);		 	 
@@ -61,6 +67,7 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
 
     	image_clk_off(sel);
     	lcdc_clk_off(sel);
+    	hdmi_clk_off();
     	
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;
     	gdisp.screen[sel].status &= HDMI_OFF;

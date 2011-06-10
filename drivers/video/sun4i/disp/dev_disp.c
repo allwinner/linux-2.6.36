@@ -1464,6 +1464,7 @@ static void __exit disp_module_exit(void)
 }
 
 
+//late_initcall(disp_module_init);
 module_init(disp_module_init);
 module_exit(disp_module_exit);
 

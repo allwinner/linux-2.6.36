@@ -5,15 +5,13 @@
 #include "de_bsp/bsp_display.h"
 
 #define __wrn(msg...) {printk("[DISP],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-
-#if 0
+#if 1
 #define __inf(msg...) do{}while(0)
 #define __msg(msg...) do{}while(0)
 #else
 #define __inf(msg...) printk(msg)
 #define __msg(msg...) {printk("[DISP],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
 #endif
-
 
 typedef enum
 {

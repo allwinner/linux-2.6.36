@@ -16,31 +16,34 @@
 #include "OSAL.h"
 #include "OSAL_Clock.h"
 
-#if 0
+#if 1
 
 static char* _sysClkName[AW_SYS_CLK_CNT] =
 {
-    "none",
+    "none",//0
 
-    "losc",
-    "hosc",
+    "losc",// 1
+    "hosc",// 2
 
-    "core_pll",
-    "audio_pll",
-    "video_pll0",
-    "ve_pll",
-    "sdram_pll",
-    "sdram_pll_m",
-    "sdram_pll_p",
-    "sata_pll",
-    "video_pll1",
-    "200m_pll",
+    "core_pll",// 3
+    "audio_pll",// 4
+    "audio_pllx8",// 5
+    "video_pll0",// 6
+    "video_pll0x2",// 7
+    "ve_pll",// 8
+    "sdram_pll",// 9
+    "sdram_pll_m",// 10
+    "sdram_pll_p",// 11
+    "sata_pll",// 12
+    "video_pll1",// 13
+    "video_pll1x2",// 14
+    "200m_pll",// 15
 
-    "cpu",
-    "axi",
-    "ahb",
-    "apb",
-    "apb1",
+    "cpu",// 16
+    "axi",// 17
+    "ahb",// 18
+    "apb",// 19
+    "apb1",// 20
 };
 
 static char* _modClkName[AW_MOD_CLK_CNT] =
@@ -83,8 +86,10 @@ static char* _modClkName[AW_MOD_CLK_CNT] =
     "lcd1_ch0",
     "csi_isp",
     "tvd",
-    "lcd0_ch1",
-    "lcd1_ch1",
+    "lcd0_ch1_s1",
+    "lcd0_ch1_s2",
+    "lcd1_ch1_s1",
+    "lcd1_ch1_s2",
     "csi0",
     "csi1",
     "ve",
@@ -194,11 +199,13 @@ static char* _modClkName[AW_MOD_CLK_CNT] =
     "sdram_ace",
 };
 
-__s32 OSAL_CCMU_SetSrcFreq( CSP_CCM_sysClkNo_t nSclkNo, __u32 nFreq )
+__s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
 {
     struct clk* hSysClk = NULL;
     s32 retCode = -1;
 
+    //printk("----OSAL_CCMU_SetSrcFreq<%d,%d>\n",nSclkNo, nFreq);
+    
     hSysClk = clk_get(NULL, _sysClkName[nSclkNo]);
     if(NULL == hSysClk){
         printk("Fail to get handle for system clock [%d].\n", nSclkNo);
@@ -221,7 +228,7 @@ __s32 OSAL_CCMU_SetSrcFreq( CSP_CCM_sysClkNo_t nSclkNo, __u32 nFreq )
     return retCode;
 }
 
-__u32 OSAL_CCMU_GetSrcFreq( CSP_CCM_sysClkNo_t nSclkNo )
+__u32 OSAL_CCMU_GetSrcFreq( __u32 nSclkNo )
 {
     struct clk* hSysClk = NULL;
     u32 nFreq = 0;
@@ -256,11 +263,13 @@ __s32 OSAL_CCMU_CloseMclk( __hdle hMclk )
     return 0;
 }
 
-__s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, CSP_CCM_sysClkNo_t nSclkNo )
+__s32 OSAL_CCMU_SetMclkSrc( __hdle hMclk, __u32 nSclkNo )
 {
     struct clk* hSysClk = NULL;
     struct clk* hModClk = (struct clk*)hMclk;
     s32 retCode = -1;
+
+    //printk("----OSAL_CCMU_SetMclkSrc<%s,%d>\n",hModClk->clk->name,nSclkNo);
 
     hSysClk = clk_get(NULL, _sysClkName[nSclkNo]);
     if(NULL == hSysClk){
@@ -317,7 +326,9 @@ __s32 OSAL_CCMU_SetMclkDiv( __hdle hMclk, __s32 nDiv )
     struct clk* hModClk     = (struct clk*)hMclk;
     struct clk* hParentClk  = clk_get_parent(hModClk);
     u32         srcRate     = clk_get_rate(hParentClk);
-    
+
+    //printk("----OSAL_CCMU_SetMclkDiv<%s,%d>\n",hModClk->clk->name,nDiv);
+
     if(nDiv == 0){
     	return -1;
     }
@@ -342,6 +353,8 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
 {
     struct clk* hModClk = (struct clk*)hMclk;
 
+    //printk("----OSAL_CCMU_MclkOnOff<%s,%d>\n",hModClk->clk->name,bOnOff);
+
     if(bOnOff)
     {
         return clk_enable(hModClk);
@@ -355,6 +368,8 @@ __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
 __s32 OSAL_CCMU_MclkReset(__hdle hMclk, __s32 bReset)
 {
     struct clk* hModClk = (struct clk*)hMclk;
+
+    //printk("----OSAL_CCMU_MclkReset<%s,%d>\n",hModClk->clk->name,bReset);
 
     return clk_reset(hModClk, bReset);
 }

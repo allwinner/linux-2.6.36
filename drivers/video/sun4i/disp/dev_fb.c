@@ -318,6 +318,9 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
                 y_offset = var->yres / 2;
             }
 
+            screen_num = 0;
+            y_offset = 0;
+            
         	BSP_disp_layer_get_para(sel, hdl, &layer_para);
 
         	if(layer_para.mode == DISP_LAYER_WORK_MODE_SCALER)
@@ -379,6 +382,9 @@ static int Fb_set_par(struct fb_info *info)//todo
             {
                 y_offset = var->yres / 2;
             }
+
+            screen_num = 0;
+            y_offset = 0;
 
             BSP_disp_layer_get_para(sel, hdl, &layer_para);
 
@@ -685,9 +691,10 @@ __s32 Display_Fb_Request(__u32 sel, __disp_fb_create_para_t *fb_para)
         
         hdl = BSP_disp_layer_request(sel, fb_para->mode);
 
+        memset(&layer_para, 0, sizeof(__disp_layer_info_t));
         layer_para.mode = fb_para->mode;
         layer_para.pipe = 0;
-        layer_para.alpha_en = 0;
+        layer_para.alpha_en = 1;
         layer_para.alpha_val = 0xff;
         layer_para.ck_enable = 0;
         layer_para.src_win.x = 0;
@@ -717,6 +724,7 @@ __s32 Display_Fb_Request(__u32 sel, __disp_fb_create_para_t *fb_para)
         layer_para.fb.mode = DISP_MOD_INTERLEAVED;
         layer_para.fb.br_swap = 0;
         layer_para.fb.cs_mode = DISP_BT601;
+        layer_para.b_from_screen = 0;
         BSP_disp_layer_set_para(sel, hdl, &layer_para);
 
         BSP_disp_layer_open(sel, hdl);
@@ -785,13 +793,9 @@ __s32 Fb_Init(void)
 #endif
 
 #ifdef DO_FB_INIT
-    //printk("delay begin\n");
-    //mdelay(1000 * 5);
-    //printk("delay end\n");
-
     fb_para.mode = DISP_LAYER_WORK_MODE_NORMAL;
     fb_para.b_dual_screen = 0;
-    fb_para.b_double_buffer = 0;
+    fb_para.b_double_buffer = 1;
     fb_para.line_length = FB_WIDTH * 4;
     fb_para.smem_len = fb_para.line_length * FB_HEIGHT * (fb_para.b_dual_screen+1) * (fb_para.b_double_buffer + 1);
     fb_para.width = FB_WIDTH;
@@ -800,15 +804,12 @@ __s32 Fb_Init(void)
     fb_para.ch2_offset = 0;
 
     DRV_lcd_open(0);
-
-    //BSP_disp_tv_set_mode(0, DISP_TV_MOD_480P);
-    //BSP_disp_tv_open(0);
     
     BSP_disp_lcd_set_bright(0, DISP_LCD_BRIGHT_LEVEL12);
 
-    color.red = 0xff;
-    color.green = 0x00;
-    color.blue = 0x00;
+    color.red = 0x00;
+    color.green = 0xff;
+    color.blue = 0xff;
     BSP_disp_set_bk_color(0, &color);
 
     if(fb_para.b_dual_screen)
@@ -819,10 +820,9 @@ __s32 Fb_Init(void)
         
         color.red = 0x00;
         color.green = 0xff;
-        color.blue = 0x00;
+        color.blue = 0xff;
         BSP_disp_set_bk_color(1, &color);
     }
-
 
     Display_Fb_Request(0, &fb_para);
     
@@ -854,7 +854,7 @@ __s32 Fb_Init(void)
             __u32 base = (__u32)info->screen_base;
             __u32 offset = FB_WIDTH * i + j;
 
-            sys_put_wvalue(base + offset*4, 0xffff0000);
+            sys_put_wvalue(base + offset*4, 0xff000000 | (0xff<<info->var.red.offset));
         }
     }
     for(i = 0; i<FB_HEIGHT*(fb_para.b_dual_screen+1)*(fb_para.b_double_buffer + 1); i++)
@@ -864,7 +864,7 @@ __s32 Fb_Init(void)
             __u32 base = (__u32)info->screen_base;
             __u32 offset = FB_WIDTH * i + j + FB_WIDTH/4;
 
-            sys_put_wvalue(base + offset*4, 0xff00ff00);
+            sys_put_wvalue(base + offset*4, 0xff000000 | (0xff<<info->var.green.offset));
         }
     }
     for(i = 0; i<FB_HEIGHT*(fb_para.b_dual_screen+1)*(fb_para.b_double_buffer + 1); i++)
@@ -874,7 +874,7 @@ __s32 Fb_Init(void)
             __u32 base = (__u32)info->screen_base;
             __u32 offset = FB_WIDTH * i + j + FB_WIDTH/4*2;
 
-            sys_put_wvalue(base + offset*4, 0xff0000ff);
+            sys_put_wvalue(base + offset*4, 0xff000000 | (0xff<<info->var.blue.offset));
         }
     }
     for(i = 0; i<FB_HEIGHT*(fb_para.b_dual_screen+1)*(fb_para.b_double_buffer + 1); i++)
@@ -884,93 +884,35 @@ __s32 Fb_Init(void)
             __u32 base = (__u32)info->screen_base;
             __u32 offset = FB_WIDTH * i + j + FB_WIDTH/4*3;
 
-            sys_put_wvalue(base + offset*4, 0xffffff00);
+            sys_put_wvalue(base + offset*4, 0xff000000 | (0xff<<info->var.red.offset) | (0xff<<info->var.green.offset));
         }
     }
 
     if(1)
     {
-	    __u32 i = 0;
-	    __u32 value = 0;
-
-	    printk("lcd0:\n");
-	    for(i=0; i<256; i+=16)
-	    {
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC0] + i);
-	        printk("%08x:%08x,", (__u32)g_fbi.io[DISP_IO_LCDC0] + i, value);
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC0] + i + 4);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC0] + i + 8);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC0] + i + 12);
-	        printk("%08x\n", value);
-	    }
+	    __inf("lcd0:\n");
+	    BSP_disp_print_reg((__u32)g_fbi.io[DISP_IO_LCDC0], 256);
+	    
 	    if(fb_para.b_dual_screen)
 	    {
-    	    printk("lcd1:\n");
-    	    for(i=0; i<256; i+=16)
-    	    {
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC1] + i);
-    	        printk("%08x:%08x,", (__u32)g_fbi.io[DISP_IO_LCDC1] + i, value);
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC1] + i + 4);
-    	        printk("%08x,", value);
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC1] + i + 8);
-    	        printk("%08x,", value);
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_LCDC1] + i + 12);
-    	        printk("%08x\n", value);
-    	    }
+    	    __inf("lcd1:\n");
+    	    BSP_disp_print_reg((__u32)g_fbi.io[DISP_IO_LCDC1], 256);
 	    }
+	    
 	    printk("image0:\n");
-	    for(i=0; i<256; i+=16)
-	    {
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE0] + 0x800 + i);
-	        printk("%08x:%08x,", (__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x800 + i, value);
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE0] + 0x800 + i + 4);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE0] + 0x800 + i + 8);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE0] + 0x800 + i + 12);
-	        printk("%08x\n", value);
-	    }
+	    BSP_disp_print_reg((__u32)g_fbi.io[DISP_IO_IMAGE0], 256);
+	    
 	    if(fb_para.b_dual_screen)
 	    {
-    	    printk("image1:\n");
-    	    for(i=0; i<256; i+=16)
-    	    {
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE1] + i);
-    	        printk("%08x:%08x,", (__u32)g_fbi.io[DISP_IO_IMAGE1] + i, value);
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE1] + i + 4);
-    	        printk("%08x,", value);
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE1] + i + 8);
-    	        printk("%08x,", value);
-    	        value = sys_get_wvalue(g_fbi.io[DISP_IO_IMAGE1] + i + 12);
-    	        printk("%08x\n", value);
-    	    }
+    	    __inf("image1:\n");
+    	    BSP_disp_print_reg((__u32)g_fbi.io[DISP_IO_IMAGE1], 256);
 	    }
-	    printk("ccmu:\n");
-	    for(i=0; i<256; i+=16)
-	    {
-	        value = sys_get_wvalue(g_fbi.base_ccmu+ i);
-	        printk("%08x:%08x,", (__u32)g_fbi.base_ccmu+ i, value);
-	        value = sys_get_wvalue(g_fbi.base_ccmu+ i + 4);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.base_ccmu+ i + 8);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.base_ccmu+ i + 12);
-	        printk("%08x\n", value);
-	    }
-	    printk("pioc:\n");
-	    for(i=0; i<256; i+=16)
-	    {
-	        value = sys_get_wvalue(g_fbi.base_pioc+ i);
-	        printk("%08x:%08x,", (__u32)g_fbi.base_pioc + i, value);
-	        value = sys_get_wvalue(g_fbi.base_pioc + i + 4);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.base_pioc + i + 8);
-	        printk("%08x,", value);
-	        value = sys_get_wvalue(g_fbi.base_pioc + i + 12);
-	        printk("%08x\n", value);
-	    }
+	    
+	    __inf("ccmu:\n");
+	    BSP_disp_print_reg(g_fbi.base_ccmu, 256);
+	    
+	    __inf("pioc:\n");
+	    BSP_disp_print_reg(g_fbi.base_pioc, 256); 
 	}	
 #endif
 

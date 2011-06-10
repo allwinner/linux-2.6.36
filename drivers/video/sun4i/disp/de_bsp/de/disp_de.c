@@ -12,7 +12,8 @@ __s32 Image_init(__u32 sel)
 	DE_BE_Reg_Init(sel);
 	
     BSP_disp_sprite_init(sel);
-
+    BSP_disp_set_yuv_output(sel, FALSE);
+    
     Image_open(sel);
 	
     return DIS_SUCCESS;
@@ -105,6 +106,16 @@ __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size)
 
     gdisp.screen[sel].screen_width = size->width;
     gdisp.screen[sel].screen_height= size->height;
+
+    return DIS_SUCCESS;
+}
+
+
+__s32 BSP_disp_set_yuv_output(__u32 sel, __bool bout_yuv)
+{
+    DE_BE_Output_Cfg_Csc_Coeff(sel, gdisp.screen[sel].bout_yuv);
+
+    gdisp.screen[sel].bout_yuv = bout_yuv;
 
     return DIS_SUCCESS;
 }

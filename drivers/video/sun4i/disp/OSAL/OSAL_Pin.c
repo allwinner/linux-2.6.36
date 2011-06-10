@@ -41,7 +41,7 @@
 
 __hdle OSAL_GPIO_Request(user_gpio_set_t *gpio_list, __u32 group_count_max)
 {
-    gpio_request(gpio_list, group_count_max);
+    //gpio_request(gpio_list, group_count_max);
     
     return 0;
 }
@@ -90,7 +90,7 @@ __hdle OSAL_GPIO_Request_Ex(char *main_name)
 */
 __s32 OSAL_GPIO_Release(__hdle p_handler, __s32 if_release_to_default_status)
 {
-    gpio_release(p_handler, if_release_to_default_status);
+    //gpio_release(p_handler, if_release_to_default_status);
     
     return 0;
 }

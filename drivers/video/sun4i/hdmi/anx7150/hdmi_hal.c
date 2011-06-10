@@ -1,5 +1,5 @@
 #include "../hdmi_hal.h"
-#include "hdmi_i2c.h"
+#include "hdmi_interface.h"
 #include "hdmi_core.h"
 
 static __u8 video_mode         = ANX7150_V1280x720p_50Hz;

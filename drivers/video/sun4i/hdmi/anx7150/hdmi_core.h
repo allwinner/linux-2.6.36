@@ -2,7 +2,7 @@
 #define _ANX7150_Sys_H
 
 #include "../hdmi_hal.h"
-#include "hdmi_i2c.h"
+#include "hdmi_interface.h"
 
 typedef unsigned char   uint8; 
 typedef unsigned long   WORD;

@@ -76,6 +76,7 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
     	        {
     	            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_COMPOSITE);
     	            TVE_dac_enable(sel, i);
+    	            TVE_dac_sel(sel, i, i);
     	        }
     	    }
     	}
@@ -92,14 +93,15 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
 		        {
 		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_LUMA);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
 		        }
 		        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_CHROMA)
 		        {
 		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_CHROMA);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
 		        }
 		    }
-		    
 		}
 		break;
     					
@@ -114,16 +116,19 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
 		        {
 		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_COMPOSITE);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
 		        }
 		        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_LUMA)
 		        {
 		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_LUMA);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
 		        }
 		        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_CHROMA)
 		        {
 		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_CHROMA);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
 		        }
 		    }
 		    
@@ -147,16 +152,19 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
     	        {
     	            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_Y);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
     	        }
     	        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_PB)
     	        {
     	            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_PB);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
     	        }
     	        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_PR)
     	        {
     	            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_PR);
 		            TVE_dac_enable(sel, i);
+		            TVE_dac_sel(sel, i, i);
     	        }
     	    }
     	}
@@ -182,6 +190,7 @@ __s32 BSP_disp_tv_open(__u32 sel)
         tve_clk_on(sel);
         lcdc_clk_on(sel);
 
+        BSP_disp_set_yuv_output(sel, TRUE);
         DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
         DE_BE_Output_Select(sel, sel);
         TCON1_set_tv_mode(sel,tv_mod);

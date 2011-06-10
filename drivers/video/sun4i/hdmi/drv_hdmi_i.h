@@ -32,7 +32,7 @@
 
 #define __wrn(msg...) {printk("[HDMI],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
 
-#if 1
+#if 0
 #define __inf(msg...) do{}while(0)
 #else
 #define __inf(msg...) {printk("[HDMI],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}

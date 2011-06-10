@@ -175,7 +175,6 @@ __s32 Disp_pwm_cfg(__u32 sel)
     if(gpanel_info[sel].port_index == 0)
     {
         sys_put_wvalue(gdisp.init_para.base_pwm+0x204, ((PWM_LEVEL - 1)<< 16) + cycle_num);
-        printk("----204:%x\n", sys_get_wvalue(gdisp.init_para.base_pwm+0x204));
         
         tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
         tmp &= 0xffffff00;
@@ -693,6 +692,7 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     {
         TCON1_cfg_ex(sel,(__panel_para_t*)&gpanel_info[sel]);
     }
+    BSP_disp_set_yuv_output(sel, FALSE);
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);
 
@@ -795,7 +795,6 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
         {
     	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
             sys_put_wvalue(gdisp.init_para.base_pwm+0x204,(tmp & 0xffff0000) | value);
-            printk("--------204:%x\n", sys_get_wvalue(gdisp.init_para.base_pwm+0x204));
         }
         else
         {
@@ -848,6 +847,7 @@ __s32 BSP_disp_lcd_get_bright(__u32 sel)
 
     return bright;	
 }
+
 __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size)
 {    
     if((gamtbl_addr == NULL) || (gamtbl_size>1024))

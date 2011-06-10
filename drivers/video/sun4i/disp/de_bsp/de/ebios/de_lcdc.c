@@ -385,7 +385,7 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     LCDC_WUINT32(sel, LCDC_HDTV1_OFF,(((cfg->scl_x - 1)&0xfff)<<16)|((cfg->scl_y - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV2_OFF,(((cfg->out_x - 1)&0xfff)<<16)|((cfg->out_y - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV3_OFF,(((cfg->ht)&0xfff)<<16)|((cfg->hbp)&0xfff));
-    LCDC_WUINT32(sel, LCDC_HDTV4_OFF,(((cfg->vt)&0xfff)<<16)|((cfg->vbp)&0xfff));
+    LCDC_WUINT32(sel, LCDC_HDTV4_OFF,(((cfg->vt)&0xfff)<<16)|((cfg->vbp - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV5_OFF,(((cfg->hspw)&0x3ff)<<16)|((cfg->vspw)&0x3ff));
     LCDC_WUINT32(sel, LCDC_IOCTL2_OFF,cfg->io_pol);//add
     LCDC_WUINT32(sel, LCDC_IOCTL3_OFF,cfg->io_out);//add

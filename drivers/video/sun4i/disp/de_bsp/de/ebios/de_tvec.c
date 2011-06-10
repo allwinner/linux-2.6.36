@@ -537,46 +537,49 @@ __u8 TVE_dac_get_de_bounce(__u32 sel,__u8 index)
 }
 
 
-
-__u8 TVE_dac0_sel(__u32 sel,__u8 index)
+// 0:TV0_DOUT0
+// 1:TV0_DOUT1
+// 2:TV0_DOUT2
+// 3:TV0_DOUT3
+// 4:TV0_DOUT0
+// 5:TV0_DOUT1
+// 6:TV0_DOUT2
+// 7:TV0_DOUT3
+__s32 TVE_dac_sel(__u32 sel,__u32 dac, __u32 index)
 {
 	__u32   readval;
-    readval = TVE_RUINT32(sel,TVE_000);	
-	readval &= (0xf<<4); 
-	readval |= ((sel*4+index+1)<<4);
-	TVE_WUINT32(sel,TVE_000,readval);
+
+	if(dac == 0)
+	{
+        readval = TVE_RUINT32(sel,TVE_000);	
+    	readval &= (~(0xf<<4)); 
+    	readval |= ((sel*4+index+1)<<4);
+    	TVE_WUINT32(sel,TVE_000,readval);
+	}
+	else if(dac == 1)
+	{
+        readval = TVE_RUINT32(sel,TVE_000);	
+    	readval &= (~(0xf<<8)); 
+    	readval |= ((sel*4+index+1)<<8);
+    	TVE_WUINT32(sel,TVE_000,readval);
+	}
+	else if(dac == 2)
+	{
+        readval = TVE_RUINT32(sel,TVE_000);	
+    	readval &= (~(0xf<<12)); 
+    	readval |= ((sel*4+index+1)<<12);
+    	TVE_WUINT32(sel,TVE_000,readval);
+	}
+	else if(dac == 3)
+	{
+        readval = TVE_RUINT32(sel,TVE_000);	
+    	readval &= (~(0xf<<16)); 
+    	readval |= ((sel*4+index+1)<<16);
+    	TVE_WUINT32(sel,TVE_000,readval);
+	}
 	return 0;
 }
 
-__u8 TVE_dac1_sel(__u32 sel,__u8 index)
-{
-	__u32   readval;
-    readval = TVE_RUINT32(sel,TVE_000);	
-	readval &= (0xf<<8); 
-	readval |= ((sel*4+index+1)<<8);
-	TVE_WUINT32(sel,TVE_000,readval);
-	return 0;	
-}
-
-__u8 TVE_dac2_sel(__u32 sel,__u8 index)
-{
-	__u32   readval;
-    readval = TVE_RUINT32(sel,TVE_000);	
-	readval &= (0xf<<12); 
-	readval |= ((sel*4+index+1)<<12);
-	TVE_WUINT32(sel,TVE_000,readval);
-	return 0;	
-}
-
-__u8 TVE_dac3_sel(__u32 sel,__u8 index)
-{
-	__u32   readval;
-    readval = TVE_RUINT32(sel,TVE_000);	
-	readval &= (0xf<<16); 
-	readval |= ((sel*4+index+1)<<16);
-	TVE_WUINT32(sel,TVE_000,readval);
-	return 0;	
-}
 
 __u8 TVE_csc_init(__u32 sel,__u8 type)
 {                                              

@@ -18,9 +18,9 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
     __scal_scan_mod_t out_scan;
     __disp_scaler_t * scaler;
     __disp_video_fb_t * video_fb;
-    __u32 pre_frame_addr;
-    __u32 maf_flag_addr;
-    __u32 maf_linestride;
+    __u32 pre_frame_addr = 0;
+    __u32 maf_flag_addr = 0;
+    __u32 maf_linestride = 0;
     __u32 cur_line = 0, start_delay = 0;
     
     cur_line = LCDC_get_cur_line(sel, tcon_index);

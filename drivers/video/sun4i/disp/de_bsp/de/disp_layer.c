@@ -973,6 +973,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
                 scaler.src_win.width   = player->src_win.width;
                 scaler.src_win.height  = player->src_win.height;
                 memcpy(&scaler.in_fb, &player->fb, sizeof(__disp_fb_t));
+                DE_SCAL_Input_Select(layer_man->scaler_index, 0);
             }
             DE_SCAL_Output_Select(layer_man->scaler_index, sel);
             Scaler_Set_Para(layer_man->scaler_index, &scaler);
