@@ -29,7 +29,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     //屏的HV配置信息
     info->lcd_hbp           = 215;
     info->lcd_ht            = 1055;
-    info->lcd_vbp           = 38;
+    info->lcd_vbp           = 34;
     info->lcd_vt            = (2 * 525);
 
     //屏的IO配置信息
