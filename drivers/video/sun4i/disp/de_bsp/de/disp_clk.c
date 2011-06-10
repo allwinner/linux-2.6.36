@@ -177,9 +177,9 @@ __s32 image_clk_init(__u32 sel)
 #ifdef RESET_OSAL
 		OSAL_CCMU_MclkReset(h_debe0mclk, RST_INVAILD);
 #endif	
-		OSAL_CCMU_SetMclkSrc(h_debe0mclk, AW_SYS_CLK_PLL5);	//FIX CONNECT TO DRAM PLL
+		OSAL_CCMU_SetMclkSrc(h_debe0mclk, AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
 
-		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5);
+		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5P);
 		if(dram_pll < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe0mclk, 1);
@@ -204,9 +204,9 @@ __s32 image_clk_init(__u32 sel)
 	
 	OSAL_CCMU_MclkReset(h_debe1mclk, RST_INVAILD);
 #endif 
-	OSAL_CCMU_SetMclkSrc(h_debe1mclk, AW_SYS_CLK_PLL5);	//FIX CONNECT TO DRAM PLL
+	OSAL_CCMU_SetMclkSrc(h_debe1mclk, AW_SYS_CLK_PLL5P);	//FIX CONNECT TO DRAM PLL
 
-		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5);
+		dram_pll = OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL5P);
 		if(dram_pll < 300000000)
 		{
 			OSAL_CCMU_SetMclkDiv(h_debe1mclk, 1);
