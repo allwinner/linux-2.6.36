@@ -1,34 +1,54 @@
 /*
 *********************************************************************************************************
-*                                                    ePDK
-*                                    the Easy Portable/Player Develop Kits
-*                                                standby module
+*                                                    LINUX-KERNEL
+*                                        AllWinner Linux Platform Develop Kits
+*                                                   Kernel Module
 *
-*                                   (c) Copyright 2008-2009, kevin China
-*                                            All Rights Reserved
+*                                    (c) Copyright 2006-2011, kevin.z China
+*                                             All Rights Reserved
 *
 * File    : standby_twi.h
-* By      : kevin
-* Version : V1.0
-* Date    : 2009-6-16 17:07
+* By      : kevin.z
+* Version : v1.0
+* Date    : 2011-5-31 15:22
+* Descript:
+* Update  : date                auther      ver     notes
 *********************************************************************************************************
 */
-#ifndef _STANDBY_TWI_H_
-#define _STANDBY_TWI_H_
 
-#include "ePDK.h"
+#ifndef __STANDBY_TWI_H__
+#define __STANDBY_TWI_H__
+
 #include "standby_cfg.h"
-#include "standby_reg.h"
+
+
+typedef struct tag_twic_reg
+{
+    volatile unsigned int reg_saddr;
+    volatile unsigned int reg_xsaddr;
+    volatile unsigned int reg_data;
+    volatile unsigned int reg_ctl;
+    volatile unsigned int reg_status;
+    volatile unsigned int reg_clkr;
+    volatile unsigned int reg_reset;
+    volatile unsigned int reg_efr;
+    volatile unsigned int reg_lctl;
+
+}__twic_reg_t;
 
 
 
-#define TWI_OP_RD                   (0)
-#define TWI_OP_WR                   (1)
+enum twi_op_type_e{
+    TWI_OP_READ,
+    TWI_OP_WRITE,
+};
 
 
 extern __s32 standby_twi_init(void);
 extern __s32 standby_twi_exit(void);
-extern __s32 twi_byte_rw(__s32 op_type, __u8 saddr, __u8 baddr, __u8 *data);
+extern __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data);
 
-#endif  //_STANDBY_TWI_H_
+
+
+#endif  /* __STANDBY_TWI_H__ */
 
