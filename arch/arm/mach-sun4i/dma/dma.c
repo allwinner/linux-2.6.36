@@ -1658,7 +1658,8 @@ int __init sw_dma_init(unsigned int channels, unsigned int irq,
 	printk("SOFTWINNER DMA Driver, (c) 2003-2004,2006 Simtec Electronics\n");
 
 	dma_channels = channels;
-	dma_base = (void __iomem *)SW_VA_DMAC_IO_BASE;
+	dma_base = ioremap(SOFTWINNER_DMA_BASE, 4096);
+	//dma_base = (void __iomem *)SW_VA_DMAC_IO_BASE;
 	dma_kmem = kmem_cache_create("dma_desc", sizeof(struct sw_dma_buf), 0,
 				     SLAB_HWCACHE_ALIGN, sw_dma_cache_ctor);
 
@@ -1669,9 +1670,11 @@ int __init sw_dma_init(unsigned int channels, unsigned int irq,
 	}
 
 	/* Disable & clear all interrupts */
-	writel(0x0, SW_VA_DMAC_IO_BASE);
-	writel(0xffffffff, SW_VA_DMAC_IO_BASE + 0x4);
-
+	//writel(0x0, SW_VA_DMAC_IO_BASE);
+	writel(0x0, dma_base);
+	//writel(0xffffffff, SW_VA_DMAC_IO_BASE + 0x4);
+	writel(0xffffffff, dma_base + 0x4);
+	
 	for (channel = 0; channel < channels;  channel++) {
 		cp = &sw_chans[channel];
 

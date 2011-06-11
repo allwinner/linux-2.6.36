@@ -31,7 +31,13 @@
 #define PMEM_MAX_ORDER 128
 #define PMEM_MIN_ALLOC PAGE_SIZE
 
-#define PMEM_DEBUG 1
+#define PMEM_DEBUG  1
+#define USE_MISC 	0
+#if USE_MISC==0
+#include <linux/cdev.h>
+
+static struct class *pmem_class=NULL;
+#endif
 
 /* indicates that a refernce to this file has been taken via get_pmem_file,
  * the file should not be released until put_pmem_file is called */
@@ -100,7 +106,11 @@ struct pmem_region_node {
 #endif
 
 struct pmem_info {
+#if USE_MISC
 	struct miscdevice dev;
+#else
+	struct cdev dev;
+#endif
 	/* physical start address of the remaped pmem space */
 	unsigned long base;
 	/* vitual start address of the remaped pmem space */
@@ -195,8 +205,12 @@ int is_pmem_file(struct file *file)
 	id = get_id(file);
 	if (unlikely(id >= PMEM_MAX_DEVICES))
 		return 0;
+#if USE_MISC
 	if (unlikely(file->f_dentry->d_inode->i_rdev !=
 	     MKDEV(MISC_MAJOR, pmem[id].dev.minor)))
+#else
+	if (unlikely(file->f_dentry->d_inode->i_rdev != pmem[id].dev.dev))
+#endif
 		return 0;
 	return 1;
 }
@@ -333,11 +347,17 @@ static int pmem_open(struct inode *inode, struct file *file)
 	int id = get_id(file);
 	int ret = 0;
 
-	DLOG("current %u file %p(%d)\n", current->pid, file, file_count(file));
+#if PMEM_DEBUG
+	DLOG("current %u file %p(%ld)\n", current->pid, file, file_count(file));
+#endif
 	/* setup file->private_data to indicate its unmapped */
 	/*  you can only open a pmem device one time */
-	if (file->private_data != NULL)
+
+	if (file->private_data != NULL){
+		printk("file has been mapped,%p\n",file->private_data);
 		return -1;
+	}
+
 	data = kmalloc(sizeof(struct pmem_data), GFP_KERNEL);
 	if (!data) {
 		printk("pmem: unable to allocate memory for pmem metadata.");
@@ -386,7 +406,9 @@ static int pmem_allocate(int id, unsigned long len)
 	unsigned long order = pmem_order(len);
 
 	if (pmem[id].no_allocator) {
+#if PMEM_DEBUG
 		DLOG("no allocator");
+#endif
 		if ((len > pmem[id].size) || pmem[id].allocated)
 			return -1;
 		pmem[id].allocated = 1;
@@ -395,7 +417,9 @@ static int pmem_allocate(int id, unsigned long len)
 
 	if (order > PMEM_MAX_ORDER)
 		return -1;
+#if PMEM_DEBUG
 	DLOG("order %lx\n", order);
+#endif
 
 	/* look through the bitmap:
 	 * 	if you find a free slot of the correct order use it
@@ -494,7 +518,9 @@ static int pmem_unmap_pfn_range(int id, struct vm_area_struct *vma,
 				unsigned long len)
 {
 	int garbage_pages;
+#if PMEM_DEBUG
 	DLOG("unmap offset %lx len %lx\n", offset, len);
+#endif
 
 	BUG_ON(!PMEM_IS_PAGE_ALIGNED(len));
 
@@ -508,7 +534,9 @@ static int pmem_map_pfn_range(int id, struct vm_area_struct *vma,
 			      struct pmem_data *data, unsigned long offset,
 			      unsigned long len)
 {
+#if PMEM_DEBUG
 	DLOG("map offset %lx len %lx\n", offset, len);
+#endif
 	BUG_ON(!PMEM_IS_PAGE_ALIGNED(vma->vm_start));
 	BUG_ON(!PMEM_IS_PAGE_ALIGNED(vma->vm_end));
 	BUG_ON(!PMEM_IS_PAGE_ALIGNED(len));
@@ -551,8 +579,10 @@ static void pmem_vma_close(struct vm_area_struct *vma)
 	struct file *file = vma->vm_file;
 	struct pmem_data *data = file->private_data;
 
-	DLOG("current %u ppid %u file %p count %d\n", current->pid,
+#if PMEM_DEBUG
+	DLOG("current %u ppid %u file %p count %ld\n", current->pid,
 	     current->parent->pid, file, file_count(file));
+#endif
 	if (unlikely(!is_pmem_file(file) || !has_allocation(file))) {
 		printk(KERN_WARNING "pmem: something is very wrong, you are "
 		       "closing a vm backing an allocation that doesn't "
@@ -658,8 +688,10 @@ static int pmem_mmap(struct file *file, struct vm_area_struct *vma)
 #if PMEM_DEBUG
 		data->pid = current->pid;
 #endif
+#if PMEM_DEBUG
 		DLOG("submmapped file %p vma %p pid %u\n", file, vma,
 		     current->pid);
+#endif
 	} else {
 		if (pmem_map_pfn_range(id, vma, data, 0, vma_size)) {
 			printk(KERN_INFO "pmem: mmap failed in kernel!\n");
@@ -769,8 +801,13 @@ void put_pmem_file(struct file *file)
 #if PMEM_DEBUG
 	down_write(&data->sem);
 	if (data->ref == 0) {
+	#if USE_MISC
 		printk("pmem: pmem_put > pmem_get %s (pid %d)\n",
 		       pmem[id].dev.name, data->pid);
+	#else
+		printk("pmem: pmem_put > pmem_get %d (pid %d)\n",
+		       MINOR(pmem[id].dev.dev), data->pid);
+	#endif
 		BUG();
 	}
 	data->ref--;
@@ -830,7 +867,9 @@ static int pmem_connect(unsigned long connect, struct file *file)
 	down_write(&data->sem);
 	/* retrieve the src file and check it is a pmem file with an alloc */
 	src_file = fget_light(connect, &put_needed);
+#if PMEM_DEBUG
 	DLOG("connect %p to %p\n", file, src_file);
+#endif
 	if (!src_file) {
 		printk("pmem: src file not found!\n");
 		ret = -EINVAL;
@@ -1064,7 +1103,9 @@ static void pmem_get_size(struct pmem_region *region, struct file *file)
 		region->offset = pmem_start_addr(id, data);
 		region->len = pmem_len(id, data);
 	}
+#if PMEM_DEBUG
 	DLOG("offset %lx len %lx\n", region->offset, region->len);
+#endif
 }
 
 
@@ -1077,7 +1118,9 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case PMEM_GET_PHYS:
 		{
 			struct pmem_region region;
+#if PMEM_DEBUG
 			DLOG("get_phys\n");
+#endif
 			if (!has_allocation(file)) {
 				region.offset = 0;
 				region.len = 0;
@@ -1086,8 +1129,10 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 				region.offset = pmem_start_addr(id, data);
 				region.len = pmem_len(id, data);
 			}
+#if PMEM_DEBUG
 			printk(KERN_INFO "pmem: request for physical address of pmem region "
 					"from process %d.\n", current->pid);
+#endif
 			if (copy_to_user((void __user *)arg, &region,
 						sizeof(struct pmem_region)))
 				return -EFAULT;
@@ -1116,7 +1161,9 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case PMEM_GET_SIZE:
 		{
 			struct pmem_region region;
+#if PMEM_DEBUG
 			DLOG("get_size\n");
+#endif
 			pmem_get_size(&region, file);
 			if (copy_to_user((void __user *)arg, &region,
 						sizeof(struct pmem_region)))
@@ -1126,10 +1173,15 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case PMEM_GET_TOTAL_SIZE:
 		{
 			struct pmem_region region;
+#if PMEM_DEBUG
 			DLOG("get total size\n");
+#endif
 			region.offset = 0;
 			get_id(file);
 			region.len = pmem[id].size;
+#if PMEM_DEBUG
+			printk("pmem[%d]={%lx@%lx\n",id,pmem[id].base,pmem[id].size);
+#endif
 			if (copy_to_user((void __user *)arg, &region,
 						sizeof(struct pmem_region)))
 				return -EFAULT;
@@ -1150,7 +1202,9 @@ static long pmem_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case PMEM_CACHE_FLUSH:
 		{
 			struct pmem_region region;
+#if PMEM_DEBUG
 			DLOG("flush\n");
+#endif
 			if (copy_from_user(&region, (void __user *)arg,
 					   sizeof(struct pmem_region)))
 				return -EFAULT;
@@ -1231,6 +1285,10 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 	int err = 0;
 	int i, index = 0;
 	int id = id_count;
+#if USE_MISC==0
+	dev_t dev_id=0;
+#endif
+	
 	id_count++;
 
 	pmem[id].no_allocator = pdata->no_allocator;
@@ -1243,16 +1301,35 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 	init_rwsem(&pmem[id].bitmap_sem);
 	init_MUTEX(&pmem[id].data_list_sem);
 	INIT_LIST_HEAD(&pmem[id].data_list);
+
+	#if USE_MISC
 	pmem[id].dev.name = pdata->name;
 	pmem[id].dev.minor = id;
 	pmem[id].dev.fops = &pmem_fops;
 	printk(KERN_INFO "%s: %d init\n", pdata->name, pdata->cached);
-
 	err = misc_register(&pmem[id].dev);
 	if (err) {
 		printk(KERN_ALERT "Unable to register pmem driver!\n");
 		goto err_cant_register_device;
 	}
+	#else
+	alloc_chrdev_region(&dev_id, id, 1, pdata->name);
+    	cdev_init(&pmem[id].dev, &pmem_fops);
+    	err = cdev_add(&pmem[id].dev, dev_id, 1);
+    	if (err){
+       	 printk(KERN_ERR"[PMEM]cdev add fail!\n\n");
+		 goto err_cant_register_device;
+    	}
+        if(pmem_class==NULL)
+            pmem_class = class_create(THIS_MODULE, "pmem_class");
+    	if (IS_ERR(pmem_class)){
+		printk(KERN_ERR"create class error\n");
+		goto err_cant_register_device;
+	}
+    
+    	device_create(pmem_class, NULL, dev_id, NULL, pdata->name);
+	#endif
+
 	pmem[id].num_entries = pmem[id].size / PMEM_MIN_ALLOC;
 
 	pmem[id].bitmap = kmalloc(pmem[id].num_entries *
@@ -1274,9 +1351,10 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 		pmem[id].vbase = ioremap_cached(pmem[id].base,
 						pmem[id].size);
 #ifdef ioremap_ext_buffered
-	else if (pmem[id].buffered)
+	else if (pmem[id].buffered) {
 		pmem[id].vbase = ioremap_ext_buffered(pmem[id].base,
 						      pmem[id].size);
+	}
 #endif
 	else
 		pmem[id].vbase = ioremap(pmem[id].base, pmem[id].size);
@@ -1296,7 +1374,12 @@ int pmem_setup(struct android_pmem_platform_data *pdata,
 error_cant_remap:
 	kfree(pmem[id].bitmap);
 err_no_mem_for_metadata:
+#if USE_MISC
 	misc_deregister(&pmem[id].dev);
+#else
+	device_destroy(pmem_class,  pmem[id].dev.dev);
+    	class_destroy(pmem_class);
+#endif
 err_cant_register_device:
 	return -1;
 }
@@ -1318,7 +1401,13 @@ static int pmem_remove(struct platform_device *pdev)
 {
 	int id = pdev->id;
 	__free_page(pfn_to_page(pmem[id].garbage_pfn));
+#if USE_MISC
 	misc_deregister(&pmem[id].dev);
+#else
+	device_destroy(pmem_class,pmem[id].dev.dev);
+	class_destroy(pmem_class);
+#endif
+
 	return 0;
 }
 
@@ -1339,6 +1428,10 @@ static void __exit pmem_exit(void)
 	platform_driver_unregister(&pmem_driver);
 }
 
+#if 1
 module_init(pmem_init);
 module_exit(pmem_exit);
+#endif
+//late_initcall(pmem_init);
+
 
