@@ -1,4 +1,3 @@
 
-obj-y		+= sun3i-pm.o sun3i-standby.o
-		
- 
+obj-y		+= pm.o standby.o
+
