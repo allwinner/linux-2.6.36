@@ -299,7 +299,6 @@ static int g2d_probe(struct platform_device *pdev)
 	int	ret = 0;
 	struct resource	*res;		
 	__g2d_info_t	*info = NULL;
-	__u32 irq;
 
 	info = &para;
 	info->dev = &pdev->dev;
@@ -347,10 +346,8 @@ static int g2d_probe(struct platform_device *pdev)
 		}
 		
 	/* request the irq */
-	irq = platform_get_irq(pdev, 0);
-	printk("irq:%d\n", irq);
-	//info->irq = res->start;
-	ret = request_irq(irq,g2d_handle_irq,0,g2d_device.name,NULL);
+	info->irq = res->start;
+	ret = request_irq(info->irq,g2d_handle_irq,0,g2d_device.name,NULL);
 	if(ret)
 		{
 			ERR("failed to install irq resource\n");

@@ -28,48 +28,51 @@
 
 /* mixer data format */
 typedef enum {
-	
 	/* share data format */
 	G2D_FMT_ARGB_AYUV8888	= (0x0),
 	G2D_FMT_BGRA_VUYA8888	= (0x1),
 	G2D_FMT_ABGR_AVUY8888	= (0x2),
 	G2D_FMT_RGBA_YUVA8888	= (0x3),
 	
-	G2D_FMT_ARGB4444		= (0x4),
-	G2D_FMT_ABGR4444		= (0x5),
-	G2D_FMT_RGBA4444		= (0x6),
-	G2D_FMT_BGRA4444		= (0x7),
+	G2D_FMT_XRGB8888		= (0x4),
+	G2D_FMT_BGRX8888		= (0x5),
+	G2D_FMT_XBGR8888		= (0x6),
+	G2D_FMT_RGBX8888		= (0x7),
+	
+	G2D_FMT_ARGB4444		= (0x8),
+	G2D_FMT_ABGR4444		= (0x9),
+	G2D_FMT_RGBA4444		= (0xA),
+	G2D_FMT_BGRA4444		= (0xB),
 
-	G2D_FMT_ARGB1555		= (0x8),
-	G2D_FMT_ABGR1555		= (0x9),
-	G2D_FMT_RGBA5551		= (0xA),
-	G2D_FMT_BGRA5551		= (0xB),
+	G2D_FMT_ARGB1555		= (0xC),
+	G2D_FMT_ABGR1555		= (0xD),
+	G2D_FMT_RGBA5551		= (0xE),
+	G2D_FMT_BGRA5551		= (0xF),
 
-	G2D_FMT_RGB565			= (0xC),
-	G2D_FMT_BGR565			= (0xD),
+	G2D_FMT_RGB565			= (0x10),
+	G2D_FMT_BGR565			= (0x11),
 
-	G2D_FMT_IYUV422			= (0xE),
+	G2D_FMT_IYUV422			= (0x12),
 
-	G2D_FMT_8BPP_MONO		= (0x10),
-	G2D_FMT_4BPP_MONO		= (0x11),
-	G2D_FMT_2BPP_MONO		= (0x12),
-	G2D_FMT_1BPP_MONO		= (0x13),
+	G2D_FMT_8BPP_MONO		= (0x13),
+	G2D_FMT_4BPP_MONO		= (0x14),
+	G2D_FMT_2BPP_MONO		= (0x15),
+	G2D_FMT_1BPP_MONO		= (0x16),
 
+	G2D_FMT_PYUV422UVC		= (0x17),
+	G2D_FMT_PYUV420UVC		= (0x18),
+	G2D_FMT_PYUV411UVC		= (0x19),
+	
 	/* just for output format */
-	G2D_FMT_PYUV422UVC		= (0x14),
-	G2D_FMT_PYUV420UVC		= (0x15),
-	G2D_FMT_PYUV411UVC		= (0x16),
-	G2D_FMT_PYUV422			= (0x17),
-	G2D_FMT_PYUV420			= (0x18),
-	G2D_FMT_PYUV411			= (0x19),
+	G2D_FMT_PYUV422			= (0x1A),
+	G2D_FMT_PYUV420			= (0x1B),
+	G2D_FMT_PYUV411			= (0x1C),
 	
 	/* just for input format */	
-	G2D_FMT_8BPP_PALETTE	= (0x1A),
-	G2D_FMT_4BPP_PALETTE	= (0x1B),
-	G2D_FMT_2BPP_PALETTE	= (0x1C),
-	G2D_FMT_1BPP_PALETTE	= (0x1D),	
-	G2D_FMT_U8V8			= (0x1E),
-	G2D_FMT_Y8				= (0x1F),
+	G2D_FMT_8BPP_PALETTE	= (0x1D),
+	G2D_FMT_4BPP_PALETTE	= (0x1E),
+	G2D_FMT_2BPP_PALETTE	= (0x1F),
+	G2D_FMT_1BPP_PALETTE	= (0x20),
 			
 }g2d_data_fmt;	
 
@@ -115,8 +118,9 @@ typedef enum {
 	G2D_EFFECT_NONE		= 0x0,
 	G2D_PIXEL_ALPHA		= 0x01,
 	G2D_PLANE_ALPHA		= 0x02,
-	G2D_SRC_COLORKEY	= 0x04,
-	G2D_DST_COLORKEY	= 0x08,
+	G2D_MULTI_ALPHA		= 0x04,	
+	G2D_SRC_COLORKEY	= 0x08,
+	G2D_DST_COLORKEY	= 0x10,
 
 }g2d_effect_flag;
 
@@ -135,8 +139,8 @@ typedef enum {
 
 /* flip rectangle struct */
 typedef struct {
-	__u32		x;			/* left top point coordinate x */
-	__u32		y;			/* left top point coordinate y */
+	__s32		x;			/* left top point coordinate x */
+	__s32		y;			/* left top point coordinate y */
 	__u32		w;			/* rectangle width */
 	__u32		h;			/* rectangle height */
 }g2d_rect;
@@ -167,8 +171,8 @@ typedef struct {
 	g2d_rect			 src_rect;
 	
 	g2d_image			 dst_image;	
-	__u32				 dst_x;		/* left top point coordinate x of dst rect */
-	__u32				 dst_y;		/* left top point coordinate y of dst rect */
+	__s32				 dst_x;		/* left top point coordinate x of dst rect */
+	__s32				 dst_y;		/* left top point coordinate y of dst rect */
 	
 	__u32				 color;		/* colorkey color */	
 	__u32				 alpha;		/* plane alpha value */
