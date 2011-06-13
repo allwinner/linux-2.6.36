@@ -2084,7 +2084,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
                 aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Src = 0;
                 return 0;
             }
-            else if(rate == ((aw_ccu_reg->Lcd0Ch1Clk.ClkDiv+1)>>1))
+            else if(rate == ((aw_ccu_reg->Lcd0Ch1Clk.ClkDiv+1)<<1))
             {
                 aw_ccu_reg->Lcd0Ch1Clk.SpecClk1Src = 1;
                 return 0;
@@ -2108,7 +2108,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
                 aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Src = 0;
                 return 0;
             }
-            else if(rate == ((aw_ccu_reg->Lcd1Ch1Clk.ClkDiv+1)>>1))
+            else if(rate == ((aw_ccu_reg->Lcd1Ch1Clk.ClkDiv+1)<<1))
             {
                 aw_ccu_reg->Lcd1Ch1Clk.SpecClk1Src = 1;
                 return 0;
