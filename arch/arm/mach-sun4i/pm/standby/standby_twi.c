@@ -1,32 +1,38 @@
 /*
 *********************************************************************************************************
-*                                                    ePDK
-*                                    the Easy Portable/Player Develop Kits
-*                                                 TWI module
+*                                                    LINUX-KERNEL
+*                                        AllWinner Linux Platform Develop Kits
+*                                                   Kernel Module
 *
-*                                   (c) Copyright 2008-2009, kevin China
+*                                    (c) Copyright 2006-2011, kevin.z China
 *                                             All Rights Reserved
 *
-* File    : twi.c
-* By      : kevin
-* Version : V1.00
-* Date    : 2009-6-16 15:50
+* File    : standby_twi.c
+* By      : kevin.z
+* Version : v1.0
+* Date    : 2011-5-31 15:22
+* Descript:
+* Update  : date                auther      ver     notes
 *********************************************************************************************************
 */
- #include <mach/platform.h>
-  #include <sun3i_standby.h>
+#include "standby_i.h"
 
+#if 0
 static __twic_reg_t*   TWI_REG_BASE[3] = {
 		(__twic_reg_t*)SW_VA_TWI0_IO_BASE,
 		(__twic_reg_t*)SW_VA_TWI1_IO_BASE,
-		(__twic_reg_t*)SW_VA_TWI2_IO_BASE};
-static unsigned int      TwiClkRegBak = 0;
-static unsigned int      TwiCtlRegBak = 0;/* mainly for interrup enable bit */
-static __twic_reg_t     *twi_reg  = 0;
+		(__twic_reg_t*)SW_VA_TWI2_IO_BASE
+};
+
+static __u32 TwiClkRegBak = 0;
+static __u32 TwiCtlRegBak = 0;
+static __twic_reg_t *twi_reg  = 0;
+
+
 
 /*
 *********************************************************************************************************
-*                                   TWI TRANSFER INIT
+*                                   standby_twi_init
 *
 *Description: init twi transfer.
 *
@@ -36,21 +42,23 @@ static __twic_reg_t     *twi_reg  = 0;
 *
 *********************************************************************************************************
 */
-int standby_twi_init(unsigned int group)
+__s32 standby_twi_init(void)
 {
+    int group = pm_info.pmu_arg.twi_port;
+
     twi_reg  = TWI_REG_BASE[group];
     TwiClkRegBak = twi_reg->reg_clkr;
     TwiCtlRegBak = 0x80&twi_reg->reg_ctl;/* backup INT_EN;no need for BUS_EN(0xc0)  */
     twi_reg->reg_clkr = (2<<3)|1;
     twi_reg->reg_reset |= 0x1;
 
-    return EPDK_OK;
+    return 0;
 }
 
 
 /*
 *********************************************************************************************************
-*                                   TWI TRANSFER EXIT
+*                                   standby_twi_exit
 *
 *Description: exit twi transfer.
 *
@@ -60,7 +68,7 @@ int standby_twi_init(unsigned int group)
 *
 *********************************************************************************************************
 */
-int standby_twi_exit(void)
+__s32 standby_twi_exit(void)
 {
     unsigned int i = 0xff;
     /* softreset twi module  */
@@ -72,13 +80,13 @@ int standby_twi_exit(void)
     twi_reg->reg_clkr = TwiClkRegBak;
     /* restore INT_EN */
     twi_reg->reg_ctl |= TwiCtlRegBak;
-    return EPDK_OK;
+    return 0;
 }
 
 
 /*
 *********************************************************************************************************
-*                                   STOP CURRENT TWI TRANSFER
+*                                   _standby_twi_stop
 *
 *Description: stop current twi transfer.
 *
@@ -101,34 +109,34 @@ static int _standby_twi_stop(void)
     while((twi_reg->reg_ctl & 0x10)&&(timeout--));
     if(timeout == 0)
     {
-        return EPDK_FAIL;
+        return -1;
     }
     // 2. twi fsm is idle(0xf8).
     timeout = 0xff;
     while((0xf8 != twi_reg->reg_status)&&(timeout--));
     if(timeout == 0)
     {
-        return EPDK_FAIL;
+        return -1;
     }
     // 3. twi scl & sda must high level.
     timeout = 0xff;
     while((0x3a != twi_reg->reg_lctl)&&(timeout--));
     if(timeout == 0)
     {
-        return EPDK_FAIL;
+        return -1;
     }
 
-    return EPDK_OK;
+    return 0;
 }
 
 
 /*
 *********************************************************************************************************
-*                                   TWI BYTE READ AND WRITE
+*                                   twi_byte_rw
 *
 *Description: twi byte read and write.
 *
-*Arguments  : op_type   operation read or write;
+*Arguments  : op        operation read or write;
 *             saddr     slave address;
 *             baddr     byte address;
 *             data      pointer to the data to be read or write;
@@ -138,11 +146,11 @@ static int _standby_twi_stop(void)
 *               = EPDK_FAIL,    btye read or write failed!
 *********************************************************************************************************
 */
-int twi_byte_rw(int op_type, unsigned char saddr, unsigned char baddr, unsigned char *data)
+__s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
 {
     unsigned char state_tmp;
     unsigned int   timeout;
-    int   ret = EPDK_FAIL;
+    int   ret = -1;
 
     twi_reg->reg_efr = 0;/* ±ê×¼¶ÁÐ´±ØÐëÖÃ0 */
 
@@ -201,7 +209,7 @@ int twi_byte_rw(int op_type, unsigned char saddr, unsigned char baddr, unsigned 
         goto stop_out;
     }
 
-    if(op_type == TWI_OP_WR)
+    if(op == TWI_OP_WRITE)
     {
         //4.Send Data to be write
         twi_reg->reg_data = *data;
@@ -265,7 +273,7 @@ int twi_byte_rw(int op_type, unsigned char saddr, unsigned char baddr, unsigned 
         }
     }
 
-    ret = EPDK_OK;
+    ret = 0;
 
 stop_out:
     //WRITE: step 5; READ: step 7
@@ -274,4 +282,54 @@ stop_out:
 
     return ret;
 }
+
+#else
+__s32 standby_twi_init(void)
+{
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                   standby_twi_exit
+*
+*Description: exit twi transfer.
+*
+*Arguments  :
+*
+*Return     :
+*
+*********************************************************************************************************
+*/
+__s32 standby_twi_exit(void)
+{
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                   twi_byte_rw
+*
+*Description: twi byte read and write.
+*
+*Arguments  : op        operation read or write;
+*             saddr     slave address;
+*             baddr     byte address;
+*             data      pointer to the data to be read or write;
+*
+*Return     : result;
+*               = EPDK_OK,      byte read or write successed;
+*               = EPDK_FAIL,    btye read or write failed!
+*********************************************************************************************************
+*/
+__s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
+{
+
+}
+
+
+
+#endif
 

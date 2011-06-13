@@ -1,7 +1,6 @@
 #include "g2d.h"
 #include <linux/clk.h>
 #include <linux/interrupt.h>
-#include <linux/clk.h>
 #include "g2d_driver_i.h"
 
 struct clk *g2d_ahbclk,*g2d_dramclk,*g2d_mclk,*g2d_src;
@@ -32,6 +31,9 @@ int g2d_openclk(void)
 		{
 			printk("enable DE_MIX error! \n");
 		}
+		
+	/*disable mp clk reset*/	
+	clk_reset(g2d_mclk,0);
 	
 	/* set g2d clk value */
 	g2d_src = clk_get(NULL,"video_pll0");	
@@ -105,7 +107,7 @@ int g2d_exit(void)
 }
 void g2d_wait_cmd_finish(void)
 {
-	long timeout = 500 * HZ / 1000;
+	long timeout = 50 * HZ / 1000;
 	
 	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, timeout);
 	if(timeout == 0)
@@ -118,7 +120,63 @@ void g2d_wait_cmd_finish(void)
 int g2d_blit(g2d_blt * para)
 {
 	__s32 err = 0;
-
+	
+	/* check the parameter valid */
+    if(((para->src_rect.x < 0)&&((-para->src_rect.x) > para->src_rect.w)) ||
+       ((para->src_rect.y < 0)&&((-para->src_rect.y) > para->src_rect.h)) ||
+       ((para->dst_x < 0)&&((-para->dst_x) > para->src_rect.w)) ||
+       ((para->dst_y < 0)&&((-para->dst_y) > para->src_rect.h)) ||
+       ((para->src_rect.x > 0)&&(para->src_rect.x > para->src_image.w - 1)) ||
+       ((para->src_rect.y > 0)&&(para->src_rect.y > para->src_image.h - 1)) ||
+       ((para->dst_x > 0)&&(para->dst_x > para->dst_image.w - 1)) ||
+       ((para->dst_y > 0)&&(para->dst_y > para->dst_image.h - 1)))
+	{
+		printk("invalid blit parameter setting");
+		return -EINVAL;
+	}
+	else
+	{
+		if(((para->src_rect.x < 0)&&((-para->src_rect.x) < para->src_rect.w)))
+		{
+			para->src_rect.w = para->src_rect.w + para->src_rect.x;
+			para->src_rect.x = 0;
+		}
+		else if((para->src_rect.x + para->src_rect.w) > para->src_image.w)
+		{
+			para->src_rect.w = para->src_image.w - para->src_rect.x;
+		}	
+		if(((para->src_rect.y < 0)&&((-para->src_rect.y) < para->src_rect.h)))
+		{
+			para->src_rect.h = para->src_rect.h + para->src_rect.y;
+			para->src_rect.y = 0;
+		}
+		else if((para->src_rect.y + para->src_rect.h) > para->src_image.h)
+		{
+			para->src_rect.h = para->src_image.h - para->src_rect.y;
+		}
+		
+		if(((para->dst_x < 0)&&((-para->dst_x) < para->src_rect.w)))
+		{
+			para->src_rect.w = para->src_rect.w + para->dst_x;
+			para->src_rect.x = (-para->dst_x);
+			para->dst_x = 0;
+		}	
+		else if((para->dst_x + para->src_rect.w) > para->dst_image.w)
+		{
+			para->src_rect.w = para->dst_image.w - para->dst_x;
+		}
+		if(((para->dst_y < 0)&&((-para->dst_y) < para->src_rect.h)))
+		{
+			para->src_rect.h = para->src_rect.h + para->dst_y;
+			para->src_rect.y = (-para->dst_y);
+			para->dst_y = 0;
+		}
+		else if((para->dst_y + para->src_rect.h) > para->dst_image.h)
+		{
+			para->src_rect.h = para->dst_image.h - para->dst_y;
+		}
+	}
+	
 	g2d_ext_hd.finish_flag = 0;
 	err = mixer_blt(para);
 	g2d_wait_cmd_finish();
@@ -134,7 +192,38 @@ int g2d_blit(g2d_blt * para)
 int g2d_fill(g2d_fillrect * para)
 {
 	__s32 err = 0;
-
+	
+	/* check the parameter valid */
+	if(((para->dst_rect.x < 0)&&((-para->dst_rect.x)>para->dst_rect.w)) ||
+	   ((para->dst_rect.y < 0)&&((-para->dst_rect.y)>para->dst_rect.h)) ||
+	   ((para->dst_rect.x > 0)&&(para->dst_rect.x > para->dst_image.w - 1)) ||
+	   ((para->dst_rect.y > 0)&&(para->dst_rect.y > para->dst_image.h - 1)))
+	{
+		printk("invalid fillrect parameter setting");
+		return -EINVAL;
+	}
+	else
+	{
+		if(((para->dst_rect.x < 0)&&((-para->dst_rect.x) < para->dst_rect.w)))
+		{
+			para->dst_rect.w = para->dst_rect.w + para->dst_rect.x;
+			para->dst_rect.x = 0;			
+		}
+		else if((para->dst_rect.x + para->dst_rect.w) > para->dst_image.w)
+		{
+			para->dst_rect.w = para->dst_image.w - para->dst_rect.x;
+		}	
+		if(((para->dst_rect.y < 0)&&((-para->dst_rect.y) < para->dst_rect.h)))
+		{
+			para->dst_rect.h = para->dst_rect.h + para->dst_rect.y;
+			para->dst_rect.y = 0;			
+		}
+		else if((para->dst_rect.y + para->dst_rect.h) > para->dst_image.h)
+		{
+			para->dst_rect.h = para->dst_image.h - para->dst_rect.y;
+		}		
+	}
+	
 	g2d_ext_hd.finish_flag = 0;
 	err = mixer_fillrectangle(para);
 	g2d_wait_cmd_finish();
@@ -150,9 +239,62 @@ int g2d_stretchblit(g2d_stretchblt * para)
 {
 	__s32 err = 0;
 
+	/* check the parameter valid */
+    if(((para->src_rect.x < 0)&&((-para->src_rect.x) > para->src_rect.w)) ||
+       ((para->src_rect.y < 0)&&((-para->src_rect.y) > para->src_rect.h)) ||
+       ((para->dst_rect.x < 0)&&((-para->dst_rect.x) > para->dst_rect.w)) ||
+       ((para->dst_rect.y < 0)&&((-para->dst_rect.y) > para->dst_rect.h)) ||
+       ((para->src_rect.x > 0)&&(para->src_rect.x > para->src_image.w - 1)) ||
+       ((para->src_rect.y > 0)&&(para->src_rect.y > para->src_image.h - 1)) ||
+       ((para->dst_rect.x > 0)&&(para->dst_rect.x > para->dst_image.w - 1)) ||
+       ((para->dst_rect.y > 0)&&(para->dst_rect.y > para->dst_image.h - 1)))
+	{
+		printk("invalid stretchblit parameter setting");
+		return -EINVAL;
+	}
+	else
+	{
+		if(((para->src_rect.x < 0)&&((-para->src_rect.x) < para->src_rect.w)))
+		{
+			para->src_rect.w = para->src_rect.w + para->src_rect.x;
+			para->src_rect.x = 0;
+		}
+		else if((para->src_rect.x + para->src_rect.w) > para->src_image.w)
+		{
+			para->src_rect.w = para->src_image.w - para->src_rect.x;
+		}	
+		if(((para->src_rect.y < 0)&&((-para->src_rect.y) < para->src_rect.h)))
+		{
+			para->src_rect.h = para->src_rect.h + para->src_rect.y;
+			para->src_rect.y = 0;
+		}
+		else if((para->src_rect.y + para->src_rect.h) > para->src_image.h)
+		{
+			para->src_rect.h = para->src_image.h - para->src_rect.y;
+		}
+		
+		if(((para->dst_rect.x < 0)&&((-para->dst_rect.x) < para->dst_rect.w)))
+		{
+			para->dst_rect.w = para->dst_rect.w + para->dst_rect.x;
+			para->dst_rect.x = 0;
+		}	
+		else if((para->dst_rect.x + para->dst_rect.w) > para->dst_image.w)
+		{
+			para->dst_rect.w = para->dst_image.w - para->dst_rect.x;
+		}
+		if(((para->dst_rect.y < 0)&&((-para->dst_rect.y) < para->dst_rect.h)))
+		{
+			para->dst_rect.h = para->dst_rect.h + para->dst_rect.y;
+			para->dst_rect.y = 0;
+		}
+		else if((para->dst_rect.y + para->dst_rect.h) > para->dst_image.h)
+		{
+			para->dst_rect.h = para->dst_image.h - para->dst_rect.y;
+		}
+	}
+
 	g2d_ext_hd.finish_flag = 0;
 	err = mixer_stretchblt(para);
-
 	g2d_wait_cmd_finish();
 
 	if(err != 0)

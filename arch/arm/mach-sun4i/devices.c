@@ -67,7 +67,7 @@ static struct platform_device android_pmem_device0 = {
 };
 
 static struct platform_device android_pmem_device1 = {
-	.name = "android_pmem_adsp",
+	.name = "android_pmem",
 	.id = 1,
 	.dev = {.platform_data = &android_pmem_adsp_pdata },
 };
@@ -75,25 +75,18 @@ static struct platform_device android_pmem_device1 = {
 static int __init init_pmem_devs(void)
 {
 	void *pmem_base = NULL;
-	unsigned long size = CONFIG_ANDROID_PMEM_SIZE;
+	unsigned long size = CONFIG_ANDROID_PMEM_SIZE * 1024 * 1024 / 2;
 
 	pmem_base = (void *)CONFIG_ANDROID_PMEM_BASE;
-
-	pr_info("[pmem] base = %p, size = %lu\n", pmem_base, size);
-
-	//reserve_bootmem(CONFIG_ANDROID_PMEM_BASE, size * 2 * 1024 * 1024, BOOTMEM_DEFAULT);
-
-	if (!pmem_base) {
-		pr_err("[pmem] alloc bootmem failed, size=%lu\n",
-		       size*2*1024*1024);
-		return -ENOMEM;
-	}
-
 	android_pmem_pdata.start = (unsigned long)pmem_base;
 	android_pmem_pdata.size = size;
-	android_pmem_adsp_pdata.start = (unsigned long)
-		(((char *)pmem_base) + size * 1024 * 1024);
+	android_pmem_adsp_pdata.start = (unsigned long)(((char *)pmem_base) + size);
 	android_pmem_adsp_pdata.size = size;
+
+	pr_info("pmem: base=0x%x, size=0x%x\n", (unsigned int)android_pmem_pdata.start,
+		(unsigned int)android_pmem_pdata.size);
+	pr_info("pmem_adsp: base=0x%x, size=0x%x\n", (unsigned int)android_pmem_adsp_pdata.start,
+		(unsigned int)android_pmem_adsp_pdata.size);
 
 	return 0;
 }
