@@ -22,6 +22,7 @@
 #include <linux/init.h>
 #include <linux/poll.h>
 #include <linux/delay.h>
+#include <linux/sched.h> /* remove building errors.*/
 #include <linux/wait.h>
 #include <linux/err.h>
 #include <linux/interrupt.h>

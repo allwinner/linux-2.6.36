@@ -33,6 +33,7 @@
 #include <linux/usb/gadget.h>
 
 #include "gadget_chips.h"
+#include "sw_usb_platform.h" /* by Cesc */
 
 /*
  * Kbuild is not very cooperative with respect to linking separately
@@ -481,6 +482,83 @@ static int android_probe(struct platform_device *pdev)
 
 	return usb_composite_register(&android_usb_driver);
 }
+/*
+** add platform_device for android device. by Cesc -begin
+*/
+
+static char *sw_usb_functions_ums[] = {
+	"usb_mass_storage",
+};
+
+static char *sw_usb_functions_ums_adb[] = {
+	"usb_mass_storage",
+	"adb",
+};
+
+static char *sw_usb_functions_all[] = {
+	"usb_mass_storage",
+	"adb",
+};
+
+static struct android_usb_product sw_usb_products[] = {
+	{  /* usb_mass_storage */
+	.vendor_id      = SW_USB_VENDOR_ID,
+	.product_id     = SW_USB_UMS_PRODUCT_ID,
+	.num_functions  = ARRAY_SIZE(sw_usb_functions_ums),
+    	.functions   	= sw_usb_functions_ums,
+	},
+
+	{  /* adb */
+	.vendor_id      = SW_USB_VENDOR_ID,
+	.product_id     = SW_USB_ADB_PRODUCT_ID,
+    .num_functions  = ARRAY_SIZE(sw_usb_functions_ums_adb),
+    .functions      = sw_usb_functions_ums_adb,
+
+	},
+};
+
+static struct android_usb_platform_data sw_usb_android_pdata = {
+	.vendor_id          = SW_USB_VENDOR_ID,
+	.product_id         = SW_USB_UMS_PRODUCT_ID,
+	.version            = SW_USB_VERSION,
+
+	.product_name       = SW_USB_PRODUCT_NAME,
+	.manufacturer_name  = SW_USB_MANUFACTURER_NAME,
+	.serial_number      = SW_USB_SERIAL_NUMBER,
+
+	.num_products       = ARRAY_SIZE(sw_usb_products),
+	.products	    = sw_usb_products,
+
+	.num_functions      = ARRAY_SIZE(sw_usb_functions_all),
+	.functions          = sw_usb_functions_all,
+};
+
+static struct platform_device sw_usb_android_device = {
+	.name	= "android_usb",
+	.id     = -1,
+	.dev	= {
+		.platform_data	= &sw_usb_android_pdata,
+	},
+};
+
+//---------------------------------------------------------------
+//  usb_mass_storage
+//---------------------------------------------------------------
+static struct usb_mass_storage_platform_data sw_usb_ums_pdata = {
+	.vendor     = SW_USB_MASS_STORAGE_VENDOR_NAME,
+	.product    = SW_USB_MASS_STORAGE_PRODUCT_NAME,
+	.release    = SW_USB_MASS_STORAGE_RELEASE,
+	.nluns      = SW_USB_NLUNS,
+};
+
+static struct platform_device sw_usb_ums_device = {
+	.name	= "usb_mass_storage",
+	.id	= -1,
+	.dev	= {
+		.platform_data = &sw_usb_ums_pdata,
+	},
+};
+/* by Cesc - end */
 
 static struct platform_driver android_platform_driver = {
 	.driver = { .name = "android_usb", },
@@ -497,6 +575,11 @@ static int __init init(void)
 	if (!dev)
 		return -ENOMEM;
 
+	/* device register */
+	printk(KERN_INFO "android-platform_device_register\n");
+	platform_device_register(&sw_usb_android_device);
+	platform_device_register(&sw_usb_ums_device);
+    
 	/* set default values, which should be overridden by platform data */
 	dev->product_id = PRODUCT_ID;
 	_android_dev = dev;
@@ -507,6 +590,7 @@ module_init(init);
 
 static void __exit cleanup(void)
 {
+	printk(KERN_INFO "android cleanup\n");
 	usb_composite_unregister(&android_usb_driver);
 	platform_driver_unregister(&android_platform_driver);
 	kfree(_android_dev);
