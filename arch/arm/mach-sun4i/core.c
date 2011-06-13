@@ -342,7 +342,7 @@ MACHINE_START(SUN4I, "sun4i")
         .init_irq       = softwinner_init_irq,
         .timer          = &softwinner_timer,
         .init_machine   = softwinner_init,
-        .boot_params = (unsigned long)(0x40000100 + 0x8000),
+        .boot_params = (unsigned long)(0x40000000),
 MACHINE_END
 
 

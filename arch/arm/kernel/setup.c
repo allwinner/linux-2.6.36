@@ -769,6 +769,11 @@ void __init setup_arch(char **cmdline_p)
 	struct tag *tags = (struct tag *)&init_tags;
 	struct machine_desc *mdesc;
 	char *from = default_command_line;
+#ifndef CONFIG_CMDLINE_FORCE
+        int i;
+        char *mbp = NULL;
+#endif
+
 
 	unwind_init();
 
@@ -783,6 +788,23 @@ void __init setup_arch(char **cmdline_p)
 		tags = phys_to_virt(__atags_pointer);
 	else if (mdesc->boot_params)
 		tags = phys_to_virt(mdesc->boot_params);
+
+#ifndef CONFIG_CMDLINE_FORCE
+        mbp = phys_to_virt(mdesc->boot_params);
+        /* Reset kernel parameter to user defined */
+        for (i=0; i<COMMAND_LINE_SIZE; i++) {
+                if (mbp[i] == ';' || mbp[i] == '\n' || mbp[i] == '\r') {
+                        /* valid */
+                        mbp[i] = 0;
+                        break;
+                }
+        }
+
+	from = mbp;
+        //strlcpy(boot_command_line, mbp, COMMAND_LINE_SIZE);
+        //strlcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
+        printk("User defined parameters:\n%s at %p\n", boot_command_line, mbp);
+#endif
 
 #if defined(CONFIG_DEPRECATED_PARAM_STRUCT)
 	/*
