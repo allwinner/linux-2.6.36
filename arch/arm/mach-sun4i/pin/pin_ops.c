@@ -52,7 +52,7 @@ extern char sys_cofig_data_end[];
 #define PIO_REG_DLEVEL_VALUE(n, i)       __REG( PIOC_REGS_BASE + ((n)-1)*0x24 + ((i)<<2) + 0x14)
 #define PIO_REG_PULL_VALUE(n, i)         __REG( PIOC_REGS_BASE + ((n)-1)*0x24 + ((i)<<2) + 0x1C)
 #define PIO_REG_DATA_VALUE(n) 	         __REG( PIOC_REGS_BASE + ((n)-1)*0x24 + 0x10)
-#define FPGA_RUNTIME_ENV
+//#define FPGA_RUNTIME_ENV
 
 typedef struct
 {
@@ -95,7 +95,7 @@ int gpio_init(void)          //gpio初始化函数接口
     #ifdef FPGA_RUNTIME_ENV
         return script_parser_init((char *)(sys_cofig_data));
     #else
-        return script_parser_init((char *)(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x40000000));
+        return script_parser_init((char *)(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x80000000));
     #endif
 }
 fs_initcall(gpio_init);
