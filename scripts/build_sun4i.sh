@@ -50,6 +50,10 @@ build_kernel()
 
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} uImage modules
 
+    if [ ! -d output ]; then
+	mkdir output
+    fi
+
     rm -rf output/*
     ${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux output/bImage
     cp -vf arch/arm/boot/[zu]Image output/
