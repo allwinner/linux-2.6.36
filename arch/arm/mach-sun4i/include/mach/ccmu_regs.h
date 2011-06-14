@@ -51,12 +51,13 @@ typedef struct __CCMU_PLL1_TUNING_REG0004
 typedef struct __CCMU_PLL2_AUDIO_REG0008
 {
     __u32   VCOBias:5;          //bit0,  PLL2 VCO bias current
-    __u32   reserved0:11;       //bit5,  reserved
+    __u32   reserved0:3;        //bit5,  reserved
+    __u32   FactorN:7;          //bit8,  PLL2 factor N
+    __u32   reserved1:1;        //bit15, reserved
     __u32   PLLBias:5;          //bit16, PLL2 bias current
-    __u32   reserved1:6;        //bit21, reserved
-    __u32   OutputSel:1;        //bit27, PLL2 output select, 0-22579200, 1-24576000
+    __u32   reserved2:7;        //bit21, reserved
     __u32   SigmaOut:1;         //bit28, PLL2 sigma delta output
-    __u32   reserved2:2;        //bit29, reserved
+    __u32   reserved3:2;        //bit29, reserved
     __u32   PLLEn:1;            //bit31, PLL2 enable
 } __ccmu_pll2_audio_reg0008_t;
 

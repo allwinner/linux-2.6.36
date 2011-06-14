@@ -57,8 +57,8 @@ void clk_dbg_inf(void)
 
     printk("\nPLL2 infor:\n");
     print_clk_inf(Pll2Ctl, VCOBias      );
+    print_clk_inf(Pll2Ctl, FactorN      );
     print_clk_inf(Pll2Ctl, PLLBias      );
-    print_clk_inf(Pll2Ctl, OutputSel    );
     print_clk_inf(Pll2Ctl, SigmaOut     );
     print_clk_inf(Pll2Ctl, PLLEn        );
 
