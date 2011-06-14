@@ -241,18 +241,32 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         }
         case AW_SYS_CLK_PLL2:
         {
-            if(aw_ccu_reg->Pll2Ctl.OutputSel)
+            if((aw_ccu_reg->Pll2Ctl.VCOBias == 10) &&(aw_ccu_reg->Pll2Ctl.FactorN == 94))
+            {
+                return 22579200;
+            }
+            else if((aw_ccu_reg->Pll2Ctl.VCOBias == 9) &&(aw_ccu_reg->Pll2Ctl.FactorN == 83))
             {
                 return 24576000;
             }
             else
             {
-                return 22579200;
+                /* set audio pll to default value 24576000 */
+                aw_ccu_reg->Pll2Ctl.VCOBias = 9;
+                aw_ccu_reg->Pll2Ctl.FactorN = 83;
+                return 24576000;
             }
         }
         case AW_SYS_CLK_PLL2X8:
         {
-            return sys_clk_get_rate(AW_SYS_CLK_PLL2) << 3;
+            if(sys_clk_get_rate(AW_SYS_CLK_PLL2) == 24576000)
+            {
+                return 24576000 * 18;
+            }
+            else
+            {
+                return 22579200 * 20;
+            }
         }
         case AW_SYS_CLK_PLL3:
         {
@@ -712,11 +726,13 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
         {
             if(rate == 22579200)
             {
-                aw_ccu_reg->Pll2Ctl.OutputSel = 0;
+                aw_ccu_reg->Pll2Ctl.VCOBias = 10;
+                aw_ccu_reg->Pll2Ctl.FactorN = 94;
             }
             else if(rate == 24576000)
             {
-                aw_ccu_reg->Pll2Ctl.OutputSel = 1;
+                aw_ccu_reg->Pll2Ctl.VCOBias = 9;
+                aw_ccu_reg->Pll2Ctl.FactorN = 83;
             }
             else
             {
@@ -726,10 +742,16 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
         }
         case AW_SYS_CLK_PLL2X8:
         {
-            if(rate == (sys_clk_get_rate(AW_SYS_CLK_PLL2) << 3))
+            if((sys_clk_get_rate(AW_SYS_CLK_PLL2) == 24576000) && (rate == 24576000 * 18))
             {
                 return 0;
             }
+            else if((sys_clk_get_rate(AW_SYS_CLK_PLL2) == 22579200) && (rate == 24576000 * 20))
+
+            {
+                return 0;
+            }
+
             return -1;
         }
         case AW_SYS_CLK_PLL3:
