@@ -4,5 +4,5 @@ all:
 
 install:
 	@echo "installing mali driver"
-	cp -v sun4i/*.ko $(LICHEE_MOD_DIR)
+	cp -v sun4i/mali.ko_ $(LICHEE_MOD_DIR)/mali.ko
 
