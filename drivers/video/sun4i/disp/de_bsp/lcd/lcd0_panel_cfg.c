@@ -57,10 +57,34 @@ static __s32 LCD_close_flow(__u32 sel)
 ////////////////////////////////////////   POWER   ////////////////////////////////////////////////////////////////////
 static void LCD_power_on(__u32 sel)
 {
+	  __hdle hdl;
+    user_gpio_set_t  gpio_set[1];
+    
+    gpio_set->port = 8;
+    gpio_set->port_num = 8;
+    gpio_set->mul_sel = 1;
+    gpio_set->pull = 1;
+    gpio_set->drv_level = 1;
+    gpio_set->data = 0;
+
+    hdl = OSAL_GPIO_Request(gpio_set, 1);
+    OSAL_GPIO_Release(hdl, 2);
 }
 
 static void LCD_power_off(__u32 sel)
 {
+    __hdle hdl;
+    user_gpio_set_t  gpio_set[1];
+    
+    gpio_set->port = 8;
+    gpio_set->port_num = 8;
+    gpio_set->mul_sel = 1;
+    gpio_set->pull = 1;
+    gpio_set->drv_level = 1;
+    gpio_set->data = 1;
+
+    hdl = OSAL_GPIO_Request(gpio_set, 1);
+    OSAL_GPIO_Release(hdl, 2);
 }
 
 ////////////////////////////////////////   back light   ////////////////////////////////////////////////////////////////////
