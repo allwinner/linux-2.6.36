@@ -210,7 +210,7 @@ void __init softwinner_init_irq(void)
 }
 
 static struct map_desc softwinner_io_desc[] __initdata = {
-	{ SW_VA_SRAM_BASE,	__phys_to_pfn(SW_PA_SRAM_BASE),	SZ_16K,		MT_MEMORY_ITCM},
+	{ SW_VA_SRAM_BASE,	__phys_to_pfn(SW_PA_SRAM_BASE),	SZ_32K,		MT_MEMORY_ITCM},
 	{SW_VA_CCM_IO_BASE,	__phys_to_pfn(SW_PA_CCM_IO_BASE),	SZ_1K,		MT_DEVICE},
 	{ SW_VA_SRAM_IO_BASE,        __phys_to_pfn(SW_PA_SRAM_IO_BASE),           SZ_4K,     MT_DEVICE },
 	{ SW_VA_DRAM_IO_BASE,        __phys_to_pfn(SW_PA_DRAM_IO_BASE),           SZ_4K,     MT_DEVICE },
@@ -265,7 +265,7 @@ static u32 DRAMC_get_dram_size(void)
 		dram_size = 512;
 	else
 		dram_size = 1024;
-	
+
 	if( ((reg_val>>1)&0x3) == 0x1)
 		dram_size<<=1;
 	if( ((reg_val>>6)&0x7) == 0x3)
