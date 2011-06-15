@@ -139,7 +139,7 @@
 
 
 //set up PHY
-#define PHY_AUTO_NEGOTIOATION  0  // 0: Normal     1: Auto(default) 
+#define PHY_AUTO_NEGOTIOATION  1  // 0: Normal     1: Auto(default) 
 #define PHY_SPEED              1  // 0: 10M        1: 100M(default)
 #define EMAC_MAC_FULL          1  //0: Half duplex   1: Full duplex(default)
 
