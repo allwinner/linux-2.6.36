@@ -31,7 +31,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     info->lcd_vt            = (2 * 525);
 
 //ÆÁµÄIOÅäÖÃÐÅÏ¢
-    info->lcd_io_cfg0             = 0x00000000;
+    info->lcd_io_cfg0             = 0x10000000;
     info->lcd_io_cfg1             = 0x00000000;
     info->lcd_io_strength         = 0;
 }
