@@ -180,7 +180,8 @@ typedef struct {
 }g2d_blt;
 
 typedef struct {
-	g2d_effect_flag		 flag;
+	g2d_effect_flag		 flag0;
+	g2d_transform_flag	 flag1;	
 	g2d_image			 src_image;
 	g2d_rect			 src_rect;
 	
