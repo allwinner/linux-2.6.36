@@ -233,7 +233,7 @@ typedef struct __CCMU_APB1CLK_RATIO_REG0058
 typedef struct __CCMU_AXICLK_GATE_REG005c
 {
     __u32   SdramGate:1;        //bit0,  gating AXI clock for SDRAM, 0-mask, 1-pass
-    __u32   reserved0:30;       //bit1,  reserved
+    __u32   reserved0:31;       //bit1,  reserved
 } __ccmu_axiclk_gate_reg005c_t;
 
 
@@ -511,13 +511,13 @@ typedef struct __CCMU_VE_CLK_REG013C
 
 typedef struct __CCMU_ADDA_CLK_REG0140
 {
-    __u32   reserved0:30;       //bit0,  reserved
+    __u32   reserved0:31;       //bit0,  reserved
     __u32   SpecClkGate:1;      //bit31, Gating special clock, 0-clock off, 1-clock on
 } __ccmu_adda_clk_reg0140_t;
 
 typedef struct __CCMU_AVS_CLK_REG0144
 {
-    __u32   reserved0:30;       //bit0,  reserved
+    __u32   reserved0:31;       //bit0,  reserved
     __u32   SpecClkGate:1;      //bit31, Gating special clock, 0-clock off, 1-clock on
 } __ccmu_avs_clk_reg0144_t;
 
@@ -537,7 +537,7 @@ typedef struct __CCMU_ACE_CLK_REG0148
 typedef struct __CCMU_LVDS_CLK_REG014C
 {
     __u32   Reset:1;            //bit0,  LVDS reset
-    __u32   reserved:30;        //bit1,  reserved
+    __u32   reserved:31;        //bit1,  reserved
 } __ccmu_lvds_clk_reg014c_t;
 
 
