@@ -1,7 +1,8 @@
 #ifndef _LINUX_AXP_REGU_H_
 #define _LINUX_AXP_REGU_H_
 
-#include "axp-mfd.h"
+#include <linux/mfd/axp-mfd.h>
+
 #include "axp-cfg.h"
 
 
@@ -10,7 +11,7 @@
 #define AXP18_ANALOG		POWER18_LDOOUT_VOL
 #define AXP18_MOMERY		POWER18_LDOOUT_VOL
 #define AXP18_SPDIF			POWER18_SW_CTL
-#define AXP18_IO			POWER18_DC12OUT_VOL		
+#define AXP18_IO			POWER18_DC12OUT_VOL
 #define AXP18_CORE			POWER18_DC12OUT_VOL
 #define AXP18_SDRAM			POWER18_DC12OUT_VOL
 #define AXP18_SDCARD		POWER18_DC12OUT_VOL
@@ -148,7 +149,7 @@ struct axp_regulator_info {
 	int	vol_shift;
 	int	vol_nbits;
 	int	enable_reg;
-	int	enable_bit;	
+	int	enable_bit;
 };
 
 #endif

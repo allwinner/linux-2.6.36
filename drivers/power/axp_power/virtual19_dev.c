@@ -5,10 +5,11 @@
 #include <linux/i2c.h>
 #include <mach/irqs.h>
 #include <linux/power_supply.h>
+#include <linux/mfd/axp-mfd.h>
 
 
 #include "axp-cfg.h"
-#include "axp-mfd.h"
+
 
 static struct platform_device virt[]={
 	{
@@ -61,27 +62,27 @@ static struct platform_device virt[]={
  static int __init virtual_init(void)
 {
 	int j,ret;
-	for (j = 0; j < ARRAY_SIZE(virt); j++){ 
+	for (j = 0; j < ARRAY_SIZE(virt); j++){
  		ret =  platform_device_register(&virt[j]);
   		if (ret)
 				goto creat_devices_failed;
 	}
 
 	return ret;
-	
+
 creat_devices_failed:
 	while (j--)
 		platform_device_register(&virt[j]);
 	return ret;
 
 }
- 
+
 module_init(virtual_init);
 
 static void __exit virtual_exit(void)
 {
 	int j;
-	for (j = ARRAY_SIZE(virt) - 1; j >= 0; j--){ 
+	for (j = ARRAY_SIZE(virt) - 1; j >= 0; j--){
 		platform_device_unregister(&virt[j]);
 	}
 }

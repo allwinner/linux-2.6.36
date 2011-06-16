@@ -19,15 +19,15 @@
 #include <linux/platform_device.h>
 #include <linux/seq_file.h>
 #include <linux/i2c.h>
+#include <linux/mfd/axp-mfd.h>
 
-#include "axp-mfd.h"
 #include "axp-gpio.h"
 
 struct virtual_gpio_data {
 	struct mutex lock;
 	int gpio;				//gpio number : 0/1/2/...
 	int io;                 //0: input      1: output
-	int value;				//0: low        1: high    
+	int value;				//0: low        1: high
 };
 
 int axp_gpio_set_io(int gpio, int io_state)
@@ -92,7 +92,7 @@ int axp_gpio_get_io(int gpio, int *io_state)
 		case 3: axp_read(&axp->dev,AXP20_GPIO3_CFG,&val);val &= 0x04;
 				if(val == 0x0)
 					*io_state = 1;
-				else 
+				else
 					*io_state = 0;
 				break;
 		default:return -ENXIO;
@@ -134,7 +134,7 @@ int axp_gpio_set_value(int gpio, int value)
 		}
 		return -ENXIO;
 	}
-	return -ENXIO;		
+	return -ENXIO;
 }
 EXPORT_SYMBOL_GPL(axp_gpio_set_value);
 
@@ -186,7 +186,7 @@ static ssize_t set_gpio(struct device *dev, struct device_attribute *attr,
 
 	if (strict_strtol(buf, 10, &val) != 0)
 		return count;
-	
+
 	data->gpio = val;
 
 	return count;
@@ -236,7 +236,7 @@ static ssize_t show_value(struct device *dev,
 {
 	struct virtual_gpio_data *data = dev_get_drvdata(dev);
 	int ret;
-	
+
 	mutex_lock(&data->lock);
 
 	ret = axp_gpio_get_value(data->gpio,&data->value);
@@ -290,15 +290,15 @@ static int __devinit axp_gpio_probe(struct platform_device *pdev)
 	//struct axp_mfd_chip *axp_chip = dev_get_drvdata(pdev->dev.parent);
 	struct virtual_gpio_data *drvdata;
 	int ret, i;
-	
+
 	drvdata = kzalloc(sizeof(struct virtual_gpio_data), GFP_KERNEL);
 	if (drvdata == NULL) {
 		ret = -ENOMEM;
 		goto err;
 	}
-	
+
 	mutex_init(&drvdata->lock);
-			
+
 	for (i = 0; i < ARRAY_SIZE(attributes); i++) {
 		ret = device_create_file(&pdev->dev, attributes[i]);
 		if (ret != 0)
@@ -306,9 +306,9 @@ static int __devinit axp_gpio_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, drvdata);
-	
+
 	return 0;
-	
+
 err:
 	for (i = 0; i < ARRAY_SIZE(attributes); i++)
 		device_remove_file(&pdev->dev, attributes[i]);

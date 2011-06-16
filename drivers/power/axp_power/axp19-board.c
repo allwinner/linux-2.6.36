@@ -7,10 +7,10 @@
 #include <linux/power_supply.h>
 #include <linux/apm_bios.h>
 #include <linux/apm-emulation.h>
+#include <linux/mfd/axp-mfd.h>
 
 
 #include "axp-cfg.h"
-#include "axp-mfd.h"
 
 
 /* Reverse engineered partly from Platformx drivers */
@@ -21,9 +21,9 @@ enum axp_regls{
 	vcc_ldo3,
 	vcc_ldo4,
 	vcc_ldo5,
-	
+
 	vcc_buck1,
-	vcc_buck2, 
+	vcc_buck2,
 	vcc_buck3,
 	vcc_ldoio0,
 };
@@ -37,51 +37,51 @@ enum axp_regls{
  * in an lcd on the IM2 for example!).
  */
 
-static struct regulator_consumer_supply ldo1_data[] = {	
-		{	
+static struct regulator_consumer_supply ldo1_data[] = {
+		{
 			.supply = "axp19_rtc",
 		},
 	};
 
 
-static struct regulator_consumer_supply ldo2_data[] = {	
-		{	
+static struct regulator_consumer_supply ldo2_data[] = {
+		{
 			.supply = "axp19_analog/fm",
 		},
 	};
 
-static struct regulator_consumer_supply ldo3_data[] = {	
-		{	
+static struct regulator_consumer_supply ldo3_data[] = {
+		{
 			.supply = "axp19_pll/sdram",
 		},
 	};
 
-static struct regulator_consumer_supply ldo4_data[] = {	
-		{	
+static struct regulator_consumer_supply ldo4_data[] = {
+		{
 			.supply = "axp19_hdmi",
 		},
 	};
-	
-static struct regulator_consumer_supply ldoio0_data[] = {	
-		{	
+
+static struct regulator_consumer_supply ldoio0_data[] = {
+		{
 			.supply = "axp19_mic",
 		},
 	};
-	
-static struct regulator_consumer_supply buck1_data[] = {	
-		{	
+
+static struct regulator_consumer_supply buck1_data[] = {
+		{
 			.supply = "axp19_io",
 		},
 	};
-	
-static struct regulator_consumer_supply buck2_data[] = {	
-		{	
+
+static struct regulator_consumer_supply buck2_data[] = {
+		{
 			.supply = "axp19_core",
 		},
 	};
-	
-static struct regulator_consumer_supply buck3_data[] = {	
-		{	
+
+static struct regulator_consumer_supply buck3_data[] = {
+		{
 			.supply = "axp19_ddr",
 		},
 	};
@@ -118,9 +118,9 @@ static struct regulator_init_data axp_regl_init_data[] = {
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo3_data),
 		.consumer_supplies = ldo3_data,
-		
+
 	},
-	[vcc_ldo4] = { 
+	[vcc_ldo4] = {
 		.constraints = {
 			/* board default is 3.3V */
 			.name = "axp19_ldo4",
@@ -211,7 +211,7 @@ static struct axp_funcdev_info axp_regldevs[] = {
 		.name = "axp19-regulator",
 		.id = AXP19_ID_LDOIO0,
 		.platform_data = &axp_regl_init_data[vcc_ldoio0],
-	},  	
+	},
 };
 
 static struct power_supply_info battery_data ={

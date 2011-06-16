@@ -26,8 +26,8 @@
 
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
+#include <linux/mfd/axp-mfd.h>
 
-#include "axp-mfd.h"
 #include "axp-cfg.h"
 #include "axp-sply.h"
 
@@ -48,12 +48,12 @@ static inline int axp18_vac_to_vbat(uint8_t reg)
 
 static inline int axp18_vac_to_reg(int vbat)
 {
-	return (vbat - 3750) / 12; 
+	return (vbat - 3750) / 12;
 }
 
 static inline int axp18_i_to_ibat(uint8_t reg)
 {
-	return reg * 2000 / 300 ; 
+	return reg * 2000 / 300 ;
 }
 
 static inline int axp18_i_to_reg(int ibat)
@@ -63,7 +63,7 @@ static inline int axp18_i_to_reg(int ibat)
 
 static inline void axp_read_adc(struct axp_charger *charger,
 				   struct axp_adc_res *adc)
-{	
+{
 	uint8_t tmp;
 	//axp_reads(charger->master, AXP18_VBAT_RES,sizeof(*adc), (uint8_t *)adc);//axp18 can't support muti-reads
 	axp_read(charger->master,AXP18_VBAT_RES,&tmp);
@@ -103,7 +103,7 @@ static void axp_charger_update(struct axp_charger *charger)
 	struct axp_adc_res adc;
 	charger->adc = &adc;
 	axp_read_adc(charger, &adc);
-	
+
 	tmp = charger->adc->vbat_res;
 	charger->vbat = axp18_vbat_to_vbat(tmp);
 	tmp = charger->adc->ibat_res;
@@ -111,7 +111,7 @@ static void axp_charger_update(struct axp_charger *charger)
 	tmp = charger->adc->vac_res;
 	charger->vac = axp18_vac_to_vbat(tmp);
 	tmp = charger->adc->iac_res;
-	charger->iac = axp18_i_to_ibat(tmp);	
+	charger->iac = axp18_i_to_ibat(tmp);
 }
 
 #if defined  (CONFIG_AXP_CHARGEINIT)
@@ -128,7 +128,7 @@ static void axp_set_charge(struct axp_charger *charger)
 	}
 	else
 		val |= 3 << 5;
-	if(charger->limit_on) 
+	if(charger->limit_on)
 		val |= ((charger->chgcur - 100) / 200) | (1 << 3);
 	else
 		val |= ((charger->chgcur - 100) / 200) ;
@@ -145,14 +145,14 @@ static void axp_set_charge(struct axp_charger *charger)
 
 	axp_write(charger->master, AXP18_CHARGE_CONTROL1, val);
 	axp_write(charger->master, AXP18_CHARGE_CONTROL2, tmp);
-	
+
 	axp_read(charger->master, AXP18_CHARGE_STATUS, &val);
 
 	if(charger ->chgend == 10)
-		val &= ~(1 << 6); 
-	else 
+		val &= ~(1 << 6);
+	else
 		val |= 1 << 6;
-	axp_write(charger->master, AXP18_CHARGE_STATUS, val);	
+	axp_write(charger->master, AXP18_CHARGE_STATUS, val);
 }
 #else
 static void axp_set_charge(struct axp_charger *charger)
@@ -173,7 +173,7 @@ static enum power_supply_property axp_battery_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
-	POWER_SUPPLY_PROP_CAPACITY,   
+	POWER_SUPPLY_PROP_CAPACITY,
 	POWER_SUPPLY_PROP_TIME_TO_EMPTY_NOW,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 };
@@ -205,23 +205,23 @@ static void axp_battery_check_status(struct axp_charger *charger,
 			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
 		else
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
-	} 
-	else 
-		val->intval = POWER_SUPPLY_STATUS_UNKNOWN;	
+	}
+	else
+		val->intval = POWER_SUPPLY_STATUS_UNKNOWN;
 }
 
 static void axp_battery_check_health(struct axp_charger *charger,
 				    union power_supply_propval *val)
 {
 	if (charger->fault & AXP18_FAULT_LOG_BATINACT)
-		val->intval = POWER_SUPPLY_HEALTH_DEAD;	
+		val->intval = POWER_SUPPLY_HEALTH_DEAD;
 	else if (charger->fault & AXP18_FAULT_LOG_OVER_TEMP)
-		val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;	
+		val->intval = POWER_SUPPLY_HEALTH_OVERHEAT;
 	else if (charger->fault & AXP18_FAULT_LOG_COLD)
 		val->intval = POWER_SUPPLY_HEALTH_COLD;
 	/* low voltage worning */
 	else if (charger->fault & AXP18_FAULT_LOG_VBAT_LOW)
-		val->intval = POWER_SUPPLY_HEALTH_UNSPEC_FAILURE; 		
+		val->intval = POWER_SUPPLY_HEALTH_UNSPEC_FAILURE;
 	else if (charger->fault & AXP18_FAULT_LOG_VBAT_OVER)
 		val->intval = POWER_SUPPLY_HEALTH_OVERVOLTAGE;
 	else
@@ -321,7 +321,7 @@ static int axp_ac_get_property(struct power_supply *psy,
 		break;
 	default:
 		ret = -EINVAL;
-		break;		
+		break;
 	}
 	return ret;
 }
@@ -346,7 +346,7 @@ static int axp_usb_get_property(struct power_supply *psy,
 		break;
 	default:
 		ret = -EINVAL;
-		break;		
+		break;
 	}
 	return ret;
 }
@@ -357,7 +357,7 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
 {
 	struct axp_charger *charger =
 		container_of(nb, struct axp_charger, nb);
-	
+
 	switch (event) {
 	case AXP18_IRQ_BATIN:
 	case AXP18_IRQ_EXTIN:
@@ -401,7 +401,7 @@ static void axp_battery_setup_psy(struct axp_charger *charger)
 	usb->name = "usb";
 	usb->type = POWER_SUPPLY_TYPE_USB;
 	usb->get_property = axp_usb_get_property;
-	
+
 	usb->properties = axp_usb_props;
 	usb->num_properties = ARRAY_SIZE(axp_usb_props);
 }
@@ -413,15 +413,15 @@ static int axp_battery_adc_set(struct axp_charger *charger)
 	uint8_t val;
 
 	/*enable adc and set adc */
-	val=(charger->sample_time / 8 - 1) << 2 | AXP18_ADC_BATVOL_ENABLE  
-		| AXP18_ADC_BATCUR_ENABLE | AXP18_ADC_ACCUR_ENABLE           
+	val=(charger->sample_time / 8 - 1) << 2 | AXP18_ADC_BATVOL_ENABLE
+		| AXP18_ADC_BATCUR_ENABLE | AXP18_ADC_ACCUR_ENABLE
 		| AXP18_ADC_ACVOL_ENABLE;
-	
+
 	ret = axp_write(charger->master, AXP18_ADC_CONTROL, val);
 
 	return ret;
 }
-#else 
+#else
 static int axp_battery_adc_set(struct axp_charger *charger)
 {
 	return 0;
@@ -441,14 +441,14 @@ static int axp_get_rdc(struct axp_charger *charger)
 	uint8_t val[3];
 	unsigned int i,temp,pre_temp;
 	int averPreVol = 0, averPreCur = 0,averNextVol = 0,averNextCur = 0;
-    
+
 	//axp_reads(charger->master,AXP18_DATA_BUFFER1,2,val);
 	axp_read(charger->master,AXP18_DATA_BUFFER1,val);
 	axp_read(charger->master,AXP18_DATA_BUFFER2,val+1);
 	pre_temp = (((val[0] & 0x7F) << 8 ) + val[1]);
-		
+
 	printk("%d:pre_temp = %d\n",__LINE__,pre_temp);
-    
+
 	if( charger->is_on){
 		for(i = 0; i< AXP18_RDC_COUNT; i++){
 			axp_charger_update(charger);
@@ -485,8 +485,8 @@ static int axp_get_rdc(struct axp_charger *charger)
 				return temp;
 			}
 		}
-		else 
-			return pre_temp;	
+		else
+			return pre_temp;
 	}
 	else
 		return pre_temp;
@@ -541,7 +541,7 @@ static void axp_cal_rest(struct axp_charger *charger, int this_rdc)
 	uint16_t Iconst_current = 1;
 	uint8_t  DCIN_Presence, DCIN_Pre_Presence = 0;
 	battery_cap = charger->battery_info->charge_full_design;
-	
+
 	if(charger->vac < 4200){
         charger->ac_not_enough = 1;
 	}
@@ -581,7 +581,7 @@ static void axp_cal_rest(struct axp_charger *charger, int this_rdc)
 			}
 			charger->ibat = (charger->ibat + Bat_Pre_Cur)/2;
 			if(DCIN_Pre_Presence != DCIN_Presence){
-                charger->ibat = Internal_Ibat;	
+                charger->ibat = Internal_Ibat;
 			}
 			total_vol += charger->ibat * (this_rdc - DISCHARGE_RDC_CAL) / 1000;
 			charger->vbat = total_vol;
@@ -613,7 +613,7 @@ static void axp_cal_rest(struct axp_charger *charger, int this_rdc)
 				    }
 				    else {
                         Tcv = 60 * (100 - Tcv_Rest_Vol) * battery_cap / (35 * charger->ibat);
-				    }		
+				    }
 				}
 				if(charger->ibat < Iendchg){
                     charger->rest_time = 1;
@@ -670,7 +670,7 @@ static int axp_main_task(void *arg)
     pre_status_ac = 0;
     status_bat = 0;
     pre_status_bat =0;
-	
+
 	//axp_reads(charger->master,AXP18_DATA_BUFFER1,2,tmp_value);
 	axp_read(charger->master,AXP18_DATA_BUFFER1,tmp_value);
 	axp_read(charger->master,AXP18_DATA_BUFFER2,tmp_value+1);
@@ -697,12 +697,12 @@ static int axp_main_task(void *arg)
 
 		peklong = (events & AXP18_IRQ_PEKLO)? 1 : 0;
 		pekshort = (events & AXP18_IRQ_PEKSH )? 1 : 0;
-		
+
 		status_ac = charger->ac_det;
 		status_usb = charger->usb_det;
         status_bat = (!charger->is_on)&&(charger->bat_det);
-        
-        if(status_usb != pre_status_usb || status_ac != pre_status_ac || status_bat != pre_status_bat ) 
+
+        if(status_usb != pre_status_usb || status_ac != pre_status_ac || status_bat != pre_status_bat )
         {
             power_supply_changed(&charger->batt);
 			pre_status_ac =  status_ac;
@@ -710,7 +710,7 @@ static int axp_main_task(void *arg)
 			pre_status_bat = status_bat;
          }
 
-		/* simulate a key_up after peklong*/	
+		/* simulate a key_up after peklong*/
 		if(long_cnt)
         {
 			long_cnt--;
@@ -719,7 +719,7 @@ static int axp_main_task(void *arg)
 				printk("press long up\n");
 				input_report_key(powerkeydev, KEY_POWER, 0);
 				input_sync(powerkeydev);
-		    }			
+		    }
 
         }
 
@@ -787,12 +787,12 @@ static int axp_main_task(void *arg)
               	batcap[batcap_index ++ ] = charger->rest_vol;
         	}
 			charger->rest_vol = total_vol / batcap_count;
-			
+
 			//printk("charger->rest_vol = %d\n",charger->rest_vol);
 			if((charger->is_on) && (charger->rest_vol == 100)){
             	charger->rest_vol = 99;
 			}
-			
+
 			if((charger->is_on) && (batcap_count == AXP18_VOL_MAX)){
            		if(charger->rest_vol < pre_batcap){
               		charger->rest_vol = pre_batcap;
@@ -803,24 +803,24 @@ static int axp_main_task(void *arg)
               		charger->rest_vol = pre_batcap;
            		}
 			}
-			
+
 			if((pre_charge_status == 1) && (!charger->is_on) && (charger->bat_det) && (charger->ext_valid)){//充电结束时刷新为100
             	charger->rest_vol = total_vol / batcap_count;
 			}
-			
+
 			pre_charge_status = charger->is_on;
 
 			//printk("charger->rest_vol = %d\n",charger->rest_vol);
-			
+
 			/* if battery volume changed, inform uevent */
 			if(charger->rest_vol - pre_batcap)
 			{
 				printk("battery vol change: %d, %d \n", pre_batcap, charger->rest_vol);
 				pre_batcap = charger->rest_vol;
 				power_supply_changed(&charger->batt);
-			}			
+			}
 		}
-		ssleep(1);	
+		ssleep(1);
 	}
 	return 0;
 }
@@ -986,13 +986,13 @@ static ssize_t chgpretimemin_show(struct device *dev,
 
 static ssize_t chgpretimemin_store(struct device *dev,
 				struct device_attribute *attr, const char *buf, size_t count)
-{	
+{
 	struct axp_charger *charger = dev_get_drvdata(dev);
 	int var;
 	uint8_t val,tmp;
 	var = simple_strtoul(buf, NULL, 10);
 	if(var >= 30 && var <= 60){
-		tmp = (var - 30)/10; 
+		tmp = (var - 30)/10;
 		charger->chgpretime = tmp * 10 + 30;
 		axp_read(charger->master,AXP18_CHARGE_CONTROL2,&val);
 		val &= 0x3F;
@@ -1014,13 +1014,13 @@ static ssize_t chgcsttimemin_show(struct device *dev,
 
 static ssize_t chgcsttimemin_store(struct device *dev,
 				struct device_attribute *attr, const char *buf, size_t count)
-{	
+{
 	struct axp_charger *charger = dev_get_drvdata(dev);
 	int var;
 	uint8_t val,tmp;
 	var = simple_strtoul(buf, NULL, 10);
 	if(var >= 420 && var <= 600){
-		tmp = (var - 420)/60; 
+		tmp = (var - 420)/60;
 		charger->chgcsttime = tmp * 60 + 420;
 		axp_read(charger->master,AXP18_CHARGE_CONTROL2,&val);
 		val &= 0xFC;
@@ -1042,7 +1042,7 @@ static ssize_t adcfreq_show(struct device *dev,
 		 case 2: charger->sample_time = 25;break;
 		 case 3: charger->sample_time = 32;break;
 		 default:break;
-	} 
+	}
 	return sprintf(buf, "%d\n",charger->sample_time);
 }
 
@@ -1133,12 +1133,12 @@ static ssize_t vhold_store(struct device *dev,
 static struct device_attribute axp_charger_attrs[] = {
 	AXP_CHG_ATTR(chgen),
 	AXP_CHG_ATTR(chgcurlimen),
-	AXP_CHG_ATTR(chgmicrovol),	
+	AXP_CHG_ATTR(chgmicrovol),
 	AXP_CHG_ATTR(chgmicrocur),
 	AXP_CHG_ATTR(chgendcur),
 	AXP_CHG_ATTR(chgpretimemin),
 	AXP_CHG_ATTR(chgcsttimemin),
-	AXP_CHG_ATTR(adcfreq),	
+	AXP_CHG_ATTR(adcfreq),
 	AXP_CHG_ATTR(vholden),
 	AXP_CHG_ATTR(vhold),
 };
@@ -1153,7 +1153,7 @@ int axp_charger_create_attrs(struct power_supply *psy)
 			goto sysfs_failed;
 	}
     goto succeed;
-	
+
 sysfs_failed:
 	while (j--)
 		device_remove_file(psy->dev,
@@ -1176,8 +1176,8 @@ static int axp_battery_probe(struct platform_device *pdev)
 	}
 
 	powerkeydev->name = pdev->name;
-	powerkeydev->phys = "m1kbd/input2"; 
-	powerkeydev->id.bustype = BUS_HOST;	
+	powerkeydev->phys = "m1kbd/input2";
+	powerkeydev->id.bustype = BUS_HOST;
 	powerkeydev->id.vendor = 0x0001;
 	powerkeydev->id.product = 0x0001;
 	powerkeydev->id.version = 0x0100;
@@ -1186,7 +1186,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 	powerkeydev->dev.parent = &pdev->dev;
 
 	set_bit(EV_KEY, powerkeydev->evbit);
-	set_bit(EV_REL, powerkeydev->evbit);	
+	set_bit(EV_REL, powerkeydev->evbit);
 	set_bit(KEY_POWER, powerkeydev->keybit);
 
 	ret = input_register_device(powerkeydev);
@@ -1219,7 +1219,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 
 	charger->chgcur				= pdata->chgcur;
 	charger->chgvol				= pdata->chgvol;
-	charger->chgend				= pdata->chgend;	
+	charger->chgend				= pdata->chgend;
 	charger->sample_time		= pdata->sample_time;
 	charger->chgen				= pdata->chgen;
 	charger->limit_on			= pdata->limit_on;
@@ -1229,7 +1229,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 	charger->battery_low		= pdata->battery_low;
 	charger->battery_critical	= pdata->battery_critical;
 
-	ret = axp_battery_first_init(charger);	
+	ret = axp_battery_first_init(charger);
 	if (ret)
 		goto err_charger_init;
 
@@ -1251,7 +1251,7 @@ static int axp_battery_probe(struct platform_device *pdev)
 	ret = power_supply_register(&pdev->dev, &charger->usb);
 	if (ret){
 		power_supply_unregister(&charger->ac);
-		power_supply_unregister(&charger->batt);	
+		power_supply_unregister(&charger->batt);
 		goto err_ps_register;
 	}
 
@@ -1259,9 +1259,9 @@ static int axp_battery_probe(struct platform_device *pdev)
 	if(ret){
 		return ret;
 	}
-	
+
 	platform_set_drvdata(pdev, charger);
-	
+
   	main_task = kthread_run(axp_main_task,charger,"kaxp18");
 	if(IS_ERR(main_task)){
 
@@ -1308,7 +1308,7 @@ static int axp_battery_remove(struct platform_device *dev)
 	kfree(charger);
 	input_unregister_device(powerkeydev);
 	kfree(powerkeydev);
-	
+
 	return 0;
 }
 

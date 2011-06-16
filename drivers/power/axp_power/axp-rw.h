@@ -1,7 +1,7 @@
 #ifndef _LINUX_AXP_RW_H_
 #define _LINUX_AXP_RW_H_
 
-#include "axp-mfd.h"
+#include <linux/mfd/axp-mfd.h>
 
 static uint8_t axp_reg_addr = 0;
 
@@ -86,18 +86,18 @@ EXPORT_SYMBOL_GPL(axp_unregister_notifier);
 
 int axp_write(struct device *dev, int reg, uint8_t val)
 {
-	return __axp_write(to_i2c_client(dev), reg, val);	
+	return __axp_write(to_i2c_client(dev), reg, val);
 }
 EXPORT_SYMBOL_GPL(axp_write);
 
 int axp_writes(struct device *dev, int reg, int len, uint8_t *val)
 {
-	return  __axp_writes(to_i2c_client(dev), reg, len, val);	
+	return  __axp_writes(to_i2c_client(dev), reg, len, val);
 }
 EXPORT_SYMBOL_GPL(axp_writes);
 
 int axp_read(struct device *dev, int reg, uint8_t *val)
-{	
+{
 	return __axp_read(to_i2c_client(dev), reg, val);
 }
 EXPORT_SYMBOL_GPL(axp_read);
@@ -119,7 +119,7 @@ int axp_set_bits(struct device *dev, int reg, uint8_t bit_mask)
 	ret = __axp_read(chip->client, reg, &reg_val);
 	if (ret)
 		goto out;
-    
+
 	if ((reg_val & bit_mask) != bit_mask) {
 		reg_val |= bit_mask;
 		ret = __axp_write(chip->client, reg, reg_val);
