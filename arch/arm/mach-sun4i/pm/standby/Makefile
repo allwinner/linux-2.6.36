@@ -43,6 +43,7 @@ all:$(INPUTFILE)
 	$(CROSS_COMPILE)objcopy -O binary $(OUPUTFILE).elf $(OUPUTFILE).bin
 
 	-rm *.o
+	-rm ./../standby.o
 	cp standby.bin standby.code
 
 	@echo ----------------------------------------

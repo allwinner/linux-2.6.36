@@ -19,7 +19,16 @@
 #define __STANDBY_KEY_H__
 
 #include "standby_cfg.h"
-
+//define key controller registers
+typedef struct __STANDBY_KEY_REG
+{
+    // offset:0x00
+    volatile __u32   Lradc_Ctrl;
+    volatile __u32   Lradc_Intc;
+    volatile __u32   Lradc_Ints;
+    volatile __u32   Lradc_Data0;
+    volatile __u32   Lradc_Data1;
+} __standby_key_reg_t;
 
 extern __s32 standby_key_init(void);
 extern __s32 standby_key_exit(void);

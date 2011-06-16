@@ -31,12 +31,11 @@ int main(void)
 		exit(-19);
 	}
     /* set standby information to pm device */
-    pm_info.standby_para.event = SUSPEND_WAKEUP_SRC_EXINT   \
-                                | SUSPEND_WAKEUP_SRC_USB    \
+    pm_info.standby_para.event =  SUSPEND_WAKEUP_SRC_USB    \
                                 | SUSPEND_WAKEUP_SRC_KEY    \
                                 | SUSPEND_WAKEUP_SRC_IR     \
                                 | SUSPEND_WAKEUP_SRC_TIMEOFF;
-    pm_info.standby_para.time_off = 30;
+    pm_info.standby_para.time_off = 120;
 
     pm_info.pmu_arg.twi_port = 0;
     pm_info.pmu_arg.dev_addr = 0x28;

@@ -58,43 +58,9 @@ int main(struct aw_pm_info *arg)
     /* copy standby parameter from dram */
     standby_memcpy(&pm_info, arg, sizeof(pm_info));
 
-    /* save stack pointer registger, switch stack to sram */
-    sp_backup = save_sp();
-
-    /* write back cache and flush TLB!!! */
-
-    /* access io area to load TLB into TLB cache for standby running after dram disable!!! */
-
-    /* enable dram enter into self-refresh */
-    dram_enter_selfrefresh();
-
-    /* process standby */
-    standby();
-
-    /* restore dram */
-    dram_exit_selfrefresh();
-
-    /* restore stack pointer register, switch stack back to dram */
-    restore_sp(sp_backup);
-
-    return 0;
-}
-
-
-/*
-*********************************************************************************************************
-*                                     SYSTEM PWM ENTER STANDBY MODE
-*
-* Description: enter standby mode.
-*
-* Arguments  : none
-*
-* Returns    : none;
-*********************************************************************************************************
-*/
-static void standby(void)
-{
-    __s32   i;
+    /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
+    /* init module before dram enter selfrefresh */
+    /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 
     /* initialise standby modules */
     standby_clk_init();
@@ -102,7 +68,6 @@ static void standby(void)
     standby_tmr_init();
     standby_twi_init();
     standby_power_init();
-
     /* init some system wake source */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_EXINT){
         standby_enable_int(INT_SOURCE_EXTNMI);
@@ -128,11 +93,57 @@ static void standby(void)
         }
     }
 
+    /* save stack pointer registger, switch stack to sram */
+    sp_backup = save_sp();
+    /* enable dram enter into self-refresh */
+    dram_enter_selfrefresh();
+    /* process standby */
+    standby();
+    /* restore dram */
+    dram_exit_selfrefresh();
+    /* restore stack pointer register, switch stack back to dram */
+    restore_sp(sp_backup);
+
+    /* exit standby module */
+    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_USB){
+        standby_usb_exit();
+    }
+    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_IR){
+        standby_ir_exit();
+    }
+    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_KEY){
+        standby_key_exit();
+    }
+    standby_power_exit();
+    standby_twi_exit();
+    standby_tmr_exit();
+    standby_int_exit();
+    standby_clk_init();
+
+    /* report which wake source wakeup system */
+    arg->standby_para.event = pm_info.standby_para.event;
+
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                     SYSTEM PWM ENTER STANDBY MODE
+*
+* Description: enter standby mode.
+*
+* Arguments  : none
+*
+* Returns    : none;
+*********************************************************************************************************
+*/
+static void standby(void)
+{
     /* backup voltages */
     vcc = standby_get_voltage(POWER_VOL_DCDC1);
     core_vdd = standby_get_voltage(POWER_VOL_DCDC2);
     dram_vdd = standby_get_voltage(POWER_VOL_DCDC3);
-
 
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
@@ -143,18 +154,26 @@ static void standby(void)
     standby_set_voltage(POWER_VOL_DCDC3, DRAMVDD_SLEEP_VOL);
     standby_set_voltage(POWER_VOL_DCDC2, COREVDD_SLEEP_VOL);
 
+    #if 0
     /* switch cpu to 32k */
     standby_clk_core2losc();
+    #endif
+
     #if(ALLOW_DISABLE_HOSC)
     // disable HOSC, and disable LDO
     standby_clk_hoscdisable();
     standby_clk_ldodisable();
     #endif
 
+    /* clear lradc key */
+    standby_query_key();
+
     /* set vdd voltage to 1.0v */
     standby_set_voltage(POWER_VOL_DCDC2, COREVDD_DEEP_SLEEP_VOL);
+
     /* cpu enter sleep, wait wakeup by interrupt */
     asm("WFI");
+
     /* restore voltage to 1.2v */
     standby_set_voltage(POWER_VOL_DCDC2, COREVDD_SLEEP_VOL);
     standby_mdelay(30);
@@ -164,8 +183,19 @@ static void standby(void)
     standby_clk_ldoenable();
     standby_clk_hoscenable();
     #endif
+
+    #if 0
     /* switch clock to LOSC */
     standby_clk_core2hosc();
+    #endif
+
+    /* check system wakeup event */
+    pm_info.standby_para.event = 0;
+    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_EXTNMI)? 0:SUSPEND_WAKEUP_SRC_EXINT;
+    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_USB0)? 0:SUSPEND_WAKEUP_SRC_USB;
+    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_LRADC)? 0:SUSPEND_WAKEUP_SRC_KEY;
+    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_IR0)? 0:SUSPEND_WAKEUP_SRC_IR;
+    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_TIMER0)? 0:SUSPEND_WAKEUP_SRC_TIMEOFF;
 
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC1, vcc);
@@ -178,23 +208,6 @@ static void standby(void)
     standby_mdelay(30);
     /* switch cpu clock to core pll */
     standby_clk_core2pll();
-
-    /* exit standby module */
-    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_USB){
-        standby_usb_exit();
-    }
-    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_IR){
-        standby_ir_exit();
-    }
-    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_KEY){
-        standby_key_exit();
-    }
-
-    standby_power_exit();
-    standby_twi_exit();
-    standby_tmr_exit();
-    standby_int_exit();
-    standby_clk_init();
 
     return;
 }
