@@ -467,10 +467,10 @@ config KEYBOARD_SUN4IKEYPAD
           module will be called sun4i.
 
 
-config KEYBOARD_VERIFY_KEYPAD
-        tristate "VERIFY BOARD MATRIX Keypad support"
+config KEYBOARD_SUN4I_KEYBOARD
+        tristate "SUN4I KEY BOARD support"
         help
-          Say Y here to enable the matrix keypad on evaluation board
+          Say Y here to enable the keyboard, support 7 keys.
           based on verify board.
 config 	IR_SUN3I
 

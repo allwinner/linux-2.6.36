@@ -8,6 +8,7 @@
 #include <linux/bcd.h>
 #include <linux/clk.h>
 #include <linux/log2.h>
+#include <linux/delay.h>
 
 #include <mach/hardware.h>
 #include <mach/irqs.h>
@@ -19,15 +20,16 @@
 #include "regs-rtc.h"
 
 /*
-* notice: IN 23 A version, operation(eg. write date, time reg) 
-* that will affect losc reg, will also affect pwm reg at the same time
-* it is a ic bug needed to be fixed,
-* right now, before write date, time reg, we need to backup pwm reg
-* after writing, we should restore pwm reg.
-*/
+ * notice: IN 23 A version, operation(eg. write date, time reg) 
+ * that will affect losc reg, will also affect pwm reg at the same time
+ * it is a ic bug needed to be fixed,
+ * right now, before write date, time reg, we need to backup pwm reg
+ * after writing, we should restore pwm reg.
+ */
 #define BACKUP_PWM
-/*说明 f23最大变化为16年的时间
-该驱动支持2010年～2025年的时间*/
+
+/*说明 f23最大变化为63年的时间
+该驱动支持（2010～2073）年的时间*/
 
 static void __iomem *f23_rtc_base;
 //static struct clk *rtc_clk;
@@ -186,11 +188,24 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 
 	/*Any bit of [9:7] is set, The time and date 
 	  register can`t be written, we re-try the entried read*/
+	#if 0
 	if(crystal_data & 0x380) {
 		dev_err(dev, "The time or date can`t set, please try late\n");
 		return -EINVAL;
 	}    
-
+	#else
+	{
+	    //check at most 3 times.
+	    int times = 3;
+	    while((crystal_data & 0x380) && (times--)){
+	    	printk(KERN_INFO"[RTC]canot change rtc now!\n");
+	    	msleep(500);
+	    	crystal_data = readl(base + AW1623_LOSC_CTRL_REG);
+	    }
+	}
+	
+	#endif
+	
 	/*f23 ONLY SYPPORTS 63 YEARS*/
 	tm->tm_year -= 110;
 	tm->tm_mon  += 1;
@@ -223,7 +238,8 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 			printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
         #endif
         return -1;
-    }  
+    }
+    /*  
     #ifdef BACKUP_PWM
        writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
        writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
@@ -231,19 +247,21 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	   pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
 	   pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
 	   printk("[rtc-pwm] 3 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-    #endif
+    #endif*/
 
 	if((leap_year%400==0) || ((leap_year%100!=0) && (leap_year%4==0))) {
 		/*Set Leap Year bit*/
 		date_tmp |= LEAP_SET_VALUE(1);     
 	} 
 	
+	/*
 	#ifdef BACKUP_PWM
     	pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
     	pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
 		
 	   printk("[rtc-pwm] 4 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-    #endif
+    #endif*/
+    
 	writel(date_tmp, base + AW1623_RTC_DATE_REG);
 	timeout = 0xffff;
 	while((readl(base + AW1623_LOSC_CTRL_REG)&(RTC_YYMMDD_ACCESS))&&(--timeout))
@@ -424,7 +442,7 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 	struct rtc_device *rtc;	
 	//struct resource *res;
 	int ret;
-	unsigned int tmp_data;
+	//unsigned int tmp_data;
 
     //marked by young
     /*{
@@ -458,10 +476,10 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 	tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
     tmp_data |= (RTC_SOURCE_INTERNAL | REG_LOSCCTRL_MAGIC);                  
 	writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);
-    */
-
+ 
 	_dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);  
-
+    */
+    
 	device_init_wakeup(&pdev->dev, 1);
 
 	/* register RTC and exit */
@@ -501,7 +519,7 @@ static struct resource f23_rtc_resource[] = {
 };
 
 struct platform_device f23_device_rtc = {
-	.name		    = "rtc-sun4i",
+	.name		    = "sun4i-rtc",
 	.id		        = -1,
 	.num_resources	= ARRAY_SIZE(f23_rtc_resource),
 	.resource	    = f23_rtc_resource,
@@ -514,7 +532,7 @@ static struct platform_driver f23_rtc_driver = {
 	.suspend	= f23_rtc_suspend,
 	.resume		= f23_rtc_resume,
 	.driver		= {
-		.name	= "rtc-sun4i",
+		.name	= "sun4i-rtc",
 		.owner	= THIS_MODULE,
 	},
 };
