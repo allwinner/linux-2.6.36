@@ -472,8 +472,7 @@ config KEYBOARD_VERIFY_KEYPAD
         help
           Say Y here to enable the matrix keypad on evaluation board
           based on verify board.
+config 	IR_SUN3I
 
-
-
-
+        tristate "sun3i/sun4i IR  support"
 endif

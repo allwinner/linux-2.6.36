@@ -2053,8 +2053,8 @@ wemac_probe(struct platform_device *pdev)
 	db->msg_enable       = 0xffffffff & (~NETIF_MSG_TX_DONE) & (~NETIF_MSG_INTR) & (~NETIF_MSG_RX_STATUS); 
 	db->mii.phy_id_mask  = 0x1f;
 	db->mii.reg_num_mask = 0x1f;
-	db->mii.force_media  = 1;
-	db->mii.full_duplex  = 1;
+	db->mii.force_media  = 0; // change force_media value to 0 to force check link status
+	db->mii.full_duplex  = 0; // change full_duplex value to 0 to set initial duplex as half
 	db->mii.dev	     = ndev;
 	db->mii.mdio_read    = wemac_phy_read;
 	db->mii.mdio_write   = wemac_phy_write;

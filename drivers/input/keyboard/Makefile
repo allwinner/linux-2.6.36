@@ -44,3 +44,4 @@ obj-$(CONFIG_KEYBOARD_W90P910)		+= w90p910_keypad.o
 obj-$(CONFIG_KEYBOARD_SUN4IKEYPAD)      += sun4i-keypad.o
 obj-$(CONFIG_KEYBOARD_VERIFY_KEYPAD)    += verify-key.o
 
+obj-$(CONFIG_IR_SUN3I)		+= sun3i-ir.o
