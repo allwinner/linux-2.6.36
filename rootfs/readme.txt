@@ -8,4 +8,6 @@ How to add files to the built-in rootfs?
 
 3. Don't forget to rebuild your linux kernel
 
+4. If you want to generate a totally new rootfs, put all your new rootfs in skel/ dir, delete sun4i_rootfs.cpio.gz and repeat 2 and 3
+
 
