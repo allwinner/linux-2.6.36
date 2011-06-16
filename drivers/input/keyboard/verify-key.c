@@ -129,13 +129,13 @@ static unsigned char keypad_mapindex[64] =
 #ifdef EVB
 static unsigned int sun4i_scankeycodes[KEY_MAX_CNT]=
 {
-	[0 ] = KEY_NEXTSONG,       
-	[1 ] = KEY_PREVIOUSSONG,      
-	[2 ] = KEY_VOLUMEUP,         
-	[3 ] = KEY_VOLUMEDOWN,       
-	[4 ] = KEY_ENTER,   
-	[5 ] = KEY_RESERVED, 
-	[6 ] = KEY_RESERVED,        
+	[0 ] = KEY_VOLUMEUP,       
+	[1 ] = KEY_VOLUMEDOWN,      
+	[2 ] = KEY_MENU,         
+	[3 ] = KEY_SEARCH,       
+	[4 ] = KEY_HOME,   
+	[5 ] = KEY_ESC, 
+	[6 ] = KEY_ENTER,        
 	[7 ] = KEY_RESERVED,
 	[8 ] = KEY_RESERVED,
 	[9 ] = KEY_RESERVED,
@@ -161,7 +161,7 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 	    printk("Key Interrupt\n");
   	#endif
 	reg_val  = readl(KEY_BASSADDRESS + LRADC_INT_STA);
-	writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
+	//writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
 	if(reg_val&LRADC_ADC0_DOWNPEND)
 	{
 		#ifdef KEY_DEBUG
@@ -174,7 +174,7 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 		key_val = readl(KEY_BASSADDRESS + LRADC_DATA0);
 		scancode = keypad_mapindex[key_val&0x3f];
         #ifdef KEY_DEBUG
-		    printk("key_val == %u \n", key_val);
+		    printk("key_val == %u , scancode == %u \n", key_val, scancode);
         #endif
 
 		input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
