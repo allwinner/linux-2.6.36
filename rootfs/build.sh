@@ -2,29 +2,43 @@
 
 #Execute this within fakeroot
 #arg1 - the new rootfs name
-regenerate_rootfs()
+
+generate_rootfs()
 {
-if [ -e sun4i_rootfs.cpio.gz ]; then
-    mkdir tmp;
-
-    #Extract the rootfs to the tmp dir
-    gzip -dc sun4i_rootfs.cpio.gz |(cd tmp; cpio -iv)
-
-    #Copy skel to the tmp dir
-    (cd skel; tar -c *) |tar -C tmp -x
-
-    #Re-generate the built-in rootfs
-    (cd tmp; find . |cpio -o -Hnewc |gzip > ../$1)
-
-    rm -rf tmp
+if [ -d skel ]; then
+	(cd skel;find . |cpio -o -Hnewc |gzip > ../"$1")
 else
-	(cd skel;find . |cpio -o -Hnewc |gzip > ../$1)
+	echo "skel not there run buil.sh e sun4i_rootf.gz first"
+	exit 1
 fi
 }
 
-if [ -z "$1" ]; then
-echo "Please input the new rootfs name"
+extract_rootfs()
+{
+if [ -f "$1" ]; then
+	rm -rf skel && mkdir skel
+	gzip -dc $1 | (cd skel; cpio -iv)
 else
-regenerate_rootfs $1
+	echo "$1 not there"
+	exit 1
+fi
+}
+
+
+if [ $# -ne 2 ]; then
+	echo -e "please input correct parameters!"
+	echo -e "\t[build.sh e sun4i_rootf.cpio.gz] to extract the rootfs template to skel folder"
+	echo -e "\tthen make some changes in the skel folder"
+	echo -e "\t[build.sh c my_rootf.cpio.gz] to create the rootfs from the skel folder"
+	exit 1
+fi
+
+if [ "$1" = "e" ]; then
+	extract_rootfs $2
+elif [ "$1" = "c" ]; then
+	generate_rootfs $2
+else
+	echo "Wrong arguments"
+	exit 1
 fi
 
