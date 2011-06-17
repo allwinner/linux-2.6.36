@@ -25,7 +25,7 @@
 #define DAIFMT_20BITS             (20)
 
 #define DAIFMT_BS_MASK            (~(1<<16))  //FIFO big small mode mask
-#define DAIFMT_BITS_MASK          (~(1<<6))   //FIFO Bits slect mask
+#define DAIFMT_BITS_MASK          (~(1<<5))		//FIFO Bits select mask,not used yet.
 #define SAMPLE_RATE_MASK          (~(7<<29))  //Sample Rate slect mask
 
 #define DAC_EN                    (31)
@@ -37,8 +37,8 @@
 #define LAST_SE                   (26)
 #define TX_FIFO_MODE              (24)//16 error
 #define TX_TRI_LEVEL              (8)
-#define DAC_MODE                  (7)
-#define TASR                      (6)
+#define DAC_MODE                  (6)			//not used yet
+#define TASR                      (5)			//not used yet
 #define DAC_DRQ                   (4)
 #define DAC_FIFO_FLUSH            (0)
 
@@ -111,18 +111,6 @@ struct sw_pcm_dma_params {
 	.info	= snd_codec_info_volsw,	.get = snd_codec_get_volsw,\
 	.put	= snd_codec_put_volsw,\
 	.private_value	= CODEC_SINGLE_VALUE(reg, shift, max, invert)}
-	
-	
-
-   	
-
-#define CODEC_ENUM(xname, reg, where, shift, mask, invert)\
-{   .iface = SNDRV_CTL_ELEM_IFACE_MIXER, .name = xname,\
-    .info  = snd_codec_info_enum,\
-    .get   = snd_codec_get_enum,\
-    .put   = snd_codec_put_enum,\
-    .private_value = where|(reg<<5)|(shift<<11)|(mask<<16)|(invert<<20)}
-
 
 /*	mixer control*/	
 struct	codec_mixer_control{

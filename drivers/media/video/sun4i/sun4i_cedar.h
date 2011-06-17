@@ -1,5 +1,22 @@
-#ifndef __CEDAR_DEV_H__
-#define __CEDAR_DEV_H__
+/*
+**************************************************************************************************************
+*											         eLDK
+*						            the Easy Portable/Player Develop Kits
+*									           desktop system 
+*
+*						        	 (c) Copyright 2009-2012, ,HUANGXIN China
+*											 All Rights Reserved
+*
+* File    	: sun4i_cedar.h
+* By      	: HUANGXIN
+* Func		: 
+* Version	: v1.0
+* ============================================================================================================
+* 2011-5-25 9:57:05  HUANGXIN create this file, implements the fundemental interface;
+**************************************************************************************************************
+*/
+#ifndef _SUN4I_CEDAR_H_
+#define _SUN4I_CEDAR_H_
 
 enum IOCTL_CMD {
 	IOCTL_UNKOWN = 0x100,
@@ -16,15 +33,31 @@ enum IOCTL_CMD {
 	IOCTL_START_AVS2 ,
 	IOCTL_RESET_AVS2 ,
 	IOCTL_ADJUST_AVS2,
+	IOCTL_ENGINE_REQ,
+	IOCTL_ENGINE_REL,
+	IOCTL_ENGINE_CHECK_DELAY,
 };
 
-typedef struct CEDARV_ENV_INFOMATION{
+struct cedarv_env_infomation{
 	unsigned int phymem_start;
 	int  phymem_total_size;
 	unsigned int  address_macc;
-}cedarv_env_info_t;
+};
 
+struct __cedarv_task {
+	int task_prio;
+	int task_id;
+	unsigned int frametime;
+	unsigned int timeout;
+};
 
+struct cedarv_engine_task {
+	struct __cedarv_task t;
+
+	wait_queue_head_t wait;
+	struct semaphore mutex_lock;
+	struct list_head list;
+};
 
 /*--------------------------------------------------------------------------------*/
 #define REGS_pBASE			(0x01C00000)	 	      // register base addr
@@ -34,12 +67,14 @@ typedef struct CEDARV_ENV_INFOMATION{
 #define MACC_REGS_pBASE     (REGS_pBASE + 0x0E000)    // media accelerate VE
 #define SS_REGS_pBASE       (REGS_pBASE + 0x15000)    // Security System
 #define TIMER_REGS_pBASE    (REGS_pBASE + 0x20c00)    // Timer
+#define SDRAM_REGS_pBASE    (REGS_pBASE + 0x01000)    // SDRAM Controller
 
 #define SRAM_REGS_BASE      SRAM_REGS_pBASE           // SRAM Controller
-#define CCMU_REGS_BASE      CCMU_REGS_pBASE           // Clock Control manager unit
+#define CCMU_REGS_BASE      CCMU_REGS_pBASE           // Clock Control manager unit  OK
 #define MACC_REGS_BASE      MACC_REGS_pBASE           // Media ACCelerate
 #define SS_REGS_BASE        SS_REGS_pBASE             // Security System
 #define TIMER_REGS_BASE     TIMER_REGS_pBASE          // Timer
+#define SDRAM_REGS_BASE		SDRAM_REGS_pBASE          //SDRAM Controller   OK
 
 #define MPEG_REGS_BASE      (MACC_REGS_BASE + 0x100)  // MPEG engine
 #define H264_REGS_BASE      (MACC_REGS_BASE + 0x200)  // H264 engine

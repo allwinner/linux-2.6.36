@@ -1,7 +1,20 @@
 /*
- * cedar_dev.c
- * aw16xx cedar video engine driver
- */
+**************************************************************************************************************
+*											         eLDK
+*						            the Easy Portable/Player Develop Kits
+*									           desktop system 
+*
+*						        	 (c) Copyright 2009-2012, ,HUANGXIN China
+*											 All Rights Reserved
+*
+* File    	: sun4i_cedar.c
+* By      	: HUANGXIN
+* Func		: 
+* Version	: v1.0
+* ============================================================================================================
+* 2011-5-25 9:56:37  HUANGXIN create this file, implements the fundemental interface;
+**************************************************************************************************************
+*/
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/ioctl.h>
@@ -20,10 +33,11 @@
 #include <linux/clk.h>
 #include <linux/rmap.h>
 #include <linux/wait.h>
+#include <linux/semaphore.h>
 #include <linux/poll.h>
 #include <linux/spinlock.h>
 #include <linux/sched.h>
-
+#include <linux/kthread.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
 #include <asm/dma.h>
@@ -34,7 +48,7 @@
 
 #define DRV_VERSION "0.01alpha"
 
-#define CHIP_VERSION_F20
+#define CHIP_VERSION_F23
 
 #ifndef CEDARDEV_MAJOR
 #define CEDARDEV_MAJOR (150)
@@ -52,10 +66,10 @@
 
 int g_dev_major = CEDARDEV_MAJOR;
 int g_dev_minor = CEDARDEV_MINOR;
-module_param(g_dev_major, int, S_IRUGO);
+module_param(g_dev_major, int, S_IRUGO);//S_IRUGO represent that g_dev_major can be read,but canot be write
 module_param(g_dev_minor, int, S_IRUGO);
 
-#define VE_IRQ_NO (48)
+#define VE_IRQ_NO (53)
 
 #define CCMU_VE_PLL_REG      (0xf1c20000)
 #define CCMU_AHB_GATE_REG    (0xf1c2000c)
@@ -72,7 +86,7 @@ module_param(g_dev_minor, int, S_IRUGO);
 #define IMAGE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x24)
 #define SCALE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x28)
 
-void *reserved_mem = (void *)((CONFIG_SW_SYSMEM_RESERVED_BASE + 64*1024) + 0x80000000);
+void *reserved_mem = (void *)(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x80000000 + 64*1024);
 int cedarmem_size = CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 64*1024;
 
 struct iomap_para{
@@ -81,7 +95,6 @@ struct iomap_para{
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_ve);
-
 struct cedar_dev {
 	struct cdev cdev;	             /* char device struct                 */
 	struct device *dev;              /* ptr to class device struct         */
@@ -120,9 +133,7 @@ static irqreturn_t VideoEngineInterupt(int irq, void *dev)
 
     modual_sel = *modual_sel_reg;
     modual_sel &= 0xf;
-   
-//printk("kernel-interrupt!\n");
- 
+    
 	/* estimate Which video format */
     switch (modual_sel)
     {
@@ -188,6 +199,90 @@ unsigned int cedardev_poll(struct file *filp, struct poll_table_struct *wait)
 }
 
 
+
+static DECLARE_WAIT_QUEUE_HEAD(cedarv_wait);
+static DEFINE_SPINLOCK(cedarv_queue_lock);
+
+static LIST_HEAD(cedarv_task_list);
+struct cedarv_engine_task * cedarv_run_task = NULL;
+static struct task_struct *cedarv_tsk;
+static int task_done_flag = 0;
+static int cedarv_tread(void *arg)
+{
+	do {
+
+		wait_event_interruptible(cedarv_wait,	!list_empty(&cedarv_task_list));
+
+		if (kthread_should_stop())
+			break;
+
+		spin_lock_irq(&cedarv_queue_lock);
+		if (!list_empty(&cedarv_task_list)){
+			cedarv_run_task = list_entry(cedarv_task_list.next, struct cedarv_engine_task, list);
+			list_del(cedarv_task_list.next);
+		}
+		spin_unlock_irq(&cedarv_queue_lock);
+
+		if ( cedarv_run_task != NULL ) {
+
+			up(&cedarv_run_task->mutex_lock);
+			
+			task_done_flag = sleep_on_timeout(&cedarv_run_task->wait,
+					cedarv_run_task->t.timeout);
+
+			kfree(cedarv_run_task);
+			cedarv_run_task = NULL;
+		}
+	} while (1);
+
+	return 0;
+}
+
+void cedardev_insert_task(struct cedarv_engine_task* new_task)
+{	
+	struct cedarv_engine_task *task_entry;
+
+	list_for_each_entry(task_entry, &cedarv_task_list, list) {
+		if (task_entry->t.task_prio < new_task->t.task_prio) {
+			break;
+		}
+	}
+	list_add(&new_task->list, task_entry->list.prev);
+}
+
+int cedardev_del_task(int task_id)
+{
+	if(1 == task_done_flag)
+		return 1;
+	
+	if (task_id == cedarv_run_task->t.task_id) {
+		wake_up(&cedarv_run_task->wait);
+		return 0;
+	}
+	return -1;
+}
+int cedardev_check_delay(int check_prio)
+{
+	struct cedarv_engine_task *task_entry;
+	int timeout_total = 0;
+	list_for_each_entry(task_entry, &cedarv_task_list, list) {
+	if (task_entry->t.task_prio < check_prio)
+		break;		
+	timeout_total = timeout_total + task_entry->t.frametime;		
+	}
+	return timeout_total;
+}
+
+static unsigned int g_ctx_reg0;
+static void save_context()
+{
+	g_ctx_reg0 = readl(0xf1c20e00);
+}
+
+static void restore_context()
+{
+	writel(g_ctx_reg0, 0xf1c20e00);
+}
 //#define dbg_print printk
 
 /*
@@ -196,22 +291,59 @@ unsigned int cedardev_poll(struct file *filp, struct poll_table_struct *wait)
  *             AVS Counter control,
  *             Physical memory control,
  *             module clock/freq control.
+ *				cedar engine
  */ 
 long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     long   ret = 0;
     unsigned int v; 
+    unsigned long karg;	
 	spinlock_t *lock;
 	struct cedar_dev *devp;
-	
+	struct cedarv_engine_task *task_ptr;
 	ret = 0;
 	devp = filp->private_data;
 	lock = &devp->lock;
-
-    //printk("cedardev_ioctl_cmd: -- 0x%x --\n",cmd);
-
+	
     switch (cmd)
     {
+    	case IOCTL_ENGINE_REQ:
+		task_ptr = kmalloc(sizeof(struct cedarv_engine_task), GFP_KERNEL);
+		if(!task_ptr){
+			printk("get mem for IOCTL_ENGINE_REQ\n");
+			return PTR_ERR(task_ptr);
+		}
+		if(copy_from_user((void*)task_ptr,(void __user*)arg, sizeof(struct __cedarv_task))){
+			printk("IOCTL_ENGINE_REQ copy_from_user fail\n");
+			return -EFAULT;
+		}
+
+		init_MUTEX_LOCKED(&task_ptr->mutex_lock);
+
+		cedardev_insert_task(task_ptr);
+
+		down(&task_ptr->mutex_lock);
+		return task_done_flag ? 0 : 1;
+		break;
+
+    	case IOCTL_ENGINE_REL:
+		if (copy_from_user(&karg, (void *)arg, sizeof(unsigned long))){
+			printk("IOCTL_ENGINE_REL,copy_from_user fail\n");
+			return -EFAULT;
+		}		
+		ret = cedardev_del_task(karg);//karg是传递过来的id号
+		return ret;
+		break;
+		
+		case IOCTL_ENGINE_CHECK_DELAY:
+		if(copy_from_user(&karg,(void *)arg, sizeof(unsigned long))){
+			printk("IOCTL_ENGINE_CHECK_DELAY copy_from_user fail\n");
+			return -EFAULT;
+		}
+		ret = cedardev_check_delay(karg);//karg是传递过来的优先级
+		return ret;
+		break;
+		
         case IOCTL_WAIT_VE: 
             wait_event_interruptible(wait_ve, cedar_devp->irq_flag);
 	        cedar_devp->irq_flag = 0;	
@@ -228,23 +360,28 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v &= ~(0x1 << 7);             // Gate the speccial clock for DE
 			writel(v, CCMU_VE_CLK_REG);	
 			break;
+		case IOCTL_RESET_VE:				
+		{			
+			/*reset ve*/
+				v = readl(0xf1c2013c);
+				v &= ~(1<<0);
+				writel(v,0xf1c2013c);
+
+				v = readl(0xf1c2013c);
+				v |= (1<<0);
+				writel(v,0xf1c2013c);
 			
-		case IOCTL_RESET_VE:	
-			v = readl(CCMU_SDRAM_PLL_REG);
-			v &= ~(0x1 << 24);            
-			writel(v, CCMU_SDRAM_PLL_REG);
-			//----------------------------
-			v = readl(CCMU_VE_CLK_REG);   
-			v &= ~(0x1 << 5);             // Reset VE
-			writel(v, CCMU_VE_CLK_REG);
-			v |= (0x1 << 5);              // Reset VE
-			writel(v, CCMU_VE_CLK_REG);
-			//-----------------------------
-			v = readl(CCMU_SDRAM_PLL_REG);
-			v |= (0x1 << 24);            
-			writel(v, CCMU_SDRAM_PLL_REG);
-			break;
-		
+				
+				//reset ace
+				v = readl(0xf1c20148);
+				v &= ~(1<<16);
+				writel(v,0xf1c20148);
+			
+				v = readl(0xf1c20148);
+				v |= (1<<16);
+				writel(v,0xf1c20148);
+		}
+		break;
 		case IOCTL_SET_VE_FREQ:
 			/* VE Clock Setting */
 			v = readl(CCMU_VE_PLL_REG);
@@ -262,15 +399,18 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         {	        
             int arg_s = (int)arg;		
             int temp;	        
+            save_context();
             v = readl(devp->iomap_addrs.regs_ccmu + 0xc44);				        
             temp = v & 0xffff0000;		
             temp =temp + temp*arg_s/100;                
             v = (temp & 0xffff0000) | (v&0x0000ffff);                
             writel(v, devp->iomap_addrs.regs_ccmu + 0xc44);
+            restore_context();
             break;
         }
         
         case IOCTL_CONFIG_AVS2:
+        	save_context();
 			/* Set AVS counter divisor */
             v = readl(devp->iomap_addrs.regs_ccmu + 0xc8c);
             v = 239 << 16 | (v & 0xffff);
@@ -284,46 +424,55 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			/* Set AVS_CNT1 init value as zero  */
             writel(0, devp->iomap_addrs.regs_ccmu + 0xc88);
 
-#ifdef CHIP_VERSION_F20      
-            v = readl(devp->iomap_addrs.regs_ccmu + 0x040);
-            v |= 1<<8;
-            writel(v, devp->iomap_addrs.regs_ccmu + 0x040);
-#endif
+
+
+
+			v = readl(devp->iomap_addrs.regs_ccmu + 0x144);
+            v |= 1<<31;
+            writel(v, devp->iomap_addrs.regs_ccmu + 0x144);
+
+			restore_context();
             break;
             
         case IOCTL_RESET_AVS2:
             /* Set AVS_CNT1 init value as zero */
+            save_context();
             writel(0, devp->iomap_addrs.regs_ccmu + 0xc88);
+            restore_context();
             break;
             
         case IOCTL_PAUSE_AVS2:
             /* Pause AVS_CNT1 */
+            save_context();
             v = readl(devp->iomap_addrs.regs_ccmu + 0xc80);
             v |= 1 << 9;
             writel(v, devp->iomap_addrs.regs_ccmu + 0xc80);
+            restore_context();
             break;
             
         case IOCTL_START_AVS2:
 		    /* Start AVS_CNT1 : do not pause */
+		    save_context();
             v = readl(devp->iomap_addrs.regs_ccmu + 0xc80);
             v &= ~(1 << 9);
             writel(v, devp->iomap_addrs.regs_ccmu + 0xc80);
+            restore_context();
             break;
 
         case IOCTL_GET_ENV_INFO:
         {
-            cedarv_env_info_t env_info;
-
-            env_info.phymem_start = (unsigned int)reserved_mem;
+            struct cedarv_env_infomation env_info;
+            env_info.phymem_start = (unsigned int)0xc8000000;//reserved_mem;
 	        env_info.address_macc = (unsigned int)cedar_devp->iomap_addrs.regs_macc;
-            env_info.phymem_total_size = cedarmem_size;
-            if (copy_to_user((char *)arg, &env_info, sizeof(cedarv_env_info_t)))                
-                return -EFAULT;
-                
-            break;
+            env_info.phymem_total_size = 0x4000000;//cedarmem_size;
+            if (copy_to_user((char *)arg, &env_info, sizeof(struct cedarv_env_infomation)))                
+                return -EFAULT;                           
         }
+        break;
+       
 /*
         case IOCTL_ENABLE_IRQ:
+        {
             if(devp->irq_has_enable == 0){
                 int ret = request_irq(VE_IRQ_NO, VideoEngineInterupt, 0, "cedar_dev", NULL);
             	if (ret < 0) {
@@ -333,20 +482,22 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
                 //enable_irq(cedar_devp->irq);
                 devp->irq_has_enable = 1;
             }
-            break;
+         }
+         break;
 
         case IOCTL_DISABLE_IRQ:
+        {
             if(devp->irq_has_enable){
                 //disable_irq(cedar_devp->irq);
                 free_irq(VE_IRQ_NO, NULL);
                 devp->irq_has_enable = 0;
             }
-            break;
+        }
+        break;
 */        
         default:
-            break;
-    }
-    
+        break;
+    }    
     return ret;
 }
 
@@ -461,8 +612,94 @@ static struct file_operations cedardev_fops = {
 	.llseek  = no_llseek,
     .unlocked_ioctl   = cedardev_ioctl,
 };
-
-
+#if 0
+int VEPLLTable[74][6] = 
+{
+	//set, actual, Nb, Kb, Mb, Pb
+	{ 60,  60,  5,  2,  2,  1},
+	{ 66,  66, 11,  0,  0,  2},
+	{ 72,  72,  3,  3,  0,  2},
+	{ 78,  78, 13,  0,  0,  2},
+	{ 84,  84,  7,  1,  0,  2},
+	
+	{ 90,  90,  5,  2,  0,  2},
+	{ 96,  96,  3,  3,  2,  0},
+	{102, 102, 17,  0,  0,  2},
+	{108, 108,  6,  2,  0,  2},
+	{114, 114, 19,  0,  0,  2},
+	
+	{120, 120,  5,  2,  2,  0},
+	{126, 126,  7,  2,  0,  2},
+	{132, 132, 11,  0,  0,  1},
+	{138, 138, 23,  0,  0,  2},
+	{144, 144,  3,  3,  0,  1},
+	
+	{150, 150, 25,  0,  0,  2},
+	{156, 156, 13,  0,  0,  1},
+	{162, 162,  9,  2,  0,  2},
+	{168, 168,  7,  1,  0,  1},
+	{174, 174, 29,  0,  0,  2},
+	
+	{180, 180,  5,  2,  0,  1},
+	{186, 186, 31,  0,  0,  2},
+	{192, 192,  4,  3,  0,  1},
+	{198, 198, 11,  2,  0,  2},
+	{204, 204, 17,  0,  0,  1},
+	
+	{210, 208, 13,  1,  2,  0},
+	{216, 216,  6,  2,  0,  1},
+	{222, 224,  7,  3,  2,  0},
+	{228, 228, 19,  0,  0,  1},
+	{234, 234, 13,  2,  0,  2},
+	
+	{240, 240,  5,  3,  0,  1},
+	{246, 248, 31,  0,  2,  0},
+	{252, 252,  7,  2,  0,  1},
+	{258, 256,  8,  3,  2,  0},
+	{264, 264, 11,  0,  0,  0},
+	
+	{270, 270, 15,  2,  0,  2},
+	{276, 276, 23,  0,  0,  1},
+	{282, 288,  3,  3,  0,  0},
+	{288, 288,  3,  3,  0,  0},
+	{294, 288,  3,  3,  0,  0},
+	
+	{300, 300, 25,  0,  0,  1},
+	{306, 306, 17,  2,  0,  2},
+	{312, 312, 13,  0,  0,  0},
+	{318, 320, 10,  3,  2,  0},
+	{324, 324,  9,  2,  0,  1},
+	{330, 336,  7,  1,  0,  0},
+	{336, 336,  7,  1,  0,  0},
+	{342, 342, 19,  2,  0,  2},
+	{348, 348, 29,  0,  0,  1},
+	{354, 352, 11,  3,  2,  0},
+	{360, 360,  5,  2,  0,  0},
+	{366, 368, 23,  1,  2,  0},
+	{372, 372, 31,  0,  0,  1},
+	{378, 378, 21,  2,  0,  2},
+	{384, 384,  4,  3,  0,  0},
+	{390, 384,  4,  3,  0,  0},
+	{396, 396, 11,  2,  0,  1},
+	{402, 400, 25,  1,  2,  0},
+	{408, 408, 17,  0,  0,  0},
+	{414, 414, 23,  2,  0,  2},
+	{420, 416, 13,  3,  2,  0},
+	{426, 432,  6,  2,  0,  0},
+	{432, 432,  6,  2,  0,  0},
+	{438, 432,  6,  2,  0,  0},
+	{444, 448, 14,  3,  2,  0},
+	{450, 450, 25,  2,  0,  2},
+	{456, 456, 19,  0,  0,  0},
+	{462, 464, 29,  1,  2,  0},
+	{468, 468, 13,  2,  0,  1},
+	{474, 480,  5,  3,  0,  0},
+	{480, 480,  5,  3,  0,  0},
+	{486, 486, 27,  2,  0,  2},
+	{492, 496, 31,  1,  2,  0},
+	{498, 496, 31,  1,  2,  0}
+};
+#endif
 
 static int __init cedardev_init(void)
 {
@@ -470,7 +707,9 @@ static int __init cedardev_init(void)
 	int devno;
 	unsigned int val;
 	dev_t dev = 0;
-
+	
+	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
+	/*register or alloc the device number.*/
 	if (g_dev_major) {
 		dev = MKDEV(g_dev_major, g_dev_minor);	
 		ret = register_chrdev_region(dev, 1, "cedar_dev");
@@ -480,16 +719,21 @@ static int __init cedardev_init(void)
 		g_dev_minor = MINOR(dev);
 	}
 
+	 printk("[cedar dev]: install start..1. \n");
+
 	if (ret < 0) {
 		printk(KERN_WARNING "cedar_dev: can't get major %d\n", g_dev_major);
 		return ret;
 	}
-
+	
+	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
 	cedar_devp = kmalloc(sizeof(struct cedar_dev), GFP_KERNEL);
 	if (cedar_devp == NULL) {
 		printk("malloc mem for cedar device err\n");
 		return -ENOMEM;
 	}
+	
+	printk("[cedar dev]: install start..2. \n");
 	memset(cedar_devp, 0, sizeof(struct cedar_dev));
 	cedar_devp->irq = VE_IRQ_NO;
 
@@ -503,149 +747,124 @@ static int __init cedardev_init(void)
         printk("request irq err\n");
         return -EINVAL;
     }
-            	
+	
+	printk("the func: %s, the Line: %d\n", __func__, __LINE__);    	
+    printk("[cedar dev]: install start..3. \n");
     /* map for macc io space */
     cedar_devp->iomap_addrs.regs_macc = ioremap(MACC_REGS_BASE, 4096);
     if (!cedar_devp->iomap_addrs.regs_macc){
         printk("cannot map region for macc");
     }
-
-     cedar_devp->iomap_addrs.regs_ccmu = ioremap(CCMU_REGS_BASE, 4096);    
-     if (!cedar_devp->iomap_addrs.regs_ccmu){        
-        printk("cannot map region for ccmu");        
-     }    
-
-	/* DRAM Master Priority */
-//#if 0
-//	// set cpu priority
-//	val = readl(CPU_SRAM_PRIORITY_REG);
-//	printk("cpu -> %#x\n", val);
-//	val &= ~(0x3 << 2);
-//	val |= (0x3 << 2);
-//	//val &= ~(0xFF << 8);
-//	//val |= (0xF << 8);
-//	writel(val, CPU_SRAM_PRIORITY_REG);
-//#endif
-//#if 0 //-----------------------------------------------------------
-//	// set de priority
-//	val = readl(VE_SRAM_PRIORITY_REG);
-//	printk("ve -> %#x\n", val);
-//	val &= ~(0x3 << 2);
-//	val |= (0x3 << 2);
-//	//val &= ~(0xFF << 8);
-//	//val |= (0xF << 8);
-//	writel(val, VE_SRAM_PRIORITY_REG);
-//
-//	// set image0 priority
-//	val = readl(IMAGE0_SRAM_PRIORITY_REG);
-//	printk("image0 -> %#x\n", val);
-//	val &= ~(0x3 << 2);
-//	val |= (0x3 << 2);
-//	//val &= ~(0xFF << 8);
-//	//val |= (0x7 << 8);
-//	writel(val, IMAGE0_SRAM_PRIORITY_REG);
-//	
-//	// set scale0 priority
-//	val = readl(SCALE0_SRAM_PRIORITY_REG);
-//	printk("scale0 -> %#x\n", val);
-//	val &= ~(0x3 << 2);
-//	val |= (0x3 << 2);
-//	//val &= ~(0xFF << 8);
-//	//val |= (0x7 << 8);
-//	writel(val, SCALE0_SRAM_PRIORITY_REG);
-//	
-//	// set image1 priority
-//	val = readl(IMAGE1_SRAM_PRIORITY_REG);
-//	printk("image1 -> %#x\n", val);
-//	val &= ~(0x3 << 2);
-//	val |= (0x3 << 2);
-//	//val &= ~(0xFF << 8);
-//	//val |= (0x7 << 8);
-//	writel(val, IMAGE1_SRAM_PRIORITY_REG);
-//	
-//	// set scale1 priority
-//	val = readl(SCALE1_SRAM_PRIORITY_REG);
-//	printk("scale1 -> %#x\n", val);
-//	val &= ~(0x3 << 2);
-//	val |= (0x3 << 2);
-//	//val &= ~(0xFF << 8);
-//	//val |= (0x7 << 8);
-//	writel(val, SCALE1_SRAM_PRIORITY_REG);
-//	printk("set cpu image0/1 scale0/1 ve dram priority\n");
-//#endif
-
-
-
-
-//F20 provide by zyf
-//0x01c01060: 0x0000_0309  //for CPU-D
-//0x01c01064: 0x0000_0309  //for CPU-I
-//0x01c01068: 0x0000_0301  //for DMA
-//0x01c0106c: 0x0000_0305  //for GPS
-//0x01c01070: 0x0003_0701  //for BE0
-//0x01c01074: 0x0003_1001  //for FE0
-//0x01c01078: 0x0003_1001  //for CSI0
-//0x01c0107c: 0x0003_0701  //for TS
-//0x01c01080: 0x0003_1001  //for VE
-//0x01c01084: 0x0003_0701  //for BE1
-//0x01c01088: 0x0003_1001  //for FE1
-//0x01c0108c: 0x0003_0701  //for MP
-//0x01c01090: 0x0000_0000  //reserved
-//0x01c01094: 0x0003_1001  //for CSI1
-//0x01c01098: 0x0003_1001  //for AECE
-//0x01c0109c: 0x0000_0301  //for N-DMA/SDC
+	/* map for ccmu io space */
+	cedar_devp->iomap_addrs.regs_ccmu = ioremap(CCMU_REGS_BASE, 4096); //1024 ?
+	if (!cedar_devp->iomap_addrs.regs_ccmu){        
+		printk("cannot map region for ccmu");        
+	} 
+//		printk("cannot map region for sdarmc");        
+//	}
+//	cedar_devp->iomap_addrs.regs_sramc = ioremap(SRAM_REGS_BASE, 4096);
+//    if (!cedar_devp->iomap_addrs.regs_sramc){        
+//		printk("cannot map region for sdarmc");        
+//	}
+//	printk("[cedar dev]: install start..4. \n");
+	 	 
+//	printk("set cpu image0/1 scale0/1 ve dram priority start!\n");
 	
-	writel(0x00000309, 0xf1c01060); 
-	writel(0x00000309, 0xf1c01064); 
-	writel(0x00000301, 0xf1c01068); 
-	writel(0x00000305, 0xf1c0106c); 
-	writel(0x00030701, 0xf1c01070); 
-	writel(0x00031001, 0xf1c01074); 
-	writel(0x00031001, 0xf1c01078); 
-	writel(0x00030701, 0xf1c0107c); 
-	writel(0x00031001, 0xf1c01080); 
-	writel(0x00030701, 0xf1c01084); 
-	writel(0x00031001, 0xf1c01088); 
-	writel(0x00030701, 0xf1c0108c); 
-	writel(0x00000000, 0xf1c01090); 
-	writel(0x00031001, 0xf1c01094); 
-	writel(0x00031001, 0xf1c01098); 
-	writel(0x00000301, 0xf1c0109c); 
+	 	// set cpu priority	 	
+//	cedar_prip->cpu_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x60);
+//	writel(0x00000309, cedar_prip->cpu_sram_pri_reg);
 
+	// set de priority
+//	cedar_prip->ve_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x80);
+//	writel(0x00031001, cedar_prip->ve_sram_pri_reg);
 
-	/* VE Clock Setting */
-	val = readl(CCMU_VE_PLL_REG);
-	val |= (0x1 << 15);             // Enable VE PLL;
-	val &= ~(0x1 << 12);            // Disable ByPass;
-	//VE freq: 0x16->162; 0x17->168; 0x18->174; 0x19->180
-	//         0x1a->186; 0x1b->192; 0x1c->198; 0x1d->204
-	//         0x1e->210;
-	val |= 0x19;                
-	writel(val, CCMU_VE_PLL_REG);
-	printk("-----[cedar_dev] set ve clock -> %#x\n", val);
+	// set image0 priority
+//	cedar_prip->image0_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x70);
+//	writel(0x00030701, cedar_prip->image0_sram_pri_reg);
+	
+	// set scale0 priority
+//	cedar_prip->scale0_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x74);
+//	writel(0x00031001, cedar_prip->scale0_sram_pri_reg);
+	
+	// set image1 priority
+//	cedar_prip->image1_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x84);
+//	writel(0x00030701, cedar_prip->image1_sram_pri_reg);
 
-	val = readl(CCMU_AHB_GATE_REG); 
-	val |= (0x1 << 15);             // Disable VE AHB clock gating
-	writel(val, CCMU_AHB_GATE_REG);
+	// set scale1 priority
+//	cedar_prip->scale1_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x88);
+//	writel(0x00031001, cedar_prip->scale1_sram_pri_reg);
+//	printk("set cpu image0/1 scale0/1 ve dram priority end!\n");
 
-	val = readl(CCMU_VE_CLK_REG);   
-	val |= (0x1 << 7);              // Do not gate the speccial clock for DE
-	val |= (0x1 << 5);              // Reset VE
-	writel(val, CCMU_VE_CLK_REG);
+	printk("%s %d\n", __FUNCTION__, __LINE__);
 
-	val = readl(CCMU_SDRAM_PLL_REG);
-	val |= (0x1 << 24);             // Do not gate DRAM clock for VD
-	writel(val, CCMU_SDRAM_PLL_REG);
+	//macc PLL
+//	fq = VE_PLL_FREQ/6;
+//	fq -= 10;
+	val = readl(0xf1c20018);
+	val &= 0x7ffc0000;
+	val |= 1<<31;
+//	v |= (VEPLLTable[fq][5])<<16; //Pb
+//	v |= (VEPLLTable[fq][2])<<8; //Nb
+//	v |= (VEPLLTable[fq][3])<<4; //Kb
+//	v |= (VEPLLTable[fq][4])<<0; //Mb
+	val |= (0x0)<<16; //Pb
+	val |= (0x3)<<8; //Nb
+	val |= (0x3)<<4; //Kb
+	val |= (0x0)<<0; //Mb
+	writel(val,0xf1c20018);
+//	delay_icache(1);
+	
+	//Active AHB bus to ACE
+	val = readl(0xf1c20060);
+	val |= (1<<16);
+	writel(val,0xf1c20060);
+	
+	//Active AHB bus to MACC
+	val = readl(0xf1c20064);
+	val |= (1<<0);
+	writel(val,0xf1c20064);
+	
+	//Power on and release reset ve
+	val = readl(0xf1c2013c);
+	val &= ~(1<<0); //reset ve
+	writel(val,0xf1c2013c);
 
-	/* Security System  clock setting */
-	val = readl(CCMU_TS_SS_CLK_REG);
-	val |= (0x1 << 15);             // Do not gate the special clock for SS
-	val &= ~(0x3 << 12);            // Chosse video pll0
-	val &= ~(0xF << 8);             // Set SS freq as 1/2 video pll clock
-	val |= (0x1 << 8);
-	writel(val, CCMU_TS_SS_CLK_REG);
+	val = readl(0xf1c2013c);
+	val |= (1<<31);
+	val |= (1<<0);
+	writel(val,0xf1c2013c);
+	
+	//Power on and release reset ace
+	val = readl(0xf1c20148);
+	val |= (1<<31);
+	val |= (1<<16);
+	val |= (1<<0);//ratio
+	writel(val,0xf1c20148);
+	
+	//gate on the bus to SDRAM
+	val = readl(0xf1c20100);
+	val |= (1<<29);
+	val |= (1<<0);
+	writel(val,0xf1c20100);
+	
+	//VE_SRAM mapping to AC320
+	val = readl(0xf1c00000);
+	val &= 0x80000000;
+	writel(val,0xf1c00000);
+	
+	//remapping SRAM to MACC for codec test
+	val = readl(0xf1c00000);
+	val |= 0x7fffffff;
+	writel(val,0xf1c00000);
+	
+	//ACE_SRAM mapping to AC320
+	val = readl(0xf1c00004);
+	val |= (3<<8);
+	writel(val,0xf1c00004);
+
 
 	/* Create char device */
+	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
 	devno = MKDEV(g_dev_major, g_dev_minor);
 	cdev_init(&cedar_devp->cdev, &cedardev_fops);
 	cedar_devp->cdev.owner = THIS_MODULE;
@@ -654,13 +873,24 @@ static int __init cedardev_init(void)
 	if (ret) {
 		printk(KERN_NOTICE "Err:%d add cedardev", ret);
 	}
-
+    printk("[cedar dev]: dev install successfully \n");
+    
     cedar_devp->class = class_create(THIS_MODULE, "cedar_dev");
-    cedar_devp->dev   = device_create(cedar_devp->class, NULL, devno, NULL, "cedar_dev"); 
+    cedar_devp->dev   = device_create(cedar_devp->class, NULL, devno, NULL, "cedar_dev");
+	printk("the func: %s, the Line: %d\n", __func__, __LINE__);    	
 
+	cedarv_tsk = kthread_create(cedarv_tread, NULL, "cedarv_tread");
+	if (IS_ERR(cedarv_tsk)) {
+		ret = PTR_ERR(cedarv_tsk);
+		cedarv_tsk = NULL;
+		printk("create_thread for the cedar_engine error\n");
+		return ret;
+	}
+	wake_up_process(cedarv_tsk);
 	return 0;
 }
 module_init(cedardev_init);
+
 
 static void __exit cedardev_exit(void)
 {
