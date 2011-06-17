@@ -428,7 +428,7 @@ static int codec_capture_open(void)
 	 codec_wr_control(SW_ADC_ACTL, 0x1, VMIC_EN, 0x1);
 	 //select mic souce
 	 pr_debug("ADC SELECT \n");
-	 codec_wr_control(SW_ADC_ACTL, 0x7, ADC_SELECT, 0x4);
+	 //codec_wr_control(SW_ADC_ACTL, 0x7, ADC_SELECT, 0x4);//2011-6-17 11:41:12 hx del
 	 //enable adc digital
 	 codec_wr_control(SW_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x1);
 	 //set RX FIFO mode
