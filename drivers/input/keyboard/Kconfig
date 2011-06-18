@@ -471,8 +471,13 @@ config KEYBOARD_SUN4I_KEYBOARD
         tristate "SUN4I KEY BOARD support"
         help
           Say Y here to enable the keyboard, support 7 keys.
-          based on verify board.
-config 	IR_SUN3I
+          based on verify board.      
 
-        tristate "sun3i/sun4i IR  support"
+config  IR_SUN3I
+        tristate "sun4i IR  support"
+	depends on ARCH_SUN3I
+
+config 	IR_SUN4I
+        tristate "sun4i IR  support"
+	depends on ARCH_SUN4I
 endif
