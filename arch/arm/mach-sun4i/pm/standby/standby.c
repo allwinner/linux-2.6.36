@@ -25,7 +25,7 @@ extern char *__bss_end;
 
 static sp_backup;
 static void standby(void);
-static __u32 vcc, core_vdd, dram_vdd;
+static __u32 dcdc2, dcdc3, ldo1, ldo2, ldo3, ldo4;
 
 /* parameter for standby, it will be transfered from sys_pwm module */
 struct aw_pm_info  pm_info;
@@ -66,7 +66,6 @@ int main(struct aw_pm_info *arg)
     standby_clk_init();
     standby_int_init();
     standby_tmr_init();
-    standby_twi_init();
     standby_power_init();
     /* init some system wake source */
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_EXINT){
@@ -115,7 +114,6 @@ int main(struct aw_pm_info *arg)
         standby_key_exit();
     }
     standby_power_exit();
-    standby_twi_exit();
     standby_tmr_exit();
     standby_int_exit();
     standby_clk_init();
@@ -141,18 +139,24 @@ int main(struct aw_pm_info *arg)
 static void standby(void)
 {
     /* backup voltages */
-    vcc = standby_get_voltage(POWER_VOL_DCDC1);
-    core_vdd = standby_get_voltage(POWER_VOL_DCDC2);
-    dram_vdd = standby_get_voltage(POWER_VOL_DCDC3);
+    dcdc2 = standby_get_voltage(POWER_VOL_DCDC2);
+    dcdc3 = standby_get_voltage(POWER_VOL_DCDC3);
+    ldo1 = standby_get_voltage(POWER_VOL_LDO1);
+    ldo2 = standby_get_voltage(POWER_VOL_LDO2);
+    ldo3 = standby_get_voltage(POWER_VOL_LDO3);
+    ldo4 = standby_get_voltage(POWER_VOL_LDO4);
 
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
     standby_clk_plldisable();
 
     /* adjust voltage */
-    standby_set_voltage(POWER_VOL_DCDC1, VCC_SLEEP_VOL);
-    standby_set_voltage(POWER_VOL_DCDC3, DRAMVDD_SLEEP_VOL);
-    standby_set_voltage(POWER_VOL_DCDC2, COREVDD_SLEEP_VOL);
+    standby_set_voltage(POWER_VOL_DCDC2, STANDBY_DCDC2_VOL);
+    standby_set_voltage(POWER_VOL_DCDC3, STANDBY_DCDC3_VOL);
+    standby_set_voltage(POWER_VOL_LDO1,  STANDBY_LDO1_VOL);
+    standby_set_voltage(POWER_VOL_LDO2,  STANDBY_LDO2_VOL);
+    standby_set_voltage(POWER_VOL_LDO3,  STANDBY_LDO3_VOL);
+    standby_set_voltage(POWER_VOL_LDO4,  STANDBY_LDO4_VOL);
 
     #if 0
     /* switch cpu to 32k */
@@ -168,15 +172,8 @@ static void standby(void)
     /* clear lradc key */
     standby_query_key();
 
-    /* set vdd voltage to 1.0v */
-    standby_set_voltage(POWER_VOL_DCDC2, COREVDD_DEEP_SLEEP_VOL);
-
     /* cpu enter sleep, wait wakeup by interrupt */
     asm("WFI");
-
-    /* restore voltage to 1.2v */
-    standby_set_voltage(POWER_VOL_DCDC2, COREVDD_SLEEP_VOL);
-    standby_mdelay(30);
 
     #if(ALLOW_DISABLE_HOSC)
     /* enable LDO, enable HOSC */
@@ -198,9 +195,12 @@ static void standby(void)
     pm_info.standby_para.event |= standby_query_int(INT_SOURCE_TIMER0)? 0:SUSPEND_WAKEUP_SRC_TIMEOFF;
 
     /* restore voltage for exit standby */
-    standby_set_voltage(POWER_VOL_DCDC1, vcc);
-    standby_set_voltage(POWER_VOL_DCDC2, core_vdd);
-    standby_set_voltage(POWER_VOL_DCDC3, dram_vdd);
+    standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
+    standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
+    standby_set_voltage(POWER_VOL_LDO1, ldo1);
+    standby_set_voltage(POWER_VOL_LDO2, ldo2);
+    standby_set_voltage(POWER_VOL_LDO3, ldo3);
+    standby_set_voltage(POWER_VOL_LDO4, ldo4);
     standby_mdelay(30);
 
     /* enable pll */

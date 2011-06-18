@@ -210,19 +210,22 @@ void __init softwinner_init_irq(void)
 }
 
 static struct map_desc softwinner_io_desc[] __initdata = {
-	{ SW_VA_SRAM_BASE,	__phys_to_pfn(SW_PA_SRAM_BASE),	SZ_32K,		MT_MEMORY_ITCM},
-	{SW_VA_CCM_IO_BASE,	__phys_to_pfn(SW_PA_CCM_IO_BASE),	SZ_1K,		MT_DEVICE},
-	{ SW_VA_SRAM_IO_BASE,        __phys_to_pfn(SW_PA_SRAM_IO_BASE),           SZ_4K,     MT_DEVICE },
-	{ SW_VA_DRAM_IO_BASE,        __phys_to_pfn(SW_PA_DRAM_IO_BASE),           SZ_4K,     MT_DEVICE },
-	{ SW_VA_DMAC_IO_BASE,        __phys_to_pfn(SW_PA_DMAC_IO_BASE),           SZ_4K,     MT_DEVICE },
-	{ SW_VA_NANDFLASHC_IO_BASE,  __phys_to_pfn(SW_PA_NANDFLASHC_IO_BASE),     SZ_4K,     MT_DEVICE },
-	{ SW_VA_INT_IO_BASE,         __phys_to_pfn(SW_PA_INT_IO_BASE),            SZ_1K,     MT_DEVICE },
-	{ SW_VA_PORTC_IO_BASE,       __phys_to_pfn(SW_PA_PORTC_IO_BASE),          SZ_1K,     MT_DEVICE },
-	{ SW_VA_TIMERC_IO_BASE,      __phys_to_pfn(SW_PA_TIMERC_IO_BASE),         SZ_1K,     MT_DEVICE },
-	{ SW_VA_UART0_IO_BASE,       __phys_to_pfn(SW_PA_UART0_IO_BASE),          SZ_1K,     MT_DEVICE },
-	{ SW_VA_SID_IO_BASE,         __phys_to_pfn(SW_PA_SID_IO_BASE), SZ_1K, MT_DEVICE },
-	{ SW_VA_TP_IO_BASE,         __phys_to_pfn(SW_PA_TP_IO_BASE),   SZ_1K, MT_DEVICE },
-	{ SW_VA_LRADC_IO_BASE,      __phys_to_pfn(SW_PA_LRADC_IO_BASE), SZ_1K, MT_DEVICE }
+	{ SW_VA_SRAM_BASE,          __phys_to_pfn(SW_PA_SRAM_BASE),         SZ_32K, MT_MEMORY_ITCM  },
+	{ SW_VA_CCM_IO_BASE,        __phys_to_pfn(SW_PA_CCM_IO_BASE),	    SZ_1K,  MT_DEVICE       },
+	{ SW_VA_SRAM_IO_BASE,       __phys_to_pfn(SW_PA_SRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_DRAM_IO_BASE,       __phys_to_pfn(SW_PA_DRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_DMAC_IO_BASE,       __phys_to_pfn(SW_PA_DMAC_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_NANDFLASHC_IO_BASE, __phys_to_pfn(SW_PA_NANDFLASHC_IO_BASE),SZ_4K,  MT_DEVICE       },
+	{ SW_VA_INT_IO_BASE,        __phys_to_pfn(SW_PA_INT_IO_BASE),       SZ_1K,  MT_DEVICE       },
+	{ SW_VA_PORTC_IO_BASE,      __phys_to_pfn(SW_PA_PORTC_IO_BASE),     SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TIMERC_IO_BASE,     __phys_to_pfn(SW_PA_TIMERC_IO_BASE),    SZ_1K,  MT_DEVICE       },
+	{ SW_VA_UART0_IO_BASE,      __phys_to_pfn(SW_PA_UART0_IO_BASE),     SZ_1K,  MT_DEVICE       },
+	{ SW_VA_SID_IO_BASE,        __phys_to_pfn(SW_PA_SID_IO_BASE),       SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TP_IO_BASE,         __phys_to_pfn(SW_PA_TP_IO_BASE),        SZ_1K,  MT_DEVICE       },
+	{ SW_VA_LRADC_IO_BASE,      __phys_to_pfn(SW_PA_LRADC_IO_BASE),     SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TWI0_IO_BASE,       __phys_to_pfn(SW_PA_TWI0_IO_BASE),      SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TWI1_IO_BASE,       __phys_to_pfn(SW_PA_TWI1_IO_BASE),      SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TWI2_IO_BASE,       __phys_to_pfn(SW_PA_TWI2_IO_BASE),      SZ_1K,  MT_DEVICE       }
 
 };
 

@@ -22,10 +22,12 @@
 //config wakeup source for standby
 #define DISABLE_HOSC                (0)     // if allow disable hosc
 
-#define VCC_SLEEP_VOL               (3000)  // vcc sleep voltage, based on mini-volt
-#define COREVDD_SLEEP_VOL           (1000)  // core-vdd sleep voltage, based on mini-volt
-#define DRAMVDD_SLEEP_VOL           (1500)  // dram-vdd sleep voltage, based on mini-volt
-#define COREVDD_DEEP_SLEEP_VOL      (800)   // core-vdd deep sleep voltage, based on mini-volt
+#define STANDBY_LDO1_VOL            (1300)  //LDO1 voltage value
+#define STANDBY_LDO2_VOL            (3000)  //LDO2 voltage value
+#define STANDBY_LDO3_VOL            (2800)  //LDO3 voltage value
+#define STANDBY_LDO4_VOL            (3300)  //LDO4 voltage value
+#define STANDBY_DCDC2_VOL           (1000)  //DCDC2 voltage value
+#define STANDBY_DCDC3_VOL           (1000)  //DCDC3 voltage value
 
 
 #endif  /* __STANDBY_CFG_H__ */

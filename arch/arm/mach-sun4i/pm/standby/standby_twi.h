@@ -39,12 +39,12 @@ typedef struct tag_twic_reg
 
 
 enum twi_op_type_e{
-    TWI_OP_READ,
-    TWI_OP_WRITE,
+    TWI_OP_RD,
+    TWI_OP_WR,
 };
 
 
-extern __s32 standby_twi_init(void);
+extern __s32 standby_twi_init(int group);
 extern __s32 standby_twi_exit(void);
 extern __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data);
 

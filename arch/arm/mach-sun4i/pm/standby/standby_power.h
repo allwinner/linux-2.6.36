@@ -32,6 +32,38 @@ enum power_vol_type_e{
 
 };
 
+#define AXP_ADDR        (0x34)
+#define AXP_IICBUS      (0)
+#define AXP20_LDO1      (0x00)
+#define AXP20_LDO2      (0x28)
+#define AXP20_LDO3      (0x29)
+#define AXP20_LDO4      (0x28)
+#define AXP20_BUCK2     (0x23)
+#define AXP20_BUCK3     (0x27)
+
+#define AXP20LDO1       1300
+
+
+#define AXP(_id, min, max, step, vreg, shift, nbits)    \
+{                               \
+    .id = _id,                  \
+    .min_uV        = (min),     \
+    .max_uV        = (max),     \
+    .step_uV    = (step),       \
+    .vol_reg    =  (vreg),      \
+    .vol_shift    = (shift),    \
+    .vol_nbits    = (nbits),    \
+}
+
+struct axp_info {
+    enum    power_vol_type_e id;
+    int     min_uV;
+    int     max_uV;
+    int     step_uV;
+    int     vol_reg;
+    int     vol_shift;
+    int     vol_nbits;
+};
 
 extern __s32 standby_power_init(void);
 extern __s32 standby_power_exit(void);
