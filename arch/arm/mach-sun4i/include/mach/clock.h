@@ -42,6 +42,7 @@ typedef struct clk
 {
     __aw_ccu_clk_t  *clk;       /* clock handle from ccu csp                            */
     __s32           usr_cnt;    /* user count                                           */
+    __s32           enable;     /* enable count, when it down to 0, it will be disalbe  */
     __s32           hash;       /* hash value, for fast search without string compare   */
 
     __aw_ccu_clk_t  *(*get_clk)(__s32 id);
