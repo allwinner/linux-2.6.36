@@ -555,6 +555,22 @@ static inline void awsmc_debugfs_remove(struct awsmc_host *smc_host)
     debugfs_remove(smc_host->debug_root);
 }
 
+static inline void awsmc_procfs_attach(struct awsmc_host *smc_host)                    
+{
+    struct device *dev = &smc_host->pdev->dev;
+    char* dbg_reg_name[] = {"awsmc.0-reg", "awsmc.1-reg", "awsmc.2-reg", "awsmc.3-reg"};
+    
+    smc_host->proc_root = create_proc_entry(dev_name(dev), S_IFREG | S_IRUGO | S_IWUSR, NULL);
+    if (IS_ERR(smc_host->proc_root))
+    {
+        awsmc_msg("%s: failed to create debugfs root.\n", dev_name(dev));
+    }
+}
+
+static inline void awsmc_procfs_remove(struct awsmc_host *smc_host)
+{
+    remove_proc_entry(smc_host->proc_root);
+}
 #else
 
 static inline void awsmc_debugfs_attach(struct awsmc_host *smc_host) { }
@@ -630,8 +646,8 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->max_req_size	= 0x800000;              //32bit byte counter = 2^32 - 1
     mmc->max_seg_size	= mmc->max_req_size;
     
-    mmc->max_phys_segs	= 128;
-    mmc->max_hw_segs	= 128;
+    mmc->max_phys_segs	= 256;
+    mmc->max_hw_segs	= 256;
     
     /* add host */
     ret = mmc_add_host(mmc);
@@ -642,6 +658,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     }
 
     awsmc_debugfs_attach(smc_host);
+    awsmc_procfs_attach(smc_host);
     
     platform_set_drvdata(pdev, mmc);
     
@@ -725,6 +742,7 @@ static void awsmc_shutdown(struct platform_device *pdev)
     awsmc_msg("%s: ShutDown.\n", dev_name(&pdev->dev));   
     
     awsmc_debugfs_remove(smc_host);
+    awsmc_procfs_remove(smc_host);
 //    awsmc_cpufreq_deregister(smc_host);
     mmc_remove_host(mmc);
 }

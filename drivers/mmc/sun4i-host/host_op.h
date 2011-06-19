@@ -209,6 +209,14 @@ struct awsmc_host {
 	struct dentry		        *debug_level;
 	struct dentry		        *debug_regs;
 #endif
+
+#ifdef CONFIG_PROC_FS
+	struct proc_dir_entry		*proc_root;
+	struct proc_dir_entry		*proc_drvver;
+	struct proc_dir_entry		*proc_hostinfo;
+	struct proc_dir_entry		*proc_deglevel;
+	struct proc_dir_entry		*proc_regs;
+#endif
 };
 
 

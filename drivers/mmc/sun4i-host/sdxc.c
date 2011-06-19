@@ -665,7 +665,7 @@ static struct smc_idma_des* sdxc_alloc_idma_des(struct mmc_data* data)
     
     #endif
     
-    eLIBs_CleanFlushDCacheRegion(pdes, sizeof(struct smc_idma_des) * SDXC_MAX_DES_NUM);
+    eLIBs_CleanFlushDCacheRegion(pdes, sizeof(struct smc_idma_des) * (des_idx+1));
     
     return pdes;
 }
