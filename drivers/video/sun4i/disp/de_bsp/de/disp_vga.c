@@ -30,7 +30,7 @@ __s32 BSP_disp_vga_open(__u32 sel)
     	
     	lcdc_clk_on(sel);
     	image_clk_on(sel);
-		Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
+        Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     	tve_clk_on(sel);
     	disp_clk_cfg(sel,DISP_OUTPUT_TYPE_VGA, vga_mode);
     	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_VGA, 1);

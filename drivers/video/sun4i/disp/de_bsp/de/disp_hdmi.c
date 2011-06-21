@@ -44,7 +44,15 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
     	DE_BE_Output_Select(sel, sel);
     	TCON1_set_hdmi_mode(sel,tv_mod);		 	 
     	TCON1_open(sel);
-    	gdisp.init_para.Hdmi_open();
+    	if(gdisp.init_para.Hdmi_open)
+    	{
+    	    gdisp.init_para.Hdmi_open();
+    	}
+    	else
+    	{
+    	    DE_WRN("gdisp.init_para.Hdmi_open is NULL\n");
+    	    return -1;
+    	}
     	
     	Disp_Switch_Dram_Mode(DISP_OUTPUT_TYPE_HDMI, tv_mod);
 
@@ -61,7 +69,15 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
 {
     if(gdisp.screen[sel].status & HDMI_ON)
     {    
-        gdisp.init_para.Hdmi_close();
+    	if(gdisp.init_para.Hdmi_close)
+    	{
+    	    gdisp.init_para.Hdmi_close();
+    	}
+    	else
+    	{
+    	    DE_WRN("gdisp.init_para.Hdmi_close is NULL\n");
+    	    return -1;
+    	}
         Image_close(sel);
     	TCON1_close(sel);
 
@@ -88,8 +104,16 @@ __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t  mode)
         return DIS_FAIL;
     }
 
-	gdisp.init_para.hdmi_set_mode(mode);
-	
+	if(gdisp.init_para.hdmi_set_mode)
+	{
+	    gdisp.init_para.hdmi_set_mode(mode);
+	}
+	else
+	{
+	    DE_WRN("gdisp.init_para.hdmi_set_mode is NULL\n");
+	    return -1;
+	}
+
 	gdisp.screen[sel].hdmi_mode = mode;
 	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_HDMI;
 
@@ -104,8 +128,16 @@ __s32 BSP_disp_hdmi_get_mode(__u32 sel)
 __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode)
 { 
 	__s32          ret = 0;
-
-	ret = gdisp.init_para.hdmi_mode_support(mode);
+	
+	if(gdisp.init_para.hdmi_mode_support)
+	{
+	    ret = gdisp.init_para.hdmi_mode_support(mode);
+	}
+	else
+	{
+	    DE_WRN("gdisp.init_para.hdmi_set_mode is NULL\n");
+	    return -1;
+	}
 
 	return ret;
 }
@@ -114,7 +146,15 @@ __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel)
 {
 	__s32          ret = 0;
 
-	ret = gdisp.init_para.hdmi_get_HPD_status();
+	if(gdisp.init_para.hdmi_get_HPD_status)
+	{
+	    ret = gdisp.init_para.hdmi_get_HPD_status();
+	}
+	else
+	{
+	    DE_WRN("gdisp.init_para.hdmi_set_mode is NULL\n");
+	    return -1;
+	}
 
 	return ret;
 }

@@ -11,6 +11,8 @@ config HAVE_FB_ATMEL
 config HAVE_FB_IMX
 	bool
 
+source "drivers/video/sun4i/Kconfig"
+
 source "drivers/char/agp/Kconfig"
 
 source "drivers/gpu/vga/Kconfig"

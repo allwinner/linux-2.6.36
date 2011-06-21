@@ -1,7 +1,11 @@
 #include "dev_disp.h"
-#include "drv_disp.h"
+
+fb_info_t g_fbi;
+__disp_drv_t g_disp_drv;
+
 
 static unsigned int gbuffer[4096];
+static __u32 output_type[2] = {0,0};
 
 static struct info_mm  g_disp_mm[2];
 static int g_disp_mm_sel = 0;
@@ -10,7 +14,7 @@ static struct cdev *my_cdev;
 static dev_t devid ;
 static struct class *disp_class;
 
-static __u32 output_type[2] = {0,0};
+
 static struct resource disp_resource[DISP_IO_NUM] = 
 {
 	[DISP_IO_SCALER0] = {
@@ -55,14 +59,266 @@ static struct resource disp_resource[DISP_IO_NUM] =
 	},
 };
 
-struct platform_device disp_device = 
+
+__s32 DRV_disp_print_reg(__u32 id)
+{   
+    __u32 base = 0, size = 0;
+    __u32 i = 0;
+
+    switch(id)
+    {
+        case DISP_REG_SCALER0:
+            base = (__u32)g_fbi.io[DISP_IO_SCALER0];
+            size = 0xa18;
+            __inf("scaler0:\n");
+            break;
+            
+        case DISP_REG_SCALER1:
+            base = (__u32)g_fbi.io[DISP_IO_SCALER1];
+            size = 0xa18;
+            __inf("scaler1:\n");
+            break;
+            
+        case DISP_REG_IMAGE0:
+            base = (__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x800;
+            size = 0xdff - 0x800;
+            __inf("image0:\n");
+            break;
+            
+        case DISP_REG_IMAGE1:
+            base = (__u32)g_fbi.io[DISP_IO_IMAGE1] + 0x800;
+            size = 0xdff - 0x800;
+            __inf("image1:\n");
+            break;
+        case DISP_REG_LCDC0:
+            base = (__u32)g_fbi.io[DISP_IO_LCDC0];
+            size = 0x100;
+            __inf("lcdc0:\n");
+            break;
+            
+        case DISP_REG_LCDC1:
+            base = (__u32)g_fbi.io[DISP_IO_LCDC1];
+            size = 0x100;
+            __inf("lcdc1:\n");
+            break;
+            
+        case DISP_REG_TVEC0:
+            base = (__u32)g_fbi.io[DISP_IO_TVEC0];
+            size = 0x20c;
+            __inf("tvec0:\n");
+            break;
+            
+        case DISP_REG_TVEC1:
+            base = (__u32)g_fbi.io[DISP_IO_TVEC1];
+            size = 0x20c;
+            __inf("tvec1:\n");
+            break;
+            
+        case DISP_REG_CCMU:
+            base = g_fbi.base_ccmu;
+            size = 0x158;
+            __inf("ccmu:\n");
+            break;
+            
+        case DISP_REG_PIOC:
+            base = g_fbi.base_pioc;
+            size = 0x228;
+            __inf("pioc:\n");
+            break;
+            
+        case DISP_REG_PWM:
+            base = g_fbi.base_pwm + 0x200;
+            size = 0x0c;
+            __inf("pwm:\n");
+            break;
+            
+        default:
+            return DIS_FAIL;
+    }
+    
+    for(i=0; i<size; i+=16)
+    {
+        __u32 reg[4];
+        
+        reg[0] = sys_get_wvalue(base + i);
+        reg[1] = sys_get_wvalue(base + i + 4);
+        reg[2] = sys_get_wvalue(base + i + 8);
+        reg[3] = sys_get_wvalue(base + i + 12);
+        
+        __inf("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+    }
+    
+    return DIS_SUCCESS;
+}
+
+__s32 DRV_lcd_open(__u32 sel)
+{    
+    __u32 i = 0;
+    __lcd_flow_t *flow;
+
+	if(g_disp_drv.b_lcd_open[sel] == 0)
+	{	    
+	    BSP_disp_lcd_open_before(sel);
+
+	    flow = BSP_disp_lcd_get_open_flow(sel);
+	    for(i=0; i<flow->func_num; i++)
+	    {
+	        __u32 timeout = flow->func[i].delay*HZ/1000;
+
+	        flow->func[i].func(sel);
+	    	
+	    	set_current_state(TASK_INTERRUPTIBLE);
+	    	schedule_timeout(timeout);    
+
+	    }
+
+	    BSP_disp_lcd_open_after(sel);
+
+		g_disp_drv.b_lcd_open[sel] = 1;
+	}
+	
+    return 0;
+}
+
+__s32 DRV_lcd_close(__u32 sel)
+{    
+    __u32 i = 0;
+    __lcd_flow_t *flow;
+
+	if(g_disp_drv.b_lcd_open[sel] == 1)
+	{
+	    BSP_disp_lcd_close_befor(sel);
+
+	    flow = BSP_disp_lcd_get_close_flow(sel);
+	    for(i=0; i<flow->func_num; i++)
+	    {
+	        __u32 timeout = flow->func[i].delay*HZ/1000;
+
+	        flow->func[i].func(sel);
+
+	    	set_current_state(TASK_INTERRUPTIBLE);
+	    	schedule_timeout(timeout);    
+
+	    }
+
+	    BSP_disp_lcd_close_after(sel);
+
+		g_disp_drv.b_lcd_open[sel] = 0;
+	}
+    return 0;
+}
+
+__s32 DRV_scaler_begin(__u32 sel)
 {
-	.name           = "disp",
-	.id		        = -1,
-	.num_resources  = ARRAY_SIZE(disp_resource),
-	.resource	    = disp_resource,
-	.dev            = {}
-};
+    down(g_disp_drv.scaler_finished_sem[sel]);
+    return 0;
+}
+
+void DRV_scaler_finish(__u32 sel)
+{
+    up(g_disp_drv.scaler_finished_sem[sel]);
+}
+
+
+__s32 disp_set_hdmi_func(__disp_hdmi_func * func)
+{
+    BSP_disp_set_hdmi_func(func);
+    
+    return 0;
+}
+
+void DRV_disp_wait_cmd_finish(__u32 sel)
+{
+    if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
+    {
+        long timeout = 50 * HZ / 1000;//50ms
+
+        g_disp_drv.b_cmd_finished[sel] = 0;
+        timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1, timeout);
+        if(timeout == 0)
+        {
+            __inf("wait cmd finished timeout\n");
+        }
+    }
+}
+
+__s32 DRV_disp_int_process(__u32 sel)
+{
+    if(g_disp_drv.b_cmd_finished[sel] == 0)
+    {
+        g_disp_drv.b_cmd_finished[sel] = 1;
+        wake_up(&g_disp_drv.my_queue[sel]);
+    }
+    return 0;
+}
+
+__s32 DRV_DISP_Init(void)
+{
+    __disp_bsp_init_para para;
+
+    para.base_image0    = (__u32)g_fbi.io[DISP_IO_IMAGE0];
+    para.base_image1    = (__u32)g_fbi.io[DISP_IO_IMAGE1];
+    para.base_scaler0   = (__u32)g_fbi.io[DISP_IO_SCALER0];
+    para.base_scaler1   = (__u32)g_fbi.io[DISP_IO_SCALER1];
+    para.base_lcdc0     = (__u32)g_fbi.io[DISP_IO_LCDC0];
+    para.base_lcdc1     = (__u32)g_fbi.io[DISP_IO_LCDC1];
+    para.base_tvec0      = (__u32)g_fbi.io[DISP_IO_TVEC0];
+    para.base_tvec1      = (__u32)g_fbi.io[DISP_IO_TVEC1];
+    para.base_ccmu      = (__u32)g_fbi.base_ccmu;
+    para.base_sdram     = (__u32)g_fbi.base_sdram;
+    para.base_pioc      = (__u32)g_fbi.base_pioc;
+    para.base_pwm       = (__u32)g_fbi.base_pwm;
+    
+    para.scaler_begin   		= DRV_scaler_begin;
+    para.scaler_finish  		= DRV_scaler_finish;
+    para.tve_interrup   		= NULL;
+	para.Hdmi_open  			= NULL;
+	para.Hdmi_close  			= NULL;
+	para.hdmi_set_mode  		= NULL;
+	para.hdmi_mode_support		= NULL;
+	para.hdmi_get_HPD_status	= NULL;
+	para.disp_int_process       = DRV_disp_int_process;
+
+	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
+
+	g_disp_drv.scaler_finished_sem[0] = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
+    if(!g_disp_drv.scaler_finished_sem[0])
+    {
+        __wrn("create scaler_finished_sem[0] fail!\n");
+        return -1;
+    }  
+	sema_init(g_disp_drv.scaler_finished_sem[0],0);
+
+
+	g_disp_drv.scaler_finished_sem[1] = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
+    if(!g_disp_drv.scaler_finished_sem[1])
+    {
+        __wrn("create scaler_finished_sem[1] fail!\n");
+        return -1;
+    }    
+	sema_init(g_disp_drv.scaler_finished_sem[1],0);
+
+    init_waitqueue_head(&g_disp_drv.my_queue[0]);
+    init_waitqueue_head(&g_disp_drv.my_queue[1]);
+
+    BSP_disp_init(&para);
+    BSP_disp_open();
+    Fb_Init();
+
+    return 0;        
+}
+
+__s32 DRV_DISP_Exit(void)
+{        
+    Fb_Exit();
+    BSP_disp_close();
+    BSP_disp_exit(g_disp_drv.exit_mode);
+
+	kfree(g_disp_drv.scaler_finished_sem[0]);
+	kfree(g_disp_drv.scaler_finished_sem[1]);
+
+    return 0;
+} 
 
 
 int disp_mem_request(int sel,__u32 size)
@@ -160,7 +416,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	ubuffer[2] = (*(unsigned long*)(karg+2));
 	ubuffer[3] = (*(unsigned long*)(karg+3));
 
-    if((cmd != DISP_CMD_MEM_REQUEST) && (cmd != DISP_CMD_MEM_RELASE) && (cmd != DISP_CMD_MEM_SELIDX) && (cmd != DISP_CMD_MEM_GETADR))
+    if(cmd < DISP_CMD_FB_REQUEST)
     {
         if((ubuffer[0] != 0) && (ubuffer[0] != 1))
         {
@@ -311,7 +567,15 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         case DISP_CMD_SET_SCREEN_SIZE:
             ret = BSP_disp_set_screen_size(ubuffer[0], (__disp_rectsz_t*)ubuffer[1]);
             break;
-            
+
+        case DISP_CMD_DE_FLICKER_ON:
+            ret = BSP_disp_de_flicker_enable(ubuffer[0], 1);
+            break;
+
+        case DISP_CMD_DE_FLICKER_OFF:
+            ret = BSP_disp_de_flicker_enable(ubuffer[0], 0);
+            break;
+
     //----layer----
     	case DISP_CMD_LAYER_REQUEST:
     		ret = BSP_disp_layer_request(ubuffer[0], (__disp_layer_work_mode_t)ubuffer[1]);
@@ -1047,17 +1311,17 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     	{
     	    __disp_fb_create_para_t para;
     	    
-    		if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_fb_create_para_t)))
+    		if(copy_from_user(&para, (void __user *)ubuffer[0],sizeof(__disp_fb_create_para_t)))
     		{
     		    __wrn("copy_from_user fail\n");
     			return  -EFAULT;
     		}
-			ret = Display_Fb_Request(ubuffer[0], &para);
+			ret = Display_Fb_Request(&para);
 			break;
         }
         
 		case DISP_CMD_FB_RELEASE:
-			ret = Display_Fb_Release(ubuffer[1]);
+			ret = Display_Fb_Release(ubuffer[0]);
 			break;
 
 		case DISP_CMD_MEM_REQUEST:
@@ -1085,23 +1349,16 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = BSP_disp_clk_on();
 			break;
 
+        case DISP_CMD_PRINT_REG:
+            ret = DRV_disp_print_reg(ubuffer[0]);
+            break;
+            
 		default:
 		    break;
     }
 
 	return ret;
 }
-
-static const struct file_operations disp_fops = 
-{
-	.owner		= THIS_MODULE,
-	.open		= disp_open,
-	.release    = disp_release,
-	.write      = disp_write,
-	.read		= disp_read,
-	.unlocked_ioctl	= disp_ioctl,
-	.mmap       = disp_mmap,
-};
 
 static int __init disp_probe(struct platform_device *pdev)//called when platform_driver_register
 {
@@ -1397,6 +1654,17 @@ int disp_resume(struct platform_device *pdev)
     return 0;
 }
 
+static const struct file_operations disp_fops = 
+{
+	.owner		= THIS_MODULE,
+	.open		= disp_open,
+	.release    = disp_release,
+	.write      = disp_write,
+	.read		= disp_read,
+	.unlocked_ioctl	= disp_ioctl,
+	.mmap       = disp_mmap,
+};
+
 static struct platform_driver disp_driver = 
 {
 	.probe		= disp_probe,
@@ -1408,6 +1676,16 @@ static struct platform_driver disp_driver =
 		.name	= "disp",
 		.owner	= THIS_MODULE,
 	},
+};
+
+
+struct platform_device disp_device = 
+{
+	.name           = "disp",
+	.id		        = -1,
+	.num_resources  = ARRAY_SIZE(disp_resource),
+	.resource	    = disp_resource,
+	.dev            = {}
 };
 
 int __init disp_module_init(void)
@@ -1462,6 +1740,8 @@ static void __exit disp_module_exit(void)
 
     cdev_del(my_cdev);
 }
+
+EXPORT_SYMBOL(disp_set_hdmi_func);
 
 
 //late_initcall(disp_module_init);

@@ -68,9 +68,7 @@ __disp_pixel_type_t get_fb_type(__disp_pixel_fmt_t  format)
 
 // 0: yuv channel format
 // 1: yuv channel pixel sequence
-// 2: image1 format
 // 3: image0 pixel sequence
-// 4: image1 pixel sequence
 static __s32 img_sw_para_to_reg(__u8 type, __u8 mode, __u8 value)
 {
     if(type == 0)//yuv channel format
@@ -140,51 +138,7 @@ static __s32 img_sw_para_to_reg(__u8 type, __u8 mode, __u8 value)
 	        DE_WRN("not supported yuv channel pixel sequence:%d in img_sw_para_to_reg\n",value);
 	        return 0;
 	    }
-    }
-    else if(type == 2)//image1 format
-    {
-        if(value == DISP_FORMAT_ARGB8888)
-        {
-            return 0;
-        }
-        else if(value == DISP_FORMAT_ARGB1555)
-        {
-            return 1;
-        }
-        else if(value == DISP_FORMAT_RGB565)
-        {
-            return 2;
-        }
-        else if(value == DISP_FORMAT_RGB655)
-        {
-            return 3;
-        }
-        else if(value == DISP_FORMAT_RGB556)
-        {
-            return 4;
-        }
-        else if(value == DISP_FORMAT_1BPP)
-        {
-            return 5;
-        }
-        else if(value == DISP_FORMAT_2BPP)
-        {
-            return 6;
-        }
-        else if(value == DISP_FORMAT_4BPP)
-        {
-            return 7;
-        }
-        else if(value == DISP_FORMAT_8BPP)
-        {
-            return 8;
-        }
-	    else
-	    {
-	        DE_WRN("not supported image1 format:%d in img_sw_para_to_reg\n",value);
-	        return 0;
-	    }
-    }
+    }    
     else if(type == 3)//image0 pixel sequence
     {
         if(value == DISP_SEQ_ARGB)
@@ -265,22 +219,6 @@ static __s32 img_sw_para_to_reg(__u8 type, __u8 mode, __u8 value)
 	        return 0;
 	    }
     }
-    else if(type == 4)
-    {
-        if(value == DISP_SEQ_ARGB)
-        {
-            return 0;
-        }
-        else if(value == DISP_SEQ_BGRA)
-        {
-            return 1;
-        }
-	    else
-	    {
-	        DE_WRN("not supported image1 pixel sequence:%d in img_sw_para_to_reg\n",value);
-	        return 0;
-	    }
-    }
 
     DE_WRN("not supported type:%d in img_sw_para_to_reg\n",type);
     return 0;
@@ -307,6 +245,7 @@ __s32 de_format_to_bpp(__disp_pixel_fmt_t fmt)
     case DISP_FORMAT_RGB556:
     case DISP_FORMAT_ARGB1555:
     case DISP_FORMAT_RGBA5551:
+    case DISP_FORMAT_ARGB4444:
         return 16;
         
     case DISP_FORMAT_RGB888:
@@ -897,6 +836,11 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
 
     layer_man = &gdisp.screen[sel].layer_manage[hid];
+    if(player->b_from_screen)
+    {
+        layer_man->para.mode = DISP_LAYER_WORK_MODE_SCALER;
+    }
+    
     if(layer_man->status & LAYER_USED)
     {
     	BSP_disp_cfg_start(sel);
