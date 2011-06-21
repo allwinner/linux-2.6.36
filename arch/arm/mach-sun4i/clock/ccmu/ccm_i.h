@@ -35,5 +35,15 @@ extern __ccmu_reg_list_t   *aw_ccu_reg;
     #define CCU_ERR(...)
 #endif
 
+
+struct core_pll_factor_t {
+    __u8    FactorN;
+    __u8    FactorK;
+    __u8    FactorM;
+    __u8    FactorP;
+};
+
+extern int ccm_clk_get_pll_para(struct core_pll_factor_t *factor, __u64 rate);
+
 #endif /* #ifndef __AW_CCMU_I_H__ */
 
