@@ -49,12 +49,7 @@
 
 //#define AW1623_FPGA
 
-#define DRIVER_NAME "f20-smc"
-/* SMC Select Mask */
-#define  SMC_GROUP_0_ENB        0x10
-#define  SMC_GROUP_1_ENB        0x1000
-#define  SMC_GROUP_2_ENB        0x100000
-#define  SMC_GROUP_3_ENB        0x10000000
+#define DRIVER_NAME "sw-smc"
 
 #define CARD_DETECT_BY_GPIO     (1)
 #define CARD_DETECT_BY_DATA3    (2)        /* mmc detected by status of data3 */
@@ -72,17 +67,6 @@
 #define  INTC_IRQNO_SMC2       34
 #define  INTC_IRQNO_SMC3       35
 
-/* 
- * SDMMC PINS MAPPING:
- * SDC0 - D1-PF0, D0-PF1, CLK-PF2, CMD-PF3, D3-PF4, D4-PF5
- * SDC1-A - CMD-PE12, CLK-PE13, D0-PE14, D1-PE15, D2-PE16, D3-PE17
- * SDC1-B - CMD-PC3, CLK-PC5, DATA-PC12,13,14,15
- * SDC2-A - CMD-PC6, CLK-PC7, D0-PC8, D1-PC9, D2-PC10, D3-PC11
- * SDC2-B - D1-PF0, D0-PF1, CLK-PF2, CMD-PF3, D3-PF4, D4-PF5
- * SDC3-A - D3-PA4, D2-PA5, D1-PA6, D0-PA7, CLK-PA8, CMD-PA9
- * SDC3-B - CMD-PE26, CLK-PE27, D0-PE28, D1-PE29, D2-PE30, D3-PE31
- */
- 
 /* register operation */
 #define  sdc_write(addr, val)   writel(val, addr)
 #define  sdc_read(addr)         readl(addr)
@@ -202,7 +186,7 @@ struct awsmc_host {
 #ifdef CONFIG_CPU_FREQ
 	struct notifier_block       freq_transition;
 #endif
-
+/*
 #ifdef CONFIG_DEBUG_FS
 	struct dentry		        *debug_root;
 	struct dentry		        *driver_version;
@@ -210,7 +194,7 @@ struct awsmc_host {
 	struct dentry		        *debug_level;
 	struct dentry		        *debug_regs;
 #endif
-
+*/
 #ifdef CONFIG_PROC_FS
 	struct proc_dir_entry		*proc_root;
 	struct proc_dir_entry		*proc_drvver;

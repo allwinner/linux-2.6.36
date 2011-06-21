@@ -271,7 +271,7 @@ static s32 awsmc_get_ro(struct mmc_host *mmc)
     {
         gpio_val = gpio_read_one_pin_value(smc_host->pio_hdle, "sdc_wp");
         awsmc_dbg("sdc fetch card write protect pin status val = %d \n", gpio_val);
-        if (gpio_val)
+        if (!gpio_val)
         {
             smc_host->read_only = 0;
             return 0;
