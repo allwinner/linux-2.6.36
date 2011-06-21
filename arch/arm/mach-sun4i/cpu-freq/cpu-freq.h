@@ -33,9 +33,9 @@
 #endif
 
 
-#define SUN4I_CPUFREQ_MAX       (1488000000)    /* config the maximum frequency of sun4i core */
+#define SUN4I_CPUFREQ_MAX       (912000000)     /* config the maximum frequency of sun4i core */
 #define SUN4I_CPUFREQ_MIN       (60000000)      /* config the minimum frequency of sun4i core */
-#define SUN4I_FREQTRANS_LATENCY (10000000)      /* config the transition latency, based on ns */
+#define SUN4I_FREQTRANS_LATENCY (2000000)       /* config the transition latency, based on ns */
 
 struct sun4i_clk_div_t {
     __u32   cpu_div:4;      /* division of cpu clock, divide core_pll */
