@@ -94,9 +94,19 @@ static __s32 _RestorePageData(struct __SuperPhyBlkType_t *pBadBlk, __u32 nZoneNu
 static __s32 _MarkBadBlk(struct __SuperPhyBlkType_t *pBadBlk, __u32 nZoneNum)
 {
     __s32   i;
+	__s32   ret;
     struct __PhysicOpPara_t tmpPage;
     struct __NandUserData_t tmpSpare[2];
 
+	//add by neil 20101201
+	/* erase bad blcok */
+	ret = LML_VirtualBlkErase(nZoneNum, pBadBlk->PhyBlkNum);
+	if(ret)
+	{
+		LOGICCTL_DBG("[LOGICCTL_DBG] erase bad block fail!\n");
+	}
+
+	
     //set the spare area data for write
     MEMSET((void *)tmpSpare, 0x00, 2*sizeof(struct __NandUserData_t));
 

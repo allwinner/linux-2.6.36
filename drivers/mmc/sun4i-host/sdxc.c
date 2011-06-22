@@ -526,6 +526,7 @@ static void sdxc_send_cmd(struct awsmc_host* smc_host, struct mmc_command* cmd)
 * Returns    :  
 * Note       :
 *********************************************************************/
+/*
 static void sdxc_trans_by_ahb(struct awsmc_host* smc_host, struct mmc_data* data)
 {
     u32 i, j;
@@ -533,7 +534,6 @@ static void sdxc_trans_by_ahb(struct awsmc_host* smc_host, struct mmc_data* data
     u32 dword_cnt;
     u32 remain;
     
-//printk("error ahb access, data %p, data->blksz %d, nblks %d\n", data, data->blksz, data->blocks);
     awsmc_dbg("sg_len %d !!\n", data->sg_len);
     
     for (i=0; i<data->sg_len; i++)
@@ -583,7 +583,9 @@ static void sdxc_trans_by_ahb(struct awsmc_host* smc_host, struct mmc_data* data
             }
         }
     }
+    
 }
+*/
 
 /*********************************************************************
 * Method	 :  
@@ -604,6 +606,7 @@ static struct smc_idma_des* sdxc_alloc_idma_des(struct mmc_data* data)
     pdes = (struct smc_idma_des*)kmalloc(sizeof(struct smc_idma_des) * SDXC_MAX_DES_NUM, GFP_DMA | GFP_KERNEL);
     if (pdes == NULL)
     {
+	    awsmc_dbg_err("alloc dma des failed\n");
         return NULL;
     }
     memset((void*)pdes, 0, sizeof(struct smc_idma_des) * SDXC_MAX_DES_NUM);
@@ -687,6 +690,7 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
 	dma_len = dma_map_sg(mmc_dev(smc_host->mmc), data->sg, data->sg_len, (data->flags & MMC_DATA_WRITE) ? DMA_TO_DEVICE : DMA_FROM_DEVICE);
 	if (dma_len == 0)
 	{
+		awsmc_dbg_err("no dma map memory\n");
 		return -ENOMEM;
 	}	
 		
@@ -694,7 +698,7 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
     {
         if (sg_dma_address(&data->sg[i]) & 3)
         {
-		    //printk("unaligned dma address[%d] %p\n", i, sg_dma_address(&data->sg[i]));
+		    awsmc_dbg_err("unaligned dma address[%d] %p\n", i, (void*)sg_dma_address(&data->sg[i]));
 			return -EINVAL;
         }
     }
@@ -706,7 +710,7 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
         return -ENOMEM;
     }
     sdxc_dma_enable(smc_host);
-//    sdxc_dma_reset(smc_host);
+    sdxc_dma_reset(smc_host);
     sdxc_idma_reset(smc_host);
     sdxc_idma_on(smc_host);
     sdxc_idma_int_disable(smc_host, SDXC_IDMACTransmitInt|SDXC_IDMACReceiveInt);
@@ -757,7 +761,7 @@ void sdxc_request(struct awsmc_host* smc_host, struct mmc_request* request)
         sdc_write(SDXC_REG_BCNTR, byte_cnt);
         
         awsmc_dbg("-> with data %d bytes, sg_len %d\n", byte_cnt, data->sg_len);
-        if (byte_cnt > 0)
+        //if (byte_cnt > 0)
         {
             sdxc_sel_access_mode(smc_host, SDXC_ACCESS_BY_DMA);
             smc_host->todma = 0;
@@ -766,19 +770,24 @@ void sdxc_request(struct awsmc_host* smc_host, struct mmc_request* request)
             {
                 awsmc_dbg_err("smc %d prepare DMA failed\n", smc_host->pdev->id);
 		        smc_host->dodma = 0;
+		        
+                awsmc_dbg_err("data prepare error %d\n", ret);
+    			cmd->error = ret;
+    			cmd->data->error = ret;
+    			mmc_request_done(smc_host->mmc, request);
+    			return;
             }
-            else
-            {
-                smc_host->dodma = 1;
-            }
+            smc_host->dodma = 1;
         }
         
+        /*
         if (!smc_host->dodma)
         {
             sdxc_sel_access_mode(smc_host, SDXC_ACCESS_BY_AHB);
             smc_host->dodma = 0;
+            uart_send_char('h');
         }
-        
+        */
         if (data->stop)
             smc_host->with_autostop = 1;
         else
@@ -789,10 +798,10 @@ void sdxc_request(struct awsmc_host* smc_host, struct mmc_request* request)
     sdxc_cd_debounce_off(smc_host);
     sdxc_send_cmd(smc_host, cmd);
     
+    /*
     if (data && !smc_host->dodma)
     {
-	//printk("data is not null %p, blks %d, blksz %d, dma use %d, dodma %d, ret %d\n", data, data->blocks, data->blksz, dma_use, smc_host->dodma, ret);
-        sdxc_disable_imask(smc_host, SDXC_DataOver | SDXC_AutoCMDDone);
+	    sdxc_disable_imask(smc_host, SDXC_DataOver | SDXC_AutoCMDDone);
         sdxc_trans_by_ahb(smc_host, data);
         sdxc_sel_access_mode(smc_host, SDXC_ACCESS_BY_DMA);
         if (smc_host->with_autostop)
@@ -804,6 +813,7 @@ void sdxc_request(struct awsmc_host* smc_host, struct mmc_request* request)
             sdxc_enable_imask(smc_host, SDXC_DataOver);
         }
     }
+    */
 }
 
 /*********************************************************************
@@ -884,9 +894,9 @@ void sdxc_check_status(struct awsmc_host* smc_host)
 	    smc_host->wait = SDC_WAIT_FINALIZE;
 	}
     
-    if (idma_int & (SDXC_IDMACTransmitInt | SDXC_IDMACReceiveInt))
-    {
-    }
+//    if (idma_int & (SDXC_IDMACTransmitInt | SDXC_IDMACReceiveInt))
+//    {
+//    }
 irq_normal_out:
     sdc_write(SDXC_REG_RINTR, (~SDXC_SDIOInt) & msk_int);
 	sdc_write(SDXC_REG_IDST, idma_int);

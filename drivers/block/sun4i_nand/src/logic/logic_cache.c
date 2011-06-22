@@ -30,7 +30,11 @@
 #include <linux/module.h>
 #include "../include/nand_logic.h"
 
-#define N_NAND_W_CACHE  3
+//#define CACHE_DBG
+
+#define NAND_W_CACHE_EN
+#define N_NAND_W_CACHE  1
+
 
 typedef struct
 {
@@ -75,7 +79,7 @@ __u32 _get_first_valid_bit(__u32 secbitmap)
 	return firstbit;
 }
 
-__s32 NAND_CacheFlush(void)
+__s32 _flush_w_cache(void)
 {
 	__u32	i;
 
@@ -90,15 +94,27 @@ __s32 NAND_CacheFlush(void)
 			nand_w_cache[i].hit_page = 0xffffffff;
 			nand_w_cache[i].secbitmap = 0;
 			nand_w_cache[i].access_count = 0;
-
+			
 			/*disable read cache with current page*/
 			if (nand_r_cache.hit_page == nand_w_cache[i].hit_page){
 					nand_r_cache.hit_page = 0xffffffff;
 					nand_r_cache.secbitmap = 0;
-			}						
-			
+			}	
+								
 		}
 	}
+
+
+	return 0;
+	
+}
+
+
+__s32 NAND_CacheFlush(void)
+{
+	__u32	i;
+
+	_flush_w_cache();
 
 	return 0;
 	
@@ -130,6 +146,7 @@ void _get_one_page(__u32 page,__u32 SecBitmap,__u8 *data)
 {
 	__u32 i;					
 	__u8 *tmp = data;
+	
 
 	if(page == nand_r_cache.hit_page)
 	{
@@ -174,9 +191,6 @@ __s32 NAND_CacheRead(__u32 blk, __u32 nblk, void *buf)
 	__u32	SecBitmap,SecWithinPage;
 	__u8 	*pdata;
 
-	/*flush page cache*/
-	LML_FlushPageCache();
-		
 	nSector 	= nblk;
 	StartSec 	= blk;
 	SecBitmap 	= 0;
@@ -214,7 +228,7 @@ __s32 NAND_CacheRead(__u32 blk, __u32 nblk, void *buf)
 	
 	/*renew data from cache*/
 	_get_data_from_cache(blk,nblk,buf);
-	
+
 	return 0;
 	
 }
@@ -303,7 +317,6 @@ __s32 _fill_nand_cache(__u32 page, __u32 secbitmap, __u8 *pdata)
 	return 0;
 }
 
-#if 1
 __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 {
 	__u32	nSector,StartSec;
@@ -311,6 +324,7 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 	__u32	SecBitmap,SecWithinPage;
 	__u32	i;
 	__u8 	*pdata;
+	__u32 hit = 0;
 	
 	nSector 	= nblk;
 	StartSec 	= blk;
@@ -324,10 +338,11 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 		SecWithinPage = StartSec % SECTOR_CNT_OF_LOGIC_PAGE;
 		SecBitmap |= (1 << SecWithinPage);
 		page = StartSec / SECTOR_CNT_OF_LOGIC_PAGE;	
+		
 
 		/*close page if last sector*/
 		if (SecWithinPage == (SECTOR_CNT_OF_LOGIC_PAGE - 1))
-		{
+		{			
 			/*write to nand flash if align one logic page*/
 			if(SecBitmap == FULL_BITMAP_OF_LOGIC_PAGE)
 			{
@@ -337,6 +352,7 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 					if (nand_w_cache[i].hit_page == page){
 						nand_w_cache[i].hit_page = 0xffffffff;
 						nand_w_cache[i].secbitmap = 0;
+						hit=1;
 					}						
 				}
 				/*disable read cache with current page*/
@@ -344,6 +360,10 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 					nand_r_cache.hit_page = 0xffffffff;
 					nand_r_cache.secbitmap = 0;
 				}						
+
+                if(!hit)
+                    _flush_w_cache();
+                        
 				LML_PageWrite(page,FULL_BITMAP_OF_LOGIC_PAGE,pdata + 512 - 512*SECTOR_CNT_OF_LOGIC_PAGE);
 			}
 
@@ -367,21 +387,7 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 
 	return 0;
 }
-#endif
 
-#if 0
-__s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
-{
-      /*disable read cache with current page*/
-	nand_r_cache.hit_page = 0xffffffff;
-	nand_r_cache.secbitmap = 0;
-		
-	LML_Write(blk,nblk,buf);
-		
-
-	return 0;
-}
-#endif
 
 __s32 NAND_CacheOpen(void)
 {
@@ -392,14 +398,14 @@ __s32 NAND_CacheOpen(void)
 	for(i = 0; i < N_NAND_W_CACHE; i++)
 	{
 		nand_w_cache[i].size = 512 * SECTOR_CNT_OF_LOGIC_PAGE;
-		nand_w_cache[i].data = (__u8 *)MALLOC(nand_w_cache[i].size);
+		nand_w_cache[i].data = MALLOC(nand_w_cache[i].size);
 		nand_w_cache[i].hit_page = 0xffffffff;
 		nand_w_cache[i].secbitmap = 0;
 		nand_w_cache[i].access_count = 0;
 	}
 
 	nand_r_cache.size = 512 * SECTOR_CNT_OF_LOGIC_PAGE;
-	nand_r_cache.data = (__u8 *)MALLOC(nand_r_cache.size);
+	nand_r_cache.data = MALLOC(nand_r_cache.size);
 	nand_r_cache.hit_page = 0xffffffff;
 	nand_r_cache.secbitmap = 0;
 	nand_r_cache.access_count = 0;
@@ -413,8 +419,10 @@ __s32 NAND_CacheClose(void)
 
 	NAND_CacheFlush();
 	
-	for(i = 0; i < N_NAND_W_CACHE; i++)
-		FREE(nand_w_cache[i].data,nand_w_cache[i].size);
+	#ifdef NAND_W_CACHE_EN
+		for(i = 0; i < N_NAND_W_CACHE; i++)
+			FREE(nand_w_cache[i].data,nand_w_cache[i].size);
+	#endif
 	FREE(nand_r_cache.data,nand_r_cache.size);	
 	return 0;
 }
