@@ -63,6 +63,7 @@ loopback: obj
 install: ic transport 
 	$(Q)echo "Installing in $(INSTALL_DIR)"
 	cp obj/nano_if.ko obj/nano_$(TRANSPORT).ko $(INSTALL_DIR)
+	cp obj/x_mac.axf $(INSTALL_DIR)
 #	$(Q)sudo cp obj/nano_if.ko obj/nano_$(TRANSPORT).ko $(INSTALL_DIR)
 #	$(Q)echo "Running depmod..."
 #	$(Q)sudo depmod -a
