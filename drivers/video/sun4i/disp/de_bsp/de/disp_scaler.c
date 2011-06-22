@@ -347,11 +347,11 @@ __s32 Scaler_Request(__u32 sel)
     }
     else//request any scaler
     {
-        if(!(gdisp.scaler[1].status & SCALER_USED))
+        if(!(gdisp.scaler[0].status & SCALER_USED))
         {
             ret = 0;
         }
-        else if(!(gdisp.scaler[0].status & SCALER_USED))
+        else if(!(gdisp.scaler[1].status & SCALER_USED))
         {
             ret = 1;
         }

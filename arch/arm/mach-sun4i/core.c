@@ -12,6 +12,7 @@
 #include <linux/io.h>
 #include <linux/gfp.h>
 #include <linux/clockchips.h>
+#include <linux/memblock.h>
 #include <linux/bootmem.h>
 
 #include <asm/clkdev.h>
@@ -243,51 +244,57 @@ static struct sys_device sw_sysdev = {
 	.cls = &sw_sysclass,
 };
 
+static u32 DRAMC_get_dram_size(void)
+{
+        u32 reg_val;
+        u32 dram_size;
+        u32 chip_den;
+
+        reg_val = readl(SW_DRAM_SDR_DCR);
+        chip_den = (reg_val>>3)&0x7;
+        if(chip_den == 0)
+                dram_size = 32;
+        else if(chip_den == 1)
+                dram_size = 64;
+        else if(chip_den == 2)
+                dram_size = 128;
+        else if(chip_den == 3)
+                dram_size = 256;
+        else if(chip_den == 4)
+                dram_size = 512;
+        else
+                dram_size = 1024;
+
+        if( ((reg_val>>1)&0x3) == 0x1)
+                dram_size<<=1;
+        if( ((reg_val>>6)&0x7) == 0x3)
+                dram_size<<=1;
+        if( ((reg_val>>10)&0x3) == 0x1)
+                dram_size<<=1;
+
+        return dram_size;
+}
+
+int sw_plat_init(void)
+{
+	pr_info("SUN4i Platform Init\n");
+	memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+	pr_info("Reserve memory for system, base=%x, size=%d\n",
+		CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
+
+	return 0;
+}
+
 static int __init sw_core_init(void)
 {
+	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
         return sysdev_class_register(&sw_sysclass);
 }
 core_initcall(sw_core_init);
 
-static u32 DRAMC_get_dram_size(void)
-{
-	u32 reg_val;
-	u32 dram_size;
-	u32 chip_den;
-
-	reg_val = readl(SW_DRAM_SDR_DCR);
-	chip_den = (reg_val>>3)&0x7;
-	if(chip_den == 0)
-		dram_size = 32;
-	else if(chip_den == 1)
-		dram_size = 64;
-	else if(chip_den == 2)
-		dram_size = 128;
-	else if(chip_den == 3)
-		dram_size = 256;
-	else if(chip_den == 4)
-		dram_size = 512;
-	else
-		dram_size = 1024;
-
-	if( ((reg_val>>1)&0x3) == 0x1)
-		dram_size<<=1;
-	if( ((reg_val>>6)&0x7) == 0x3)
-		dram_size<<=1;
-	if( ((reg_val>>10)&0x3) == 0x1)
-		dram_size<<=1;
-
-	return dram_size;
-}
-
-
 extern int sw_register_clocks(void);
 void __init softwinner_init(void)
 {
-	int ret;
-	pr_info("sun4i platform init\n");
-	ret = reserve_bootmem(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024, BOOTMEM_EXCLUSIVE);
-	pr_info("Reserve memory for system, ret=%d\n", ret);
 	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
 	sysdev_register(&sw_sysdev);
 }

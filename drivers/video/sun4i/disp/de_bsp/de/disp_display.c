@@ -139,25 +139,3 @@ __s32 BSP_disp_close(void)
     return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_print_reg(__u32 base, __u32 size)
-{   
-    __u32 value = 0, i = 0;
-
-    for(i=0; i<size; i+=16)
-    {
-        value = sys_get_wvalue(base + i);
-        DE_INF("%08x:%08x,", base + i, value);
-        
-        value = sys_get_wvalue(base + i + 4);
-        DE_INF("%08x,", value);
-        
-        value = sys_get_wvalue(base + i + 8);
-        DE_INF("%08x,", value);
-        
-        value = sys_get_wvalue(base + i + 12);
-        DE_INF("%08x\n", value);
-    }
-    
-    return DIS_SUCCESS;
-}
-

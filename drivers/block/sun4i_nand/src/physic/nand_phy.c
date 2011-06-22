@@ -14,6 +14,7 @@
 #include "../include/nand_simple.h"
 #include "../../nfc/nfc.h"
 
+extern  __u32 RetryCount[8];
 extern void _add_cmd_list(NFC_CMD_LIST *cmd,__u32 value,__u32 addr_cycle,__u8 *addr,__u8 data_fetch_flag,
 	__u8 main_data_fetch,__u32 bytecnt,__u8 wait_rb_flag);
 extern void _cal_addr_in_chip(__u32 block, __u32 page, __u32 sector,__u8 *addr, __u8 cycle);
@@ -24,6 +25,7 @@ extern void _pending_dma_irq_sem(void);
 extern __s32 _wait_rb_ready(__u32 rb);
 extern __u8 _cal_real_chip(__u32 global_bank);
 extern __u8 _cal_real_rb(__u32 chip);
+extern __u32 _cal_random_seed(__u32 page);
 
 
 /**********************************************************************
@@ -71,6 +73,7 @@ __s32 _read_single_page_seq(struct boot_physical_param *readop,__u8 dma_wait_mod
 {
 	__s32 ret;
 	__u32 rb;
+	__u32 random_seed;
 
 	//__u8 *sparebuf;
 	__u8 sparebuf[4*16];
@@ -109,8 +112,25 @@ __s32 _read_single_page_seq(struct boot_physical_param *readop,__u8 dma_wait_mod
 	NFC_SelectChip(readop->chip);
 	NFC_SelectRb(rb);
 
-	
-	ret = NFC_Read_Seq(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+	if(SUPPORT_RANDOM)
+	{
+		//random_seed = _cal_random_seed(readop->page);
+		random_seed = 0x4a80;
+		NFC_SetRandomSeed(random_seed);
+		NFC_RandomEnable();
+		ret = NFC_Read_Seq(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+		NFC_RandomDisable();
+		if(ret)
+			ret = NFC_Read_Seq(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+	}
+	else
+	{
+		ret = NFC_Read_Seq(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+	}
+
+
+
+
 	if (dma_wait_mode)
 		_pending_dma_irq_sem();
 	
@@ -129,6 +149,7 @@ __s32 _read_single_page_1K(struct boot_physical_param *readop,__u8 dma_wait_mode
 {
 	__s32 ret;
 	__u32 rb;
+	__u32 random_seed;
 
 	//__u8 *sparebuf;
 	__u8 sparebuf[4*16];
@@ -167,8 +188,26 @@ __s32 _read_single_page_1K(struct boot_physical_param *readop,__u8 dma_wait_mode
 	NFC_SelectChip(readop->chip);
 	NFC_SelectRb(rb);
 
-	
-	ret = NFC_Read_1K(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+
+	if(1)
+	{
+		//random_seed = _cal_random_seed(readop->page);
+		random_seed = 0x4a80;
+		NFC_SetRandomSeed(random_seed);
+		NFC_RandomEnable();
+		ret = NFC_Read_1K(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+		NFC_RandomDisable();
+		if(ret)
+			ret = NFC_Read_1K(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+
+	}
+	else
+	{
+		ret = NFC_Read_1K(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+	}
+
+
+
 	if (dma_wait_mode)
 		_pending_dma_irq_sem();
 	
@@ -261,7 +300,9 @@ __s32  PHY_BlockErase(struct __PhysicOpPara_t *pBlkAdr)
 __s32 _read_sectors(struct boot_physical_param *readop,__u8 dma_wait_mode)
 {
        __s32 ret;
+	__u32  k;
 	__u32 rb;
+	__u32 random_seed;
 	//__u8 *sparebuf;
 	__u8 sparebuf[4*16];
 	__u8 addr[5];
@@ -302,7 +343,77 @@ __s32 _read_sectors(struct boot_physical_param *readop,__u8 dma_wait_mode)
 	rb = _cal_real_rb(readop->chip);
 	NFC_SelectChip(readop->chip);
 	NFC_SelectRb(rb);
-	ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+
+    if(SUPPORT_READ_RETRY)
+    {
+        for( k = 0; k<(READ_RETRY_CYCLE+1);k++)
+		{
+			if(RetryCount[readop->chip]==(READ_RETRY_CYCLE+1))
+				RetryCount[readop->chip] = 0;
+
+			if(k>0)
+			{
+			    if(NFC_ReadRetry(readop->chip,RetryCount[readop->chip], READ_RETRY_TYPE))
+			    {
+			        PHY_ERR("[Read_sectors] NFC_ReadRetry fail \n");
+			        return -1;
+			    }
+			}
+
+			if(SUPPORT_RANDOM)
+			{
+				random_seed = _cal_random_seed(readop->page);
+				NFC_SetRandomSeed(random_seed);
+				NFC_RandomEnable();
+				ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+				NFC_RandomDisable();
+				if(ret == -ERR_ECC)
+					ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			}
+			else
+			{
+				ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			}
+
+			if((ret != -ERR_ECC)||(k==(READ_RETRY_CYCLE)))
+			{
+				break;
+			}
+
+			 RetryCount[readop->chip]++;
+
+
+		}
+
+	if(k>0)
+		PHY_DBG("[Read_sectors] NFC_ReadRetry %d cycles, chip = %d, RetryCount = %d  \n", k ,readop->chip,RetryCount[readop->chip]);
+
+	if(ret == ECC_LIMIT)
+		ret =0;
+
+    }
+    else
+    {
+
+		if(SUPPORT_RANDOM)
+        {
+			random_seed = _cal_random_seed(readop->page);
+			NFC_SetRandomSeed(random_seed);
+			NFC_RandomEnable();
+			ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			NFC_RandomDisable();
+			if(ret == -ERR_ECC)
+				ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+
+		}
+		else
+		{
+			ret = NFC_Read(cmd_list, data_buf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+		}
+
+
+    }
+
 	if (dma_wait_mode)
 		_pending_dma_irq_sem();
 	
@@ -550,10 +661,11 @@ __s32 _read_sectors_for_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 	__u8 addr[5];
 	__u8 addr1[2],addr2[2];
 	__u32 column;
-	__u32 list_len,i,j;
+	__u32 list_len,i,j, k;
 	__u32 rb;
-	__s32 ret ;
+	__s32 ret, ret1 ;
 	__u32 ecc_size;
+	__s32 random_seed;
 	NFC_CMD_LIST cmd_list[4];
 
 	if(NandStorageInfo.EccMode == 0)
@@ -567,7 +679,8 @@ __s32 _read_sectors_for_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 	else
 	  ecc_size = 32;
 
-	
+	ret = 0;
+	ret1 = 0;
 	
 	_cal_addr_in_chip(readop->block,readop->page, 0, addr, 5);
 	_add_cmd_list(cmd_list,0x00,5,addr, NFC_NO_DATA_FETCH,NFC_IGNORE,NFC_IGNORE, NFC_IGNORE);
@@ -626,8 +739,78 @@ __s32 _read_sectors_for_spare(struct boot_physical_param *readop,__u8 dma_wait_m
 			}
 			if (_wait_rb_ready(readop->chip))
 				return ERR_TIMEOUT;
-			
-			ret |= NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+
+	        if(SUPPORT_READ_RETRY)
+	        {
+	            for( k = 0; k<(READ_RETRY_CYCLE+1);k++)
+	    		{
+	    			if(RetryCount[readop->chip]==(READ_RETRY_CYCLE+1))
+	    				RetryCount[readop->chip] = 0;
+
+	    			if(k>0)
+	    			{
+	    			    if(NFC_ReadRetry(readop->chip,RetryCount[readop->chip],READ_RETRY_TYPE))
+	    			    {
+	    			        PHY_ERR("[Read_sectors] NFC_ReadRetry fail \n");
+	    			        return -1;
+	    			    }
+	    			}
+
+					if(SUPPORT_RANDOM)
+	    			{
+	    				random_seed = _cal_random_seed(readop->page);
+	    				NFC_SetRandomSeed(random_seed);
+	    				NFC_RandomEnable();
+	    				ret1 = NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+	    				NFC_RandomDisable();
+	    				if(ret1 == -ERR_ECC)
+	    					ret1 = NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+	    			}
+	    			else
+	    			{
+	    				ret1 = NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+	    			}
+
+
+
+	    			if((ret != -ERR_ECC)||(k==(READ_RETRY_CYCLE)))
+	    			{
+	    				break;
+	    			}
+
+	    			 RetryCount[readop->chip]++;
+
+
+	    		}
+
+			if(k>0)
+				PHY_DBG("[Read_sectors_for_spare] NFC_ReadRetry %d cycles, chip = %d, RetryCount = %d  \n", k ,readop->chip,RetryCount[readop->chip]);
+
+			if(ret1 == ECC_LIMIT)
+				ret1 = 0;
+	        }
+	        else
+	        {
+				if(SUPPORT_RANDOM)
+	            {
+	    			random_seed = _cal_random_seed(readop->page);
+	    			NFC_SetRandomSeed(random_seed);
+	    			NFC_RandomEnable();
+	    			ret1 = NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+	    			NFC_RandomDisable();
+	    			if(ret1 == -ERR_ECC)
+	    				ret1 = NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+				}
+	    		else
+	    		{
+	    			ret1 = NFC_Read(cmd_list, (__u8 *)(readop->mainbuf)+i*1024,sparebuf+4*i, dma_wait_mode , NFC_NORMAL_MODE);
+	    		}
+
+
+	        }
+
+			ret |= ret1;
+
 			if (dma_wait_mode)
 				_pending_dma_irq_sem();
 			
@@ -997,6 +1180,7 @@ __s32  PHY_PageCopyback(struct __PhysicOpPara_t *pSrcPage, struct __PhysicOpPara
 			ret = 0;
 		
 		if (ret < 0){
+
 			goto PHY_PageCopyback_exit;
 		}
 		ret = PHY_PageWrite(pDstPage);		

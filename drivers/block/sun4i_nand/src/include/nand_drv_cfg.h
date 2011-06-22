@@ -39,7 +39,7 @@
 //==============================================================================
 
 #define  NAND_VERSION_0                 0x02
-#define  NAND_VERSION_1                 0x04
+#define  NAND_VERSION_1                 0x06
 
 
 //define the max value of the count of chip select
@@ -112,6 +112,13 @@
 
 //define if need support align bank when allocating the log page
 #define CFG_SUPPORT_ALIGN_NAND_BNK              (1)
+
+//define if need support Randomizer
+#define CFG_SUPPORT_RANDOM                      (1)
+
+//define if need support ReadRetry
+#define CFG_SUPPORT_READ_RETRY                  (1)
+
 
 #define SUPPORT_DMA_IRQ							(0)
 #define SUPPORT_RB_IRQ							(0)

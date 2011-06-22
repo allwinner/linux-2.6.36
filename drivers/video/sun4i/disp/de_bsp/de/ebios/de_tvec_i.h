@@ -44,6 +44,6 @@
 #define TVE_SET_BIT(sel,offset,bit)				(*((volatile __u32 *)( TVE_GET_REG_BASE(sel) + (offset) )) |= (bit))
 #define TVE_CLR_BIT(sel,offset,bit)				(*((volatile __u32 *)( TVE_GET_REG_BASE(sel) + (offset) )) &= (~(bit)))
 #define TVE_INIT_BIT(sel,offset,c,s)			(*((volatile __u32 *)( TVE_GET_REG_BASE(sel) + (offset) )) = \
-												((*(volatile __u32 *)( TVE_GET_REG_BASE(sel) + (offset) )) & (~(c)) | (s)))
+												(((*(volatile __u32 *)( TVE_GET_REG_BASE(sel) + (offset) )) & (~(c))) | (s)))
 
 #endif

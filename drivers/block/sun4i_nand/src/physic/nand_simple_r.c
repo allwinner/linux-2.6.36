@@ -18,6 +18,8 @@
 
 struct __NandStorageInfo_t  NandStorageInfo;
 struct __NandPageCachePool_t PageCachePool;
+__u32 RetryCount[8];
+__u16 random_seed[128];
 void __iomem *nand_base;
 
 /**************************************************************************
@@ -297,10 +299,154 @@ void _pending_dma_irq_sem(void)
 	return;
 }
 
+void _random_seed_init(void)
+{
+	random_seed[0] = 0x2b75; 
+    random_seed[1] = 0x0bd0; 
+    random_seed[2] = 0x5ca3; 
+    random_seed[3] = 0x62d1; 
+    random_seed[4] = 0x1c93; 
+    random_seed[5] = 0x07e9; 
+    random_seed[6] = 0x2162; 
+    random_seed[7] = 0x3a72; 
+    random_seed[8] = 0x0d67; 
+    random_seed[9] = 0x67f9; 
+    random_seed[10] = 0x1be7; 
+    random_seed[11] = 0x077d; 
+    random_seed[12] = 0x032f; 
+    random_seed[13] = 0x0dac; 
+    random_seed[14] = 0x2716; 
+    random_seed[15] = 0x2436; 
+    random_seed[16] = 0x7922; 
+    random_seed[17] = 0x1510; 
+    random_seed[18] = 0x3860; 
+    random_seed[19] = 0x5287; 
+    random_seed[20] = 0x480f; 
+    random_seed[21] = 0x4252; 
+    random_seed[22] = 0x1789; 
+    random_seed[23] = 0x5a2d; 
+    random_seed[24] = 0x2a49; 
+    random_seed[25] = 0x5e10; 
+    random_seed[26] = 0x437f; 
+    random_seed[27] = 0x4b4e; 
+    random_seed[28] = 0x2f45; 
+    random_seed[29] = 0x216e; 
+    random_seed[30] = 0x5cb7; 
+    random_seed[31] = 0x7130; 
+    random_seed[32] = 0x2a3f; 
+    random_seed[33] = 0x60e4; 
+    random_seed[34] = 0x4dc9; 
+    random_seed[35] = 0x0ef0; 
+    random_seed[36] = 0x0f52; 
+    random_seed[37] = 0x1bb9; 
+    random_seed[38] = 0x6211; 
+    random_seed[39] = 0x7a56; 
+    random_seed[40] = 0x226d; 
+    random_seed[41] = 0x4ea7; 
+    random_seed[42] = 0x6f36; 
+    random_seed[43] = 0x3692; 
+    random_seed[44] = 0x38bf; 
+    random_seed[45] = 0x0c62; 
+    random_seed[46] = 0x05eb; 
+    random_seed[47] = 0x4c55; 
+    random_seed[48] = 0x60f4; 
+    random_seed[49] = 0x728c; 
+    random_seed[50] = 0x3b6f; 
+    random_seed[51] = 0x2037; 
+    random_seed[52] = 0x7f69; 
+    random_seed[53] = 0x0936; 
+    random_seed[54] = 0x651a; 
+    random_seed[55] = 0x4ceb; 
+    random_seed[56] = 0x6218; 
+    random_seed[57] = 0x79f3; 
+    random_seed[58] = 0x383f; 
+    random_seed[59] = 0x18d9; 
+    random_seed[60] = 0x4f05; 
+    random_seed[61] = 0x5c82; 
+    random_seed[62] = 0x2912; 
+    random_seed[63] = 0x6f17; 
+    random_seed[64] = 0x6856; 
+    random_seed[65] = 0x5938; 
+    random_seed[66] = 0x1007; 
+    random_seed[67] = 0x61ab; 
+    random_seed[68] = 0x3e7f; 
+    random_seed[69] = 0x57c2; 
+    random_seed[70] = 0x542f; 
+    random_seed[71] = 0x4f62; 
+    random_seed[72] = 0x7454; 
+    random_seed[73] = 0x2eac; 
+    random_seed[74] = 0x7739; 
+    random_seed[75] = 0x42d4; 
+    random_seed[76] = 0x2f90; 
+    random_seed[77] = 0x435a; 
+    random_seed[78] = 0x2e52; 
+    random_seed[79] = 0x2064; 
+    random_seed[80] = 0x637c; 
+    random_seed[81] = 0x66ad; 
+    random_seed[82] = 0x2c90; 
+    random_seed[83] = 0x0bad; 
+    random_seed[84] = 0x759c; 
+    random_seed[85] = 0x0029; 
+    random_seed[86] = 0x0986; 
+    random_seed[87] = 0x7126; 
+    random_seed[88] = 0x1ca7; 
+    random_seed[89] = 0x1605; 
+    random_seed[90] = 0x386a; 
+    random_seed[91] = 0x27f5; 
+    random_seed[92] = 0x1380; 
+    random_seed[93] = 0x6d75; 
+    random_seed[94] = 0x24c3; 
+    random_seed[95] = 0x0f8e; 
+    random_seed[96] = 0x2b7a; 
+    random_seed[97] = 0x1418; 
+    random_seed[98] = 0x1fd1; 
+    random_seed[99] = 0x7dc1; 
+    random_seed[100] = 0x2d8e; 
+    random_seed[101] = 0x43af; 
+    random_seed[102] = 0x2267; 
+    random_seed[103] = 0x7da3; 
+    random_seed[104] = 0x4e3d; 
+    random_seed[105] = 0x1338; 
+    random_seed[106] = 0x50db; 
+    random_seed[107] = 0x454d; 
+    random_seed[108] = 0x764d; 
+    random_seed[109] = 0x40a3; 
+    random_seed[110] = 0x42e6; 
+    random_seed[111] = 0x262b; 
+    random_seed[112] = 0x2d2e; 
+    random_seed[113] = 0x1aea; 
+    random_seed[114] = 0x2e17; 
+    random_seed[115] = 0x173d; 
+    random_seed[116] = 0x3a6e; 
+    random_seed[117] = 0x71bf; 
+    random_seed[118] = 0x25f9; 
+    random_seed[119] = 0x0a5d; 
+    random_seed[120] = 0x7c57; 
+    random_seed[121] = 0x0fbe; 
+    random_seed[122] = 0x46ce; 
+    random_seed[123] = 0x4939; 
+    random_seed[124] = 0x6b17; 
+    random_seed[125] = 0x37bb; 
+    random_seed[126] = 0x3e91; 
+    random_seed[127] = 0x76db; 
+
+}
+
+__u32 _cal_random_seed(__u32 page)
+{
+	__u32 randomseed;
+
+	randomseed = random_seed[page%128];
+	
+	return randomseed;
+}
+
 __s32 _read_single_page(struct boot_physical_param *readop,__u8 dma_wait_mode)
 {
 	__s32 ret;
+	__u32 k = 0;
 	__u32 rb;
+	__u32 random_seed;
 
 	//__u8 *sparebuf;
 	__u8 sparebuf[4*16];
@@ -339,8 +485,73 @@ __s32 _read_single_page(struct boot_physical_param *readop,__u8 dma_wait_mode)
 	NFC_SelectChip(readop->chip);
 	NFC_SelectRb(rb);
 
+    if(SUPPORT_READ_RETRY)  
+    {
+        for( k = 0; k<READ_RETRY_CYCLE+1;k++)
+		{
+			if(RetryCount[readop->chip]==(READ_RETRY_CYCLE+1))
+				RetryCount[readop->chip] = 0;
+
+			if(k>0)
+			{
+			    if(NFC_ReadRetry(readop->chip,RetryCount[readop->chip],READ_RETRY_TYPE))
+			    {
+			        PHY_ERR("[Read_single_page] NFC_ReadRetry fail \n");
+			        return -1;
+			    }
+			}
+
+			if(SUPPORT_RANDOM)
+			{
+				random_seed = _cal_random_seed(readop->page);
+				NFC_SetRandomSeed(random_seed);
+				NFC_RandomEnable();
+				ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+				NFC_RandomDisable();
+				if(ret == -ERR_ECC)
+					ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			}
+			else
+			{
+				ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			}
+
+			if((ret != -ERR_ECC)||(k==READ_RETRY_CYCLE))
+			{
+				break;
+			}
+
+			RetryCount[readop->chip]++;    				    				
+		}
+
+	if(k>0)
+		PHY_DBG("[Read_single_page] NFC_ReadRetry %d cycles, chip = %d,RetryCount = %d  \n", k ,readop->chip,RetryCount[readop->chip]);
 	
-	ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+	if(ret == ECC_LIMIT)
+		ret = 0;
+        
+        
+    }
+    else 
+    {
+
+		if(SUPPORT_RANDOM)
+        {
+			random_seed = _cal_random_seed(readop->page);
+			NFC_SetRandomSeed(random_seed);
+			NFC_RandomEnable();
+			ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+			NFC_RandomDisable();
+			if(ret == -ERR_ECC)
+				ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+		}
+		else
+		{
+			ret = NFC_Read(cmd_list, readop->mainbuf, sparebuf, dma_wait_mode , NFC_PAGE_MODE);
+		}	
+
+    }
+
 	if (dma_wait_mode)
 		_pending_dma_irq_sem();
 	
@@ -372,7 +583,12 @@ __s32 _read_single_page(struct boot_physical_param *readop,__u8 dma_wait_mode)
 */
 __s32 PHY_Init(void)
 {
+    __s32 ret;
+    __u32 i;
 	NFC_INIT_INFO nand_info;		   
+    //init RetryCount
+    for(i=0; i<8; i++)
+        RetryCount[i] = 0;
 	nand_info.bus_width = 0x0;
 	nand_info.ce_ctl = 0x0;
 	nand_info.ce_ctl1 = 0x0;
@@ -380,16 +596,45 @@ __s32 PHY_Init(void)
 	nand_info.pagesize = 4;
 	nand_info.rb_sel = 1;
 	nand_info.serial_access_mode = 1;
-
-	//nand_base = ioremap(0x01C03000, 4096 );        
-	//modify by penggang for f20 linux
+	ret = NFC_Init(&nand_info);
+		
+    PHY_DBG("NFC Randomizer start. \n");
+	_random_seed_init();
+	NFC_RandomDisable();
 	
-//	if (nand_base == NULL) {
-//		printk(KERN_ERR "dma failed to remap register block\n");
-//		return -ENOMEM;
-//	}
+	return ret;	
+}
 
-	return (NFC_Init(&nand_info));	
+__s32 PHY_GetDefaultParam(__u32 bank)
+{   
+	__u32 chip = 0;
+	__u8 default_value[16];
+	
+    chip = _cal_real_chip(bank);
+    NFC_SelectChip(chip);
+    NFC_GetDefaultParam(chip, default_value, READ_RETRY_TYPE);
+	NFC_SetDefaultParam(chip, default_value, READ_RETRY_TYPE);
+    PHY_DBG("PHY_GetDefaultParam: chip 0x%x, Read Retry Default Value is 0x%x, 0x%x, 0x%x, 0x%x \n", chip, default_value[0], default_value[1], default_value[2],default_value[3]);
+
+    
+    return 0;
+}
+
+__s32 PHY_SetDefaultParam(__u32 bank)
+{   
+	__u32 chip = 0;
+	__u8 default_value[16];
+	__u8 temp_value[16];
+	
+	chip = _cal_real_chip(bank);
+    NFC_SelectChip(chip);
+    NFC_SetDefaultParam(chip, default_value, READ_RETRY_TYPE);
+	PHY_DBG("PHY_SetDefaultParam: Read Retry Type is : 0x%x \n", READ_RETRY_TYPE);
+    PHY_DBG("PHY_SetDefaultParam: chip 0x%x, Read Retry Default Value is 0x%x, 0x%x, 0x%x, 0x%x \n", chip, default_value[0], default_value[1], default_value[2],default_value[3]);
+	NFC_GetDefaultParam(chip, temp_value, READ_RETRY_TYPE);
+    PHY_DBG("PHY_SetDefaultParam: chip 0x%x, Read Default Value After Set value is 0x%x, 0x%x, 0x%x, 0x%x \n", chip, temp_value[0], temp_value[1], temp_value[2],temp_value[3]);
+    
+    return 0;
 }
 
 __s32 PHY_ChangeMode(__u8 serial_mode)
@@ -446,6 +691,7 @@ __s32 PHY_ChangeMode(__u8 serial_mode)
 */
 __s32 PHY_Exit(void)
 {
+    __u32 i = 0;
 
 	if (PageCachePool.PageCache0){
 		FREE(PageCachePool.PageCache0,SECTOR_CNT_OF_SUPER_PAGE * 512); 
@@ -460,6 +706,18 @@ __s32 PHY_Exit(void)
 		PageCachePool.TmpPageCache = NULL;
 	}
 	
+	if(SUPPORT_READ_RETRY)
+	{
+	    for(i=0; i<NandStorageInfo.ChipCnt;i++)
+        {
+            PHY_SetDefaultParam(i);
+        }
+        NFC_ReadRetryExit(READ_RETRY_TYPE);
+	}
+	
+	
+	NFC_RandomDisable();
+
 	NFC_Exit();
 	return 0;
 }
@@ -541,6 +799,74 @@ __s32  PHY_ReadNandId(__s32 nChip, void *pChipID)
 	
 	NFC_DeSelectChip(nChip);
 
+
+	return ret;
+}
+
+__s32  PHY_ReadNandUniqueId(__s32 bank, void *pChipID)
+{
+	__s32 ret, err_flag;
+	__u32 i, j,nChip, nRb;
+	__u8 *temp_id;
+
+
+	NFC_CMD_LIST cmd;
+	__u8 addr = 0;
+
+	nChip = _cal_real_chip(bank);
+	NFC_SelectChip(nChip);
+	nRb = _cal_real_rb(nChip);
+	NFC_SelectRb(nRb);
+
+	for(i=0;i<16; i++)
+	{
+		addr = i*32;
+		temp_id = (__u8*)(pChipID);
+		err_flag = 0;
+		
+		_add_cmd_list(&cmd, 0xed,1 , &addr, NFC_DATA_FETCH, NFC_IGNORE, 32, NFC_WAIT_RB);
+		ret = NFC_GetUniqueId(&cmd, pChipID);
+
+		for(j=0; j<16;j++)
+		{
+			if((temp_id[j]^temp_id[j+16]) != 0xff)
+			{
+				err_flag = 1;
+				ret = -1;
+				break;
+			}
+		}
+
+		if(err_flag == 0)
+		{
+			ret = 0;		
+			break;
+		}
+		
+	}
+
+	if(ret)
+	{
+		for(j=0; j<32;j++)
+		{
+			temp_id[j] = 0x55;
+		}
+	}
+
+	PHY_DBG("Nand Unique ID of chip %u is : \n", nChip);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[0],temp_id[1],temp_id[2],temp_id[3]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[4],temp_id[5],temp_id[6],temp_id[7]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[8],temp_id[9],temp_id[10],temp_id[11]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[12],temp_id[13],temp_id[14],temp_id[15]);
+	PHY_DBG("\n");
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[16],temp_id[17],temp_id[18],temp_id[19]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[20],temp_id[21],temp_id[22],temp_id[23]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[24],temp_id[25],temp_id[26],temp_id[27]);
+	PHY_DBG("%x, %x, %x, %x\n", temp_id[28],temp_id[29],temp_id[30],temp_id[31]);
+	PHY_DBG("\n");
+	
+	NFC_DeSelectChip(nChip);
+	
 
 	return ret;
 }
@@ -664,8 +990,10 @@ __s32 PHY_SynchBank(__u32 nBank, __u32 bMode)
 	while(1){
 		status = _read_status(cmd_value,nBank%BNK_CNT_OF_CHIP);
 		if (status < 0)
-			return status;
-		
+		{
+		    PHY_ERR("PHY_SynchBank : read status invalid ,chip = %x, bank = %x, cmd value = %x, status = %x\n",chip,nBank,cmd_value,status);
+		    return status;
+		}
 		if (status & NAND_STATUS_READY)
 			break;
 		
@@ -675,7 +1003,10 @@ __s32 PHY_SynchBank(__u32 nBank, __u32 bMode)
 		}
 	}
 	 if(status & NAND_OPERATE_FAIL)
-	 	ret = NAND_OP_FALSE;
+	{
+	    PHY_ERR("PHY_SynchBank : last W/E operation fail,chip = %x, bank = %x, cmd value = %x, status = %x\n",chip,nBank,cmd_value,status);
+	    ret = NAND_OP_FALSE;
+	}
 	NFC_DeSelectChip(chip);
 	NFC_DeSelectRb(rb);
 

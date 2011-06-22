@@ -1788,7 +1788,23 @@ static __s32 _FillZoneTblInfo(struct __ScanDieInfo_t *pDieInfo)
     for( ; tmpPhyBlk<SuperBlkCntOfDie; tmpPhyBlk++)
     {
         tmpLogicInfo = pDieInfo->pPhyBlk[tmpPhyBlk];
-
+        
+        //added by penggang 20101206
+        //the last block is degenrous, if it is free block, kick it as a bad block
+        if(tmpPhyBlk == SuperBlkCntOfDie-1)
+        {
+            if(tmpLogicInfo == FREE_BLOCK_INFO)
+            {
+                FORMAT_DBG("[FORMAT_DBG] mark the last block as bad block \n");
+                pDieInfo->pPhyBlk[tmpPhyBlk] = BAD_BLOCK_INFO;
+                _WriteBadBlkFlag(pDieInfo->nDie, tmpPhyBlk);
+                
+            }
+        }
+        
+        tmpLogicInfo = pDieInfo->pPhyBlk[tmpPhyBlk];
+        
+        
         //check if the block is a bad block
         if(tmpLogicInfo == BAD_BLOCK_INFO)
         {

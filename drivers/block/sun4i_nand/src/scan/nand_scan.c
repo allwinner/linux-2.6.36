@@ -44,7 +44,7 @@ extern struct __NandPhyInfoPar_t StNandTbl;
 extern struct __NandPhyInfoPar_t DefaultNandTbl;
 extern struct __NandPhyInfoPar_t SpansionNandTbl;
 
-__s32 NAND_Detect(_nand_connect_info_t *nand_connect);
+__s32 NAND_Detect(boot_nand_para_t *nand_connect);
 
 /*
 ************************************************************************************************************************
@@ -272,6 +272,7 @@ __s32  SCN_AnalyzeNandSystem(void)
 {
     __s32 i,result;
     __u8  tmpChipID[8];
+	__u8  uniqueID[32];
     struct __NandPhyInfoPar_t tmpNandPhyInfo;
 
     //init nand flash storage information to default value
@@ -289,6 +290,7 @@ __s32  SCN_AnalyzeNandSystem(void)
     NandStorageInfo.OperationOpt = 0;
     NandStorageInfo.FrequencePar = 10;
     NandStorageInfo.EccMode = 0;
+	NandStorageInfo.ReadRetryType= 0;
 
     //reset the nand flash chip on boot chip select
     result = PHY_ResetChip(BOOT_CHIP_SELECT_NUM);
@@ -340,6 +342,7 @@ __s32  SCN_AnalyzeNandSystem(void)
     NandStorageInfo.NandChipId[2] = tmpNandPhyInfo.NandID[2];
     NandStorageInfo.NandChipId[3] = tmpNandPhyInfo.NandID[3];
     NandStorageInfo.ValidBlkRatio = tmpNandPhyInfo.ValidBlkRatio;
+	NandStorageInfo.ReadRetryType = tmpNandPhyInfo.ReadRetryType;
     //set the optional operation parameter
     NandStorageInfo.OptPhyOpPar.MultiPlaneReadCmd[0] = tmpNandPhyInfo.OptionOp->MultiPlaneReadCmd[0];
     NandStorageInfo.OptPhyOpPar.MultiPlaneReadCmd[1] = tmpNandPhyInfo.OptionOp->MultiPlaneReadCmd[1];
@@ -367,6 +370,16 @@ __s32  SCN_AnalyzeNandSystem(void)
     if(!CFG_SUPPORT_INT_INTERLEAVE)
     {
         NandStorageInfo.OperationOpt &= ~NAND_INT_INTERLEAVE;
+    }
+
+    if(!CFG_SUPPORT_RANDOM)
+    {
+        NandStorageInfo.OperationOpt &= ~NAND_RANDOM;
+    }
+
+    if(!CFG_SUPPORT_READ_RETRY)
+    {
+        NandStorageInfo.OperationOpt &= ~NAND_READ_RETRY;
     }
 
     //process the plane count of a die and the bank count of a chip
@@ -482,6 +495,15 @@ __s32  SCN_AnalyzeNandSystem(void)
         NandStorageInfo.OperationOpt &= ~NAND_EXT_INTERLEAVE;
     }
 
+	if(SUPPORT_READ_UNIQUE_ID)
+	{
+		for(i=0; i<NandStorageInfo.ChipCnt; i++)
+		{
+			PHY_ReadNandUniqueId(i, uniqueID);
+		}
+
+	}
+
 	/*configure page size*/
 	{
 		NFC_INIT_INFO nand_info;
@@ -495,25 +517,17 @@ __s32  SCN_AnalyzeNandSystem(void)
 		NFC_ChangMode(&nand_info);
 	}
 
-#if (0)
-	/*detect rb connect*/
+	if(SUPPORT_READ_RETRY)
 	{
-		_nand_connect_info_t nand_connect;
+	    PHY_DBG("NFC Read Retry Init. \n");
+		NFC_ReadRetryInit(READ_RETRY_TYPE);
 
-		NAND_Detect(&nand_connect);
+		for(i=0; i<NandStorageInfo.ChipCnt;i++)
+	    {
+	        PHY_GetDefaultParam(i);
+	    }
 
-		if((nand_connect.id[0] != NandStorageInfo.NandChipId[0]) || (nand_connect.id[1] != NandStorageInfo.NandChipId[1])
-            || (nand_connect.id[2] != NandStorageInfo.NandChipId[2]) || (nand_connect.id[3] != NandStorageInfo.NandChipId[3]))
-        {   
-        	SCAN_ERR("%s : check nand id fail\n",__FUNCTION__);
-        	return -1;
-		}
-		
-		NandStorageInfo.RbConnectInfo = nand_connect.rb_connect;
-		NandStorageInfo.RbCnt= nand_connect.rb_cnt;
 	}
-#endif
-	
     //print nand flash physical architecture parameter
     SCAN_DBG("\n\n");
     SCAN_DBG("[SCAN_DBG] ==============Nand Architecture Parameter==============\n");
@@ -537,6 +551,7 @@ __s32  SCN_AnalyzeNandSystem(void)
     SCAN_DBG("[SCAN_DBG]    Optional Operation:   0x%x\n", NandStorageInfo.OperationOpt);
     SCAN_DBG("[SCAN_DBG]    Access Frequence:     0x%x\n", NandStorageInfo.FrequencePar);
     SCAN_DBG("[SCAN_DBG]    ECC Mode:             0x%x\n", NandStorageInfo.EccMode);
+	SCAN_DBG("[SCAN_DBG]    Read Retry Type:      0x%x\n", NandStorageInfo.ReadRetryType);
     SCAN_DBG("[SCAN_DBG] =======================================================\n\n");
 
     //print nand flash optional operation parameter

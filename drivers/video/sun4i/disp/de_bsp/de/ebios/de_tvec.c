@@ -314,6 +314,7 @@ __s32 TVE_set_tv_mode(__u32 sel, __u8 mode)
 	}
 	TVE_CLR_BIT(sel,TVE_008,0xfff<<4);
 	TVE_SET_BIT(sel,TVE_008,0x3<<16);	
+	TVE_SET_BIT(sel,TVE_008,0xf<<18);	
 	TVE_WUINT32(sel,TVE_024,0x1F1F1F1F);
 	return 0;
 }
@@ -323,6 +324,7 @@ __s32 TVE_set_vga_mode(__u32 sel)
     TVE_WUINT32(sel,TVE_004, 0x20000000);
     TVE_WUINT32(sel,TVE_008, 0x40031ac7);
     TVE_WUINT32(sel,TVE_024, 0x00000000);    
+    TVE_INIT_BIT(0,TVE_000, 0xfff<<4,0x321<<4); 
 	return 0;
 }
 

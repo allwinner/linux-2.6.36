@@ -454,7 +454,7 @@ static int axp_get_rdc(struct axp_charger *charger)
 			axp_charger_update(charger);
 			averPreVol += charger->vbat;
 			averPreCur += charger->ibat;
-			mdelay(50);
+			msleep(50);
 		}
 		averPreVol /= AXP18_RDC_COUNT;
 		averPreCur /= AXP18_RDC_COUNT;
@@ -730,7 +730,7 @@ static int axp_main_task(void *arg)
 			input_report_key(powerkeydev, KEY_POWER, 1);
 			input_sync(powerkeydev);
 			long_cnt = 5;
-			//mdelay(100);
+			//msleep(100);
 			//input_report_key(powerkeydev, KEY_POWER, 0);
 			//input_sync(powerkeydev);
 		}
