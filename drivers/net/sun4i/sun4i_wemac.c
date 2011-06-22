@@ -1448,6 +1448,14 @@ wemac_rx(struct net_device *dev)
 	/* Check packet ready or not */
 	do {
 		Rxcount = readl(db->emac_vbase + EMAC_RX_FBC_REG);
+		
+		//add by penggang 20110621
+		if(!Rxcount)
+		{
+		    udelay(100);
+		    Rxcount = readl(db->emac_vbase + EMAC_RX_FBC_REG);
+	    }
+		
 		if (netif_msg_rx_status(db))
 			dev_dbg(db->dev, "RXCount: %x\n", Rxcount);
 
