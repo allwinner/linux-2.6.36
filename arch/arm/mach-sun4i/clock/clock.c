@@ -342,6 +342,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 {
     unsigned long   flags;
     int ret = -1;
+    struct clk *old_parent;
 
     if((clk == NULL) || IS_ERR(parent))
     {
@@ -356,8 +357,15 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
 
     spin_lock_irqsave(&clockfw_lock, flags);
+    old_parent = clk->parent;
     clk->clk->parent = parent->clk->id;
     ret = clk->set_clk(clk->clk);
+    if(ret){
+        clk->clk->parent = old_parent->clk->id;
+    }
+    else{
+        clk->parent = parent;
+    }
     spin_unlock_irqrestore(&clockfw_lock, flags);
 
     return ret;
