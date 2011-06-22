@@ -22,6 +22,15 @@
 #include <mach/ccmu_regs.h>
 
 
+struct sun4i_clk_div_t {
+    __u32   cpu_div:4;      /* division of cpu clock, divide core_pll */
+    __u32   axi_div:4;      /* division of axi clock, divide cpu clock*/
+    __u32   ahb_div:4;      /* division of ahb clock, divide axi clock*/
+    __u32   apb_div:4;      /* division of apb clock, divide ahb clock*/
+    __u32   reserved:16;
+};
+
+
 __s32 standby_clk_init(void);
 __s32 standby_clk_exit(void);
 __s32 standby_clk_core2losc(void);
@@ -33,6 +42,9 @@ __s32 standby_clk_hoscdisable(void);
 __s32 standby_clk_hoscenable(void);
 __s32 standby_clk_ldodisable(void);
 __s32 standby_clk_ldoenable(void);
+__s32 standby_clk_setdiv(struct sun4i_clk_div_t  *clk_div);
+__s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div);
+
 
 #endif  /* __STANDBY_CLOCK_H__ */
 

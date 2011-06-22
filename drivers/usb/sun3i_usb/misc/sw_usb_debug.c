@@ -41,7 +41,7 @@
 */
 void print_usb_reg_by_ep(spinlock_t *lock, __u32 usbc_base, __s32 ep_index, char *str)
 {
-	__u32 i = 0;
+//	__u32 i = 0;
 	__u32 old_ep_index = 0;
 	unsigned long flags = 0;
 
@@ -90,13 +90,13 @@ void print_usb_reg_by_ep(spinlock_t *lock, __u32 usbc_base, __s32 ep_index, char
     DMSG_INFO("USBC_REG_o_VEND0         = 0x%x\n", USBC_Readb(usbc_base + USBC_REG_o_VEND0));
     DMSG_INFO("USBC_REG_o_VEND1         = 0x%x\n", USBC_Readb(usbc_base + USBC_REG_o_VEND1));
 
-	DMSG_INFO("TXFADDRx(%d)             = 0x%x\n", i, USBC_Readb(usbc_base + USBC_REG_o_TXFADDRx));
-	DMSG_INFO("TXHADDRx(%d              = 0x%x\n", i, USBC_Readb(usbc_base + USBC_REG_o_TXHADDRx));
-	DMSG_INFO("TXHPORTx(%d)             = 0x%x\n", i, USBC_Readb(usbc_base + USBC_REG_o_TXHPORTx));
-	DMSG_INFO("RXFADDRx(%d)             = 0x%x\n", i, USBC_Readb(usbc_base + USBC_REG_o_RXFADDRx));
-	DMSG_INFO("RXHADDRx(%d)             = 0x%x\n", i, USBC_Readb(usbc_base + USBC_REG_o_RXHADDRx));
-	DMSG_INFO("RXHPORTx(%d)             = 0x%x\n", i, USBC_Readb(usbc_base + USBC_REG_o_RXHPORTx));
-	DMSG_INFO("RPCOUNTx(%d)             = 0x%x\n", i, (u32)USBC_Readl(usbc_base + USBC_REG_o_RPCOUNT));
+	DMSG_INFO("TXFADDRx(%d)             = 0x%x\n", ep_index, USBC_Readb(usbc_base + USBC_REG_o_TXFADDRx));
+	DMSG_INFO("TXHADDRx(%d              = 0x%x\n", ep_index, USBC_Readb(usbc_base + USBC_REG_o_TXHADDRx));
+	DMSG_INFO("TXHPORTx(%d)             = 0x%x\n", ep_index, USBC_Readb(usbc_base + USBC_REG_o_TXHPORTx));
+	DMSG_INFO("RXFADDRx(%d)             = 0x%x\n", ep_index, USBC_Readb(usbc_base + USBC_REG_o_RXFADDRx));
+	DMSG_INFO("RXHADDRx(%d)             = 0x%x\n", ep_index, USBC_Readb(usbc_base + USBC_REG_o_RXHADDRx));
+	DMSG_INFO("RXHPORTx(%d)             = 0x%x\n", ep_index, USBC_Readb(usbc_base + USBC_REG_o_RXHPORTx));
+	DMSG_INFO("RPCOUNTx(%d)             = 0x%x\n", ep_index, (u32)USBC_Readl(usbc_base + USBC_REG_o_RPCOUNT));
 
     DMSG_INFO("USBC_REG_o_ISCR          = 0x%x\n", (u32)USBC_Readl(usbc_base + USBC_REG_o_ISCR));
     DMSG_INFO("USBC_REG_o_PHYCTL        = 0x%x\n", (u32)USBC_Readl(usbc_base + USBC_REG_o_PHYCTL));

@@ -26,7 +26,9 @@
 //---------------------------------------------------------------
 //  宏 定义
 //---------------------------------------------------------------
-#define  is_hcd_support_dma()	1
+//modify by dengkexi for android
+//#define  is_hcd_support_dma()	1
+#define  is_hcd_support_dma()	0
 
 /* 使用DMA的条件: 1、大于整包  2、DMA空闲 3、非ep0 */
 #define  is_sw_hcd_dma_capable(len, maxpacket, epnum)	(is_hcd_support_dma() \

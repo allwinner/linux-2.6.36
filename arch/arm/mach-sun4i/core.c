@@ -12,6 +12,7 @@
 #include <linux/io.h>
 #include <linux/gfp.h>
 #include <linux/clockchips.h>
+#include <linux/memblock.h>
 #include <linux/bootmem.h>
 
 #include <asm/clkdev.h>
@@ -210,19 +211,26 @@ void __init softwinner_init_irq(void)
 }
 
 static struct map_desc softwinner_io_desc[] __initdata = {
-	{ SW_VA_SRAM_BASE,	__phys_to_pfn(SW_PA_SRAM_BASE),	SZ_32K,		MT_MEMORY_ITCM},
-	{SW_VA_CCM_IO_BASE,	__phys_to_pfn(SW_PA_CCM_IO_BASE),	SZ_1K,		MT_DEVICE},
-	{ SW_VA_SRAM_IO_BASE,        __phys_to_pfn(SW_PA_SRAM_IO_BASE),           SZ_4K,     MT_DEVICE },
-	{ SW_VA_DRAM_IO_BASE,        __phys_to_pfn(SW_PA_DRAM_IO_BASE),           SZ_4K,     MT_DEVICE },
-	{ SW_VA_DMAC_IO_BASE,        __phys_to_pfn(SW_PA_DMAC_IO_BASE),           SZ_4K,     MT_DEVICE },
-	{ SW_VA_NANDFLASHC_IO_BASE,  __phys_to_pfn(SW_PA_NANDFLASHC_IO_BASE),     SZ_4K,     MT_DEVICE },
-	{ SW_VA_INT_IO_BASE,         __phys_to_pfn(SW_PA_INT_IO_BASE),            SZ_1K,     MT_DEVICE },
-	{ SW_VA_PORTC_IO_BASE,       __phys_to_pfn(SW_PA_PORTC_IO_BASE),          SZ_1K,     MT_DEVICE },
-	{ SW_VA_TIMERC_IO_BASE,      __phys_to_pfn(SW_PA_TIMERC_IO_BASE),         SZ_1K,     MT_DEVICE },
-	{ SW_VA_UART0_IO_BASE,       __phys_to_pfn(SW_PA_UART0_IO_BASE),          SZ_1K,     MT_DEVICE },
-	{ SW_VA_SID_IO_BASE,         __phys_to_pfn(SW_PA_SID_IO_BASE), SZ_1K, MT_DEVICE },
-	{ SW_VA_TP_IO_BASE,         __phys_to_pfn(SW_PA_TP_IO_BASE),   SZ_1K, MT_DEVICE },
-	{ SW_VA_LRADC_IO_BASE,      __phys_to_pfn(SW_PA_LRADC_IO_BASE), SZ_1K, MT_DEVICE }
+	{ SW_VA_SRAM_BASE,          __phys_to_pfn(SW_PA_SRAM_BASE),         SZ_32K, MT_MEMORY_ITCM  },
+	{ SW_VA_CCM_IO_BASE,        __phys_to_pfn(SW_PA_CCM_IO_BASE),	    SZ_1K,  MT_DEVICE       },
+	{ SW_VA_SRAM_IO_BASE,       __phys_to_pfn(SW_PA_SRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_DRAM_IO_BASE,       __phys_to_pfn(SW_PA_DRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_DMAC_IO_BASE,       __phys_to_pfn(SW_PA_DMAC_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_NANDFLASHC_IO_BASE, __phys_to_pfn(SW_PA_NANDFLASHC_IO_BASE),SZ_4K,  MT_DEVICE       },
+	{ SW_VA_INT_IO_BASE,        __phys_to_pfn(SW_PA_INT_IO_BASE),       SZ_1K,  MT_DEVICE       },
+	{ SW_VA_PORTC_IO_BASE,      __phys_to_pfn(SW_PA_PORTC_IO_BASE),     SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TIMERC_IO_BASE,     __phys_to_pfn(SW_PA_TIMERC_IO_BASE),    SZ_1K,  MT_DEVICE       },
+	{ SW_VA_UART0_IO_BASE,      __phys_to_pfn(SW_PA_UART0_IO_BASE),     SZ_1K,  MT_DEVICE       },
+	{ SW_VA_SID_IO_BASE,        __phys_to_pfn(SW_PA_SID_IO_BASE),       SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TP_IO_BASE,         __phys_to_pfn(SW_PA_TP_IO_BASE),        SZ_1K,  MT_DEVICE       },
+	{ SW_VA_LRADC_IO_BASE,      __phys_to_pfn(SW_PA_LRADC_IO_BASE),     SZ_1K,  MT_DEVICE       },
+	{ SW_VA_IR0_IO_BASE,         __phys_to_pfn(SW_PA_IR0_IO_BASE),	    SZ_1K, MT_DEVICE        },
+	{ SW_VA_TWI0_IO_BASE,       __phys_to_pfn(SW_PA_TWI0_IO_BASE),      SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TWI1_IO_BASE,       __phys_to_pfn(SW_PA_TWI1_IO_BASE),      SZ_1K,  MT_DEVICE       },
+	{ SW_VA_TWI2_IO_BASE,       __phys_to_pfn(SW_PA_TWI2_IO_BASE),      SZ_1K,  MT_DEVICE       },
+	{ SW_VA_USB0_IO_BASE,       __phys_to_pfn(SW_PA_USB0_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_USB1_IO_BASE,       __phys_to_pfn(SW_PA_USB1_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_USB2_IO_BASE,       __phys_to_pfn(SW_PA_USB2_IO_BASE),      SZ_4K,  MT_DEVICE       },
 
 };
 
@@ -239,51 +247,57 @@ static struct sys_device sw_sysdev = {
 	.cls = &sw_sysclass,
 };
 
+static u32 DRAMC_get_dram_size(void)
+{
+        u32 reg_val;
+        u32 dram_size;
+        u32 chip_den;
+
+        reg_val = readl(SW_DRAM_SDR_DCR);
+        chip_den = (reg_val>>3)&0x7;
+        if(chip_den == 0)
+                dram_size = 32;
+        else if(chip_den == 1)
+                dram_size = 64;
+        else if(chip_den == 2)
+                dram_size = 128;
+        else if(chip_den == 3)
+                dram_size = 256;
+        else if(chip_den == 4)
+                dram_size = 512;
+        else
+                dram_size = 1024;
+
+        if( ((reg_val>>1)&0x3) == 0x1)
+                dram_size<<=1;
+        if( ((reg_val>>6)&0x7) == 0x3)
+                dram_size<<=1;
+        if( ((reg_val>>10)&0x3) == 0x1)
+                dram_size<<=1;
+
+        return dram_size;
+}
+
+int sw_plat_init(void)
+{
+	pr_info("SUN4i Platform Init\n");
+	memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+	pr_info("Reserve memory for system, base=%x, size=%d\n",
+		CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
+
+	return 0;
+}
+
 static int __init sw_core_init(void)
 {
+	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
         return sysdev_class_register(&sw_sysclass);
 }
 core_initcall(sw_core_init);
 
-static u32 DRAMC_get_dram_size(void)
-{
-	u32 reg_val;
-	u32 dram_size;
-	u32 chip_den;
-
-	reg_val = readl(SW_DRAM_SDR_DCR);
-	chip_den = (reg_val>>3)&0x7;
-	if(chip_den == 0)
-		dram_size = 32;
-	else if(chip_den == 1)
-		dram_size = 64;
-	else if(chip_den == 2)
-		dram_size = 128;
-	else if(chip_den == 3)
-		dram_size = 256;
-	else if(chip_den == 4)
-		dram_size = 512;
-	else
-		dram_size = 1024;
-
-	if( ((reg_val>>1)&0x3) == 0x1)
-		dram_size<<=1;
-	if( ((reg_val>>6)&0x7) == 0x3)
-		dram_size<<=1;
-	if( ((reg_val>>10)&0x3) == 0x1)
-		dram_size<<=1;
-
-	return dram_size;
-}
-
-
 extern int sw_register_clocks(void);
 void __init softwinner_init(void)
 {
-	int ret;
-	pr_info("sun4i platform init\n");
-	ret = reserve_bootmem(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024, BOOTMEM_EXCLUSIVE);
-	pr_info("Reserve memory for system, ret=%d\n", ret);
 	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
 	sysdev_register(&sw_sysdev);
 }

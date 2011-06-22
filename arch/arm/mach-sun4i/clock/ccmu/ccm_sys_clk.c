@@ -22,7 +22,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <mach/clock.h>
-
+#include <asm/delay.h>
 #include "ccm_i.h"
 
 
@@ -664,61 +664,31 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
             return (rate == 24000000)? 0 : -1;
         case AW_SYS_CLK_PLL1:
         {
-            __s32   tmpFactorN, tmpFactorK, tmpFactorP, tmpFactorM, cycle;
+            struct core_pll_factor_t    factor;
+            __s32   tmpStep = 3, tmpDly;
 
-            if(rate <= 60000000)
-            {
-                tmpFactorP = 3;
-                tmpFactorM = 1;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 240000000)
-            {
-                tmpFactorP = 2;
-                tmpFactorM = 1;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 480000000)
-            {
-                tmpFactorP = 1;
-                tmpFactorM = 1;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 960000000)
-            {
-                tmpFactorP = 1;
-                tmpFactorM = 0;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 2000000000)
-            {
-                tmpFactorP = 0;
-                tmpFactorM = 0;
-                tmpFactorK = 3;
-            }
-            else
-            {
-                CCU_ERR("Rate for PLL1 should be less than 2G hz, cur is:%lld\n", rate);
-                return -1;
-            }
+            ccm_clk_get_pll_para(&factor, rate);
+            tmpDly = ccu_clk_uldiv(rate*500, (1<<tmpStep) * 1000000);
 
-            tmpFactorN = ccu_clk_uldiv((rate << tmpFactorP) * (tmpFactorM + 1) + ((tmpFactorK+1)*24000000 - 1), (tmpFactorK+1)*24000000);
-            if(tmpFactorN > 31)
-            {
-                CCU_ERR("Rate (%lld) for PLL1 is invalid!\n", rate);
-                return -1;
-            }
             /* set a high division to set on pll */
-            aw_ccu_reg->Pll1Ctl.PLLDivP = 1;
-            aw_ccu_reg->Pll1Ctl.FactorM = 3;
-            for(cycle=0; cycle<10000; cycle++);
-
+            aw_ccu_reg->Pll1Ctl.PLLDivP = tmpStep;
+            __delay(10000);
             /* set the correct parameter for PLL */
-            aw_ccu_reg->Pll1Ctl.FactorN = tmpFactorN;
-            aw_ccu_reg->Pll1Ctl.FactorK = tmpFactorK;
-            aw_ccu_reg->Pll1Ctl.PLLDivP = tmpFactorP;
-            aw_ccu_reg->Pll1Ctl.FactorM = tmpFactorM;
-            for(cycle=0; cycle<200000; cycle++);
+            aw_ccu_reg->Pll1Ctl.FactorN = factor.FactorN;
+            aw_ccu_reg->Pll1Ctl.FactorK = factor.FactorK;
+            aw_ccu_reg->Pll1Ctl.FactorM = factor.FactorM;
+            /* delay 200us for pll be stably */
+            __delay(tmpDly);
+
+            /* adjust divider P step by step, and delay 500us for every step */
+            while(tmpStep > factor.FactorP)
+            {
+                tmpStep--;
+                tmpDly <<= 1;
+                aw_ccu_reg->Pll1Ctl.PLLDivP = tmpStep;
+                /* delay 200us for pll be stably */
+                __delay(tmpDly);
+            }
 
             return 0;
         }
@@ -789,55 +759,18 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
         }
         case AW_SYS_CLK_PLL4:
         {
-            __s32   tmpFactorN, tmpFactorK, tmpFactorP, tmpFactorM;
+            struct core_pll_factor_t    factor;
+            __u32   tmpDly = ccu_clk_uldiv(sys_clk_get_rate(AW_SYS_CLK_CPU), 1000000) * 200;
 
-            if(rate <= 60000000)
-            {
-                tmpFactorP = 3;
-                tmpFactorM = 1;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 240000000)
-            {
-                tmpFactorP = 2;
-                tmpFactorM = 1;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 480000000)
-            {
-                tmpFactorP = 1;
-                tmpFactorM = 1;
-                tmpFactorK = 3;
-            }
-            else if(rate <= 960000000)
-            {
-                tmpFactorP = 1;
-                tmpFactorM = 0;
-                tmpFactorK = 3;
-            }
-            else if(rate < 2000000000)
-            {
-                tmpFactorP = 0;
-                tmpFactorM = 0;
-                tmpFactorK = 3;
-            }
-            else
-            {
-                CCU_ERR("Rate (%lld) is invalid for PLL4!\n", rate);
-                return -1;
-            }
+            ccm_clk_get_pll_para(&factor, rate);
 
-            tmpFactorN = ccu_clk_uldiv((rate << tmpFactorP) * (tmpFactorM + 1) + (((tmpFactorK+1) * 24000000) - 1), ((tmpFactorK+1) * 24000000));
-            if(tmpFactorN > 31)
-            {
-                CCU_ERR("Rate (%lld) is invalid for PLL4!\n", rate);
-                return -1;
-            }
-
-            aw_ccu_reg->Pll4Ctl.FactorN = tmpFactorN;
-            aw_ccu_reg->Pll4Ctl.FactorK = tmpFactorK;
-            aw_ccu_reg->Pll4Ctl.FactorP = tmpFactorP;
-            aw_ccu_reg->Pll4Ctl.FactorM = tmpFactorM;
+            /* set the correct parameter for PLL */
+            aw_ccu_reg->Pll4Ctl.FactorN = factor.FactorN;
+            aw_ccu_reg->Pll4Ctl.FactorK = factor.FactorK;
+            aw_ccu_reg->Pll4Ctl.FactorM = factor.FactorM;
+            aw_ccu_reg->Pll4Ctl.FactorP = factor.FactorP;
+            /* delay 200us for pll be stably */
+            __delay(tmpDly);
 
             return 0;
         }
@@ -1003,6 +936,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
             if(rate != tmpRate)
             {
                 CCU_ERR("Rate(%lld) is invalid when set cpu rate(%lld)\n", rate, tmpRate);
+                CCU_ERR("0xf1c20000 = 0x%x\n", *(volatile __u32 *)0xf1c20000);
                 return -1;
             }
             else

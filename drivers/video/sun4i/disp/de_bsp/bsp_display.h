@@ -38,6 +38,17 @@
 #include <mach/aw_ccu.h>
 
 #include "../OSAL/OSAL.h"
+
+#define __wrn(msg...) {printk("[DISP] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
+#if 1
+#define __inf(msg...) do{}while(0)
+#define __msg(msg...) do{}while(0)
+#else
+#define __inf(msg...) {printk("[DISP] "); printk(msg);}
+#define __msg(msg...) {printk("[DISP] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
+#endif
+
+
 #endif
 
 #ifdef __MELIS_OSAL__
@@ -66,14 +77,16 @@ typedef enum
     DISP_FORMAT_RGB556      =0x6,
     DISP_FORMAT_ARGB1555    =0x7,
     DISP_FORMAT_RGBA5551    =0x8,
-    DISP_FORMAT_RGB888      =0x9,
+    DISP_FORMAT_ARGB888     =0x9,//alpha padding to 0xff
     DISP_FORMAT_ARGB8888    =0xa,
+    DISP_FORMAT_RGB888      =0xb,
+    DISP_FORMAT_ARGB4444    =0xc,
 
-    DISP_FORMAT_YUV444      =0xb,
-    DISP_FORMAT_YUV422      =0xc,
-    DISP_FORMAT_YUV420      =0xd,
-    DISP_FORMAT_YUV411      =0xe,
-    DISP_FORMAT_CSIRGB      =0xf,
+    DISP_FORMAT_YUV444      =0x10,
+    DISP_FORMAT_YUV422      =0x11,
+    DISP_FORMAT_YUV420      =0x12,
+    DISP_FORMAT_YUV411      =0x13,
+    DISP_FORMAT_CSIRGB      =0x14,
 }__disp_pixel_fmt_t;
 
 
@@ -302,6 +315,22 @@ typedef enum
     DISP_EXIT_MODE_CLEAN_PARTLY = 1,//only clean interrupt temply
 }__disp_exit_mode_t;
 
+
+typedef enum//only for debug!!!
+{
+    DISP_REG_SCALER0 = 0,
+    DISP_REG_SCALER1 = 1,
+    DISP_REG_IMAGE0 = 2,
+    DISP_REG_IMAGE1 = 3,
+    DISP_REG_LCDC0 = 4,
+    DISP_REG_LCDC1 = 5,
+    DISP_REG_TVEC0 = 6,
+    DISP_REG_TVEC1 = 7,
+    DISP_REG_CCMU = 8,
+    DISP_REG_PIOC = 9,
+    DISP_REG_PWM = 10,
+}__disp_reg_index_t;
+
 typedef struct
 {
     __u32               addr[3];    // frame buffer的内容地址，对于rgb类型，只有addr[0]有效
@@ -311,8 +340,8 @@ typedef struct
     __disp_pixel_mod_t  mode;
     __bool              br_swap;    // blue red color swap flag, FALSE:RGB; TRUE:BGR,only used in rgb format
     __disp_cs_mode_t    cs_mode;    //color space 
-    __bool              b_interlace;
     __bool              b_trd_src;
+    __bool              b_interlace;
     __disp_3d_src_mode_t    trd_mode;
     __u32               trd_right_addr[3];//used when in frame packing 3d mode
 }__disp_fb_t;
@@ -548,8 +577,8 @@ extern __s32 BSP_disp_enhance_enable(__u32 sel, __bool enable);
 extern __s32 BSP_disp_get_enhance_enable(__u32 sel);
 extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para);
 extern __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size);
-extern __s32 BSP_disp_print_reg(__u32 base, __u32 size);
 extern __s32 BSP_disp_set_yuv_output(__u32 sel, __bool bout_yuv);
+extern __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en);
 
 extern __s32 BSP_disp_layer_request(__u32 sel, __disp_layer_work_mode_t mode);
 extern __s32 BSP_disp_layer_release(__u32 sel, __u32 hid);

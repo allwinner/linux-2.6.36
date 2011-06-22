@@ -7,15 +7,15 @@
 
 //#define HDMI1440_480I
 //#define HDMI1440_576I
-#define HDMI480P
+//#define HDMI480P
 //#define HDMI576P
-//#define HDMI720P_50
+#define HDMI720P_50
 //#define HDMI720P_60 
 //#define HDMI1080I_50
 //#define HDMI1080I_60
 //#define HDMI1080P_50
 //#define HDMI1080P_60 
-//  #define HDMI1080P_24
+//#define HDMI1080P_24
 
 
 //#define AUDIO_32K

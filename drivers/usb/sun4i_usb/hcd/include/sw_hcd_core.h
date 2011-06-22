@@ -46,7 +46,6 @@ struct sw_hcd_hw_ep;
 
 #include  "sw_hcd_regs_i.h"
 
-#include  "sw_hcd.h"
 #include  "sw_hcd_board.h"
 #include  "sw_hcd_host.h"
 #include  "sw_hcd_virt_hub.h"
@@ -68,16 +67,16 @@ struct sw_hcd_hw_ep;
 //---------------------------------------------------------------
 
 #define	is_host_capable()			(1)
-#define sw_hcd_C_NUM_EPS      		USBC_MAX_EP_NUM
+#define SW_HCD_C_NUM_EPS      		USBC_MAX_EP_NUM
 #define	is_host_enabled(sw_usb)		is_host_capable()
 
 /* host side ep0 states */
 enum sw_hcd_h_ep0_state {
-	sw_hcd_EP0_IDLE,
-	sw_hcd_EP0_START,			/* expect ack of setup */
-	sw_hcd_EP0_IN,			/* expect IN DATA */
-	sw_hcd_EP0_OUT,			/* expect ack of OUT DATA */
-	sw_hcd_EP0_STATUS,		/* expect ack of STATUS */
+	SW_HCD_EP0_IDLE,
+	SW_HCD_EP0_START,			/* expect ack of setup */
+	SW_HCD_EP0_IN,			/* expect IN DATA */
+	SW_HCD_EP0_OUT,			/* expect ack of OUT DATA */
+	SW_HCD_EP0_STATUS,		/* expect ack of STATUS */
 }__attribute__ ((packed));
 
 
@@ -124,7 +123,7 @@ typedef struct sw_hcd{
 	__u32 usbc_no;
 
 /* this hub status bit is reserved by USB 2.0 and not seen by usbcore */
-#define sw_hcd_PORT_STAT_RESUME	(1 << 31)
+#define SW_HCD_PORT_STAT_RESUME	(1 << 31)
 	u32 port1_status;                   /* 虚拟 hub 的端口状态  */
 	unsigned long rh_timer;             /* root hub 的delay时间 */
 
@@ -161,7 +160,7 @@ typedef struct sw_hcd{
 	int nIrq;                           /* 中断号               */
 	unsigned irq_wake:1;                /* flag. 中断使能标志   */
 
-	struct sw_hcd_hw_ep endpoints[sw_hcd_C_NUM_EPS];    /* sw_hcd 所有 ep 的信息 */
+	struct sw_hcd_hw_ep endpoints[SW_HCD_C_NUM_EPS];    /* sw_hcd 所有 ep 的信息 */
 #define control_ep endpoints
 
 #define VBUSERR_RETRY_COUNT	3
@@ -195,6 +194,7 @@ typedef struct sw_hcd{
 	struct sw_hcd_config	*config;        /* sw_hcd 的配置信息                  */
 
 	sw_hcd_io_t	*sw_hcd_io;
+	u32 enable;
 }sw_hcd_t;
 
 struct sw_hcd_ep_reg{
@@ -231,7 +231,7 @@ struct sw_hcd_context_registers {
 	__u32 USB_TESTC;
 
 	/* Endpoint Index Register */
-	struct sw_hcd_ep_reg ep_reg[sw_hcd_C_NUM_EPS];
+	struct sw_hcd_ep_reg ep_reg[SW_HCD_C_NUM_EPS];
 
 	/* Configuration Register */
 	__u32 USB_CONFIGINFO;
@@ -307,7 +307,7 @@ static inline void sw_hcd_configure_ep0(struct sw_hcd *sw_hcd)
 	sw_hcd->endpoints[0].is_shared_fifo = true;
 }
 
-#define  sw_hcd_HST_MODE(_sw_hcd)       { (_sw_hcd)->is_host = true; }
+#define  SW_HCD_HST_MODE(sw_hcd) 	{ (sw_hcd)->is_host = true; }
 #define  is_direction_in(qh)		(qh->hep->desc.bEndpointAddress & USB_ENDPOINT_DIR_MASK)
 
 //---------------------------------------------------------------
@@ -320,6 +320,7 @@ void sw_hcd_generic_disable(struct sw_hcd *sw_hcd);
 
 irqreturn_t generic_interrupt(int irq, void *__hci);
 
+void sw_hcd_soft_disconnect(struct sw_hcd *sw_hcd);
 void sw_hcd_start(struct sw_hcd *sw_hcd);
 void sw_hcd_stop(struct sw_hcd *sw_hcd);
 
@@ -328,7 +329,7 @@ void sw_hcd_platform_try_idle(struct sw_hcd *sw_hcd, unsigned long timeout);
 void sw_hcd_platform_enable(struct sw_hcd *sw_hcd);
 void sw_hcd_platform_disable(struct sw_hcd *sw_hcd);
 int sw_hcd_platform_set_mode(struct sw_hcd *sw_hcd, u8 sw_hcd_mode);
-int __init sw_hcd_platform_init(struct sw_hcd *sw_hcd);
+int sw_hcd_platform_init(struct sw_hcd *sw_hcd);
 int sw_hcd_platform_exit(struct sw_hcd *sw_hcd);
 int sw_hcd_platform_suspend(struct sw_hcd *sw_hcd);
 int sw_hcd_platform_resume(struct sw_hcd *sw_hcd);

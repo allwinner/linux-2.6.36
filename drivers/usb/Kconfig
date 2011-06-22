@@ -41,6 +41,7 @@ config USB_ARCH_HAS_OHCI
 	default y if MFD_TC6393XB
 	default y if ARCH_W90X900
 	default y if ARCH_DAVINCI_DA8XX
+	default y if ARCH_SUN4I
 	# PPC:
 	default y if STB03xxx
 	default y if PPC_MPC52xx
@@ -65,6 +66,7 @@ config USB_ARCH_HAS_EHCI
 	default y if ARCH_AT91SAM9G45
 	default y if ARCH_MXC
 	default y if ARCH_OMAP3
+	default y if ARCH_SUN4I
 	default PCI
 
 # ARM SA1111 chips have a non-PCI based "OHCI-compatible" USB host interface.
@@ -78,7 +80,7 @@ config USB
 	  traditional PC serial port.  The bus supplies power to peripherals
 	  and allows for hot swapping.  Up to 127 USB peripherals can be
 	  connected to a single USB host in a tree structure.
-	  
+
 	  The USB host is the root of the tree, the peripherals are the
 	  leaves and the inner nodes are special USB devices called hubs.
 	  Most PCs now have USB host ports, used to connect peripherals

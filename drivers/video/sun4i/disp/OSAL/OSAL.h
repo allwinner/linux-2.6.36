@@ -36,6 +36,7 @@
 #include  "OSAL_Int.h"
 #include  "OSAL_IrqLock.h"
 #include  "OSAL_Pin.h"
+#include  "OSAL_Parser.h"
 
 #endif   //__OSAL_H__
 

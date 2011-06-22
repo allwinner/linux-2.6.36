@@ -43,16 +43,16 @@
 
 #define DRIVER_INFO DRIVER_DESC ", v" sw_hcd_VERSION
 
-#define sw_hcd_DRIVER_NAME    "sw_hcd_host1"
-static const char sw_hcd_driver_name[] = sw_hcd_DRIVER_NAME;
+#define SW_HCD_DRIVER_NAME    "sw_hcd_host1"
+static const char sw_hcd_driver_name[] = SW_HCD_DRIVER_NAME;
 
 MODULE_DESCRIPTION(DRIVER_INFO);
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:" sw_hcd_DRIVER_NAME);
+MODULE_ALIAS("platform:" SW_HCD_DRIVER_NAME);
 
-enum fifo_style { FIFO_RXTX, FIFO_TX, FIFO_RX } __attribute__ ((packed));
-enum buf_mode { BUF_SINGLE, BUF_DOUBLE } __attribute__ ((packed));
+enum fifo_style { FIFO_RXTX = 0, FIFO_TX, FIFO_RX } __attribute__ ((packed));
+enum buf_mode { BUF_SINGLE = 0, BUF_DOUBLE } __attribute__ ((packed));
 
 struct fifo_cfg {
 	u8		hw_ep_num;
@@ -66,20 +66,6 @@ struct fifo_cfg {
  * for host side, make sure both halves of ep1 are set up.
  */
 /* mode 4 - fits in 16KB */
-#if 0
-static struct fifo_cfg __initdata mode_4_cfg[] = {
-	{ .hw_ep_num =  1, .style = FIFO_TX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num =  1, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num =  2, .style = FIFO_TX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-	{ .hw_ep_num =  2, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-//	{ .hw_ep_num =  3, .style = FIFO_TX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-//	{ .hw_ep_num =  3, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-//	{ .hw_ep_num =  4, .style = FIFO_TX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-//	{ .hw_ep_num =  4, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-//	{ .hw_ep_num =  5, .style = FIFO_TX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-//	{ .hw_ep_num =  5, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_DOUBLE, },
-};
-#else
 static struct fifo_cfg __initdata mode_4_cfg[] = {
 	{ .hw_ep_num =  1, .style = FIFO_TX,   .maxpacket = 512, .mode = BUF_SINGLE, },
 	{ .hw_ep_num =  1, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_SINGLE, },
@@ -89,14 +75,13 @@ static struct fifo_cfg __initdata mode_4_cfg[] = {
 	{ .hw_ep_num =  3, .style = FIFO_RX,   .maxpacket = 512, .mode = BUF_SINGLE, },
 };
 
-#endif
-
 static struct fifo_cfg __initdata ep0_cfg = {
 	.style = FIFO_RXTX, .maxpacket = 64,
 };
 
 static sw_hcd_io_t g_sw_hcd_io;
 static __u32 usbc_no = 0;
+static struct sw_hcd *g_sw_hcd1 = NULL;
 
 
 
@@ -128,7 +113,7 @@ static __u32 usbc_no = 0;
 */
 static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
- 	DMSG_INFO("open_usb_clock\n");
+ 	DMSG_INFO_HCD1("open_usb_clock\n");
 
 	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && !sw_hcd_io->clk_is_open){
 	   	clk_enable(sw_hcd_io->sie_clk);
@@ -167,7 +152,7 @@ static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 */
 static u32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
-	DMSG_INFO("close_usb_clock\n");
+	DMSG_INFO_HCD1("close_usb_clock\n");
 
 	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->clk_is_open){
 	    clk_disable(sw_hcd_io->sie_clk);
@@ -248,6 +233,7 @@ static __s32 pin_init(sw_hcd_io_t *sw_hcd_io)
 static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 {
 	gpio_release(sw_hcd_io->Drv_vbus_Handle, 0);
+	sw_hcd_io->Drv_vbus_Handle = 0;
 
 	return 0;
 }
@@ -282,11 +268,11 @@ static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 	if(is_on){
 		USBC_Host_StartSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_HIGH);
-		DMSG_INFO("INFO : USB VBus power ON\n");
+		DMSG_INFO_HCD1("INFO : USB VBus power ON\n");
 	}else{
 		USBC_Host_EndSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_DISABLE);
-		DMSG_INFO("INFO : USB VBus power OFF\n");
+		DMSG_INFO_HCD1("INFO : USB VBus power OFF\n");
 	}
 
 	return;
@@ -318,26 +304,13 @@ static __s32 sw_hcd_bsp_init(__u32 usbc_no, sw_hcd_io_t *sw_hcd_io)
 	sw_hcd_io->usbc.usbc_info[usbc_no].base = (u32)sw_hcd_io->usb_vbase;
 	sw_hcd_io->usbc.sram_base = (u32)sw_hcd_io->sram_vbase;
 
-	USBC_init(&sw_hcd_io->usbc);
+//	USBC_init(&sw_hcd_io->usbc);
 	sw_hcd_io->usb_bsp_hdle = USBC_open_otg(usbc_no);
 	if(sw_hcd_io->usb_bsp_hdle == 0){
 		DMSG_PANIC("ERR: sw_hcd_init: USBC_open_otg failed\n");
 		return -1;
 	}
-/*
-{
-	__u32 *addr = (__u32 *)sw_hcd_io->usb_bsp_hdle;
 
-	DMSG_INFO("irq: %s, sw_hcd_io      = 0x%p\n", sw_hcd_driver_name, sw_hcd_io);
-	DMSG_INFO("irq: %s, usb_bsp_hdle = 0x%p\n", sw_hcd_driver_name, (void *)sw_hcd_io->usb_bsp_hdle);
-	DMSG_INFO("irq: %s, reg          = 0x%x\n", sw_hcd_driver_name, (__u32)sw_hcd_io->usb_vbase);
-	DMSG_INFO("irq: %s, usbc_no      = 0x%x\n", sw_hcd_driver_name, usbc_no);
-	DMSG_INFO("irq: %s, port_num     = 0x%x\n", sw_hcd_driver_name, addr[0]);
-	DMSG_INFO("irq: %s, base_addr    = 0x%x\n", sw_hcd_driver_name, addr[1]);
-	DMSG_INFO("irq: %s, used         = 0x%x\n", sw_hcd_driver_name, addr[2]);
-	DMSG_INFO("irq: %s, no           = 0x%x\n", sw_hcd_driver_name, addr[3]);
-}
-*/
     return 0;
 }
 
@@ -362,11 +335,11 @@ static __s32 sw_hcd_bsp_init(__u32 usbc_no, sw_hcd_io_t *sw_hcd_io)
 static __s32 sw_hcd_bsp_exit(__u32 usbc_no, sw_hcd_io_t *sw_hcd_io)
 {
 	USBC_close_otg(sw_hcd_io->usb_bsp_hdle);
-	USBC_exit(&sw_hcd_io->usbc);
+	sw_hcd_io->usb_bsp_hdle = 0;
+//	USBC_exit(&sw_hcd_io->usbc);
 
     return 0;
 }
-
 
 /*
 *******************************************************************************
@@ -388,57 +361,13 @@ static __s32 sw_hcd_bsp_exit(__u32 usbc_no, sw_hcd_io_t *sw_hcd_io)
 */
 static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_io_t *sw_hcd_io)
 {
-	__s32 			ret 	= 0;
-	unsigned int	iosize 	= 0;
+	__s32 ret = 0;
 
-	/* usb */
-	sw_hcd_io->usb_base_res 	= platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if(sw_hcd_io->usb_base_res == NULL){
-		DMSG_PANIC("ERR: sw_hcd_init, platform_get_resource for usb failed\n");
-		ret = -ENODEV;
-		goto io_failed;
-	}
+	sw_hcd_io->usb_vbase  = (void __iomem *)SW_VA_USB1_IO_BASE;
+	sw_hcd_io->sram_vbase = (void __iomem *)SW_VA_SRAM_IO_BASE;
 
-	iosize = res_size(sw_hcd_io->usb_base_res);
-	sw_hcd_io->usb_base_req = request_mem_region(sw_hcd_io->usb_base_res->start, iosize, pdev->name);
-	if(sw_hcd_io->usb_base_req == NULL){
-		DMSG_PANIC("ERR: sw_hcd_init, request_mem_region for usb failed\n");
-		ret = -ENODEV;
-		goto io_failed;
-	}
-
-	sw_hcd_io->usb_vbase = ioremap(sw_hcd_io->usb_base_res->start, iosize);
-	if(sw_hcd_io->usb_vbase == NULL){
-		DMSG_PANIC("ERR: sw_hcd_init, ioremap for usb failed\n");
-		ret = -ENOMEM;
-		goto io_failed;
-	}
-
-	/* sram */
-	sw_hcd_io->sram_base_res 	= platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	if(sw_hcd_io->sram_base_res == NULL){
-		DMSG_PANIC("ERR: sw_hcd_init, platform_get_resource for sram failed\n");
-		ret = -ENODEV;
-		goto io_failed;
-	}
-
-	iosize = res_size(sw_hcd_io->sram_base_res);
-
-	sw_hcd_io->sram_base_req = request_mem_region(sw_hcd_io->sram_base_res->start, iosize, pdev->name);
-	if(sw_hcd_io->sram_base_req == NULL){
-		DMSG_PANIC("ERR: sw_hcd_init, request_mem_region for sram failed\n");
-		ret = -ENODEV;
-	}
-
-	sw_hcd_io->sram_vbase = ioremap(sw_hcd_io->sram_base_res->start, iosize);
-	if(sw_hcd_io->sram_vbase == NULL){
-		DMSG_PANIC("ERR: sw_hcd_init, ioremap for sram failed\n");
-		ret = -ENOMEM;
-		goto io_failed;
-	}
-
-	DMSG_INFO("[usb host]: usb_vbase    = 0x%x\n", (u32)sw_hcd_io->usb_vbase);
-	DMSG_INFO("[usb host]: sram_vbase   = 0x%x\n", (u32)sw_hcd_io->sram_vbase);
+	DMSG_INFO_HCD1("[usb host]: usb_vbase    = 0x%x\n", (u32)sw_hcd_io->usb_vbase);
+	DMSG_INFO_HCD1("[usb host]: sram_vbase   = 0x%x\n", (u32)sw_hcd_io->sram_vbase);
 
     /* open usb lock */
 	sw_hcd_io->sie_clk = clk_get(NULL, "ahb_usb1");
@@ -463,55 +392,46 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 	/* config usb fifo */
 	USBC_ConfigFIFO_Base(sw_hcd_io->usb_bsp_hdle, (u32)sw_hcd_io->sram_vbase, USBC_FIFO_MODE_4K);
 
-    /* 配完 fifo 后, 立即释放sram map */
-	if(sw_hcd_io->sram_base_res){
-		release_resource(sw_hcd_io->sram_base_res);
-	}
-
-	if(sw_hcd_io->sram_base_req){
-		kfree(sw_hcd_io->sram_base_req);
-	}
-
-	if(sw_hcd_io->sram_vbase){
-		iounmap(sw_hcd_io->sram_vbase);
-	}
-
 	/* config drv_vbus pin */
 	ret = pin_init(sw_hcd_io);
 	if(ret != 0){
 		DMSG_PANIC("ERR: pin_init failed\n");
 		ret = -ENOMEM;
-		goto io_failed;
+		goto io_failed1;
 	}
+
+	/* get usbc_init_state */
+	ret = script_parser_fetch(SET_USB1, KEY_USBC_INIT_STATE, (int *)&(sw_hcd_io->usbc_init_state), 64);
+	if(ret != 0){
+		DMSG_PANIC("ERR: script_parser_fetch usbc_init_state failed\n");
+		ret = -ENOMEM;
+		goto io_failed2;
+	}
+
+	DMSG_INFO("[sw_hcd1]: usbc_init_state = %d\n", sw_hcd_io->usbc_init_state);
 
 	return 0;
 
+io_failed2:
+	pin_exit(sw_hcd_io);
+
+io_failed1:
+	sw_hcd_bsp_exit(usbc_no, sw_hcd_io);
+	close_usb_clock(sw_hcd_io);
+
+	if(sw_hcd_io->sie_clk){
+		clk_put(sw_hcd_io->sie_clk);
+		sw_hcd_io->sie_clk = NULL;
+	}
+
+	if(sw_hcd_io->phy_clk){
+		clk_put(sw_hcd_io->phy_clk);
+		sw_hcd_io->phy_clk = NULL;
+	}
+
 io_failed:
-	/* usb */
-	if(sw_hcd_io->usb_base_res){
-		release_resource(sw_hcd_io->usb_base_res);
-	}
-
-	if(sw_hcd_io->usb_base_req){
-		kfree(sw_hcd_io->usb_base_req);
-	}
-
-	if(sw_hcd_io->usb_vbase){
-		iounmap(sw_hcd_io->usb_vbase);
-	}
-
-	/* sram */
-	if(sw_hcd_io->sram_base_res){
-		release_resource(sw_hcd_io->sram_base_res);
-	}
-
-	if(sw_hcd_io->sram_base_req){
-		kfree(sw_hcd_io->sram_base_req);
-	}
-
-	if(sw_hcd_io->sram_vbase){
-		iounmap(sw_hcd_io->sram_vbase);
-	}
+	sw_hcd_io->usb_vbase = 0;
+	sw_hcd_io->sram_vbase = 0;
 
 	return ret;
 }
@@ -540,39 +460,23 @@ static __s32 sw_hcd_io_exit(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 
 	/* config drv_vbus pin */
 	pin_exit(sw_hcd_io);
-
 	close_usb_clock(sw_hcd_io);
 
-	/* usb */
-	if(sw_hcd_io->usb_base_res){
-		release_resource(sw_hcd_io->usb_base_res);
+	if(sw_hcd_io->sie_clk){
+		clk_put(sw_hcd_io->sie_clk);
+		sw_hcd_io->sie_clk = NULL;
 	}
 
-	if(sw_hcd_io->usb_base_req){
-		kfree(sw_hcd_io->usb_base_req);
+	if(sw_hcd_io->phy_clk){
+		clk_put(sw_hcd_io->phy_clk);
+		sw_hcd_io->phy_clk = NULL;
 	}
 
-	if(sw_hcd_io->usb_vbase){
-		iounmap(sw_hcd_io->usb_vbase);
-	}
-
-	/* sram */
-	if(sw_hcd_io->sram_base_res){
-		release_resource(sw_hcd_io->sram_base_res);
-	}
-
-	if(sw_hcd_io->sram_base_req){
-		kfree(sw_hcd_io->sram_base_req);
-	}
-
-	if(sw_hcd_io->sram_vbase){
-		iounmap(sw_hcd_io->sram_vbase);
-	}
+	sw_hcd_io->usb_vbase = 0;
+	sw_hcd_io->sram_vbase = 0;
 
 	return 0;
 }
-
-
 
 /*
 *******************************************************************************
@@ -937,7 +841,7 @@ static int __init sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		strcat(aInfo, ", SoftConn");
 	}
 
-	DMSG_INFO("%s: ConfigData=0x%02x (%s)\n", sw_hcd_driver_name, reg, aInfo);
+	DMSG_INFO_HCD1("%s: ConfigData=0x%02x (%s)\n", sw_hcd_driver_name, reg, aInfo);
 
 	aDate[0] = 0;
 
@@ -948,7 +852,7 @@ static int __init sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 	    sw_hcd->is_multipoint = 0;
 		type = "";
 
-		DMSG_INFO("%s: kernel must blacklist external hubs\n", sw_hcd_driver_name);
+		DMSG_INFO_HCD1("%s: kernel must blacklist external hubs\n", sw_hcd_driver_name);
 	}
 
 	/* configure ep0 */
@@ -990,7 +894,7 @@ static int __init sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		hw_ep->tx_reinit    = 1;
 
 		if (hw_ep->max_packet_sz_tx) {
-			DMSG_INFO("%s: hw_ep %d%s, %smax %d\n",
+			DMSG_INFO_HCD1("%s: hw_ep %d%s, %smax %d\n",
         				sw_hcd_driver_name, i,
         				(hw_ep->is_shared_fifo ? "shared" : "tx"),
         				(hw_ep->tx_double_buffered ? "doublebuffer, " : ""),
@@ -998,7 +902,7 @@ static int __init sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		}
 
         if (hw_ep->max_packet_sz_rx && !hw_ep->is_shared_fifo) {
-			DMSG_INFO("%s: hw_ep %d%s, %smax %d\n",
+			DMSG_INFO_HCD1("%s: hw_ep %d%s, %smax %d\n",
         				sw_hcd_driver_name, i,
         				"rx",
         				(hw_ep->rx_double_buffered ? "doublebuffer, " : ""),
@@ -1006,7 +910,7 @@ static int __init sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		}
 
         if (!(hw_ep->max_packet_sz_tx || hw_ep->max_packet_sz_rx)){
-			DMSG_INFO("hw_ep %d not configured\n", i);
+			DMSG_INFO_HCD1("hw_ep %d not configured\n", i);
         }
     }
 
@@ -1112,11 +1016,13 @@ static struct sw_hcd *__init allocate_instance(struct device *dev,
 	INIT_LIST_HEAD(&sw_hcd->out_bulk);
 
     hcd->uses_new_polling   = 1;
-	sw_hcd->vbuserr_retry     = VBUSERR_RETRY_COUNT;
-    sw_hcd->mregs             = mbase;
-	sw_hcd->ctrl_base         = mbase;
-	sw_hcd->nIrq              = -ENODEV;
-	sw_hcd->config            = config;
+	sw_hcd->vbuserr_retry 	= VBUSERR_RETRY_COUNT;
+    sw_hcd->mregs          	= mbase;
+	sw_hcd->ctrl_base      	= mbase;
+	sw_hcd->nIrq          	= -ENODEV;
+	sw_hcd->config         	= config;
+	sw_hcd->enable 			= 1;
+	g_sw_hcd1              	= sw_hcd;
 
 	strcpy(sw_hcd->driver_name, sw_hcd_driver_name);
 
@@ -1240,7 +1146,7 @@ static int __init sw_hcd_init_controller(struct device *dev, int nIrq, void __io
 
     switch (plat->mode) {
 	    case SW_HCD_HOST:
-            DMSG_INFO("platform is usb host\n");
+            DMSG_INFO_HCD1("platform is usb host\n");
 		break;
 
     	default:
@@ -1319,7 +1225,7 @@ static int __init sw_hcd_init_controller(struct device *dev, int nIrq, void __io
 		sw_hcd->irq_wake = 0;
 	}
 
-	DMSG_INFO("sw_hcd_init_controller: %s: USB %s mode controller at %p using %s, IRQ %d\n",
+	DMSG_INFO_HCD1("sw_hcd_init_controller: %s: USB %s mode controller at %p using %s, IRQ %d\n",
         			sw_hcd_driver_name,
         			"Host",
         			ctrl,
@@ -1338,7 +1244,7 @@ static int __init sw_hcd_init_controller(struct device *dev, int nIrq, void __io
 	 * Otherwise, wait till the gadget driver hooks up.
 	 */
 	if (is_host_enabled(sw_hcd)) {
-		sw_hcd_HST_MODE(sw_hcd);
+		SW_HCD_HST_MODE(sw_hcd);
 
 		status = usb_add_hcd(sw_hcd_to_hcd(sw_hcd), -1, 0);
 		if (status){
@@ -1404,7 +1310,17 @@ static int __init sw_hcd_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-    return sw_hcd_init_controller(dev, irq, g_sw_hcd_io.usb_vbase);
+	ret = sw_hcd_init_controller(dev, irq, g_sw_hcd_io.usb_vbase);
+	if(ret != 0){
+		DMSG_PANIC("ERR: sw_hcd_init_controller failed\n");
+		return -ENODEV;
+	}
+
+	if(!g_sw_hcd_io.usbc_init_state){
+		sw_usb_disable_hcd1();
+	}
+
+    return 0;
 }
 
 /*
@@ -1438,6 +1354,9 @@ static int __devexit sw_hcd_remove(struct platform_device *pdev)
     if (sw_hcd->board_mode == SW_HCD_HOST){
 		usb_remove_hcd(sw_hcd_to_hcd(sw_hcd));
 	}
+
+	sw_hcd->enable = 1;
+	g_sw_hcd1 = NULL;
 
     sw_hcd_free(sw_hcd);
 	device_init_wakeup(&pdev->dev, 0);
@@ -1475,7 +1394,7 @@ static void sw_hcd_save_context(struct sw_hcd *sw_hcd)
 	void __iomem *sw_hcd_base = sw_hcd->mregs;
 
 	/* Common Register */
-	for(i = 0; i < sw_hcd_C_NUM_EPS; i++){
+	for(i = 0; i < SW_HCD_C_NUM_EPS; i++){
 		USBC_SelectActiveEp(sw_hcd->sw_hcd_io->usb_bsp_hdle, i);
 
 		if(i == 0){
@@ -1526,7 +1445,7 @@ static void sw_hcd_restore_context(struct sw_hcd *sw_hcd)
 	void __iomem *sw_hcd_base = sw_hcd->mregs;
 
 	/* Common Register */
-	for(i = 0; i < sw_hcd_C_NUM_EPS; i++){
+	for(i = 0; i < SW_HCD_C_NUM_EPS; i++){
 		USBC_SelectActiveEp(sw_hcd->sw_hcd_io->usb_bsp_hdle, i);
 
 		if(i == 0){
@@ -1555,6 +1474,101 @@ static void sw_hcd_restore_context(struct sw_hcd *sw_hcd)
 
 /*
 *******************************************************************************
+*                     sw_usb_disable_hcd1
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+int sw_usb_disable_hcd1(void)
+{
+	struct device *dev = g_sw_hcd1->controller;
+	struct platform_device *pdev = to_platform_device(dev);
+	unsigned long	flags = 0;
+	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
+
+	DMSG_INFO("sw_usb_disable_hcd1 start, clk_is_open = %d\n",
+		      		sw_hcd->sw_hcd_io->clk_is_open);
+
+	if(!sw_hcd->sw_hcd_io->clk_is_open){
+		DMSG_PANIC("ERR: sw_usb_disable_hcd1, usb clock is close, can't close again\n");
+		return 0;
+	}
+
+	spin_lock_irqsave(&sw_hcd->lock, flags);
+	sw_hcd_port_suspend_ex(sw_hcd);
+	sw_hcd_stop(sw_hcd);
+	sw_hcd_set_vbus(sw_hcd, 0);
+	sw_hcd_save_context(sw_hcd);
+	close_usb_clock(sw_hcd->sw_hcd_io);
+
+	sw_hcd_soft_disconnect(sw_hcd);
+	spin_unlock_irqrestore(&sw_hcd->lock, flags);
+
+	DMSG_INFO("sw_usb_disable_hcd1 end\n");
+
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_disable_hcd1);
+
+/*
+*******************************************************************************
+*                     sw_usb_enable_hcd1
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+int sw_usb_enable_hcd1(void)
+{
+	struct device *dev = g_sw_hcd1->controller;
+	struct platform_device *pdev = to_platform_device(dev);
+	unsigned long	flags = 0;
+	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
+
+	DMSG_INFO("sw_usb_enable_hcd1 start, clk_is_open = %d\n",
+		      		sw_hcd->sw_hcd_io->clk_is_open);
+
+	if(sw_hcd->sw_hcd_io->clk_is_open){
+		DMSG_PANIC("ERR: sw_usb_enable_hcd1, usb clock is open, can't open again\n");
+		return 0;
+	}
+
+	spin_lock_irqsave(&sw_hcd->lock, flags);
+	open_usb_clock(sw_hcd->sw_hcd_io);
+	sw_hcd_restore_context(sw_hcd);
+	sw_hcd_start(sw_hcd);
+
+	spin_unlock_irqrestore(&sw_hcd->lock, flags);
+
+	DMSG_INFO("sw_usb_enable_hcd1 end\n");
+
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_enable_hcd1);
+
+/*
+*******************************************************************************
 *                     sw_hcd_suspend
 *
 * Description:
@@ -1577,17 +1591,23 @@ static int sw_hcd_suspend(struct device *dev)
 	unsigned long	flags = 0;
 	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
 
+	DMSG_INFO_HCD1("sw_hcd_suspend start, clk_is_open = %d\n",
+		            sw_hcd->sw_hcd_io->clk_is_open);
+
 	if(!sw_hcd->sw_hcd_io->clk_is_open){
-		DMSG_PANIC("ERR: sw_hcd_suspend, usb clock is close, can't close agin\n");
+		DMSG_PANIC("ERR: sw_hcd_suspend, usb clock is close, can't close again\n");
 		return 0;
 	}
 
 	spin_lock_irqsave(&sw_hcd->lock, flags);
-	sw_hcd_set_vbus(sw_hcd, 0);
+	sw_hcd_port_suspend_ex(sw_hcd);
 	sw_hcd_stop(sw_hcd);
+	sw_hcd_set_vbus(sw_hcd, 0);
 	sw_hcd_save_context(sw_hcd);
 	close_usb_clock(sw_hcd->sw_hcd_io);
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
+
+	DMSG_INFO_HCD1("sw_hcd_suspend end\n");
 
 	return 0;
 }
@@ -1615,24 +1635,29 @@ static int sw_hcd_resume_early(struct device *dev)
 	unsigned long	flags = 0;
 	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
 
+	DMSG_INFO_HCD1("sw_hcd_resume_early start, clk_is_open = %d\n",
+		      		sw_hcd->sw_hcd_io->clk_is_open);
+
 	if(sw_hcd->sw_hcd_io->clk_is_open){
-		DMSG_PANIC("ERR: sw_hcd_suspend, usb clock is open, can't open agin\n");
+		DMSG_PANIC("ERR: sw_hcd_suspend, usb clock is open, can't open again\n");
 		return 0;
 	}
 
 	spin_lock_irqsave(&sw_hcd->lock, flags);
+	sw_hcd_soft_disconnect(sw_hcd);
 	open_usb_clock(sw_hcd->sw_hcd_io);
 	sw_hcd_restore_context(sw_hcd);
 	sw_hcd_start(sw_hcd);
-	sw_hcd_set_vbus(sw_hcd, 1);
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
+
+	DMSG_INFO_HCD1("sw_hcd_resume_early end\n");
 
 	return 0;
 }
 
 static const struct dev_pm_ops sw_hcd_dev_pm_ops = {
 	.suspend		= sw_hcd_suspend,
-	.resume_noirq	= sw_hcd_resume_early,
+	.resume         = sw_hcd_resume_early,
 };
 
 static struct platform_driver sw_hcd_driver = {
@@ -1645,62 +1670,6 @@ static struct platform_driver sw_hcd_driver = {
 
 	.remove		    = __devexit_p(sw_hcd_remove),
 	.shutdown	    = sw_hcd_shutdown,
-};
-
-static struct resource usb_resources[] = {
-	[0] = {	//usb
-		.start	= USBC1_BASE,
-		.end	= USBC1_BASE + 0xffc,
-		.flags	= IORESOURCE_MEM,
-	},
-
-	[1] = {	//sram
-		.start	= USB_SRAMC_BASE,
-		.end	= USB_SRAMC_BASE + 0xff,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct sw_hcd_eps_bits sw_hcd_eps[] = {
-	{ "ep1_tx", 8, },
-	{ "ep1_rx", 8, },
-	{ "ep2_tx", 8, },
-	{ "ep2_rx", 8, },
-	{ "ep3_tx", 8, },
-	{ "ep3_rx", 8, },
-};
-
-static struct sw_hcd_config sw_hcd_config = {
-	.multipoint		= 1,
-	.dyn_fifo		= 1,
-	.soft_con		= 1,
-	.dma			= 0,
-
-	.num_eps		= USBC_MAX_EP_NUM,
-	.dma_channels	= 0,
-	.ram_size		= USBC1_MAX_FIFO_SIZE,
-	.eps_bits	    = sw_hcd_eps,
-};
-
-static struct sw_hcd_platform_data sw_hcd_plat = {
-	.mode		= SW_HCD_HOST,
-	.config		= &sw_hcd_config,
-};
-
-static u64 sw_hcd_dmamask = DMA_BIT_MASK(32);
-
-static struct platform_device sw_hcd_device = {
-	.name				= sw_hcd_driver_name,
-	.id					= -1,
-
-	.dev = {
-		.dma_mask			= &sw_hcd_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-		.platform_data		= &sw_hcd_plat,
-	},
-
-	.resource			= usb_resources,
-	.num_resources		= ARRAY_SIZE(usb_resources),
 };
 
 /*
@@ -1723,14 +1692,12 @@ static struct platform_device sw_hcd_device = {
 */
 static int __init sw_hcd_init(void)
 {
-	DMSG_INFO("usb host driver initialize........\n");
+	DMSG_INFO_HCD1("usb host driver initialize........\n");
 
     if (usb_disabled()){
         DMSG_PANIC("ERR: usb disabled\n");
 		return 0;
 	}
-
-	platform_device_register(&sw_hcd_device);
 
     return platform_driver_probe(&sw_hcd_driver, sw_hcd_probe);
 }
@@ -1762,7 +1729,7 @@ static void __exit sw_hcd_cleanup(void)
 {
 	platform_driver_unregister(&sw_hcd_driver);
 
-	DMSG_INFO("usb host driver exit........\n");
+	DMSG_INFO_HCD1("usb host driver exit........\n");
 }
 
 module_exit(sw_hcd_cleanup);

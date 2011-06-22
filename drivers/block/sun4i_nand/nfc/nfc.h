@@ -201,7 +201,14 @@ typedef struct NFC_init_info{
 	__u8	debug;
 }NFC_INIT_INFO;
 
-
+__s32 NFC_ReadRetryInit(__u32 read_retry_type);
+__s32 NFC_ReadRetryExit(__u32 read_retry_type);
+__s32 NFC_GetDefaultParam(__u32 chip, __u8 *defautl_value, __u32 read_retry_type);
+__s32 NFC_SetDefaultParam(__u32 chip, __u8 *defautl_value, __u32 read_retry_type);
+__s32 NFC_ReadRetry(__u32 chip, __u32 retry_count, __u32 read_retry_type);
+__s32 NFC_SetRandomSeed(__u32 random_seed);
+__s32 NFC_RandomEnable(void);
+__s32 NFC_RandomDisable(void);
 __s32 NFC_Init(NFC_INIT_INFO * nand_info);
 void NFC_Exit(void);
 __s32 NFC_Read(NFC_CMD_LIST * rcmd, void * mainbuf, void * sparebuf, __u8 dma_wait_mode, __u8 page_mode);
@@ -214,6 +221,7 @@ __s32 NFC_Erase(NFC_CMD_LIST * ecmd, __u8 rb_wait_mode);
 __s32 NFC_CopyBackRead(NFC_CMD_LIST * crcmd);
 __s32 NFC_CopyBackWrite(NFC_CMD_LIST * cwcmd, __u8 rb_wait_mode);
 __s32 NFC_GetId(NFC_CMD_LIST * idcmd, __u8 * idbuf);
+__s32 NFC_GetUniqueId(NFC_CMD_LIST * idcmd, __u8 * idbuf);
 __s32 NFC_SelectChip(__u32 chip);
 __s32 NFC_DeSelectChip(__u32 chip);
 __s32 NFC_SelectRb(__u32 rb);

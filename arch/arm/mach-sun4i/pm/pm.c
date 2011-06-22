@@ -16,7 +16,6 @@
 *********************************************************************************************************
 */
 
-#if CONFIG_PM
 #include <linux/module.h>
 #include <linux/suspend.h>
 #include <linux/cdev.h>
@@ -53,7 +52,7 @@ extern char *standby_bin_end;
 
 static struct aw_pm_info standby_info = {
     .standby_para = {
-        .event = SUSPEND_WAKEUP_SRC_EXINT|SUSPEND_WAKEUP_SRC_KEY,
+        .event = SUSPEND_WAKEUP_SRC_KEY,
     },
     .pmu_arg = {
         .twi_port = 0,
@@ -464,6 +463,4 @@ static void __exit aw_pm_exit(void)
 
 module_init(aw_pm_init);
 module_exit(aw_pm_exit);
-
-#endif
 

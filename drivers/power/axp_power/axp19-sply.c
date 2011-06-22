@@ -506,17 +506,17 @@ static int axp_get_rdc(struct axp_charger *charger)
             axp_charger_update(charger);
 			averPreVol += charger->vbat;
 			averPreCur += charger->ibat;
-			mdelay(200);
+			msleep(200);
         }
         averPreVol /= AXP19_RDC_COUNT;
         averPreCur /= AXP19_RDC_COUNT;
 		axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
-		mdelay(3000);
+		msleep(3000);
 		for(i = 0; i< AXP19_RDC_COUNT; i++){
             axp_charger_update(charger);
 			averNextVol += charger->vbat;
 			averNextCur += charger->ibat;
-			mdelay(200);
+			msleep(200);
         }
 		averNextVol /= AXP19_RDC_COUNT;
 		averNextCur /= AXP19_RDC_COUNT;
@@ -809,7 +809,7 @@ static int axp_main_task(void *arg)
 			input_report_key(powerkeydev, KEY_POWER, 1);
 			input_sync(powerkeydev);
 			long_cnt = 2;
-			//mdelay(100);
+			//msleep(100);
 			//input_report_key(powerkeydev, KEY_POWER, 0);
 			//input_sync(powerkeydev);
 		}
@@ -821,7 +821,7 @@ static int axp_main_task(void *arg)
 
 			input_report_key(powerkeydev, KEY_POWER, 1);
 			input_sync(powerkeydev);
-			mdelay(100);
+			msleep(100);
 			input_report_key(powerkeydev, KEY_POWER, 0);
 			input_sync(powerkeydev);
 		}

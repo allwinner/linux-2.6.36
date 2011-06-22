@@ -4,14 +4,6 @@
 #include <linux/drv_display.h>
 #include "de_bsp/bsp_display.h"
 
-#define __wrn(msg...) {printk("[DISP],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-#if 1
-#define __inf(msg...) do{}while(0)
-#define __msg(msg...) do{}while(0)
-#else
-#define __inf(msg...) printk(msg)
-#define __msg(msg...) {printk("[DISP],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-#endif
 
 typedef enum
 {
@@ -43,7 +35,8 @@ typedef enum
 #define DISP_IO_TVEC0    6
 #define DISP_IO_TVEC1    7
 
-
+#define sys_get_hvalue(n)   (*((volatile __u16 *)(n)))         /* half word input */
+#define sys_put_hvalue(n,c) (*((volatile __u16 *)(n)) = (c))   /* half word output */
 #define sys_get_wvalue(n)   (*((volatile __u32 *)(n)))          /* word input */
 #define sys_put_wvalue(n,c) (*((volatile __u32 *)(n))  = (c))   /* word output */
 

@@ -33,6 +33,11 @@ choice
         choice "host only", then usb0 can only use for host. choice "OTG", then usb0 can only
         use device and host.
 
+config USB_SW_SUN4I_USB0_NULL
+    boolean "usb manager not support"
+    help
+        usb0 do not monitor hardware, then drvier insmod shoud by application.
+
 config USB_SW_SUN4I_USB0_DEVICE_ONLY
     boolean "device only support"
     help
@@ -48,5 +53,11 @@ config USB_SW_SUN4I_USB0_OTG
     help
         usb0 can only use for device and host.
 
+
 endchoice
 
+config USB_SW_SUN4I_USB_DEBUG
+    tristate "SUN4I USB driver debug message"
+    depends on USB_SW_SUN4I_USB
+    help
+        SUN4I USB driver debug message.

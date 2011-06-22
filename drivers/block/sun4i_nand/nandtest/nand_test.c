@@ -1119,69 +1119,68 @@ static void set_nand_pio(void)
 
 static __u32 get_cmu_clk(void)
 {
-    __u32 cmu_clk;
-    __u32 cfg;
-    __u32 ccmu_base;
-    
-    ccmu_base = 0xf1c20000;
-  
-    /*get cmu clock*/
-    cfg = *(volatile __u32 *)(ccmu_base + 0x0);
-    
-    if (cfg & (0x1 << 26)){
-      /*bypass enable*/
-        cmu_clk = 24/((cfg >> 16) & 0x7f);
-    }
-    else{
-        cmu_clk = 24 + 6 * (((cfg >> 16) & 0x7f) + 1);
-    }
-    
-    return cmu_clk;
+	__u32 reg_val;
+	__u32 div_p, factor_n;
+	__u32 factor_k, factor_m;
+	__u32 clock;
+
+	reg_val  = *(volatile unsigned int *)(0xf1c20000 + 0x20);
+	div_p    = (reg_val >> 16) & 0x3;
+	factor_n = (reg_val >> 8) & 0x1f;
+	factor_k = ((reg_val >> 4) & 0x3) + 1;
+	factor_m = ((reg_val >> 0) & 0x3) + 1;
+
+	clock = 24 * factor_n * factor_k/div_p/factor_m;
+	printk("cmu_clk is %d \n", clock);
+
+	return clock;
 }
 
-
-static void set_nand_clock(__u32 nand_max_clock,__u32 cmu_clk)
+static void set_nand_clock(__u32 nand_max_clock)
 {
-    __u32 edo_clk;
-    __u32 cfg;
-    __u32 nand_clk_divid_ratio;
-    __u32 ccmu_base;
-    
-    ccmu_base = 0xf1c20000;
-  
-    /*open ahb nand clk */
-    cfg = *(volatile __u32 *)(ccmu_base + 0x0C);
-    cfg |= (0x1<<12);
-    *(volatile __u32 *)(ccmu_base + 0x0C) = cfg;
-  
-    /*set nand clock*/
-    edo_clk = nand_max_clock * 2;
-  
-    nand_clk_divid_ratio = cmu_clk / edo_clk;
-    if (cmu_clk % edo_clk)
-        nand_clk_divid_ratio++;
-    if (nand_clk_divid_ratio){
-        if (nand_clk_divid_ratio > 16){
-            nand_clk_divid_ratio = 15;
-        }
-        else{
-            nand_clk_divid_ratio--;
-        }
-    }
-    /*set nand clock gate on*/
-    cfg = *(volatile __u32 *)(ccmu_base + 0x14);
-  
-    /*gate on nand clock*/
-    cfg |= (1 << 15);
-    /*take cmu pll as nand src block*/
-    cfg &= (~(0x3<<12));
-    cfg |= (0x3 << 12);
-  
-    /*set ratio*/
-    cfg &= ((~(0xf << 8))&0xffffffff);
-    cfg |= (nand_clk_divid_ratio & 0xf) << 8;
-  
-    *(volatile __u32 *)(ccmu_base + 0x14) = cfg;
+	__u32 edo_clk, cmu_clk;
+	__u32 cfg;
+	__u32 nand_clk_divid_ratio;
+	
+	/*open ahb nand clk */
+	cfg = *(volatile __u32 *)(0xf1c20000 + 0x60);
+	cfg |= (0x1<<13);
+	*(volatile __u32 *)(0xf1c20000 + 0x60) = cfg;
+
+	/*set nand clock*/
+	//edo_clk = (nand_max_clock > 20)?(nand_max_clock-10):nand_max_clock;
+	edo_clk = nand_max_clock * 2;
+
+    cmu_clk = get_cmu_clk( );
+	nand_clk_divid_ratio = cmu_clk / edo_clk;
+	if (cmu_clk % edo_clk)
+			nand_clk_divid_ratio++;
+	if (nand_clk_divid_ratio){
+		if (nand_clk_divid_ratio > 16)
+			nand_clk_divid_ratio = 15;
+		else
+			nand_clk_divid_ratio--;
+	}
+	/*set nand clock gate on*/
+	cfg = *(volatile __u32 *)(0xf1c20000 + 0x80);
+
+	/*gate on nand clock*/
+	cfg |= (1U << 31);
+	/*take cmu pll as nand src block*/
+	cfg &= ~(0x3 << 24);
+	cfg |=  (0x2 << 24);
+	//set divn = 0
+	cfg &= ~(0x03 << 12);
+
+	/*set ratio*/
+	cfg &= ~(0x0f << 0);
+	cfg |= (nand_clk_divid_ratio & 0xf) << 0;
+
+	*(volatile __u32 *)(0xf1c20000 + 0x80) = cfg;
+	
+	printk("nand clk init end \n");
+	printk("offset 0xc:  0x%x \n", *(volatile __u32 *)(0xf1c20000 + 0x60));
+	printk("offset 0x14:  0x%x \n", *(volatile __u32 *)(0xf1c20000 + 0x80));
 }
 
 #endif

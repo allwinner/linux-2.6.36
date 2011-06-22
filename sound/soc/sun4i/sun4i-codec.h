@@ -24,9 +24,9 @@
 #define DAIFMT_16BITS             (16)
 #define DAIFMT_20BITS             (20)
 
-#define DAIFMT_BS_MASK            (~(1<<16))  //FIFO big small mode mask
+#define DAIFMT_BS_MASK            (~(1<<16))  	//FIFO big small mode mask
 #define DAIFMT_BITS_MASK          (~(1<<5))		//FIFO Bits select mask,not used yet.
-#define SAMPLE_RATE_MASK          (~(7<<29))  //Sample Rate slect mask
+#define SAMPLE_RATE_MASK          (~(7<<29))  	//Sample Rate slect mask
 
 #define DAC_EN                    (31)
 #define DIGITAL_VOL               (12)
@@ -35,7 +35,7 @@
 
 
 #define LAST_SE                   (26)
-#define TX_FIFO_MODE              (24)//16 error
+#define TX_FIFO_MODE              (24)
 #define TX_TRI_LEVEL              (8)
 #define DAC_MODE                  (6)			//not used yet
 #define TASR                      (5)			//not used yet
@@ -51,8 +51,8 @@
 #define DACAEN_R                  (31)
 
 #define ADC_DIG_EN                (28)
-#define RX_FIFO_MODE              (24)//16 error
-#define RX_TRI_LEVEL              (8)//12 error
+#define RX_FIFO_MODE              (24)
+#define RX_TRI_LEVEL              (8)
 #define ADC_MODE                  (7)
 #define RASR                      (6)
 #define ADC_DRQ                   (4)
@@ -77,7 +77,7 @@ enum m1_codec_config {
 
 
 void  __iomem *baseaddr;
-//void  __iomem *clkbaseaddr;
+
 #define AUDIO_RATE_DEFAULT	44100
 #define ST_RUNNING		(1<<0)
 #define ST_OPENED		(1<<1)

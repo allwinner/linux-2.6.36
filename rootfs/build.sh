@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#Execute this within fakeroot
-#arg1 - the new rootfs name
-
 generate_rootfs()
 {
 if [ -d skel ]; then
@@ -17,7 +14,7 @@ extract_rootfs()
 {
 if [ -f "$1" ]; then
 	rm -rf skel && mkdir skel
-	gzip -dc $1 | (cd skel; cpio -iv)
+	gzip -dc $1 | (cd skel;fakeroot cpio -iv)
 else
 	echo "$1 not there"
 	exit 1

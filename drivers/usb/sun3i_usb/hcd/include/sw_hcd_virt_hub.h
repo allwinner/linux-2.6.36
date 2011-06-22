@@ -30,5 +30,9 @@ int sw_hcd_hub_control(struct usb_hcd *hcd,
                      char *buf,
                      u16 wLength);
 
+void sw_hcd_port_suspend_ex(struct sw_hcd *sw_hcd);
+void sw_hcd_port_resume_ex(struct sw_hcd *sw_hcd);
+void sw_hcd_port_reset_ex(struct sw_hcd *sw_hcd);
+
 #endif   //__SW_HCD_VIRT_HUB_H__
 

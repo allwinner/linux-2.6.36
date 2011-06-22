@@ -35,7 +35,6 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
-#include <linux/gpio.h>
 #include <linux/io.h>
 
 #include  "sw_udc_config.h"
@@ -46,6 +45,86 @@
 //---------------------------------------------------------------
 
 #define res_size(_r) (((_r)->end - (_r)->start) + 1)
+
+#if 1
+/*
+*******************************************************************************
+*                     open_usb_clock
+*
+* Description:
+*
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
+{
+ 	DMSG_INFO_UDC("open_usb_clock\n");
+
+	if(sw_udc_io->sie_clk && sw_udc_io->phy_clk && sw_udc_io->phy0_clk && !sw_udc_io->clk_is_open){
+	   	clk_enable(sw_udc_io->sie_clk);
+		msleep(10);
+
+	    clk_enable(sw_udc_io->phy_clk);
+	    clk_enable(sw_udc_io->phy0_clk);
+	    clk_reset(sw_udc_io->phy0_clk, 0);
+		msleep(10);
+
+		sw_udc_io->clk_is_open = 1;
+	}else{
+		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), phy0_clk(0x%p), open(%d)\n",
+			       sw_udc_io->sie_clk, sw_udc_io->phy_clk, sw_udc_io->phy0_clk, sw_udc_io->clk_is_open);
+	}
+
+	return 0;
+}
+
+/*
+*******************************************************************************
+*                     close_usb_clock
+*
+* Description:
+*
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
+{
+	DMSG_INFO_UDC("close_usb_clock\n");
+
+	if(sw_udc_io->sie_clk && sw_udc_io->phy_clk && sw_udc_io->phy0_clk && sw_udc_io->clk_is_open){
+		sw_udc_io->clk_is_open = 0;
+
+	    clk_reset(sw_udc_io->phy0_clk, 1);
+	    clk_disable(sw_udc_io->phy0_clk);
+	    clk_disable(sw_udc_io->phy_clk);
+	    clk_disable(sw_udc_io->sie_clk);
+	}else{
+		DMSG_PANIC("ERR: clock handle is null, sie_clk(0x%p), phy_clk(0x%p), phy0_clk(0x%p), open(%d)\n",
+			       sw_udc_io->sie_clk, sw_udc_io->phy_clk, sw_udc_io->phy0_clk, sw_udc_io->clk_is_open);
+	}
+
+	return 0;
+}
+
+#else
 
 /*
 *******************************************************************************
@@ -70,7 +149,7 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
     u32 reg_value = 0;
     u32 ccmu_base = SW_VA_CCM_IO_BASE;
     
- 	DMSG_INFO_EX("open_usb_clock\n");
+ 	DMSG_INFO_UDC("open_usb_clock\n");
  	
     //Gating AHB clock for USB_phy0
 	reg_value = USBC_Readl(ccmu_base + 0x60);
@@ -117,7 +196,7 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
     u32 reg_value = 0;
     u32 ccmu_base = SW_VA_CCM_IO_BASE;
     
-	DMSG_INFO_EX("close_usb_clock\n");
+	DMSG_INFO_UDC("close_usb_clock\n");
 	
     //Gating AHB clock for USB_phy0
 	reg_value = USBC_Readl(ccmu_base + 0x60);
@@ -141,6 +220,8 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 	return 0;
 
 }
+
+#endif
 
 /*
 *******************************************************************************
@@ -166,7 +247,7 @@ __s32 sw_udc_bsp_init(__u32 usbc_no, sw_udc_io_t *sw_udc_io)
    	sw_udc_io->usbc.usbc_info[usbc_no].base = (u32)sw_udc_io->usb_vbase;
 	sw_udc_io->usbc.sram_base = (u32)sw_udc_io->sram_vbase;
 
-	USBC_init(&sw_udc_io->usbc);
+//	USBC_init(&sw_udc_io->usbc);
 	sw_udc_io->usb_bsp_hdle = USBC_open_otg(usbc_no);
 	if(sw_udc_io->usb_bsp_hdle == 0){
 		DMSG_PANIC("ERR: sw_udc_init: USBC_open_otg failed\n");
@@ -211,7 +292,9 @@ __s32 sw_udc_bsp_exit(__u32 usbc_no, sw_udc_io_t *sw_udc_io)
 	USBC_ForceVbusValid(sw_udc_io->usb_bsp_hdle, USBC_VBUS_TYPE_DISABLE);
 
 	USBC_close_otg(sw_udc_io->usb_bsp_hdle);
-	USBC_exit(&sw_udc_io->usbc);
+	sw_udc_io->usb_bsp_hdle = 0;
+
+//	USBC_exit(&sw_udc_io->usbc);
 
     return 0;
 }
@@ -236,56 +319,15 @@ __s32 sw_udc_bsp_exit(__u32 usbc_no, sw_udc_io_t *sw_udc_io)
 */
 __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *sw_udc_io)
 {
-	__s32 			ret 	= 0;
-	unsigned int	iosize 	= 0;
+	__s32 ret = 0;
+	spinlock_t lock = SPIN_LOCK_UNLOCKED;
+	unsigned long flags = 0;
 
-	/* usb */
-	sw_udc_io->usb_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if(sw_udc_io->usb_base_res == NULL){
-		DMSG_PANIC("ERR: sw_udc_init, platform_get_resource for usb failed\n");
-		ret = -ENODEV;
-		goto io_failed;
-	}
+	sw_udc_io->usb_vbase  = (void __iomem *)SW_VA_USB0_IO_BASE;
+	sw_udc_io->sram_vbase = (void __iomem *)SW_VA_SRAM_IO_BASE;
 
-	iosize = res_size(sw_udc_io->usb_base_res);
-	sw_udc_io->usb_base_req = request_mem_region(sw_udc_io->usb_base_res->start, iosize, pdev->name);
-	if(sw_udc_io->usb_base_req == NULL){
-		DMSG_PANIC("ERR: sw_udc_init, request_mem_region for usb failed\n");
-		ret = -ENODEV;
-		goto io_failed;
-	}
-
-	sw_udc_io->usb_vbase = ioremap(sw_udc_io->usb_base_res->start, iosize);
-	if(sw_udc_io->usb_vbase == NULL){
-		DMSG_PANIC("ERR: sw_udc_init, ioremap for usb failed\n");
-		ret = -ENOMEM;
-	}
-
-	/* sram */
-	sw_udc_io->sram_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	if(sw_udc_io->sram_base_res == NULL){
-		DMSG_PANIC("ERR: sw_udc_init, platform_get_resource for sram failed\n");
-		ret = -ENODEV;
-		goto io_failed;
-	}
-
-	iosize = res_size(sw_udc_io->sram_base_res);
-
-	sw_udc_io->sram_base_req = request_mem_region(sw_udc_io->sram_base_res->start, iosize, pdev->name);
-	if(sw_udc_io->sram_base_req == NULL){
-		DMSG_PANIC("ERR: sw_udc_init, request_mem_region for sram failed\n");
-		ret = -ENODEV;
-	}
-
-	sw_udc_io->sram_vbase = ioremap(sw_udc_io->sram_base_res->start, iosize);
-	if(sw_udc_io->sram_vbase == NULL){
-		DMSG_PANIC("ERR: sw_udc_init, ioremap for sram failed\n");
-		ret = -ENOMEM;
-		goto io_failed;
-	}
-
-	DMSG_INFO_EX("usb_vbase  = 0x%x\n", (u32)sw_udc_io->usb_vbase);
-	DMSG_INFO_EX("sram_vbase = 0x%x\n", (u32)sw_udc_io->sram_vbase);
+	DMSG_INFO_UDC("usb_vbase  = 0x%x\n", (u32)sw_udc_io->usb_vbase);
+	DMSG_INFO_UDC("sram_vbase = 0x%x\n", (u32)sw_udc_io->sram_vbase);
 
     /* open usb lock */
 	sw_udc_io->sie_clk = clk_get(NULL, "ahb_usb0");
@@ -294,9 +336,15 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 		goto io_failed;
 	}
 
-	sw_udc_io->phy_clk = clk_get(NULL, "usb_phy0");
+	sw_udc_io->phy_clk = clk_get(NULL, "usb_phy");
 	if (IS_ERR(sw_udc_io->phy_clk)){
 		DMSG_PANIC("ERR: get usb phy clk failed.\n");
+		goto io_failed;
+	}
+
+	sw_udc_io->phy0_clk = clk_get(NULL, "usb_phy0");
+	if (IS_ERR(sw_udc_io->phy0_clk)){
+		DMSG_PANIC("ERR: get usb phy0 clk failed.\n");
 		goto io_failed;
 	}
 
@@ -306,63 +354,14 @@ __s32 sw_udc_io_init(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 	sw_udc_bsp_init(usbc_no, sw_udc_io);
 
 	/* config usb fifo */
+	spin_lock_init(&lock);
+	spin_lock_irqsave(&lock, flags);
 	USBC_ConfigFIFO_Base(sw_udc_io->usb_bsp_hdle, (u32)sw_udc_io->sram_vbase, USBC_FIFO_MODE_8K);
-
-    /* 配完 fifo 后, 立即释放sram map */
-	if(sw_udc_io->sram_base_res){
-		release_resource(sw_udc_io->sram_base_res);
-		sw_udc_io->sram_base_res = NULL;
-	}
-
-	if(sw_udc_io->sram_base_req){
-		release_resource(sw_udc_io->sram_base_req);
-		kfree(sw_udc_io->sram_base_req);
-		sw_udc_io->sram_base_req = NULL;
-	}
-
-	if(sw_udc_io->sram_vbase){
-		iounmap(sw_udc_io->sram_vbase);
-		sw_udc_io->sram_vbase = NULL;
-	}
+	spin_unlock_irqrestore(&lock, flags);
 
 	return 0;
 
 io_failed:
-	/* usb */
-	if(sw_udc_io->usb_base_res){
-		release_resource(sw_udc_io->usb_base_res);
-		sw_udc_io->usb_base_res = NULL;
-	}
-
-	if(sw_udc_io->usb_base_req){
-		release_resource(sw_udc_io->usb_base_req);
-		kfree(sw_udc_io->usb_base_req);
-		sw_udc_io->usb_base_req = NULL;
-	}
-
-	if(sw_udc_io->usb_vbase){
-		iounmap(sw_udc_io->usb_vbase);
-		sw_udc_io->usb_vbase = NULL;
-	}
-
-	/* sram */
-	if(sw_udc_io->sram_base_res){
-		release_resource(sw_udc_io->sram_base_res);
-		sw_udc_io->sram_base_res = NULL;
-	}
-
-	if(sw_udc_io->sram_base_req){
-		release_resource(sw_udc_io->sram_base_req);
-		kfree(sw_udc_io->sram_base_req);
-		sw_udc_io->sram_base_req = NULL;
-	}
-
-	if(sw_udc_io->sram_vbase){
-		iounmap(sw_udc_io->sram_vbase);
-		sw_udc_io->sram_vbase = NULL;
-	}
-
-	/* clock */
 	if(sw_udc_io->sie_clk){
 		clk_put(sw_udc_io->sie_clk);
 		sw_udc_io->sie_clk = NULL;
@@ -371,6 +370,11 @@ io_failed:
 	if(sw_udc_io->phy_clk){
 		clk_put(sw_udc_io->phy_clk);
 		sw_udc_io->phy_clk = NULL;
+	}
+
+	if(sw_udc_io->phy0_clk){
+		clk_put(sw_udc_io->phy0_clk);
+		sw_udc_io->phy0_clk = NULL;
 	}
 
 	return ret;
@@ -400,41 +404,6 @@ __s32 sw_udc_io_exit(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 
 	close_usb_clock(sw_udc_io);
 
-	/* usb */
-	if(sw_udc_io->usb_base_res){
-		release_resource(sw_udc_io->usb_base_res);
-		sw_udc_io->usb_base_res = NULL;
-	}
-
-	if(sw_udc_io->usb_base_req){
-		release_resource(sw_udc_io->usb_base_req);
-		kfree(sw_udc_io->usb_base_req);
-		sw_udc_io->usb_base_req = NULL;
-	}
-
-	if(sw_udc_io->usb_vbase){
-		iounmap(sw_udc_io->usb_vbase);
-		sw_udc_io->usb_vbase = NULL;
-	}
-
-	/* sram */
-	if(sw_udc_io->sram_base_res){
-		release_resource(sw_udc_io->sram_base_res);
-		sw_udc_io->sram_base_res = NULL;
-	}
-
-	if(sw_udc_io->sram_base_req){
-		release_resource(sw_udc_io->sram_base_req);
-		kfree(sw_udc_io->sram_base_req);
-		sw_udc_io->sram_base_req = NULL;
-	}
-
-	if(sw_udc_io->sram_vbase){
-		iounmap(sw_udc_io->sram_vbase);
-		sw_udc_io->sram_vbase = NULL;
-	}
-
-	/* clock */
 	if(sw_udc_io->sie_clk){
 		clk_put(sw_udc_io->sie_clk);
 		sw_udc_io->sie_clk = NULL;
@@ -444,6 +413,14 @@ __s32 sw_udc_io_exit(__u32 usbc_no, struct platform_device *pdev, sw_udc_io_t *s
 		clk_put(sw_udc_io->phy_clk);
 		sw_udc_io->phy_clk = NULL;
 	}
+
+	if(sw_udc_io->phy0_clk){
+		clk_put(sw_udc_io->phy0_clk);
+		sw_udc_io->phy0_clk = NULL;
+	}
+
+	sw_udc_io->usb_vbase  = NULL;
+	sw_udc_io->sram_vbase = NULL;
 
 	return 0;
 }

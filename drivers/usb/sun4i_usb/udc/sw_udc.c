@@ -47,8 +47,8 @@
 #include  "sw_udc_config.h"
 #include  "sw_udc_board.h"
 
-#include  "sw_udc.h"
 #include  "sw_udc_debug.h"
+#include  "sw_udc_dma.h"
 
 //---------------------------------------------------------------
 //  宏 定义
@@ -63,19 +63,23 @@
 static const char		gadget_name[] = "sw_usb_udc";
 static const char		driver_desc[] = DRIVER_DESC;
 
-static struct sw_udc	*the_controller         = NULL;
-static u32              usbd_port_no            = 0;
+static struct sw_udc	*the_controller = NULL;
+static u32              usbd_port_no = 0;
 static sw_udc_io_t      g_sw_udc_io;
-static struct sw_udc_mach_info *udc_info = NULL;
-static u32  usb_connect = 0;
+static u32 usb_connect = 0;
+static u32 is_controller_alive = 0;
+
+#ifdef CONFIG_USB_SW_SUN4I_USB0_OTG
+static struct platform_device *g_udc_pdev = NULL;
+#endif
 
 static u8 crq_bRequest = 0;
 static const unsigned char TestPkt[54] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA,
-	                                 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xEE, 0xEE, 0xEE,
-	                                 0xEE, 0xEE, 0xEE, 0xEE, 0xEE, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF,
-	                                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xBF, 0xDF,
-	                                 0xEF, 0xF7, 0xFB, 0xFD, 0xFC, 0x7E, 0xBF, 0xDF, 0xEF, 0xF7,
-	                                 0xFB, 0xFD, 0x7E, 0x00};
+		                                 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xEE, 0xEE, 0xEE,
+		                                 0xEE, 0xEE, 0xEE, 0xEE, 0xEE, 0xFE, 0xFF, 0xFF, 0xFF, 0xFF,
+		                                 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F, 0xBF, 0xDF,
+		                                 0xEF, 0xF7, 0xFB, 0xFD, 0xFC, 0x7E, 0xBF, 0xDF, 0xEF, 0xF7,
+		                                 0xFB, 0xFD, 0x7E, 0x00};
 
 //---------------------------------------------------------------
 //  函数 定义
@@ -89,6 +93,15 @@ static const unsigned char TestPkt[54] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x
 #define  is_sw_udc_dma_capable(len, maxpacket, epnum)		(is_udc_support_dma() \
 	                                                 	&& (len > maxpacket) \
 	                                                 	&& epnum)
+
+
+static void cfg_udc_command(enum sw_udc_cmd_e cmd);
+static void cfg_vbus_draw(unsigned int ma);
+
+static __u32 is_peripheral_active(void)
+{
+	return is_controller_alive;
+}
 
 /*
 **********************************************************
@@ -1076,7 +1089,7 @@ DMSG_DBG_UDC("sw_udc_handle_ep0--3--%d\n", dev->ep0state);
 					USBC_Dev_Ctrl_ClearSetupEnd(g_sw_udc_io.usb_bsp_hdle);
 					USBC_Dev_SetAddress(g_sw_udc_io.usb_bsp_hdle, dev->address);
 
-					DMSG_INFO_EX("Set address %d\n", dev->address);
+					DMSG_INFO_UDC("Set address %d\n", dev->address);
 				break;
 
 				default:
@@ -1255,7 +1268,7 @@ static void throw_away_all_urb(struct sw_udc *dev)
 {
 	int k = 0;
 
-	DMSG_DBG_UDC("irq: reset happen, throw away all urb\n");
+	DMSG_INFO_UDC("irq: reset happen, throw away all urb\n");
 	for(k = 0; k < SW_UDC_ENDPOINTS; k++){
 		sw_udc_nuke(dev, (struct sw_udc_ep * )&(dev->ep[k]), -ESHUTDOWN);
 	}
@@ -1284,8 +1297,6 @@ void sw_udc_clean_dma_status(struct sw_udc_ep *ep)
     u8 ep_index = 0;
 	u8 old_ep_index = 0;
 	struct sw_udc_request	*req = NULL;
-
-	DMSG_INFO_EX("clear ep dma status\n");
 
 	ep_index = ep->bEndpointAddress & 0x7F;
 
@@ -1389,12 +1400,14 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 	spin_lock_irqsave(&dev->lock, flags);
 
 	/* Driver connected ? */
-	if (!dev->driver) {
-		DMSG_PANIC("ERR: functoin driver is not exist.\n");
+	if (!dev->driver || !is_peripheral_active()) {
+		DMSG_PANIC("ERR: functoin driver is not exist, or udc is not active.\n");
 
 		/* Clear interrupts */
 		clear_all_irq();
-
+		
+		spin_unlock_irqrestore(&dev->lock, flags);
+		
 		return IRQ_NONE;
 	}
 
@@ -1419,7 +1432,7 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 
 	/* RESET */
 	if (usb_irq & USBC_INTUSB_RESET) {
-		DMSG_INFO_EX("IRQ: reset\n");
+		DMSG_INFO_UDC("IRQ: reset\n");
 
         USBC_INT_ClearMiscPending(g_sw_udc_io.usb_bsp_hdle, USBC_INTUSB_RESET);
         clear_all_irq();
@@ -1446,7 +1459,7 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 
 	/* RESUME */
 	if (usb_irq & USBC_INTUSB_RESUME) {
-		DMSG_INFO_EX("IRQ: resume\n");
+		DMSG_INFO_UDC("IRQ: resume\n");
 
 		/* clear interrupt */
 		USBC_INT_ClearMiscPending(g_sw_udc_io.usb_bsp_hdle, USBC_INTUSB_RESUME);
@@ -1459,7 +1472,7 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 
 	/* SUSPEND */
 	if (usb_irq & USBC_INTUSB_SUSPEND) {
-		DMSG_INFO_EX("IRQ: suspend\n");
+		DMSG_INFO_UDC("IRQ: suspend\n");
 
 		/* clear interrupt */
 		USBC_INT_ClearMiscPending(g_sw_udc_io.usb_bsp_hdle, USBC_INTUSB_SUSPEND);
@@ -1467,7 +1480,7 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 		if(dev->gadget.speed != USB_SPEED_UNKNOWN){
 			usb_connect = 0;
 		}else{
-			DMSG_INFO_EX("ERR: usb speed is unkown\n");
+			DMSG_INFO_UDC("ERR: usb speed is unkown\n");
 		}
 
 		if (dev->gadget.speed != USB_SPEED_UNKNOWN
@@ -1482,7 +1495,7 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 
     /* DISCONNECT */
     if(usb_irq & USBC_INTUSB_DISCONNECT){
-        DMSG_INFO_EX("IRQ: disconnect\n");
+        DMSG_INFO_UDC("IRQ: disconnect\n");
 
 		USBC_INT_ClearMiscPending(g_sw_udc_io.usb_bsp_hdle, USBC_INTUSB_DISCONNECT);
 
@@ -1506,15 +1519,15 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 			if(USBC_Dev_QueryTransferMode(g_sw_udc_io.usb_bsp_hdle) == USBC_TS_MODE_HS){
 				dev->gadget.speed = USB_SPEED_HIGH;
 
-				DMSG_INFO_EX("\n+++++++++++++++++++++++++++++++++++++\n");
-			    DMSG_INFO_EX(" usb enter high speed.\n");
-			    DMSG_INFO_EX("\n+++++++++++++++++++++++++++++++++++++\n");
+				DMSG_INFO_UDC("\n+++++++++++++++++++++++++++++++++++++\n");
+			    DMSG_INFO_UDC(" usb enter high speed.\n");
+			    DMSG_INFO_UDC("\n+++++++++++++++++++++++++++++++++++++\n");
 			}else{
 				dev->gadget.speed= USB_SPEED_FULL;
 
-				DMSG_INFO_EX("\n+++++++++++++++++++++++++++++++++++++\n");
-			    DMSG_INFO_EX(" usb enter full speed.\n");
-			    DMSG_INFO_EX("\n+++++++++++++++++++++++++++++++++++++\n");
+				DMSG_INFO_UDC("\n+++++++++++++++++++++++++++++++++++++\n");
+			    DMSG_INFO_UDC(" usb enter full speed.\n");
+			    DMSG_INFO_UDC("\n+++++++++++++++++++++++++++++++++++++\n");
 			}
 		}
 
@@ -1622,7 +1635,7 @@ void sw_udc_dma_completion(struct sw_udc *dev, struct sw_udc_ep *ep, struct sw_u
     /* 如果本次传输有数据没有传输完毕，得接着传输 */
 	req->req.actual += dma_transmit_len;
 	if(req->req.length > req->req.actual){
-		DMSG_INFO_EX("dma irq, transfer left data\n");
+		DMSG_INFO_UDC("dma irq, transfer left data\n");
 
 		if(((ep->bEndpointAddress & USB_DIR_IN) != 0)
 			&& !USBC_Dev_IsWriteDataReady(dev->sw_udc_io->usb_bsp_hdle, USBC_EP_TYPE_TX)){
@@ -1739,7 +1752,7 @@ static int sw_udc_ep_enable(struct usb_ep *_ep,
 		return -EINVAL;
 	}
 
-	DMSG_INFO_EX("ep enable: ep(0x%p, %s, %d, %d)\n",
+	DMSG_INFO_UDC("ep enable: ep(0x%p, %s, %d, %d)\n",
 		      _ep, _ep->name, (desc->bEndpointAddress & USB_DIR_IN), _ep->maxpacket);
 
 	ep = to_sw_udc_ep(_ep);
@@ -1774,6 +1787,11 @@ static int sw_udc_ep_enable(struct usb_ep *_ep,
 	 */
 	fifo_addr = ep->num * 1024;
 
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		goto end;
+	}
+
     old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
     USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, ep->num);
 
@@ -1794,6 +1812,7 @@ static int sw_udc_ep_enable(struct usb_ep *_ep,
 
     USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
 
+end:
 	local_irq_restore(flags);
 
 	sw_udc_set_halt(_ep, 0);
@@ -1841,7 +1860,7 @@ static int sw_udc_ep_disable(struct usb_ep *_ep)
 		return -EINVAL;
 	}
 
-	DMSG_INFO_EX("ep disable: ep(0x%p, %s, %d, %d)\n",
+	DMSG_INFO_UDC("ep disable: ep(0x%p, %s, %d, %d)\n",
 		      _ep, _ep->name, (ep->bEndpointAddress & USB_DIR_IN), _ep->maxpacket);
 
 	local_irq_save(flags);
@@ -1852,6 +1871,11 @@ static int sw_udc_ep_disable(struct usb_ep *_ep)
 	ep->halted = 1;
 
 	sw_udc_nuke (ep->dev, ep, -ESHUTDOWN);
+
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		goto end;
+	}
 
 	old_ep_index = USBC_GetActiveEp(g_sw_udc_io.usb_bsp_hdle);
     USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, ep->num);
@@ -1866,6 +1890,7 @@ static int sw_udc_ep_disable(struct usb_ep *_ep)
 
 	USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, old_ep_index);
 
+end:
 	local_irq_restore(flags);
 
 	DMSG_DBG_UDC("%s disabled\n", _ep->name);
@@ -1910,7 +1935,7 @@ static struct usb_request * sw_udc_alloc_request(struct usb_ep *_ep, gfp_t mem_f
 
 	INIT_LIST_HEAD (&req->queue);
 
-	DMSG_INFO_EX("alloc request: ep(0x%p, %s, %d), req(0x%p)\n",
+	DMSG_INFO_UDC("alloc request: ep(0x%p, %s, %d), req(0x%p)\n",
 		      _ep, _ep->name, _ep->maxpacket, req);
 
 	return &req->req;
@@ -1943,14 +1968,14 @@ static void sw_udc_free_request(struct usb_ep *_ep, struct usb_request *_req)
 		return;
 	}
 
-	DMSG_INFO_EX("free request: ep(0x%p, %s, %d), req(0x%p)\n",
-		      _ep, _ep->name, _ep->maxpacket, req);
-
 	req = to_sw_udc_req(_req);
 	if(req == NULL){
 	    DMSG_PANIC("ERR: invalid argment\n");
 		return;
 	}
+
+	DMSG_INFO_UDC("free request: ep(0x%p, %s, %d), req(0x%p)\n",
+		      _ep, _ep->name, _ep->maxpacket, req);
 
 	kfree(req);
 
@@ -2010,16 +2035,22 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
         DMSG_PANIC("ERR: req is NULL\n");
         return -EINVAL;
 	}
-
+/*
 	if(!list_empty(&req->queue)){
         DMSG_PANIC("ERR: req->queue is empty\n");
         return -EINVAL;
 	}
-
+*/
 	local_irq_save(flags);
 
 	_req->status = -EINPROGRESS;
 	_req->actual = 0;
+
+	if(!is_peripheral_active()){
+		DMSG_PANIC("warn: peripheral is active\n");
+		sw_udc_queue_req(ep, req);
+		goto end;
+	}
 
 	DMSG_TEST("\n\nq: ep(0x%p, %d), req(0x%p, 0x%p, %d, %d)\n",
 		      ep, ep->num,
@@ -2079,6 +2110,7 @@ static int sw_udc_queue(struct usb_ep *_ep, struct usb_request *_req, gfp_t gfp_
 		sw_udc_queue_req(ep, req);
 	}
 
+end:
 	local_irq_restore(flags);
 
 	DMSG_TEST("qe\n");
@@ -2136,7 +2168,7 @@ static int sw_udc_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 		return -EINVAL;
 	}
 
-	DMSG_INFO_EX("dequeue: ep(0x%p, %d), _req(0x%p, %d, %d)\n",
+	DMSG_INFO_UDC("dequeue: ep(0x%p, %d), _req(0x%p, %d, %d)\n",
 		      ep, ep->num,
 		      _req, _req->length, _req->actual);
 
@@ -2202,6 +2234,11 @@ static int sw_udc_set_halt(struct usb_ep *_ep, int value)
 	if(!ep->desc && ep->ep.name != ep0name){
 		DMSG_PANIC("ERR: !ep->desc && ep->ep.name != ep0name\n");
 		return -EINVAL;
+	}
+
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		return 0;
 	}
 
 	local_irq_save (flags);
@@ -2272,6 +2309,11 @@ static const struct usb_ep_ops sw_udc_ep_ops = {
 */
 static int sw_udc_get_frame(struct usb_gadget *_gadget)
 {
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		return 0;
+	}
+
 	return USBC_REG_FRNUM(g_sw_udc_io.usb_bsp_hdle);
 }
 
@@ -2295,7 +2337,11 @@ static int sw_udc_get_frame(struct usb_gadget *_gadget)
 */
 static int sw_udc_wakeup(struct usb_gadget *_gadget)
 {
-	DMSG_PANIC("ERR: sw_udc_wakeup is not support\n");
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -2319,7 +2365,10 @@ static int sw_udc_wakeup(struct usb_gadget *_gadget)
 */
 static int sw_udc_set_selfpowered(struct usb_gadget *gadget, int value)
 {
-	DMSG_PANIC("ERR: sw_udc_set_selfpowered is not support\n");
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		return 0;
+	}
 
 	return 0;
 }
@@ -2349,20 +2398,20 @@ static int sw_udc_set_pullup(struct sw_udc *udc, int is_on)
 {
 	DMSG_DBG_UDC("sw_udc_set_pullup\n");
 
-	if(udc_info && udc_info->udc_command){
-		if(is_on){
-			sw_udc_enable(udc);
-		}else{
-			if (udc->gadget.speed != USB_SPEED_UNKNOWN) {
-				if (udc->driver && udc->driver->disconnect)
-					udc->driver->disconnect(&udc->gadget);
-			}
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		return 0;
+	}
 
-			sw_udc_disable(udc);
-		}
+	if(is_on){
+		sw_udc_enable(udc);
 	}else{
-	    DMSG_PANIC("ERR: udc_info && udc_info->udc_command, is invalid\n");
-		return -EOPNOTSUPP;
+		if (udc->gadget.speed != USB_SPEED_UNKNOWN) {
+			if (udc->driver && udc->driver->disconnect)
+				udc->driver->disconnect(&udc->gadget);
+		}
+
+		sw_udc_disable(udc);
 	}
 
 	return 0;
@@ -2392,6 +2441,11 @@ static int sw_udc_vbus_session(struct usb_gadget *gadget, int is_active)
 
 	DMSG_DBG_UDC("sw_udc_vbus_session\n");
 
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
+		return 0;
+	}
+
 	udc->vbus = (is_active != 0);
 	sw_udc_set_pullup(udc, is_active);
 
@@ -2420,7 +2474,7 @@ static int sw_udc_pullup(struct usb_gadget *gadget, int is_on)
 {
 	struct sw_udc *udc = to_sw_udc(gadget);
 
-	DMSG_INFO_EX("sw_udc_pullup, is_on = %d\n", is_on);
+	DMSG_INFO_UDC("sw_udc_pullup, is_on = %d\n", is_on);
 
 	sw_udc_set_pullup(udc, is_on);
 
@@ -2447,14 +2501,16 @@ static int sw_udc_pullup(struct usb_gadget *gadget, int is_on)
 */
 static int sw_udc_vbus_draw(struct usb_gadget *_gadget, unsigned ma)
 {
-	DMSG_DBG_UDC("sw_udc_vbus_draw\n");
-
-	if (udc_info && udc_info->vbus_draw) {
-		udc_info->vbus_draw(ma);
+	if(!is_peripheral_active()){
+		DMSG_PANIC("ERR: usb device is not active\n");
 		return 0;
 	}
 
-	return -ENOTSUPP;
+	DMSG_DBG_UDC("sw_udc_vbus_draw\n");
+
+	cfg_vbus_draw(ma);
+
+	return 0;
 }
 
 static const struct usb_gadget_ops sw_udc_ops = {
@@ -2539,7 +2595,7 @@ static void sw_udc_enable(struct sw_udc *dev)
 	dev->gadget.speed = USB_SPEED_UNKNOWN;
 
 #ifdef	CONFIG_USB_GADGET_DUALSPEED
-	DMSG_INFO_EX("CONFIG_USB_GADGET_DUALSPEED\n");
+	DMSG_INFO_UDC("CONFIG_USB_GADGET_DUALSPEED\n");
 
 	USBC_Dev_ConfigTransferMode(g_sw_udc_io.usb_bsp_hdle, USBC_TS_TYPE_BULK, USBC_TS_MODE_HS);
 #else
@@ -2555,9 +2611,7 @@ static void sw_udc_enable(struct sw_udc *dev)
 	/* Enable ep0 interrupt */
 	USBC_INT_EnableEp(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_TX, 0);
 
-	/* time to say "hello, world" */
-	if (udc_info && udc_info->udc_command)
-		udc_info->udc_command(SW_UDC_P_ENABLE);
+	cfg_udc_command(SW_UDC_P_ENABLE);
 
 	return ;
 }
@@ -2591,11 +2645,7 @@ static void sw_udc_disable(struct sw_udc *dev)
 
 	/* Clear the interrupt registers */
 	clear_all_irq();
-
-	/* Good bye, cruel world */
-	if (udc_info && udc_info->udc_command) {
-		udc_info->udc_command(SW_UDC_P_DISABLE);
-    }
+	cfg_udc_command(SW_UDC_P_DISABLE);
 
 	/* Set speed to unknown */
 	dev->gadget.speed = USB_SPEED_UNKNOWN;
@@ -2605,7 +2655,7 @@ static void sw_udc_disable(struct sw_udc *dev)
 
 s32  usbd_start_work(void)
 {
-	DMSG_INFO_EX("usbd_start_work\n");
+	DMSG_INFO_UDC("usbd_start_work\n");
 
 	enable_irq_udc(the_controller);
 	USBC_Dev_ConectSwitch(g_sw_udc_io.usb_bsp_hdle, USBC_DEVICE_SWITCH_ON);
@@ -2615,7 +2665,7 @@ s32  usbd_start_work(void)
 
 s32  usbd_stop_work(void)
 {
-	DMSG_INFO_EX("usbd_stop_work\n");
+	DMSG_INFO_UDC("usbd_stop_work\n");
 
 	disable_irq_udc(the_controller);
     USBC_Dev_ConectSwitch(g_sw_udc_io.usb_bsp_hdle, USBC_DEVICE_SWITCH_OFF);	//默认为pulldown
@@ -2674,7 +2724,7 @@ int usb_gadget_register_driver(struct usb_gadget_driver *driver)
 		goto register_error;
 	}
 
-	DMSG_INFO_EX("[%s]: binding gadget driver '%s'\n", gadget_name, driver->driver.name);
+	DMSG_INFO_UDC("[%s]: binding gadget driver '%s'\n", gadget_name, driver->driver.name);
 
 	if ((retval = driver->bind (&udc->gadget)) != 0) {
 	    DMSG_PANIC("ERR: Error in bind() : %d\n",retval);
@@ -2726,7 +2776,7 @@ int usb_gadget_unregister_driver(struct usb_gadget_driver *driver)
 		return -EINVAL;
     }
 
-	DMSG_INFO_EX("[%s]: usb_gadget_register_driver() '%s'\n", gadget_name, driver->driver.name);
+	DMSG_INFO_UDC("[%s]: usb_gadget_register_driver() '%s'\n", gadget_name, driver->driver.name);
 
 	if(driver->disconnect){
 		driver->disconnect(&udc->gadget);
@@ -2816,6 +2866,200 @@ static struct sw_udc sw_udc = {
 	},
 };
 
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
+
+int sw_usb_device_enable(void)
+{
+	struct platform_device *pdev = g_udc_pdev;
+	struct sw_udc  	*udc    = &sw_udc;
+	int           	retval  = 0;
+	int            	irq     = SW_INTC_IRQNO_USB0;
+
+	DMSG_INFO_UDC("sw_usb_device_enable start\n");
+
+	if(pdev == NULL){
+		DMSG_PANIC("pdev is null\n");
+		return -1;
+	}
+
+	usbd_port_no   	= 0;
+	usb_connect 	= 0;	
+	crq_bRequest 	= 0;
+	is_controller_alive = 1;
+
+    memset(&g_sw_udc_io, 0, sizeof(sw_udc_io_t));
+
+    retval = sw_udc_io_init(usbd_port_no, pdev, &g_sw_udc_io);
+    if(retval != 0){
+        DMSG_PANIC("ERR: sw_udc_io_init failed\n");
+        return -1;
+    }
+
+	sw_udc_disable(udc);
+
+	udc->sw_udc_io = &g_sw_udc_io;
+	udc->usbc_no = usbd_port_no;
+	strcpy((char *)udc->driver_name, gadget_name);
+	udc->irq_no	 = irq;
+
+	if(is_udc_support_dma()){
+		retval = sw_udc_dma_probe(udc);
+		if(retval != 0){
+			DMSG_PANIC("ERR: sw_udc_dma_probe failef\n");
+			retval = -EBUSY;
+			goto err;
+		}
+	}
+
+	retval = request_irq(irq, sw_udc_irq,
+			     IRQF_DISABLED, gadget_name, udc);
+	if (retval != 0) {
+		DMSG_PANIC("ERR: cannot get irq %i, err %d\n", irq, retval);
+		retval = -EBUSY;
+		goto err;
+	}
+
+	if(udc->driver){
+		sw_udc_enable(udc);
+		cfg_udc_command(SW_UDC_P_ENABLE);
+	}
+
+	DMSG_INFO_UDC("sw_usb_device_enable end\n");
+
+    return 0;
+
+err:
+	if(is_udc_support_dma()){
+		if(udc->sw_udc_dma.dma_hdle >= 0){
+			sw_udc_dma_remove(udc);
+		}
+	}
+
+    sw_udc_io_exit(usbd_port_no, pdev, &g_sw_udc_io);
+
+    return retval;
+}
+EXPORT_SYMBOL(sw_usb_device_enable);
+
+int sw_usb_device_disable(void)
+{
+	struct platform_device *pdev = g_udc_pdev;
+	struct sw_udc *udc 	= NULL;
+
+	DMSG_INFO_UDC("sw_usb_device_disable start\n");
+
+	if(pdev == NULL){
+		DMSG_PANIC("pdev is null\n");
+		return -1;
+	}
+
+	udc = platform_get_drvdata(pdev);
+	if(udc == NULL){
+		DMSG_PANIC("udc is null\n");
+		return -1;
+	}
+
+    /* disable usb controller */
+	if (udc->driver && udc->driver->disconnect) {
+		udc->driver->disconnect(&udc->gadget);
+	}
+
+	if(is_udc_support_dma()){
+		if(udc->sw_udc_dma.dma_hdle >= 0){
+			sw_udc_dma_remove(udc);
+		}
+	}
+
+	free_irq(udc->irq_no, udc);
+
+	sw_udc_io_exit(usbd_port_no, pdev, &g_sw_udc_io);
+
+    memset(&g_sw_udc_io, 0, sizeof(sw_udc_io_t));
+
+	usbd_port_no   = 0;
+	usb_connect    = 0;	
+	crq_bRequest   = 0;
+	is_controller_alive = 0;
+
+	DMSG_INFO_UDC("sw_usb_device_disable end\n");
+
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_device_disable);
+
+/*
+*******************************************************************************
+*                     sw_udc_probe
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static int __init sw_udc_probe(struct platform_device *pdev)
+{
+	struct sw_udc  	*udc    = &sw_udc;
+
+	g_udc_pdev = pdev;
+
+	spin_lock_init (&udc->lock);
+
+	device_initialize(&udc->gadget.dev);
+	udc->gadget.dev.parent = &pdev->dev;
+	udc->gadget.dev.dma_mask = pdev->dev.dma_mask;
+
+	sw_udc_reinit(udc);
+
+	the_controller = udc;
+	platform_set_drvdata(pdev, udc);
+
+    return 0;
+}
+
+/*
+*******************************************************************************
+*                     sw_udc_remove
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static int __devexit sw_udc_remove(struct platform_device *pdev)
+{
+	struct sw_udc *udc 	= NULL;
+
+	g_udc_pdev = NULL;
+
+	udc = platform_get_drvdata(pdev);
+	if (udc->driver){
+	    DMSG_PANIC("ERR: invalid argment, udc->driver(0x%p)\n", udc->driver);
+		return -EBUSY;
+    }
+
+	return 0;
+}
+
+#else
+
 /*
 *******************************************************************************
 *                     sw_udc_probe
@@ -2850,12 +3094,12 @@ static int __init sw_udc_probe(struct platform_device *pdev)
     }
 
 	spin_lock_init (&udc->lock);
-	udc_info = pdev->dev.platform_data;
 
 	device_initialize(&udc->gadget.dev);
 	udc->gadget.dev.parent = &pdev->dev;
 	udc->gadget.dev.dma_mask = pdev->dev.dma_mask;
 
+	is_controller_alive = 1;
 	the_controller = udc;
 	platform_set_drvdata(pdev, udc);
 
@@ -2938,6 +3182,8 @@ static int __devexit sw_udc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#endif
+
 /*
 *******************************************************************************
 *                     sw_udc_suspend
@@ -2960,7 +3206,12 @@ static int sw_udc_suspend(struct platform_device *pdev, pm_message_t message)
 {
 	struct sw_udc *udc = platform_get_drvdata(pdev);
 
-    DMSG_INFO_EX("sw_udc_suspend\n");
+    DMSG_INFO_UDC("sw_udc_suspend start\n");
+
+	if(!is_peripheral_active()){
+		DMSG_INFO_UDC("udc is disable, need not enter to suspend\n");
+		return 0;
+	}
 
     /* 如果 USB 没有接 PC, 就可以进入 suspend。
      * 如果 USB 接了 PC, 就不进入 suspend
@@ -2971,9 +3222,7 @@ static int sw_udc_suspend(struct platform_device *pdev, pm_message_t message)
     }
 
     /* soft disconnect */
-	if(udc_info && udc_info->udc_command){
-		udc_info->udc_command(SW_UDC_P_DISABLE);
-	}
+	cfg_udc_command(SW_UDC_P_DISABLE);
 
     /* disable usb controller */
 	if (udc->driver && udc->driver->disconnect) {
@@ -2984,6 +3233,8 @@ static int sw_udc_suspend(struct platform_device *pdev, pm_message_t message)
 
 	/* close USB clock */
 	close_usb_clock(&g_sw_udc_io);
+
+    DMSG_INFO_UDC("sw_udc_suspend end\n");
 
 	return 0;
 }
@@ -3010,7 +3261,12 @@ static int sw_udc_resume(struct platform_device *pdev)
 {
 	struct sw_udc *udc = platform_get_drvdata(pdev);
 
-    DMSG_INFO_EX("sw_udc_resume\n");
+    DMSG_INFO_UDC("sw_udc_resume start\n");
+
+	if(!is_peripheral_active()){
+		DMSG_INFO_UDC("udc is disable, need not enter to resume\n");
+		return 0;
+	}
 
     /* open USB clock */
 	open_usb_clock(&g_sw_udc_io);
@@ -3019,9 +3275,9 @@ static int sw_udc_resume(struct platform_device *pdev)
 	sw_udc_enable(udc);
 
     /* soft connect */
-	if(udc_info && udc_info->udc_command){
-		udc_info->udc_command(SW_UDC_P_ENABLE);
-	}
+	cfg_udc_command(SW_UDC_P_ENABLE);
+
+    DMSG_INFO_UDC("sw_udc_resume end\n");
 
 	return 0;
 }
@@ -3063,41 +3319,10 @@ static void cfg_udc_command(enum sw_udc_cmd_e cmd)
 	return ;
 }
 
-static struct resource usb_resources[] = {
-	[0] = {	//usb
-		.start	= USBC0_BASE,
-		.end	= USBC0_BASE + 0xffc,
-		.flags	= IORESOURCE_MEM,
-	},
-
-	[1] = {	//sram
-		.start	= SRAMC_BASE,
-		.end	= SRAMC_BASE + 0x60,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct sw_udc_mach_info sw_udc_cfg = {
-	.udc_command		= cfg_udc_command,
-	.vbus_pin		    = 0,
-	.vbus_pin_inverted	= 0,
-};
-
-static u64 sw_udc_dmamask = 0xffffffffUL;
-
-static struct platform_device sw_udc_device = {
-	.name				= gadget_name,
-	.id					= -1,
-
-	.dev = {
-		.dma_mask			= &sw_udc_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-		.platform_data		= &sw_udc_cfg,
-	},
-
-	.resource			= usb_resources,
-	.num_resources		= ARRAY_SIZE(usb_resources),
-};
+static void cfg_vbus_draw(unsigned int ma)
+{
+	return;
+}
 
 /*
 *******************************************************************************
@@ -3121,12 +3346,9 @@ static int __init udc_init(void)
 {
 	int retval = 0;
 
-	DMSG_INFO_EX("[%s]: version %s\n", gadget_name, DRIVER_VERSION);
+	DMSG_INFO_UDC("udc_init: version %s\n", DRIVER_VERSION);
 
     usb_connect = 0;
-
-    /* device register */
-    platform_device_register(&sw_udc_device);
 
     /* driver register */
 	retval = platform_driver_probe(&sw_udc_driver, sw_udc_probe);
@@ -3139,8 +3361,6 @@ static int __init udc_init(void)
 	return 0;
 
 err:
-    platform_device_unregister(&sw_udc_device);
-
 	return retval;
 }
 
@@ -3164,8 +3384,9 @@ err:
 */
 static void __exit udc_exit(void)
 {
+	DMSG_INFO_UDC("udc_exit: version %s\n", DRIVER_VERSION);
+
 	platform_driver_unregister(&sw_udc_driver);
-	platform_device_unregister(&sw_udc_device);
 
 	return ;
 }

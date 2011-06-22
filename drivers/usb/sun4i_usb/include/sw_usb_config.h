@@ -32,8 +32,16 @@
 
 #include  "sw_usb_typedef.h"
 #include  "sw_usb_debug.h"
-#include  "sun3i_usb_bsp.h"
-#include  "sun3i_sys_reg.h"
+#include  "sun4i_usb_bsp.h"
+#include  "sun4i_sys_reg.h"
+
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+
+#include  "sw_usb_board.h"
+#include  "sw_udc.h"
+#include  "sw_hcd.h"
+
 
 #endif   //__SW_USB_CONFIG_H__
 

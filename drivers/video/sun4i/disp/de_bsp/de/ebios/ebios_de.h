@@ -333,6 +333,7 @@ __s32 DE_BE_Set_Enhance(__u8 sel,__u32 brightness, __u32 contrast, __u32 saturai
 __s32 DE_BE_enhance_enable(__u32 sel, __bool enable);
 __s32 DE_BE_set_display_size(__u32 sel, __u32 width, __u32 height);
 __s32 DE_BE_deflicker_enable(__u32 sel, __bool enable);
+__s32 DE_BE_output_csc_enable(__u32 sel, __bool enable);
 __s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __bool bout_yuv);
 //__s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __u8 cs_mode);
 __s32 DE_BE_Format_To_Bpp(__u32 sel, __u8 format);

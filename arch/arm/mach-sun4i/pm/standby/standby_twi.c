@@ -17,11 +17,11 @@
 */
 #include "standby_i.h"
 
-#if 0
+
 static __twic_reg_t*   TWI_REG_BASE[3] = {
-		(__twic_reg_t*)SW_VA_TWI0_IO_BASE,
-		(__twic_reg_t*)SW_VA_TWI1_IO_BASE,
-		(__twic_reg_t*)SW_VA_TWI2_IO_BASE
+    (__twic_reg_t*)SW_VA_TWI0_IO_BASE,
+    (__twic_reg_t*)SW_VA_TWI1_IO_BASE,
+    (__twic_reg_t*)SW_VA_TWI2_IO_BASE
 };
 
 static __u32 TwiClkRegBak = 0;
@@ -42,10 +42,8 @@ static __twic_reg_t *twi_reg  = 0;
 *
 *********************************************************************************************************
 */
-__s32 standby_twi_init(void)
+__s32 standby_twi_init(int group)
 {
-    int group = pm_info.pmu_arg.twi_port;
-
     twi_reg  = TWI_REG_BASE[group];
     TwiClkRegBak = twi_reg->reg_clkr;
     TwiCtlRegBak = 0x80&twi_reg->reg_ctl;/* backup INT_EN;no need for BUS_EN(0xc0)  */
@@ -209,7 +207,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
         goto stop_out;
     }
 
-    if(op == TWI_OP_WRITE)
+    if(op == TWI_OP_WR)
     {
         //4.Send Data to be write
         twi_reg->reg_data = *data;
@@ -282,54 +280,4 @@ stop_out:
 
     return ret;
 }
-
-#else
-__s32 standby_twi_init(void)
-{
-    return 0;
-}
-
-
-/*
-*********************************************************************************************************
-*                                   standby_twi_exit
-*
-*Description: exit twi transfer.
-*
-*Arguments  :
-*
-*Return     :
-*
-*********************************************************************************************************
-*/
-__s32 standby_twi_exit(void)
-{
-    return 0;
-}
-
-
-/*
-*********************************************************************************************************
-*                                   twi_byte_rw
-*
-*Description: twi byte read and write.
-*
-*Arguments  : op        operation read or write;
-*             saddr     slave address;
-*             baddr     byte address;
-*             data      pointer to the data to be read or write;
-*
-*Return     : result;
-*               = EPDK_OK,      byte read or write successed;
-*               = EPDK_FAIL,    btye read or write failed!
-*********************************************************************************************************
-*/
-__s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
-{
-
-}
-
-
-
-#endif
 

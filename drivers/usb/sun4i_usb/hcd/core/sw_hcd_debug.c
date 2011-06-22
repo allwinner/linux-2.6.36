@@ -105,32 +105,53 @@ void print_sw_hcd_list(struct list_head *list_head, char *str)
 		return;
 	}
 
-	DMSG_INFO("list_now = 0x%p, list_head = 0x%p, next = 0x%p, prev = 0x%p\n",
-			      list_now, list_head, list_head->next, list_head->prev);
-
 	if(list_empty(list_head) || list_head->next == NULL){
 		DMSG_PANIC("ERR: list is empty\n");
 		return;
 	}
 
-	DMSG_INFO("list_now = 0x%p, list_head = 0x%p, next = 0x%p, prev = 0x%p\n",
-			      list_now, list_head, list_head->next, list_head->prev);
-
 	list_now = list_head->next;
-
-	DMSG_INFO("list_now = 0x%p, list_head = 0x%p, next = 0x%p, prev = 0x%p\n",
-			      list_now, list_head, list_head->next, list_head->prev);
 
 	while(list_now != list_head){
 		list_next = list_now->next;
 
-		DMSG_INFO("list_now = 0x%p, next = 0x%p, prev = 0x%p, list_head = 0x%p\n",
-			      list_now, list_now->next, list_now->prev, list_head);
+		DMSG_INFO("[%s]: list_now = 0x%p, next = 0x%p, prev = 0x%p, list_head = 0x%p\n",
+			      str, list_now, list_now->next, list_now->prev, list_head);
 
 		list_now = list_next;
 	}
 
 	return;
 #endif
+}
+
+/*
+*******************************************************************************
+*                     print_urb_list
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void print_urb_list(struct usb_host_endpoint *hep, char *str)
+{
+	struct urb *urb_temp = NULL;
+
+	list_for_each_entry (urb_temp, &hep->urb_list,  urb_list) {
+		DMSG_INFO("[%s]: urb_temp(0x%p, %d, %d, %d)\n",
+			      str,
+			      urb_temp, urb_temp->transfer_buffer_length, 
+			      urb_temp->actual_length, urb_temp->status);
+	}
 }
 

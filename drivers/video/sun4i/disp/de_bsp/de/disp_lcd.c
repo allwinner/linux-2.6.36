@@ -95,39 +95,168 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
 
 __s32 LCD_BL_EN(__u32 sel, __bool b_en)
 {
-    /*user_gpio_set_t  gpio_info;
+    user_gpio_set_t  gpio_info[1];
     __hdle hdl;
+    int  value;
+    int  ret;
+
+    DE_INF("LCD_BL_EN, sel:%d,b_en:%d\n", sel, b_en);
     
-    script_parser_fetch("lcd0_para","LCD_BL_EN", (int *)&gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-    
-    if(!b_en)
+    if(sel == 0)
     {
-        gpio_info.data = (gpio_info.data==0)?1:0;
+        ret = OSAL_script_parser_fetch("lcd0_para", "LCD_BL_EN_USED", &value, 1);
+        if(ret < 0)
+        {
+            DE_WRN("fetch script data lcd0_para.LCD_BL_EN_USED fail\n");
+            return -1;
+        }
+        else
+        {
+            DE_INF("lcd0_para.LCD_BL_EN_USED=%d\n",value);
+        }
+
+        if(value == 1)
+        {
+            ret = OSAL_script_parser_fetch("lcd0_para","LCD_BL_EN", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+            if(ret < 0)
+            {
+                DE_WRN("fetch script data lcd0_para.LCD_BL_EN fail\n");
+                return -1;
+            }
+            else
+            {
+                DE_INF("lcd0_para.LCD_BL_EN gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
+            }
+
+            if(!b_en)
+            {
+                gpio_info->data = (gpio_info->data==0)?1:0;
+            }
+
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);
+        }
     }
+    else
+    {
+        ret = OSAL_script_parser_fetch("lcd1_para", "LCD_BL_EN_USED", &value, 1);
+        if(ret < 0)
+        {
+            DE_WRN("fetch script data lcd1_para.LCD_BL_EN_USED fail\n");
+            return -1;
+        }
+        else
+        {
+            DE_INF("lcd1_para.LCD_BL_EN_USED=%d\n",value);
+        }
 
-    hdl = OSAL_GPIO_Request(&gpio_info, 1);
-    OSAL_GPIO_Release(hdl, 2);*/
+        if(value == 1)
+        {
+            ret = OSAL_script_parser_fetch("lcd1_para","LCD_BL_EN", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+            if(ret < 0)
+            {
+                DE_WRN("fetch script data lcd1_para.LCD_BL_EN fail\n");
+                return -1;
+            }
+            else
+            {
+                DE_INF("lcd1_para.LCD_BL_EN gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
+            }
 
+            if(!b_en)
+            {
+                gpio_info->data = (gpio_info->data==0)?1:0;
+            }
+
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);
+        }
+    }
+    
     return 0;
 }
 
-__s32 LCD_PWR_EN(__u32 sel, __bool b_en)
+__s32 LCD_POWER_EN(__u32 sel, __bool b_en)
 {
-    /*user_gpio_set_t  gpio_info;
+    user_gpio_set_t  gpio_info[1];
     __hdle hdl;
-    
-    script_parser_fetch("lcd0_para","LCD_PWM_EN", (int *)&gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-    
-    if(!b_en)
+    int  value;
+    int  ret;
+
+    if(sel == 0)
     {
-        gpio_info.data = (gpio_info.data==0)?1:0;
+        ret = OSAL_script_parser_fetch("lcd0_para", "LCD_POWER_USED", &value, 1);
+        if(ret < 0)
+        {
+            DE_WRN("fetch script data lcd0_para.LCD_POWER_USED fail\n");
+            return -1;
+        }
+        else
+        {
+            DE_INF("lcd0_para.LCD_POWER_USED=%d\n",value);
+        }
+
+        if(value == 1)
+        {
+            ret = OSAL_script_parser_fetch("lcd0_para","LCD_POWER", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+            if(ret < 0)
+            {
+                DE_WRN("fetch script data lcd0_para.LCD_POWER fail\n");
+                return -1;
+            }
+            else
+            {
+                DE_INF("lcd0_para.LCD_POWER gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
+            }
+
+            if(!b_en)
+            {
+                gpio_info->data = (gpio_info->data==0)?1:0;
+            }
+
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);
+        }
     }
+    else
+    {
+        ret = OSAL_script_parser_fetch("lcd1_para", "LCD_POWER_USED", &value, 1);
+        if(ret < 0)
+        {
+            DE_WRN("fetch script data lcd1_para.LCD_POWER_USED fail\n");
+            return -1;
+        }
+        else
+        {
+            DE_INF("lcd1_para.LCD_POWER_USED=%d\n",value);
+        }
 
-    hdl = OSAL_GPIO_Request(&gpio_info, 1);
-    OSAL_GPIO_Release(hdl, 2);*/
+        if(value == 1)
+        {
+            ret = OSAL_script_parser_fetch("lcd1_para","LCD_POWER", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+            if(ret < 0)
+            {
+                DE_WRN("fetch script data lcd1_para.LCD_POWER fail\n");
+                return -1;
+            }
+            else
+            {
+                DE_INF("lcd1_para.LCD_POWER gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
+            }
 
+            if(!b_en)
+            {
+                gpio_info->data = (gpio_info->data==0)?1:0;
+            }
+
+            hdl = OSAL_GPIO_Request(gpio_info, 1);
+            OSAL_GPIO_Release(hdl, 2);
+        }
+    }
+    
     return 0;
 }
+
 
 //lcd_pwm_div = log2(24000/(16*pwm_freq));
 __s32 Disp_pwm_cfg(__u32 sel)
@@ -763,44 +892,41 @@ __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode)
 //pol==1:  0,     15,    14, ...    2,   1
 __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 {	    
-    if(gdisp.screen[sel].status & LCD_ON)
-    {
-        __u32 value = 0;
-        __u32    tmp;
+    __u32 value = 0;
+    __u32    tmp;
 
-        if(gpanel_info[sel].lcd_pwm_pol == 0)
+    if(gpanel_info[sel].lcd_pwm_pol == 0)
+    {
+        if(bright == DISP_LCD_BRIGHT_LEVEL15)
         {
-            if(bright == DISP_LCD_BRIGHT_LEVEL15)
-            {
-                value = 0;
-            }
-            else
-            {
-                value = bright + 1;
-            }
+            value = 0;
         }
         else
         {
-            if(bright == DISP_LCD_BRIGHT_LEVEL0)
-            {
-                value = 0;
-            }
-            else
-            {
-                value = 16 - bright;
-            }
+            value = bright + 1;
         }
-        
-        if(gpanel_info[sel].port_index== 0)
+    }
+    else
+    {
+        if(bright == DISP_LCD_BRIGHT_LEVEL0)
         {
-    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x204,(tmp & 0xffff0000) | value);
+            value = 0;
         }
         else
         {
-    	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x208,(tmp & 0xffff0000) | value);
+            value = 16 - bright;
         }
+    }
+    
+    if(gpanel_info[sel].port_index== 0)
+    {
+	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x204,(tmp & 0xffff0000) | value);
+    }
+    else
+    {
+	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
+        sys_put_wvalue(gdisp.init_para.base_pwm+0x208,(tmp & 0xffff0000) | value);
     }
 
     return DIS_SUCCESS;

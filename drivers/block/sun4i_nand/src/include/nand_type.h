@@ -53,13 +53,26 @@ struct __OptionalPhyOpPar_t
 
 typedef struct 
 {
-	__u8 id[8];
-	__u8 chip_cnt;
-	__u8 chip_connect;
-	__u8 rb_cnt;
-	__u8 rb_connect;
-	__u32 good_block_ratio;
-}_nand_connect_info_t;
+    __u8        ChipCnt;                            //the count of the total nand flash chips are currently connecting on the CE pin
+    __u16       ChipConnectInfo;                    //chip connect information, bit == 1 means there is a chip connecting on the CE pin
+	__u8		RbCnt;
+	__u8		RbConnectInfo;						//the connect  information of the all rb  chips are connected
+    __u8        RbConnectMode;						//the rb connect  mode
+	__u8        BankCntPerChip;                     //the count of the banks in one nand chip, multiple banks can support Inter-Leave
+    __u8        DieCntPerChip;                      //the count of the dies in one nand chip, block management is based on Die
+    __u8        PlaneCntPerDie;                     //the count of planes in one die, multiple planes can support multi-plane operation
+    __u8        SectorCntPerPage;                   //the count of sectors in one single physic page, one sector is 0.5k
+    __u16       PageCntPerPhyBlk;                   //the count of physic pages in one physic block
+    __u16       BlkCntPerDie;                       //the count of the physic blocks in one die, include valid block and invalid block
+    __u16       OperationOpt;                       //the mask of the operation types which current nand flash can support support
+    __u8        FrequencePar;                       //the parameter of the hardware access clock, based on 'MHz'
+    __u8        EccMode;                            //the Ecc Mode for the nand flash chip, 0: bch-16, 1:bch-28, 2:bch_32   
+    __u8        NandChipId[5];                      //the nand chip id of current connecting nand chip
+    __u16       ValidBlkRatio;                      //the ratio of the valid physical blocks, based on 1024
+	__u32 		good_block_ratio;					//good block ratio get from hwscan
+	__u32		ReadRetryType;						//the read retry type
+	__u32		Reserved[32];
+}boot_nand_para_t;
 
 typedef struct boot_flash_info{
 	__u32 chip_cnt;
@@ -88,6 +101,7 @@ struct __NandStorageInfo_t
     __u8        EccMode;                            //the Ecc Mode for the nand flash chip, 0: bch-16, 1:bch-28, 2:bch_32   
     __u8        NandChipId[5];                      //the nand chip id of current connecting nand chip
     __u16       ValidBlkRatio;                         //the ratio of the valid physical blocks, based on 1024
+    __u32		ReadRetryType;						//the read retry type
     struct __OptionalPhyOpPar_t OptPhyOpPar;        //the parameters for some optional operation
 };
 
@@ -281,6 +295,7 @@ struct __NandPhyInfoPar_t
     __u16       ValidBlkRatio;                      //the valid block ratio, based on 1024 blocks
     __u16       AccessFreq;                         //the highest access frequence of the nand flash chip, based on MHz
     __u16       EccMode;                            //the Ecc Mode for the nand flash chip, 0: bch-16, 1:bch-28, 2:bch_32   
+    __u32 		ReadRetryType;
     struct __OptionalPhyOpPar_t *OptionOp;          //the pointer point to the optional operation parameter
 };
 
@@ -309,6 +324,9 @@ struct __NandDriverGlobal_t
 #define NAND_PAGE_COPYBACK      (1<<4)              //nand flash support page copy-back command mode operation
 #define NAND_INT_INTERLEAVE     (1<<5)              //nand flash support internal inter-leave operation, it based multi-bank
 #define NAND_EXT_INTERLEAVE     (1<<6)              //nand flash support external inter-leave operation, it based multi-chip
+#define NAND_RANDOM		        (1<<7)			    // nand flash support RANDOMIZER
+#define NAND_READ_RETRY	        (1<<8)			    //nand falsh support READ RETRY
+#define NAND_READ_UNIQUE_ID	    (1<<9)			    //nand falsh support READ UNIQUE_ID
 
 
 //define the mask for the nand flash operation status

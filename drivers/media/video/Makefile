@@ -188,6 +188,7 @@ ifeq ($(CONFIG_VIDEO_SUN3I_CEDAR),y)
   obj-$(CONFIG_VIDEO_SUN3I_CEDAR) += sun3i/
 endif
 
+obj-$(CONFIG_CSI_SUN4I) += sun4i_csi/
 
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends

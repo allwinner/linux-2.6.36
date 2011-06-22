@@ -35,6 +35,95 @@
 
 /*
 *******************************************************************************
+*                     sw_hcd_port_suspend_ex
+*
+* Description:
+*    only suspend USB port
+*
+* Parameters:
+*    sw_hcd        :  input.  USB¿ØÖÆÆ÷
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void sw_hcd_port_suspend_ex(struct sw_hcd *sw_hcd)
+{
+	/* suspend usb port */
+	USBC_Host_SuspendPort(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+
+	/* delay for 1000ms */
+	udelay(1000);
+
+	return;
+}
+
+/*
+*******************************************************************************
+*                     sw_hcd_port_resume_ex
+*
+* Description:
+*    only resume USB port
+*
+* Parameters:
+*    sw_hcd        :  input.  USB¿ØÖÆÆ÷
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void sw_hcd_port_resume_ex(struct sw_hcd *sw_hcd)
+{
+	/* resume port */
+	USBC_Host_RusumePort(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+	udelay(500);
+	USBC_Host_ClearRusumePortFlag(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+
+	return;
+}
+
+/*
+*******************************************************************************
+*                     sw_hcd_port_reset_ex
+*
+* Description:
+*    only reset USB port
+*
+* Parameters:
+*    sw_hcd        :  input.  USB¿ØÖÆÆ÷
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void sw_hcd_port_reset_ex(struct sw_hcd *sw_hcd)
+{
+	/* resume port */
+	sw_hcd_port_resume_ex(sw_hcd);
+
+	/* reset port */
+	USBC_Host_ResetPort(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+	udelay(50);
+	USBC_Host_ClearResetPortFlag(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+	udelay(500);
+
+	return;
+}
+
+/*
+*******************************************************************************
 *                     sw_hcd_port_suspend
 *
 * Description:
@@ -98,7 +187,7 @@ static void sw_hcd_port_suspend(struct sw_hcd *sw_hcd, bool do_suspend)
 		DMSG_DBG_HCD("DBG: Root port resuming, power %02x\n", power);
 
 		/* later, GetPortStatus will stop RESUME signaling */
-		sw_hcd->port1_status |= sw_hcd_PORT_STAT_RESUME;
+		sw_hcd->port1_status |= SW_HCD_PORT_STAT_RESUME;
 		sw_hcd->rh_timer = jiffies + msecs_to_jiffies(20);
     }else{
         DMSG_PANIC("WRN: sw_hcd_port_suspend nothing to do\n");
@@ -189,7 +278,6 @@ static void sw_hcd_port_reset(struct sw_hcd *sw_hcd, bool do_reset)
 
 			USBC_SelectActiveEp(sw_hcd->sw_hcd_io->usb_bsp_hdle, old_ep_index);
 		}
-
     }else{
         DMSG_INFO("[sw_hcd]: reset port stopped.\n");
 
@@ -244,6 +332,7 @@ void sw_hcd_root_disconnect(struct sw_hcd *sw_hcd)
 
 	return;
 }
+EXPORT_SYMBOL(sw_hcd_root_disconnect);
 
 /*
 *******************************************************************************
@@ -276,6 +365,7 @@ int sw_hcd_hub_status_data(struct usb_hcd *hcd, char *buf)
 
     return retval;
 }
+EXPORT_SYMBOL(sw_hcd_hub_status_data);
 
 /*
 *******************************************************************************
@@ -413,7 +503,7 @@ int sw_hcd_hub_control(struct usb_hcd	*hcd,
     		}
 
     		/* finish RESUME signaling? */
-    		if ((sw_hcd->port1_status & sw_hcd_PORT_STAT_RESUME)
+    		if ((sw_hcd->port1_status & SW_HCD_PORT_STAT_RESUME)
     				&& time_after_eq(jiffies, sw_hcd->rh_timer)) {
     			u8 power = 0;
 
@@ -430,17 +520,14 @@ int sw_hcd_hub_control(struct usb_hcd	*hcd,
 
     			sw_hcd->is_active = 1;
     			sw_hcd->port1_status &= ~(USB_PORT_STAT_SUSPEND
-    					| sw_hcd_PORT_STAT_RESUME);
+    					| SW_HCD_PORT_STAT_RESUME);
     			sw_hcd->port1_status |= USB_PORT_STAT_C_SUSPEND << 16;
 
     			usb_hcd_poll_rh_status(sw_hcd_to_hcd(sw_hcd));
-
-    			/* NOTE: it might really be A_WAIT_BCON ... */
- //   			sw_hcd->xceiv.state = OTG_STATE_A_HOST;
     		}
 
     		put_unaligned(cpu_to_le32(sw_hcd->port1_status
-    					& ~sw_hcd_PORT_STAT_RESUME),
+    					& ~SW_HCD_PORT_STAT_RESUME),
     				(__le32 *) buf);
 
     		/* port change status is more interesting */
@@ -554,6 +641,7 @@ error:
 
     return retval;
 }
+EXPORT_SYMBOL(sw_hcd_hub_control);
 
 
 

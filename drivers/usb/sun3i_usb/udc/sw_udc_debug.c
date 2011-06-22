@@ -32,17 +32,12 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
-#include <linux/gpio.h>
 
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 
-
 #include  "sw_udc_config.h"
-
 #include  "sw_udc_board.h"
-#include  "sw_udc.h"
-
 #include  "sw_udc_debug.h"
 
 /*

@@ -2,23 +2,4 @@ config SND_SUN4I_SOC_CODEC
 	tristate "APB On-Chip Codec"
 	default n
 
-config SND_SUN4I_SOC_SPDIF
-	tristate "sun4i On-Chip spdif"
-	default n
 
-config SND_SUN4I_SOC_I2S
-	tristate "SoC Audio for the AllWinner SUN4I chips"
-	default n
-	help
-	  Say Y or M if you want to add support for codecs attached to
-	  the SUN4I AC97, I2S or PCM interface. You will also need
-	  to select the audio interfaces to support below.
-
-#config SND_SUN4I_SOC_HDMI
-#	tristate "HDMI I2S Audio Out"
-#	depends on SND_SUN4I_SOC
-#	default n
-
-#config SND_SUN4I_SOC_AC97
-	#depends on SND_SUN4I_SOC
-	#tristate "AC97 Audio Out"

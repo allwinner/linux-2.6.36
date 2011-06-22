@@ -136,6 +136,7 @@ void sw_hcd_write_fifo(struct sw_hcd_hw_ep *hw_ep, u16 len, const u8 *src)
 
 	return;
 }
+EXPORT_SYMBOL(sw_hcd_write_fifo);
 
 /*
 *******************************************************************************
@@ -199,8 +200,7 @@ void sw_hcd_read_fifo(struct sw_hcd_hw_ep *hw_ep, u16 len, u8 *dst)
 
 	return;
 }
-
-
+EXPORT_SYMBOL(sw_hcd_read_fifo);
 
 /*
 *******************************************************************************
@@ -232,6 +232,7 @@ void sw_hcd_load_testpacket(struct sw_hcd *sw_hcd)
 
 	return;
 }
+EXPORT_SYMBOL(sw_hcd_load_testpacket);
 
 /*
 *******************************************************************************
@@ -262,6 +263,13 @@ void sw_hcd_start(struct sw_hcd *sw_hcd)
 	    return ;
     }
 
+    sw_hcd->is_active = 0;
+
+	if(!sw_hcd->enable){
+		DMSG_PANIC("ERR: hcd is not enable\n");
+		return;
+	}
+
     /* initialize parameter */
     usbc_base = sw_hcd->mregs;
 
@@ -278,7 +286,6 @@ void sw_hcd_start(struct sw_hcd *sw_hcd)
 	/* put into basic highspeed mode and start session */
     USBC_Writeb((1 << USBC_BP_POWER_H_HIGH_SPEED_EN), USBC_REG_PCTL(usbc_base));
 
-    sw_hcd->is_active = 0;
     devctl = USBC_Readb(USBC_REG_DEVCTL(usbc_base));
 	devctl &= ~(1 << USBC_BP_DEVCTL_SESSION);
 	USBC_Writeb(devctl, USBC_REG_DEVCTL(usbc_base));
@@ -293,6 +300,7 @@ void sw_hcd_start(struct sw_hcd *sw_hcd)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_start);
 
 /*
 *******************************************************************************
@@ -331,6 +339,7 @@ void sw_hcd_generic_disable(struct sw_hcd *sw_hcd)
 
 	return;
 }
+EXPORT_SYMBOL(sw_hcd_generic_disable);
 
 /*
 *******************************************************************************
@@ -355,6 +364,11 @@ void sw_hcd_generic_disable(struct sw_hcd *sw_hcd)
 */
 void sw_hcd_stop(struct sw_hcd *sw_hcd)
 {
+	if(!sw_hcd->enable){
+		DMSG_PANIC("ERR: hcd is not enable\n");
+		return;
+	}
+
 	/* stop IRQs, timers, ... */
 	sw_hcd_platform_disable(sw_hcd);
 	sw_hcd_generic_disable(sw_hcd);
@@ -372,6 +386,7 @@ void sw_hcd_stop(struct sw_hcd *sw_hcd)
 
 	return;
 }
+EXPORT_SYMBOL(sw_hcd_stop);
 
 /*
 *******************************************************************************
@@ -395,6 +410,7 @@ void sw_hcd_platform_try_idle(struct sw_hcd *sw_hcd, unsigned long timeout)
 {
 
 }
+EXPORT_SYMBOL(sw_hcd_platform_try_idle);
 
 /*
 *******************************************************************************
@@ -418,6 +434,7 @@ void sw_hcd_platform_enable(struct sw_hcd *sw_hcd)
 {
 
 }
+EXPORT_SYMBOL(sw_hcd_platform_enable);
 
 /*
 *******************************************************************************
@@ -441,6 +458,7 @@ void sw_hcd_platform_disable(struct sw_hcd *sw_hcd)
 {
 
 }
+EXPORT_SYMBOL(sw_hcd_platform_disable);
 
 /*
 *******************************************************************************
@@ -466,6 +484,7 @@ int sw_hcd_platform_set_mode(struct sw_hcd *sw_hcd, u8 sw_hcd_mode)
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_platform_set_mode);
 
 /*
 *******************************************************************************
@@ -485,16 +504,16 @@ int sw_hcd_platform_set_mode(struct sw_hcd *sw_hcd, u8 sw_hcd_mode)
 *
 *******************************************************************************
 */
-int __init sw_hcd_platform_init(struct sw_hcd *sw_hcd)
+int sw_hcd_platform_init(struct sw_hcd *sw_hcd)
 {
 	USBC_EnhanceSignal(sw_hcd->sw_hcd_io->usb_bsp_hdle);
-
 	USBC_EnableDpDmPullUp(sw_hcd->sw_hcd_io->usb_bsp_hdle);
     USBC_EnableIdPullUp(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 	USBC_ForceId(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_ID_TYPE_HOST);
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_platform_init);
 
 /*
 *******************************************************************************
@@ -520,6 +539,7 @@ int sw_hcd_platform_suspend(struct sw_hcd *sw_hcd)
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_platform_suspend);
 
 /*
 *******************************************************************************
@@ -545,6 +565,7 @@ int sw_hcd_platform_resume(struct sw_hcd *sw_hcd)
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_platform_resume);
 
 /*
 *******************************************************************************
@@ -572,6 +593,7 @@ int sw_hcd_platform_exit(struct sw_hcd *sw_hcd)
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_platform_exit);
 
 /* "modprobe ... use_dma=0" etc */
 
@@ -621,7 +643,34 @@ void sw_hcd_dma_completion(struct sw_hcd *sw_hcd, u8 epnum, u8 transmit)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_dma_completion);
+/*
+*******************************************************************************
+*                     sw_hcd_soft_disconnect
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void sw_hcd_soft_disconnect(struct sw_hcd *sw_hcd)
+{
+	DMSG_INFO("-------sw_hcd%d_soft_disconnect---------\n", sw_hcd->usbc_no);
 
+	usb_hcd_resume_root_hub(sw_hcd_to_hcd(sw_hcd));
+	sw_hcd_root_disconnect(sw_hcd);
+
+	return;
+}
 
 /*
 *******************************************************************************
@@ -681,7 +730,7 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 			power |= (1 << USBC_BP_POWER_H_RESUME);
 			USBC_Writeb(power, USBC_REG_PCTL(usbc_base));
 
-			sw_hcd->port1_status |= (USB_PORT_STAT_C_SUSPEND << 16) | sw_hcd_PORT_STAT_RESUME;
+			sw_hcd->port1_status |= (USB_PORT_STAT_C_SUSPEND << 16) | SW_HCD_PORT_STAT_RESUME;
 			sw_hcd->rh_timer = jiffies + msecs_to_jiffies(20);
 			sw_hcd->is_active = 1;
 			usb_hcd_resume_root_hub(sw_hcd_to_hcd(sw_hcd));
@@ -705,8 +754,8 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 		 */
 		USBC_Writeb((1 << USBC_BP_DEVCTL_SESSION), USBC_REG_DEVCTL(usbc_base));
 
-		sw_hcd->ep0_stage = sw_hcd_EP0_START;
-		sw_hcd_HST_MODE(sw_hcd);
+		sw_hcd->ep0_stage = SW_HCD_EP0_START;
+		SW_HCD_HST_MODE(sw_hcd);
 		sw_hcd_set_vbus(sw_hcd, 1);
 
 		handled = IRQ_HANDLED;
@@ -739,6 +788,7 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
         /* go through A_WAIT_VFALL then start a new session */
 		if (!ignore){
 			sw_hcd_set_vbus(sw_hcd, 0);
+			sw_hcd->ep0_stage = SW_HCD_EP0_START;
 		}
 
 		handled = IRQ_HANDLED;
@@ -755,7 +805,7 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 		sw_hcd->is_active = 1;
 		set_bit(HCD_FLAG_SAW_IRQ, &hcd->flags);
 
-		sw_hcd->ep0_stage = sw_hcd_EP0_START;
+		sw_hcd->ep0_stage = SW_HCD_EP0_START;
 
         sw_hcd->port1_status &= ~(USB_PORT_STAT_LOW_SPEED
         					|USB_PORT_STAT_HIGH_SPEED
@@ -775,7 +825,7 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 			usb_hcd_resume_root_hub(hcd);
 		}
 
-		sw_hcd_HST_MODE(sw_hcd);
+		SW_HCD_HST_MODE(sw_hcd);
     }
 
 	/* mentor saves a bit: bus reset and babble share the same irq.
@@ -802,6 +852,10 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 				USBC_Writeb(0x00, USBC_REG_DEVCTL(usbc_base));
 			}
 		}
+
+		sw_hcd->ep0_stage = SW_HCD_EP0_START;
+		usb_hcd_resume_root_hub(sw_hcd_to_hcd(sw_hcd));
+		sw_hcd_root_disconnect(sw_hcd);
 
 	    handled = IRQ_HANDLED;
     }
@@ -986,6 +1040,30 @@ static irqreturn_t sw_hcd_interrupt(struct sw_hcd *sw_hcd)
 	return retval;
 }
 
+/*
+*******************************************************************************
+*                     clear_all_irq
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void clear_all_irq(struct sw_hcd *sw_hcd)
+{
+    USBC_INT_ClearEpPendingAll(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_TX);
+    USBC_INT_ClearEpPendingAll(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_RX);
+    USBC_INT_ClearMiscPendingAll(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+}
 
 /*
 *******************************************************************************
@@ -1022,6 +1100,13 @@ irqreturn_t generic_interrupt(int irq, void *__hci)
     sw_hcd        = (struct sw_hcd *)__hci;
     usbc_base   = sw_hcd->mregs;
 
+	/* host role must be active */
+	if (!sw_hcd->enable){
+	    DMSG_PANIC("ERR: usb generic_interrupt, host is not enable\n");
+		clear_all_irq(sw_hcd);
+		return IRQ_NONE;
+    }
+
 	spin_lock_irqsave(&sw_hcd->lock, flags);
 
 	sw_hcd->int_usb = USBC_Readb(USBC_REG_INTUSB(usbc_base));
@@ -1043,6 +1128,7 @@ irqreturn_t generic_interrupt(int irq, void *__hci)
 
 	return IRQ_HANDLED;
 }
+EXPORT_SYMBOL(generic_interrupt);
 
 
 

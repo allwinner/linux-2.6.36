@@ -57,6 +57,7 @@ typedef struct sw_hcd_io{
 
 	unsigned Drv_vbus_Handle;
 	user_gpio_set_t drv_vbus_gpio_set;
+	__u32 usbc_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
 }sw_hcd_io_t;
 
 #endif   //__SW_HCD_BOARD_H__
