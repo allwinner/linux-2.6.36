@@ -23,7 +23,6 @@
 #include <linux/pm.h>
 #endif
 #include <asm/mach-types.h>
-//#include <asm/dma.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -44,11 +43,6 @@ static int flag_id = 0;
 
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
-//CCM register
-//#define CCM_BASE                   0xf1c20000
-//#define CCM_REG_PLL2_CTRL 		   (0x008)
-//#define CCM_REG_APBCLK_GATE0	   (0x068)
-//#define CCM_REG_CodecCLK_CTRL	   (0x140)
 
 
 #define codec_RATES SNDRV_PCM_RATE_8000_192000
@@ -78,8 +72,6 @@ static volatile unsigned int pst_src = 0;
 static volatile unsigned int dma_flg = 0;
 
 
-
-
 /* Structure/enum declaration ------------------------------- */
 typedef struct codec_board_info {
 	
@@ -87,19 +79,14 @@ typedef struct codec_board_info {
 	void __iomem	*ccmu_vbase;	/* ccmu I/O base address */
 	u16		 irq;		/* IRQ */
 	
-	
 	unsigned int	flags;
 	unsigned int	in_suspend :1;
 	int		debug_level;
 	
 	struct device	*dev;	     /* parent device */
-	
 	struct resource	*codec_base_res;   /* resources found */
-//	struct resource	*ccmu_base_res;   /* resources found */
-	
 	struct resource	*codec_base_req;   /* resources found */
-//	struct resource	*ccmu_base_req;   /* resources found */
-	
+
 	spinlock_t	lock;
 } codec_board_info_t;
 
@@ -199,8 +186,8 @@ int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 	new	=	(old & ~mask) | value;
 	change = old != new;
 
-	if (change)
-	{       //printk("reg = %x,reg_val = %x\n",reg,new);
+	if (change){       
+		//printk("reg = %x,reg_val = %x\n",reg,new);
 		codec_wrreg(reg,new);
 	}
 		
@@ -331,44 +318,7 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 {
 	return 0;
 }
-#if 0
-static  void codec_clock(unsigned char comd, unsigned char clk_mode)
-{
-	unsigned int reg_val;
-	if(clk_mode){
-           reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-	   reg_val |= (clk_mode << 31) | (clk_mode << 27);
-	   writel(reg_val, CCM_BASE + CCM_REG_PLL2_CTRL);
-	}
-	else{
-	   reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-	   reg_val &= ~(1 << 31)|~(1 << 27);
-	   writel(reg_val, CCM_BASE + CCM_REG_PLL2_CTRL);
-	}
 
-	if(comd){
-
-    		reg_val = readl(CCM_BASE + CCM_REG_APBCLK_GATE0);
-		reg_val |= (1 << 0);
-		writel(reg_val, CCM_BASE + CCM_REG_APBCLK_GATE0);
-		
-    		reg_val = readl(CCM_BASE + CCM_REG_CodecCLK_CTRL);
-		reg_val |= (1 << 31);
-		writel(reg_val, CCM_BASE + CCM_REG_CodecCLK_CTRL);
-	}
-	else{
-
-    		reg_val = readl(CCM_BASE + CCM_REG_APBCLK_GATE0);
-		reg_val &= ~(1 << 0);
-		writel(reg_val, CCM_BASE + CCM_REG_APBCLK_GATE0);
-		
-
-        	reg_val = readl(CCM_BASE + CCM_REG_CodecCLK_CTRL);
-		reg_val &= ~(1 << 31);
-		writel(reg_val, CCM_BASE + CCM_REG_CodecCLK_CTRL);
-    }
-}
-#endif
 /**
 *	codec_reset - reset the codec 
 * @codec	SoC Audio Codec
@@ -377,9 +327,6 @@ static  void codec_clock(unsigned char comd, unsigned char clk_mode)
 */
 static  int codec_init(void)
 {
-//	u8   clk_open;
-//	clk_open = 1;
-	//codec_clock(clk_open,1);
 	//enable dac digital 
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	//codec version seting
@@ -557,28 +504,24 @@ static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 	
 	unsigned long len = prtd->dma_period;
   	limit = prtd->dma_limit;
-  	while(prtd->dma_loaded < limit)
-	{
+  	while(prtd->dma_loaded < limit){
 		if((pos + len) > prtd->dma_end){
 			len  = prtd->dma_end - pos;
 			//	printk("[SPDIF]%s: corrected dma len %ld\n", __func__, len);
 		}
-
-	ret = sw_dma_enqueue(prtd->params->channel, substream, __bus_to_virt(pos),  len);
-//	 printk("[SPDIF]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
-	if(ret == 0){
-		prtd->dma_loaded++;
-		pos += prtd->dma_period;
-		if(pos >= prtd->dma_end)
-			pos = prtd->dma_start;
-	}else
-	{
-		break;
-	  }
-	  
+		ret = sw_dma_enqueue(prtd->params->channel, substream, __bus_to_virt(pos),  len);
+		//printk("[SPDIF]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
+		if(ret == 0){
+			prtd->dma_loaded++;
+			pos += prtd->dma_period;
+			if(pos >= prtd->dma_end)
+				pos = prtd->dma_start;
+		}else{
+			break;
+		}	  
 	}
 	prtd->dma_pos = pos;
-//	printk("[SPDIF]In the end of %s, dma_start = %#x, dma_end = %#x, dma_pos = %#x\n", __func__, prtd->dma_start, prtd->dma_end, prtd->dma_pos);
+	//	printk("[SPDIF]In the end of %s, dma_start = %#x, dma_end = %#x, dma_pos = %#x\n", __func__, prtd->dma_start, prtd->dma_end, prtd->dma_pos);
 }
 
 static void sw_audio_buffdone(struct sw_dma_chan *channel, 
@@ -593,8 +536,7 @@ static void sw_audio_buffdone(struct sw_dma_chan *channel,
 			return;
 			
 		prtd = substream->runtime->private_data;
-			if (substream)
-			{
+			if (substream){
 				//	printk("[SPDIF]Enter Elapsed\n");
 				snd_pcm_period_elapsed(substream);
 			}	
@@ -616,16 +558,11 @@ static snd_pcm_uframes_t snd_sw_codec_pointer(struct snd_pcm_substream *substrea
 	spin_lock(&prtd->lock);
 	sw_dma_getcurposition(DMACH_NADDA, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
 	//printk("dmasrc: %x\n",dmasrc);
-	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
+	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE){
 		res = dmadst + prtd->dma_period - prtd->dma_start;
-	else
-	{
-		res = dmasrc + prtd->dma_period - prtd->dma_start;
-		
+	}else{
+		res = dmasrc + prtd->dma_period - prtd->dma_start;		
 	}
-	
-
-
 	spin_unlock(&prtd->lock);
 
 	/* we seem to be getting the odd error from the pcm library due
@@ -653,37 +590,31 @@ static int sw_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct sn
 	pr_debug("Entered %s\n", __func__);
 
   
-	if(prtd->params == NULL){
-		
+	if(prtd->params == NULL){	
 		switch(stream_id){
-			case SNDRV_PCM_STREAM_PLAYBACK :
-				prtd->params = &sw_codec_pcm_stereo_play;
-				break;
-
-			case SNDRV_PCM_STREAM_CAPTURE :
-				prtd->params = &sw_codec_pcm_stereo_capture;
-				break;
-
-			default :
-				ret = -EINVAL;
-				return ret;
-				break;
-			}
-
-
-	pr_debug("params %p, client %p, channel %d\n", prtd->params, prtd->params->client,prtd->params->channel);
-	ret = sw_dma_request(prtd->params->channel,prtd->params->client,NULL);
- 
-	if(ret < 0){
-	pr_debug(KERN_ERR "failed to get dma channel. ret == %d\n", ret);
-	return ret;
+		case SNDRV_PCM_STREAM_PLAYBACK :
+			prtd->params = &sw_codec_pcm_stereo_play;
+			break;
+		
+		case SNDRV_PCM_STREAM_CAPTURE :
+			prtd->params = &sw_codec_pcm_stereo_capture;
+			break;
+		
+		default :
+			ret = -EINVAL;
+			return ret;
+			break;
+		}				
+		pr_debug("params %p, client %p, channel %d\n", prtd->params, prtd->params->client,prtd->params->channel);
+		ret = sw_dma_request(prtd->params->channel,prtd->params->client,NULL);
+		
+		if(ret < 0){
+			pr_debug(KERN_ERR "failed to get dma channel. ret == %d\n", ret);
+			return ret;
+		}
 	}
-  }
-	
-	//sw_dma_set_halfdone_fn(prtd->params->channel,
-				//sw_audio_buffdone);
-        sw_dma_set_buffdone_fn(prtd->params->channel,
-				sw_audio_buffdone);
+    sw_dma_set_buffdone_fn(prtd->params->channel,
+			sw_audio_buffdone);
 	snd_pcm_set_runtime_buffer(substream, &substream->dma_buffer);
 	runtime->dma_bytes = totbytes;
         spin_lock_irq(&prtd->lock);
@@ -701,10 +632,7 @@ static int sw_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct sn
 
 	spin_unlock_irq(&prtd->lock);
 
-	return 0;
-
-
-	
+	return 0;	
 }
 
 static int snd_sw_codec_hw_free(struct snd_pcm_substream *substream)
@@ -713,13 +641,11 @@ static int snd_sw_codec_hw_free(struct snd_pcm_substream *substream)
 
 	pr_debug("Entered %s\n", __func__);
 
-
 	/* TODO - do we need to ensure DMA flushed */
 	if(prtd->params)
   	sw_dma_ctrl(prtd->params->channel, SW_DMAOP_FLUSH);
 	snd_pcm_set_runtime_buffer(substream, NULL);
   
-
 	if (prtd->params) {
 		sw_dma_free(prtd->params->channel, prtd->params->client);
 		prtd->params = NULL;
@@ -736,18 +662,14 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	int ret ;
 	unsigned int reg_val;
 	ret = 0;
-	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-	{
-		switch(substream->runtime->rate)
-		{
-			case 44100:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val &=~(1<<26);
-				//For Version A 
-				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif				
+	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+		switch(substream->runtime->rate){
+			case 44100:			
 				clk_set_rate(codec_moduleclk, 22579200);
+				clk_set_rate(codec_pll2clk, 22579200);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -755,132 +677,121 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val &=~(1<<26);
-				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 22579200);			
+				clk_set_rate(codec_moduleclk, 22579200);	
+				clk_set_rate(codec_pll2clk, 22579200);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}		
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 11025:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val &=~(1<<26);
-				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif 
-				clk_set_rate(codec_moduleclk, 22579200);				
+				clk_set_rate(codec_moduleclk, 22579200);	
+				clk_set_rate(codec_pll2clk, 22579200);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 48000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}					
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 96000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(7<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 192000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}					
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(6<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 32000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(1<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 24000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 16000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(3<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 12000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}					
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 8000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(5<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			default:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);								
+				clk_set_rate(codec_moduleclk, 24576000);
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}									
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -888,8 +799,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				break;
 		}
 		
-		switch(substream->runtime->channels)
-		{
+		switch(substream->runtime->channels){
 			case 1:
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val |=(1<<6);
@@ -906,17 +816,14 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 		}
-        }else
-        {
-		switch(substream->runtime->rate)
-		{
+	}else{
+		switch(substream->runtime->rate){
 			case 44100:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val &=~(1<<26);
-				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 22579200);			
+				clk_set_rate(codec_moduleclk, 22579200);	
+				clk_set_rate(codec_pll2clk, 22579200);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}			
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -924,108 +831,99 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val &=~(1<<26);
-				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 22579200);						
+				clk_set_rate(codec_moduleclk, 22579200);	
+					clk_set_rate(codec_pll2clk, 22579200);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}						
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 11025:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val &=~(1<<26);
-				writel(0x80105e0a, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 22579200);							
+				clk_set_rate(codec_moduleclk, 22579200);	
+					clk_set_rate(codec_pll2clk, 22579200);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}							
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 48000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);
+					clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}					
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 32000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}					
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(1<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 24000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(2<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 16000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(3<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 12000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 8000:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(0x80105309, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(5<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			default:
-#if 0				
-				reg_val = readl(CCM_BASE + CCM_REG_PLL2_CTRL);
-				reg_val |=(1<<26);
-				writel(reg_val, CCM_BASE + CCM_REG_PLL2_CTRL);
-#endif
-				clk_set_rate(codec_moduleclk, 24576000);				
+				clk_set_rate(codec_moduleclk, 24576000);
+				clk_set_rate(codec_pll2clk, 24576000);	
+				if (-1 == clk_enable(codec_moduleclk)){
+					printk("open codec_moduleclk failed; \n");
+				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
@@ -1033,8 +931,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				break;
 		}
 		
-		switch(substream->runtime->channels)
-		{
+		switch(substream->runtime->channels){
 			case 1:
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val |=(1<<7);
@@ -1053,11 +950,8 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		}        	
 	}
 	
-
-
 	codec_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
-	if (!codec_dma_conf)   
-	{
+	if (!codec_dma_conf){
 	   ret =  - ENOMEM;
 	   pr_debug("Can't audio malloc dma configure memory\n");
 	   return ret;
@@ -1070,40 +964,36 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		return 0;                            
 
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){                                       
-   	 //open the dac channel register
-   	codec_play_open();    
-  	codec_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;
-	codec_dma_conf->drqdst_type  = DRQ_TYPE_AUDIO;
-	codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
-	codec_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
-	codec_dma_conf->dir          = SW_DMA_WDEV;
-	codec_dma_conf->reload       = 0;
-	codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
-	codec_dma_conf->from         = prtd->dma_start;
-	codec_dma_conf->to           = prtd->params->dma_addr;
-	pr_debug("Set DMA parameter %8x, %8x\n",prtd->dma_start,prtd->params->dma_addr);
-  	ret = sw_dma_config(prtd->params->channel,codec_dma_conf);
-  	pr_debug("codec_dma_conf->reload: %d\n",codec_dma_conf->reload);
-
+   	 	//open the dac channel register
+		codec_play_open();    
+	  	codec_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;
+		codec_dma_conf->drqdst_type  = DRQ_TYPE_AUDIO;
+		codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
+		codec_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
+		codec_dma_conf->dir          = SW_DMA_WDEV;
+		codec_dma_conf->reload       = 0;
+		codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
+		codec_dma_conf->from         = prtd->dma_start;
+		codec_dma_conf->to           = prtd->params->dma_addr;
+		pr_debug("Set DMA parameter %8x, %8x\n",prtd->dma_start,prtd->params->dma_addr);
+	  	ret = sw_dma_config(prtd->params->channel,codec_dma_conf);
+	  	pr_debug("codec_dma_conf->reload: %d\n",codec_dma_conf->reload);
+	}else {
+	   	//open the adc channel register
+	   	codec_capture_open();
+	   	//set the dma
+	   	pr_debug("dma start address : %8x\n",prtd->dma_start);
+	   	codec_dma_conf->drqsrc_type  = DRQ_TYPE_AUDIO;
+		codec_dma_conf->drqdst_type  = D_DRQSRC_SDRAM;
+		codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
+		codec_dma_conf->address_type = DMAADDRT_D_INC_S_FIX;
+		codec_dma_conf->dir          = SW_DMA_RDEV;
+		codec_dma_conf->reload       = 0;
+		codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
+		codec_dma_conf->from         = prtd->params->dma_addr;
+		codec_dma_conf->to           = prtd->dma_start;
+	  	ret = sw_dma_config(prtd->params->channel,codec_dma_conf);  	   	 
 	}
-   else {
-   	//open the adc channel register
-   	codec_capture_open();
-   	//set the dma
-   	pr_debug("dma start address : %8x\n",prtd->dma_start);
-   	codec_dma_conf->drqsrc_type  = DRQ_TYPE_AUDIO;
-	codec_dma_conf->drqdst_type  = D_DRQSRC_SDRAM;
-	codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
-	codec_dma_conf->address_type = DMAADDRT_D_INC_S_FIX;
-	codec_dma_conf->dir          = SW_DMA_RDEV;
-	codec_dma_conf->reload       = 0;
-	codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
-	codec_dma_conf->from         = prtd->params->dma_addr;
-	codec_dma_conf->to           = prtd->dma_start;
-  	sw_dma_config(prtd->params->channel,codec_dma_conf);
-  	//sw_dma_setflags(prtd->params->channel,SW_DMAF_AUTOSTART);
-   	 
-   	}
 	/* flush the DMA channel */
 	sw_dma_ctrl(prtd->params->channel, SW_DMAOP_FLUSH);
 	prtd->dma_loaded = 0;
@@ -1122,8 +1012,6 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 	struct sw_runtime_data *prtd = substream->runtime->private_data;
 	int ret ;
 
-	
-
 	spin_lock(&prtd->lock);
 
 	switch (cmd) {
@@ -1136,8 +1024,7 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 		else
 			codec_capture_start();
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_START);
-		//printk("dma start %s\n", __func__);
-		//sw_dma_ctrl(prtd->params->channel, SW_DMAOP_STARTED);
+		//printk("dma start %s\n", __func__);		
 		break;
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
@@ -1217,8 +1104,7 @@ static int __init snd_card_sw_codec_pcm(struct sw_codec *sw_codec, int device)
 	struct snd_pcm *pcm;
 	int err;
 	/*´´½¨PCMÊµÀý*/
-	if ((err = snd_pcm_new(sw_codec->card, "M1 PCM", device, 1, 1, &pcm)) < 0)
-	{	
+	if ((err = snd_pcm_new(sw_codec->card, "M1 PCM", device, 1, 1, &pcm)) < 0){	
 		printk("the func is: %s,the line is:%d\n", __func__, __LINE__);
 		return err;
 	}
@@ -1260,6 +1146,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	struct codec_board_info  *db;
     flag_id = 0; 
     pst_src = 0;
+    printk("enter sun4i Audio codec!!!\n"); 
 	/* register the soundcard */
 	ret = snd_card_create(0, "sun4i-codec", THIS_MODULE, sizeof(struct sw_codec), 
 			      &card);
@@ -1285,7 +1172,6 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	*/
 	if ((err = snd_card_sw_codec_pcm(chip, 0)) < 0)
 	    goto nodev;
-
         
 	strcpy(card->driver, "sun4i-CODEC");
 	strcpy(card->shortname, "sun4i-CODEC");
@@ -1297,20 +1183,16 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	if ((err = snd_card_register(card)) == 0) {
 		pr_debug( KERN_INFO "sun4i audio support initialized\n" );
 		platform_set_drvdata(pdev, card);
-	}
-	else
-    {
+	}else{
       return err;
 	}
 
-          	
-
-	 db = kzalloc(sizeof(*db), GFP_KERNEL);
-	 if (!db)
-		 return -ENOMEM; 
+	db = kzalloc(sizeof(*db), GFP_KERNEL);
+	if (!db)
+		return -ENOMEM; 
   	/* codec_apbclk */
 	codec_apbclk = clk_get(NULL,"apb_audio_codec");
-	if(-1 == clk_enable(codec_apbclk)){
+	if (-1 == clk_enable(codec_apbclk)) {
 		printk("codec_apbclk failed; \n");
 	}
 	/* codec_pll2clk */
@@ -1319,26 +1201,23 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	/* codec_moduleclk */
 	codec_moduleclk = clk_get(NULL,"audio_codec");
 
-	if(clk_set_parent(codec_moduleclk, codec_pll2clk)) {
+	if (clk_set_parent(codec_moduleclk, codec_pll2clk)) {
 		printk("try to set parent of codec_moduleclk to codec_pll2clk failed!\n");		
 	}
-	if(clk_set_rate(codec_moduleclk, 24576000)) {
+	if (clk_set_rate(codec_moduleclk, 24576000)) {
 			printk("set codec_moduleclk clock freq 24576000 failed!\n");
 	}
-	if(-1 == clk_enable(codec_moduleclk)){
+	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
-	 db->codec_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-//	 db->ccmu_base_res =  platform_get_resource(pdev, IORESOURCE_MEM, 1);
-	 db->dev = &pdev->dev;
-
-
- if (db->codec_base_res == NULL	 
-	 ) {
-	 ret = -ENOENT;
-	 pr_debug("codec insufficient resources\n");
-	 goto out;
- }
+	db->codec_base_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	db->dev = &pdev->dev;
+	
+	if (db->codec_base_res == NULL) {
+		ret = -ENOENT;
+		pr_debug("codec insufficient resources\n");
+		goto out;
+	}
 	 /* codec address remap */
 	 db->codec_base_req = request_mem_region(db->codec_base_res->start, 0x40,
 					   pdev->name);
@@ -1348,7 +1227,6 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 		 goto out;
 	 }
 	 baseaddr = ioremap(db->codec_base_res->start, 0x40);
-	
 	 
 	 pr_debug("baseaddr = %p\n",baseaddr);
 	 
@@ -1357,32 +1235,11 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 		 dev_err(db->dev,"failed to ioremap codec address reg\n");
 		 goto out;
 	 }
-	 /* ccmu address remap */
-#if 0	 
-	 db->ccmu_base_req = request_mem_region(db->ccmu_base_res->start, 256,
-					   pdev->name);
 
-	 if (db->ccmu_base_req == NULL) {
-		 ret = -EIO;
-		 pr_debug("cannot claim ccmu address reg area\n");
-		 goto out;
-	 }
-#endif
-
-	 //clkbaseaddr = ioremap(db->ccmu_base_res->start, 256);
-	 
-//	 if (clkbaseaddr == NULL) {
-//		 ret = -EINVAL;
-//		 pr_debug("failed to ioremap ccmu address reg\n");
-//		 goto out;
-//	 };
 	 kfree(db);
 	 codec_init(); 
-	 //iounmap(clkbaseaddr);
-	 //release_resource(db->ccmu_base_req); 
-	 
-	 //codec_debug(); 
-	 printk("m1 Audio successfully loaded..\n"); 
+
+	 printk("sun4i Audio codec successfully loaded..\n"); 
 	 #ifdef Debug_Level0
 	 pr_debug("sun4i Intenal Codec Initial Ok\n");
 	 #endif
