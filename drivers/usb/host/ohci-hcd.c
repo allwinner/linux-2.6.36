@@ -1100,6 +1100,11 @@ MODULE_LICENSE ("GPL");
 #define PLATFORM_DRIVER	ohci_hcd_jz4740_driver
 #endif
 
+#ifdef CONFIG_USB_SW_SUN4I_HCI0
+#include "ohci0_sun4i.c"
+#define	PLATFORM_DRIVER		sw_ohci0_hcd_driver
+#endif
+
 #if	!defined(PCI_DRIVER) &&		\
 	!defined(PLATFORM_DRIVER) &&	\
 	!defined(OMAP1_PLATFORM_DRIVER) &&	\

@@ -28,7 +28,7 @@ extern void sw_hcd_dma_completion(struct sw_hcd *sw_hcd, u8 epnum, u8 transmit);
 
 extern void _eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes);
 
-void hcd_CleanFlushDCacheRegion(void *adr, __u32 bytes)
+static void hcd_CleanFlushDCacheRegion(void *adr, __u32 bytes)
 {
 	_eLIBs_CleanFlushDCacheRegion(adr, bytes + (1 << 5) * 2 - 2);
 }
@@ -69,6 +69,7 @@ void sw_hcd_switch_bus_to_dma(struct sw_hcd_qh *qh, u32 is_in)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_switch_bus_to_dma);
 
 /*
 *******************************************************************************
@@ -96,6 +97,7 @@ void sw_hcd_switch_bus_to_pio(struct sw_hcd_qh *qh, __u32 is_in)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_switch_bus_to_pio);
 
 /*
 *******************************************************************************
@@ -121,6 +123,7 @@ void sw_hcd_enable_dma_channel_irq(struct sw_hcd_qh *qh)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_enable_dma_channel_irq);
 
 /*
 *******************************************************************************
@@ -146,6 +149,7 @@ void sw_hcd_disable_dma_channel_irq(struct sw_hcd_qh *qh)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_disable_dma_channel_irq);
 
 /*
 *******************************************************************************
@@ -231,6 +235,7 @@ void sw_hcd_dma_set_config(struct sw_hcd_qh *qh, __u32 buff_addr, __u32 len)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_dma_set_config);
 
 /*
 *******************************************************************************
@@ -266,6 +271,7 @@ void sw_hcd_dma_start(struct sw_hcd_qh *qh, __u32 fifo, __u32 buffer, __u32 len)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_dma_start);
 
 /*
 *******************************************************************************
@@ -297,6 +303,7 @@ void sw_hcd_dma_stop(struct sw_hcd_qh *qh)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_dma_stop);
 
 /*
 *******************************************************************************
@@ -361,6 +368,8 @@ __u32 sw_hcd_dma_transmit_length(struct sw_hcd_qh *qh, __u32 is_in, __u32 buffer
 }
 #endif
 
+EXPORT_SYMBOL(sw_hcd_dma_transmit_length);
+
 /*
 *******************************************************************************
 *                     sw_hcd_dma_probe
@@ -379,7 +388,7 @@ __u32 sw_hcd_dma_transmit_length(struct sw_hcd_qh *qh, __u32 is_in, __u32 buffer
 *
 *******************************************************************************
 */
-void sw_hcd_dma_callback(struct sw_dma_chan * ch, void *buf, int size, enum sw_dma_buffresult result)
+static void sw_hcd_dma_callback(struct sw_dma_chan * ch, void *buf, int size, enum sw_dma_buffresult result)
 {
 	struct sw_hcd_qh *qh = (struct sw_hcd_qh *)buf;
 
@@ -422,6 +431,7 @@ __u32 sw_hcd_dma_is_busy(struct sw_hcd_qh *qh)
 {
 	return qh->dma_working;
 }
+EXPORT_SYMBOL(sw_hcd_dma_is_busy);
 
 /*
 *******************************************************************************
@@ -467,6 +477,7 @@ __s32 sw_hcd_dma_probe(struct sw_hcd *sw_hcd)
 
     return 0;
 }
+EXPORT_SYMBOL(sw_hcd_dma_probe);
 
 /*
 *******************************************************************************
@@ -502,6 +513,7 @@ __s32 sw_hcd_dma_remove(struct sw_hcd *sw_hcd)
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_dma_remove);
 
 
 

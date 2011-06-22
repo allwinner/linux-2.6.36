@@ -2,7 +2,7 @@
 ********************************************************************************************************************
 *                                              usb controller
 *
-*                              (c) Copyright 2007-2009, 
+*                              (c) Copyright 2007-2009,
 *										All	Rights Reserved
 *
 * File Name 	: usbc.c
@@ -15,7 +15,7 @@
 *
 * Description 	: 适用于sunii平台，USB公共操作部分
 *
-* History 		: 
+* History 		:
 *
 ********************************************************************************************************************
 */
@@ -60,7 +60,7 @@ __u32 USBC_GetVbusStatus(__hdle hUSB)
 		case 0x00:
 			return USBC_VBUS_STATUS_BELOW_SESSIONEND;
 		//break;
-		
+
 		case 0x01:
 			return USBC_VBUS_STATUS_ABOVE_SESSIONEND_BELOW_AVALID;
 		//break;
@@ -89,7 +89,7 @@ __u32 USBC_GetVbusStatus(__hdle hUSB)
 *    hUSB  :  input.  USBC_open_otg获得的句柄, 记录了USBC所需要的一些关键数据
 *
 * Returns:
-*    
+*
 *
 * note:
 *    无
@@ -105,9 +105,9 @@ void USBC_OTG_SelectMode(__hdle hUSB, __u32 mode)
 	}
 
 	if(mode == USBC_OTG_HOST){
-		
+
 	}else{
-		
+
 	}
 }
 
@@ -200,7 +200,7 @@ __u32 USBC_WritePacket(__hdle hUSB, __u32 fifo, __u32 cnt, void *buff)
 	while (i32--){
 		USBC_Writel(*buf32++, fifo);
 	}
-	
+
     //--<3>--处理非4字节的部分
 	buf8 = (__u8 *)buf32;
 	while (i8--){
@@ -239,7 +239,7 @@ __u32 USBC_ReadPacket(__hdle hUSB, __u32 fifo, __u32 cnt, void *buff)
 	__u32 i8  = 0;
 	__u8  *buf8  = NULL;
 	__u32 *buf32 = NULL;
-	
+
     if(usbc_otg == NULL || buff == NULL){
 		return 0;
 	}
@@ -247,7 +247,7 @@ __u32 USBC_ReadPacket(__hdle hUSB, __u32 fifo, __u32 cnt, void *buff)
 	//--<1>--调整数据
 	buf32 = buff;
 	len   = cnt;
-	
+
     i32 = len >> 2;
 	i8  = len & 0x03;
 
@@ -276,7 +276,7 @@ void USBC_ConfigFIFO_Base(__hdle hUSB, __u32 sram_base, __u32 fifo_mode)
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
 	if(usbc_otg->port_num == 0){
 //		ENTER_CRITICAL(cup_sr);
 		reg_value = USBC_Readl(sram_base + 0x04);
@@ -309,7 +309,7 @@ void USBC_ConfigFIFO_Base(__hdle hUSB, __u32 sram_base, __u32 fifo_mode)
 		usbc_info->port2_fifo_size = (4 * 1024);	//4k
     }
 
-	return ;    
+	return ;
 }
 
 /* 获得port fifo的起始地址 */
@@ -380,27 +380,27 @@ __u32 USBC_SelectFIFO(__hdle hUSB, __u32 ep_index)
 		case 0:
 			fifo = USBC_REG_EPFIFO0(usbc_otg->base_addr);
 		break;
-		
+
 		case 1:
 			fifo = USBC_REG_EPFIFO1(usbc_otg->base_addr);
 		break;
-		
+
 		case 2:
 			fifo = USBC_REG_EPFIFO2(usbc_otg->base_addr);
 		break;
-		
+
 		case 3:
 			fifo = USBC_REG_EPFIFO3(usbc_otg->base_addr);
 		break;
-		
+
 		case 4:
 			fifo = USBC_REG_EPFIFO4(usbc_otg->base_addr);
 		break;
-		
+
 		case 5:
 			fifo = USBC_REG_EPFIFO5(usbc_otg->base_addr);
 		break;
-		
+
 		default:
 			fifo = 0;
 	}
@@ -636,7 +636,7 @@ void USBC_ConfigFifo(__hdle hUSB, __u32 ep_type, __u32 is_double_fifo, __u32 fif
 *    hUSB  :  input.  USBC_open_otg获得的句柄, 记录了USBC所需要的一些关键数据
 *
 * Returns:
-*    
+*
 *
 * note:
 *    无
@@ -665,7 +665,7 @@ __u32 USBC_GetLastFrameNumber(__hdle hUSB)
 *    hUSB  :  input.  USBC_open_otg获得的句柄, 记录了USBC所需要的一些关键数据
 *
 * Returns:
-*    
+*
 *
 * note:
 *    无
@@ -701,7 +701,7 @@ __u32 USBC_GetStatus_Dp(__hdle hUSB)
 *    hUSB :  input.  USBC_open_otg获得的句柄, 记录了USBC所需要的一些关键数据
 *
 * Returns:
-*    
+*
 *
 * note:
 *    无
@@ -735,7 +735,7 @@ __u32 USBC_GetStatus_Dm(__hdle hUSB)
 *    hUSB  :  input.  USBC_open_otg获得的句柄, 记录了USBC所需要的一些关键数据
 *
 * Returns:
-*    
+*
 *
 * note:
 *    无
@@ -749,7 +749,7 @@ __u32 USBC_GetStatus_DpDm(__hdle hUSB)
 	__u32 temp = 0;
 	__u32 dp = 0;
 	__u32 dm = 0;
-	
+
 
 	if(usbc_otg == NULL){
 		return 0;
@@ -846,7 +846,7 @@ __u32 USBC_GetOtgMode_Form_BDevice(__hdle hUSB)
 *    ep_index :  input.  ep号
 *
 * Returns:
-* 
+*
 *
 * note:
 *    无
@@ -964,7 +964,7 @@ __u32 USBC_INT_EpPending(__hdle hUSB, __u32 ep_type)
 		case USBC_EP_TYPE_EP0:
 		case USBC_EP_TYPE_TX:
 		    return __USBC_INT_TxPending(usbc_otg->base_addr);
-			
+
 		case USBC_EP_TYPE_RX:
 		    return __USBC_INT_RxPending(usbc_otg->base_addr);
 
@@ -986,9 +986,11 @@ void USBC_INT_ClearEpPending(__hdle hUSB, __u32 ep_type, __u8 ep_index)
 		case USBC_EP_TYPE_EP0:
 		case USBC_EP_TYPE_TX:
 		    __USBC_INT_ClearTxPending(usbc_otg->base_addr, ep_index);
-			
+		break;
+
 		case USBC_EP_TYPE_RX:
 		    __USBC_INT_ClearRxPending(usbc_otg->base_addr, ep_index);
+		break;
 
 		default:
 			break;
@@ -1010,9 +1012,11 @@ void USBC_INT_ClearEpPendingAll(__hdle hUSB, __u32 ep_type)
 		case USBC_EP_TYPE_EP0:
 		case USBC_EP_TYPE_TX:
 		    __USBC_INT_ClearTxPendingAll(usbc_otg->base_addr);
-			
+		break;
+
 		case USBC_EP_TYPE_RX:
 		    __USBC_INT_ClearRxPendingAll(usbc_otg->base_addr);
+		break;
 
 		default:
 			break;
@@ -1029,7 +1033,7 @@ __u32 USBC_INT_MiscPending(__hdle hUSB)
 	if(usbc_otg == NULL){
 		return 0;
 	}
-	
+
     return (USBC_Readb(USBC_REG_INTUSB(usbc_otg->base_addr)));
 }
 
@@ -1041,7 +1045,7 @@ void USBC_INT_ClearMiscPending(__hdle hUSB, __u32 mask)
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
     USBC_Writeb(mask, USBC_REG_INTUSB(usbc_otg->base_addr));
 }
 
@@ -1053,7 +1057,7 @@ void USBC_INT_ClearMiscPendingAll(__hdle hUSB)
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
     USBC_Writeb(0xff, USBC_REG_INTUSB(usbc_otg->base_addr));
 }
 
@@ -1070,7 +1074,7 @@ void USBC_INT_EnableEp(__hdle hUSB, __u32 ep_type, __u8 ep_index)
 		case USBC_EP_TYPE_TX:
 		    __USBC_INT_EnableTxEp(usbc_otg->base_addr, ep_index);
 		break;
-		
+
 		case USBC_EP_TYPE_RX:
 		    __USBC_INT_EnableRxEp(usbc_otg->base_addr, ep_index);
 		break;
@@ -1078,7 +1082,7 @@ void USBC_INT_EnableEp(__hdle hUSB, __u32 ep_type, __u8 ep_index)
 		default:
         break;
 	}
-	
+
 	return ;
 }
 
@@ -1087,11 +1091,11 @@ void USBC_INT_EnableUsbMiscUint(__hdle hUSB, __u32 mask)
 {
     __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
 	__u32 reg_val = 0;
-	
+
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
 	reg_val = USBC_Readb(USBC_REG_INTUSBE(usbc_otg->base_addr));
 	reg_val |= mask;
 	USBC_Writeb(reg_val, USBC_REG_INTUSBE(usbc_otg->base_addr));
@@ -1110,7 +1114,7 @@ void USBC_INT_DisableEp(__hdle hUSB, __u32 ep_type, __u8 ep_index)
 		case USBC_EP_TYPE_TX:
 		    __USBC_INT_DisableTxEp(usbc_otg->base_addr, ep_index);
 		break;
-			
+
 		case USBC_EP_TYPE_RX:
 		    __USBC_INT_DisableRxEp(usbc_otg->base_addr, ep_index);
 		break;
@@ -1118,7 +1122,7 @@ void USBC_INT_DisableEp(__hdle hUSB, __u32 ep_type, __u8 ep_index)
 		default:
         break;
 	}
-	
+
 	return;
 }
 
@@ -1127,11 +1131,11 @@ void USBC_INT_DisableUsbMiscUint(__hdle hUSB, __u32 mask)
 {
     __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
 	__u32 reg_val = 0;
-	
+
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
 	reg_val = USBC_Readb(USBC_REG_INTUSBE(usbc_otg->base_addr));
 	reg_val &= ~mask;
 	USBC_Writeb(reg_val, USBC_REG_INTUSBE(usbc_otg->base_addr));
@@ -1150,7 +1154,7 @@ void USBC_INT_DisableEpAll(__hdle hUSB, __u32 ep_type)
 		case USBC_EP_TYPE_TX:
 		    __USBC_INT_DisableTxAll(usbc_otg->base_addr);
 		break;
-		
+
 		case USBC_EP_TYPE_RX:
 		    __USBC_INT_DisableRxAll(usbc_otg->base_addr);
 		break;
@@ -1158,7 +1162,7 @@ void USBC_INT_DisableEpAll(__hdle hUSB, __u32 ep_type)
 		default:
         break;
 	}
-	
+
 	return;
 }
 
@@ -1170,7 +1174,7 @@ void USBC_INT_DisableUsbMiscAll(__hdle hUSB)
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
     USBC_Writeb(0, USBC_REG_INTUSBE(usbc_otg->base_addr));
 }
 
@@ -1182,7 +1186,7 @@ __u32 USBC_GetActiveEp(__hdle hUSB)
 	if(usbc_otg == NULL){
 		return 0;
 	}
-	
+
     return USBC_Readb(USBC_REG_EPIND(usbc_otg->base_addr));
 }
 
@@ -1194,7 +1198,7 @@ void USBC_SelectActiveEp(__hdle hUSB, __u8 ep_index)
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
 	USBC_Writeb(ep_index, USBC_REG_EPIND(usbc_otg->base_addr));
 }
 
@@ -1206,7 +1210,7 @@ void USBC_EnhanceSignal(__hdle hUSB)
 	if(usbc_otg == NULL){
 		return ;
 	}
-	
+
 	return;
 }
 
@@ -1270,7 +1274,7 @@ void USBC_EnterMode_Idle(__hdle hUSB)
     USBC_REG_clear_bit_b(USBC_BP_TMCTL_TEST_PACKET, USBC_REG_TMCTL(usbc_otg->base_addr));
 	USBC_REG_clear_bit_b(USBC_BP_TMCTL_TEST_K, USBC_REG_TMCTL(usbc_otg->base_addr));
 	USBC_REG_clear_bit_b(USBC_BP_TMCTL_TEST_J, USBC_REG_TMCTL(usbc_otg->base_addr));
-	USBC_REG_clear_bit_b(USBC_BP_TMCTL_TEST_SE0_NAK, USBC_REG_TMCTL(usbc_otg->base_addr));	
+	USBC_REG_clear_bit_b(USBC_BP_TMCTL_TEST_SE0_NAK, USBC_REG_TMCTL(usbc_otg->base_addr));
 }
 
 /* vbus, id, dpdm变化位是写1清零, 因此我们在操作其他bit的时候清除这些位 */
@@ -1287,7 +1291,7 @@ static __u32 __USBC_WakeUp_ClearChangeDetect(__u32 reg_val)
 
 void USBC_SetWakeUp_Default(__hdle hUSB)
 {
-	
+
 	return;
 }
 
@@ -1378,16 +1382,16 @@ static void __USBC_ForceIdToHigh(__u32 usbc_base_addr)
 void USBC_ForceId(__hdle hUSB, __u32 id_type)
 {
     __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
-    
+
     switch(id_type){
 		case USBC_ID_TYPE_HOST:
 			__USBC_ForceIdToLow(usbc_otg->base_addr);
 		break;
-		
+
 		case USBC_ID_TYPE_DEVICE:
 			__USBC_ForceIdToHigh(usbc_otg->base_addr);
 		break;
-		
+
 		default:
 			__USBC_ForceIdDisable(usbc_otg->base_addr);
 	}
@@ -1432,16 +1436,16 @@ static void __USBC_ForceVbusValidToHigh(__u32 usbc_base_addr)
 void USBC_ForceVbusValid(__hdle hUSB, __u32 vbus_type)
 {
     __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
-    
+
     switch(vbus_type){
 		case USBC_VBUS_TYPE_LOW:
 			__USBC_ForceVbusValidToLow(usbc_otg->base_addr);
 		break;
-		
+
 		case USBC_VBUS_TYPE_HIGH:
 			__USBC_ForceVbusValidToHigh(usbc_otg->base_addr);
 		break;
-		
+
 		default:
 			__USBC_ForceVbusValidDisable(usbc_otg->base_addr);
 	}
@@ -1497,9 +1501,9 @@ __u32 USBC_IsVbusChange(__hdle hUSB)
 
     //读取变化位的同时, 写1清除该位
     reg_val = USBC_Readl(USBC_REG_ISCR(usbc_otg->base_addr));
-	
+
 	temp = reg_val & (1 << USBC_BP_ISCR_VBUS_CHANGE_DETECT);
-	
+
 	reg_val = __USBC_WakeUp_ClearChangeDetect(reg_val);
     reg_val |= 1 << USBC_BP_ISCR_VBUS_CHANGE_DETECT;
 	USBC_Writel(reg_val, USBC_REG_ISCR(usbc_otg->base_addr));
@@ -1516,9 +1520,9 @@ __u32 USBC_IsIdChange(__hdle hUSB)
 
     //读取变化位的同时, 写1清除该位
     reg_val = USBC_Readl(USBC_REG_ISCR(usbc_otg->base_addr));
-	
+
 	temp = reg_val & (1 << USBC_BP_ISCR_ID_CHANGE_DETECT);
-	
+
 	reg_val = __USBC_WakeUp_ClearChangeDetect(reg_val);
     reg_val |= 1 << USBC_BP_ISCR_ID_CHANGE_DETECT;
 	USBC_Writel(reg_val, USBC_REG_ISCR(usbc_otg->base_addr));
@@ -1535,9 +1539,9 @@ __u32 USBC_IsDpDmChange(__hdle hUSB)
 
     //读取变化位的同时, 写1清除该位
     reg_val = USBC_Readl(USBC_REG_ISCR(usbc_otg->base_addr));
-	
+
 	temp = reg_val & (1 << USBC_BP_ISCR_DPDM_CHANGE_DETECT);
-	
+
 	reg_val = __USBC_WakeUp_ClearChangeDetect(reg_val);
     reg_val |= 1 << USBC_BP_ISCR_DPDM_CHANGE_DETECT;
 	USBC_Writel(reg_val, USBC_REG_ISCR(usbc_otg->base_addr));
@@ -1766,17 +1770,17 @@ __s32  USBC_close_otg(__hdle hUSB)
 *                           USBC_init
 *
 * Description:
-*    
+*
 *
 * Arguments:
-*    
+*
 *
 * Returns:
 *    0  :  成功
 *   !0  :  失败
 *
 * note:
-*    
+*
 *
 ***********************************************************************************
 */
@@ -1815,17 +1819,17 @@ __s32 USBC_init(bsp_usbc_t *usbc)
 *                            USBC_exit
 *
 * Description:
-*    
+*
 *
 * Arguments:
-*    
+*
 *
 * Returns:
 *    0  :  成功
 *   !0  :  失败
 *
 * note:
-*    
+*
 *
 ***********************************************************************************
 */
@@ -1930,6 +1934,11 @@ EXPORT_SYMBOL(USBC_EnterMode_Test_SE0_NAK);
 EXPORT_SYMBOL(USBC_EnterMode_Idle);
 
 EXPORT_SYMBOL(USBC_TestMode_ReadReg);
+
+EXPORT_SYMBOL(USBC_open_otg);
+EXPORT_SYMBOL(USBC_close_otg);
+EXPORT_SYMBOL(USBC_init);
+EXPORT_SYMBOL(USBC_exit);
 
 
 

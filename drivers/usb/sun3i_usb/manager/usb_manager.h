@@ -21,8 +21,13 @@
 #ifndef  __USB_MANAGER_H__
 #define  __USB_MANAGER_H__
 
-
-
-
+/* dma µ÷ÊÔ´òÓ¡ */
+#if	0
+    #define DMSG_DBG_MANAGER     		DMSG_PRINT
+#else
+    #define DMSG_DBG_MANAGER(...)
+#endif
 
 #endif   //__USB_MANAGER_H__
+
+

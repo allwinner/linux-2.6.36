@@ -30,22 +30,6 @@
 #define  is_udc_support_dma()       0
 #endif
 
-//---------------------------------------------------------------
-//  数据结构 定义
-//---------------------------------------------------------------
-typedef struct sw_udc_dma{
-	char name[32];
-	struct sw_dma_client dma_client;
-
-	int dma_hdle;	/* dma 句柄 */
-}sw_udc_dma_t;
-
-/* dma 传输参数 */
-typedef struct sw_udc_dma_parg{
-	struct sw_udc *dev;
-	struct sw_udc_ep *ep;
-	struct sw_udc_request *req;
-}sw_udc_dma_parg_t;
 
 #define  is_tx_ep(ep)		((ep->bEndpointAddress) & USB_DIR_IN)
 

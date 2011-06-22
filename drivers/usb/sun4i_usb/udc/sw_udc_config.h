@@ -30,8 +30,6 @@
 #include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/usb/ch9.h>
-#include <mach/dma.h>
-#include <linux/dma-mapping.h>
 
 #include  "../include/sw_usb_config.h"
 

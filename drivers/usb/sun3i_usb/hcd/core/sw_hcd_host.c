@@ -54,7 +54,7 @@ static void sw_hcd_ep_program(struct sw_hcd *sw_hcd,
                             u32 offset,
                             u32 len);
 
-
+#if 0
 /*
 *******************************************************************************
 *                     sw_hcd_h_ep0_flush_fifo
@@ -160,7 +160,7 @@ static void sw_hcd_h_tx_flush_fifo(struct sw_hcd_hw_ep *ep)
 
 /*
 *******************************************************************************
-*                     sw_hcd_h_flush_rxfifo
+*                     sw_hcd_h_rx_flush_fifo
 *
 * Description:
 *    void
@@ -177,7 +177,7 @@ static void sw_hcd_h_tx_flush_fifo(struct sw_hcd_hw_ep *ep)
 *
 *******************************************************************************
 */
-static u16 sw_hcd_h_flush_rxfifo(struct sw_hcd_hw_ep *hw_ep, u16 csr)
+static u16 sw_hcd_h_rx_flush_fifo(struct sw_hcd_hw_ep *hw_ep, u16 csr)
 {
     void __iomem  *usbc_base = hw_ep->regs;
 
@@ -197,7 +197,158 @@ static u16 sw_hcd_h_flush_rxfifo(struct sw_hcd_hw_ep *hw_ep, u16 csr)
 	/* flush writebuffer */
     return USBC_Readw(USBC_REG_RXCSR(usbc_base));
 }
+#else
+/*
+*******************************************************************************
+*                     sw_hcd_h_ep0_flush_fifo
+*
+* Description:
+*    void
+*
+* Parameters:
+*    ep : input. 物理 ep 的信息
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void sw_hcd_h_ep0_flush_fifo(struct sw_hcd_hw_ep *ep)
+{
+	void __iomem *usbc_base = NULL;
+	u16 csr = 0;
+	int retries = 5;
+	__u8 old_ep_index = 0;
 
+	if(ep == NULL){
+		DMSG_PANIC("ERR: invalid argment\n");
+		return;
+	}
+
+	usbc_base = ep->regs;
+
+	old_ep_index = USBC_GetActiveEp(ep->sw_hcd->sw_hcd_io->usb_bsp_hdle);
+	USBC_SelectActiveEp(ep->sw_hcd->sw_hcd_io->usb_bsp_hdle, ep->epnum);
+
+	/* scrub any data left in the fifo */
+	do {
+	    csr = USBC_Readw(USBC_REG_CSR0(usbc_base));
+	    if(!(csr & ((1 << USBC_BP_CSR0_H_TxPkRdy) | (1 << USBC_BP_CSR0_H_RxPkRdy)))){
+	        break;
+	    }
+
+	    USBC_Host_FlushFifo(ep->sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_EP0);
+
+	    csr = USBC_Readw(USBC_REG_CSR0(usbc_base));
+	    udelay(10);
+    }while (--retries);
+
+    if(retries == 0){
+        DMSG_PANIC("ERR: Could not flush host TX%d fifo: csr: %04x\n", ep->epnum, csr);
+    }
+
+    /* and reset for the next transfer */
+    USBC_Writew(0x00, USBC_REG_CSR0(usbc_base));
+
+	USBC_SelectActiveEp(ep->sw_hcd->sw_hcd_io->usb_bsp_hdle, old_ep_index);
+
+    return;
+}
+
+/*
+*******************************************************************************
+*                     sw_hcd_h_tx_flush_fifo
+*
+* Description:
+*    Clear TX fifo. Needed to avoid BABBLE errors.
+*
+* Parameters:
+*    ep : input. 物理 ep 的信息
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void sw_hcd_h_tx_flush_fifo(struct sw_hcd_hw_ep *ep)
+{
+    void __iomem  *usbc_base = ep->regs;
+	u16  csr     = 0;
+	u16  lastcsr = 0;
+	int  retries = 1000;
+
+	/* 如果检测到 fifo 不空，那么就刷 fifo */
+	csr = USBC_Readw(USBC_REG_TXCSR(usbc_base));
+	while (csr & (1 << USBC_BP_TXCSR_H_FIFO_NOT_EMPTY)) {
+	    if (csr != lastcsr){
+		    DMSG_PANIC("WRN: Host TX FIFONOTEMPTY csr: %02x, %02x\n", csr, lastcsr);
+		}
+
+		lastcsr = csr;
+
+		csr |= (1 << USBC_BP_TXCSR_H_FLUSH_FIFO);
+		csr &= ~(1 << USBC_BP_TXCSR_D_TX_READY);
+		USBC_Writew(csr, USBC_REG_TXCSR(usbc_base));
+
+		csr = USBC_Readw(USBC_REG_TXCSR(usbc_base));
+		if(retries-- < 1){
+		    DMSG_PANIC("ERR: Could not flush host TX%d fifo: csr: %04x\n", ep->epnum, csr);
+		    return ;
+		}
+
+		mdelay(1);
+	}
+
+    return ;
+}
+
+/*
+*******************************************************************************
+*                     sw_hcd_h_rx_flush_fifo
+*
+* Description:
+*    void
+*
+* Parameters:
+*    hw_ep  :  input.  物理 ep 的信息
+*    csr    :  input.  rx状态寄存器的值
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static u16 sw_hcd_h_rx_flush_fifo(struct sw_hcd_hw_ep *hw_ep, u16 csr)
+{
+    void __iomem  *usbc_base = hw_ep->regs;
+
+    /* we don't want fifo to fill itself again;
+	 * ignore dma (various models),
+	 * leave toggle alone (may not have been saved yet)
+	 */
+	csr |= (1 << USBC_BP_RXCSR_H_FLUSH_FIFO);
+	csr &= ~(1 << USBC_BP_RXCSR_H_REQ_PACKET);
+	csr &= ~(1 << USBC_BP_RXCSR_H_AUTO_REQ);
+	csr &= ~(1 << USBC_BP_RXCSR_H_AUTO_CLEAR);
+	csr &= ~(1 << USBC_BP_RXCSR_H_RX_PKT_READY);
+
+	/* write 2x to allow double buffering */
+	USBC_Writew(csr, USBC_REG_RXCSR(usbc_base));
+	USBC_Writew(csr, USBC_REG_RXCSR(usbc_base));
+
+	/* flush writebuffer */
+    return USBC_Readw(USBC_REG_RXCSR(usbc_base));
+}
+#endif
 /*
 *******************************************************************************
 *                     sw_hcd_h_tx_start
@@ -331,7 +482,7 @@ void sw_hcd_clean_ep_dma_status_and_flush_fifo(struct sw_hcd_qh *qh)
 
         /* flush fifo */
 		csr = USBC_Readw( USBC_REG_RXCSR(hw_ep->regs));
-		sw_hcd_h_flush_rxfifo(hw_ep, csr);
+		sw_hcd_h_rx_flush_fifo(hw_ep, csr);
 	}else{ /* ep out, tx*/
 		/* clear ep dma status */
 		USBC_Host_ClearEpDma(usb_bsp_hdle, USBC_EP_TYPE_TX);
@@ -432,7 +583,8 @@ static bool sw_hcd_tx_dma_program(struct sw_hcd_hw_ep *hw_ep,
 
     /* check argment */
     if(hw_ep == NULL || qh == NULL || urb == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, hw_ep=0x%p, qh=0x%p, urb=0x%p\n",
+			       hw_ep, qh, urb);
 	    return false;
     }
 
@@ -501,7 +653,7 @@ static void sw_hcd_start_urb(struct sw_hcd *sw_hcd, int is_in, struct sw_hcd_qh 
 
 	/* check argment */
 	if(sw_hcd == NULL || qh == NULL){
-	    DMSG_PANIC("ERR: invalid argment\n");
+	    DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, qh=0x%p\n", sw_hcd, qh);
 	    return;
 	}
 
@@ -520,7 +672,7 @@ static void sw_hcd_start_urb(struct sw_hcd *sw_hcd, int is_in, struct sw_hcd_qh 
 	epnum       = hw_ep->epnum;
 
 	/* initialize software qh state */
-	qh->offset = 0;
+	qh->offset  = 0;
 	qh->segsize = 0;
 
 	/* gather right source of data */
@@ -530,7 +682,7 @@ static void sw_hcd_start_urb(struct sw_hcd *sw_hcd, int is_in, struct sw_hcd_qh 
     		/* control transfers always start with SETUP */
     		is_in = 0;
     		hw_ep->out_qh = qh;
-    		sw_hcd->ep0_stage = sw_hcd_EP0_START;
+    		sw_hcd->ep0_stage = SW_HCD_EP0_START;
     		buf = urb->setup_packet;
     		len = 8;
 	    }
@@ -649,7 +801,8 @@ __releases(sw_hcd->lock)
 __acquires(sw_hcd->lock)
 {
     if(sw_hcd == NULL || urb == NULL){
-        DMSG_PANIC("ERR: __sw_hcd_giveback, invalid argment\n");
+        DMSG_PANIC("ERR: __sw_hcd_giveback, invalid argment, sw_hcd=0x%p, urb=0x%p\n",
+			       sw_hcd, urb);
         return;
     }
 
@@ -756,7 +909,7 @@ static struct sw_hcd_qh *sw_hcd_giveback(struct sw_hcd_qh *qh, struct urb *urb, 
 
 	/* check argment */
 	if(qh == NULL || urb == NULL){
-	    DMSG_PANIC("ERR: invalid argment\n");
+	    DMSG_PANIC("ERR: invalid argment, qh=0x%p, urb=0x%p\n", qh, urb);
 	    return NULL;
 	}
 
@@ -876,7 +1029,8 @@ static void sw_hcd_advance_schedule(struct sw_hcd *sw_hcd,
 
     /* check argment */
     if(sw_hcd == NULL || urb == NULL || hw_ep == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, urb=0x%p, hw_ep=0x%p\n",
+			       sw_hcd, urb, hw_ep);
 	    return ;
     }
 
@@ -942,7 +1096,7 @@ static bool sw_hcd_host_packet_rx(struct sw_hcd *sw_hcd, struct urb *urb, u8 epn
 
     /* check argment */
     if(sw_hcd == NULL || urb == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, urb=0x%p\n", sw_hcd, urb);
 	    return false;
     }
 
@@ -1029,7 +1183,7 @@ static bool sw_hcd_host_packet_rx(struct sw_hcd *sw_hcd, struct urb *urb, u8 epn
 	csr = USBC_Readw(USBC_REG_RXCSR(usbc_base));
 	csr |= USBC_RXCSR_H_WZC_BITS;
     if (unlikely(do_flush)){
-		sw_hcd_h_flush_rxfifo(hw_ep, csr);
+		sw_hcd_h_rx_flush_fifo(hw_ep, csr);
 	}else{
 	    /* REVISIT this assumes AUTOCLEAR is never set */
 	    csr &= ~((1 << USBC_BP_RXCSR_H_RX_PKT_READY) | (1 << USBC_BP_RXCSR_H_REQ_PACKET));
@@ -1078,7 +1232,8 @@ static void sw_hcd_rx_reinit(struct sw_hcd *sw_hcd, struct sw_hcd_qh *qh, struct
 
     /* check argment */
     if(sw_hcd == NULL || qh == NULL || ep == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, qh=0x%p, ep=0x%p\n",
+			       sw_hcd, qh, ep);
 	    return ;
     }
 
@@ -1119,7 +1274,7 @@ static void sw_hcd_rx_reinit(struct sw_hcd *sw_hcd, struct sw_hcd_qh *qh, struct
 			DMSG_PANIC("WRN: rx%d, packet/%d ready?\n", ep->epnum, USBC_Readw(USBC_REG_RXCOUNT(usbc_base)));
 		}
 
-		sw_hcd_h_flush_rxfifo(ep, (1 << USBC_BP_RXCSR_H_CLEAR_DATA_TOGGLE));
+		sw_hcd_h_rx_flush_fifo(ep, (1 << USBC_BP_RXCSR_H_CLEAR_DATA_TOGGLE));
 	}
 
     /* target addr and (for multipoint) hub addr/port */
@@ -1179,7 +1334,7 @@ static void sw_hcd_ep_program(struct sw_hcd *sw_hcd,
 
     /* check argment */
     if(sw_hcd == NULL || urb == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, urb=0x%p\n", sw_hcd, urb);
 	    return ;
     }
 
@@ -1408,7 +1563,7 @@ static bool sw_hcd_h_ep0_continue(struct sw_hcd *sw_hcd, u16 len, struct urb *ur
 
     /* check argment */
     if(sw_hcd == NULL || urb == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, urb=0x%p\n", sw_hcd, urb);
 	    return false;
     }
 
@@ -1417,7 +1572,7 @@ static bool sw_hcd_h_ep0_continue(struct sw_hcd *sw_hcd, u16 len, struct urb *ur
     qh = hw_ep->in_qh;
 
     switch (sw_hcd->ep0_stage) {
-	    case sw_hcd_EP0_IN:
+	    case SW_HCD_EP0_IN:
         {
     		fifo_dest  = urb->transfer_buffer + urb->actual_length;
     		fifo_count = min_t(size_t, len, urb->transfer_buffer_length - urb->actual_length);
@@ -1440,7 +1595,7 @@ static bool sw_hcd_h_ep0_continue(struct sw_hcd *sw_hcd, u16 len, struct urb *ur
 		}
 		break;
 
-	    case sw_hcd_EP0_START:
+	    case SW_HCD_EP0_START:
     		request = (struct usb_ctrlrequest *) urb->setup_packet;
 
     		if (!request->wLength) {
@@ -1450,17 +1605,17 @@ static bool sw_hcd_h_ep0_continue(struct sw_hcd *sw_hcd, u16 len, struct urb *ur
     		} else if (request->bRequestType & USB_DIR_IN) {
     			DMSG_DBG_HCD("start IN-DATA\n");
 
-    			sw_hcd->ep0_stage = sw_hcd_EP0_IN;
+    			sw_hcd->ep0_stage = SW_HCD_EP0_IN;
     			more = true;
     			break;
     		} else {
     			DMSG_DBG_HCD("start OUT-DATA\n");
 
-    			sw_hcd->ep0_stage = sw_hcd_EP0_OUT;
+    			sw_hcd->ep0_stage = SW_HCD_EP0_OUT;
     			more = true;
     		}
 		/* FALLTHROUGH */
-	    case sw_hcd_EP0_OUT:
+	    case SW_HCD_EP0_OUT:
     		fifo_count = min_t(size_t, qh->maxpacket, urb->transfer_buffer_length - urb->actual_length);
 
 			DMSG_DBG_HCD("Sending %d byte to ep0 fifo, urb(0x%p, %d, %d)\n",
@@ -1511,8 +1666,8 @@ irqreturn_t sw_hcd_h_ep0_irq(struct sw_hcd *sw_hcd)
 	u16                 len         = 0;
 	int                 status      = 0;
 	void __iomem        *usbc_base  = NULL;
-	struct sw_hcd_hw_ep   *hw_ep  	= NULL;
-	struct sw_hcd_qh		*qh    	= NULL;
+	struct sw_hcd_hw_ep *hw_ep  	= NULL;
+	struct sw_hcd_qh	*qh    		= NULL;
 	bool                complete    = false;
 	irqreturn_t         retval      = IRQ_NONE;
 
@@ -1549,7 +1704,7 @@ irqreturn_t sw_hcd_h_ep0_irq(struct sw_hcd *sw_hcd)
 		       csr, qh, len, urb, urb->transfer_buffer_length, urb->actual_length, sw_hcd->ep0_stage);
 
 	/* if we just did status stage, we are done */
-	if (sw_hcd_EP0_STATUS == sw_hcd->ep0_stage) {
+	if (SW_HCD_EP0_STATUS == sw_hcd->ep0_stage) {
 		retval = IRQ_HANDLED;
 		complete = true;
 	}
@@ -1557,24 +1712,19 @@ irqreturn_t sw_hcd_h_ep0_irq(struct sw_hcd *sw_hcd)
 	/* prepare status */
 	if (csr & (1 << USBC_BP_CSR0_H_RxStall)) {
 		DMSG_PANIC("ERR: sw_hcd_h_ep0_irq, STALLING ENDPOINT\n");
+		USBC_Host_ClearEpStall(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_EP0);
 
 		status = -EPIPE;
 	} else if (csr & (1 << USBC_BP_CSR0_H_Error)) {
 		DMSG_PANIC("ERR: sw_hcd_h_ep0_irq, no response, csr0 %04x\n", csr);
+		USBC_Host_ClearEpError(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_EP0);
 
 		status = -EPROTO;
 	} else if (csr & (1 << USBC_BP_CSR0_H_NAK_Timeout)) {
 		DMSG_PANIC("ERR: sw_hcd_h_ep0_irq, control NAK timeout\n");
 
-		/* NOTE:  this code path would be a good place to PAUSE a
-		 * control transfer, if another one is queued, so that
-		 * ep0 is more likely to stay busy.  That's already done
-		 * for bulk RX transfers.
-		 *
-		 * if (qh->ring.next != &sw_hcd->control), then
-		 * we have a candidate... NAKing is *NOT* an error
-		 */
 		USBC_Writew(0x00, USBC_REG_CSR0(usbc_base));
+		USBC_Writeb(0x00, USBC_REG_NAKLIMIT0(usbc_base));
 
 		retval = IRQ_HANDLED;
 	}
@@ -1621,7 +1771,7 @@ irqreturn_t sw_hcd_h_ep0_irq(struct sw_hcd *sw_hcd)
 		/* call common logic and prepare response */
 		if (sw_hcd_h_ep0_continue(sw_hcd, len, urb)) {
 			/* more packets required */
-			csr = (sw_hcd_EP0_IN == sw_hcd->ep0_stage)
+			csr = (SW_HCD_EP0_IN == sw_hcd->ep0_stage)
 				?  (1 << USBC_BP_CSR0_H_ReqPkt) : (1 << USBC_BP_CSR0_H_TxPkRdy);
 		} else {
 			/* data transfer complete; perform status phase */
@@ -1634,25 +1784,26 @@ irqreturn_t sw_hcd_h_ep0_irq(struct sw_hcd *sw_hcd)
             }
 
 			/* flag status stage */
-			sw_hcd->ep0_stage = sw_hcd_EP0_STATUS;
+			sw_hcd->ep0_stage = SW_HCD_EP0_STATUS;
 		}
 
 		USBC_Writew(csr, USBC_REG_CSR0(usbc_base));
 
 		retval = IRQ_HANDLED;
 	}else{
-		sw_hcd->ep0_stage = sw_hcd_EP0_IDLE;
+		sw_hcd->ep0_stage = SW_HCD_EP0_IDLE;
 		USBC_Writew(0x00, USBC_REG_CSR0(usbc_base));
     }
 
 	/* call completion handler if done */
-	if (complete){
+	if(complete){
 		sw_hcd_advance_schedule(sw_hcd, urb, hw_ep, 1);
 	}
 
 done:
 	return retval;
 }
+EXPORT_SYMBOL(sw_hcd_h_ep0_irq);
 
 /*
 *******************************************************************************
@@ -1928,6 +2079,7 @@ void sw_hcd_host_tx(struct sw_hcd *sw_hcd, u8 epnum)
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_host_tx);
 
 /* Host side RX (IN) using Mentor DMA works as follows:
 	submit_urb ->
@@ -1993,7 +2145,7 @@ static void sw_hcd_bulk_rx_nak_timeout(struct sw_hcd *sw_hcd, struct sw_hcd_hw_e
 
     /* check argment */
     if(sw_hcd == NULL || ep == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, ep=0x%p\n", sw_hcd, ep);
 	    return ;
     }
 
@@ -2102,7 +2254,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 		DMSG_PANIC("ERR: sw_hcd_host_rx, BOGUS RX%d ready, csr %04x, count %d\n",
 		           epnum, val, USBC_Readw(USBC_REG_RXCOUNT(usbc_base)));
 
-		sw_hcd_h_flush_rxfifo(hw_ep, (1 << USBC_BP_RXCSR_H_CLEAR_DATA_TOGGLE));
+		sw_hcd_h_rx_flush_fifo(hw_ep, (1 << USBC_BP_RXCSR_H_CLEAR_DATA_TOGGLE));
 
 		return;
 	}
@@ -2116,11 +2268,14 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 	 * handled yet! */
 	if (rx_csr & (1 << USBC_BP_RXCSR_H_RX_STALL)) {
 		DMSG_PANIC("ERR: sw_hcd_host_rx, RX end %d STALL(0x%x)\n", epnum, rx_csr);
+		USBC_Host_ClearEpStall(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_RX);
 
 		/* stall; record URB status */
 		status = -EPIPE;
 	}else if (rx_csr & (1 << USBC_BP_RXCSR_H_ERROR)){
 		DMSG_PANIC("ERR: sw_hcd_host_rx, end %d RX proto error(0x%x)\n", epnum, rx_csr);
+
+		USBC_Host_ClearEpError(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_RX);
 
         /* if the device is usb hub, then the hub may be disconnect */
 		if(qh->type == USB_ENDPOINT_XFER_INT){
@@ -2176,7 +2331,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 			xfer_len = sw_hcd_dma_transmit_length(qh, is_direction_in(qh), (urb->transfer_dma + urb->actual_length));
 		}
 
-		sw_hcd_h_flush_rxfifo(hw_ep, 1 << USBC_BP_RXCSR_H_CLEAR_DATA_TOGGLE);
+		sw_hcd_h_rx_flush_fifo(hw_ep, 1 << USBC_BP_RXCSR_H_CLEAR_DATA_TOGGLE);
 
 		USBC_Writeb(0x00, USBC_REG_RXINTERVAL(usbc_base));
 
@@ -2267,7 +2422,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 			}
 		}
 
-		sw_hcd_clean_ep_dma_status(qh);		
+		sw_hcd_clean_ep_dma_status(qh);
     }else if (urb->status == -EINPROGRESS){
 		/* if no errors, be sure a packet is ready for unloading */
 		if (unlikely(!(rx_csr & (1 << USBC_BP_RXCSR_H_RX_PKT_READY)))) {
@@ -2398,7 +2553,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
     }
 
 finish:
-	if(!dma_exceptional){ 
+	if(!dma_exceptional){
 		urb->actual_length += xfer_len;
 		qh->offset += xfer_len;
 	}
@@ -2413,6 +2568,7 @@ finish:
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_host_rx);
 
 /*
 *******************************************************************************
@@ -2580,6 +2736,7 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 	struct sw_hcd                  	*sw_hcd   	= NULL;
 	struct usb_host_endpoint        *hep        = NULL;
 	struct sw_hcd_qh               	*qh         = NULL;
+	struct sw_hcd_qh               	*qh_temp    = NULL;
 	struct usb_endpoint_descriptor  *epd        = NULL;
 	int                             ret         = 0;
 	unsigned                        type_reg    = 0;
@@ -2587,7 +2744,7 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 
     /* check argment */
     if(hcd == NULL || urb == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, sw_hcd=0x%p, ep=0x%p\n", hcd, urb);
 	    return -ENODEV;
     }
 
@@ -2602,13 +2759,20 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 		return -ENODEV;
     }
 
+	/* avoid all allocations within spinlocks */
+	qh_temp = kzalloc(sizeof *qh_temp, mem_flags);
+	if (!qh_temp) {
+		DMSG_PANIC("ERR: kzalloc failed\n");
+		return -ENOMEM;
+	}
+
 	spin_lock_irqsave(&sw_hcd->lock, flags);
+
 	ret = usb_hcd_link_urb_to_ep(hcd, urb);
 	qh = ret ? NULL : hep->hcpriv;
 	if(qh){
 		urb->hcpriv = qh;
 	}
-	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
 	/* DMA mapping was already done, if needed, and this urb is on
 	 * hep->urb_list now ... so we're done, unless hep wasn't yet
@@ -2633,6 +2797,11 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 				       qh, qh->epnum, qh->type);
 		}
 
+		kfree(qh_temp);
+		qh_temp = NULL;
+
+		spin_unlock_irqrestore(&sw_hcd->lock, flags);
+
 		return ret;
     }
 
@@ -2642,15 +2811,7 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 	 * REVISIT consider a dedicated qh kmem_cache, so it's harder
 	 * for bugs in other kernel code to break this driver...
 	 */
-	qh = kzalloc(sizeof *qh, mem_flags);
-	if (!qh) {
-		spin_lock_irqsave(&sw_hcd->lock, flags);
-		usb_hcd_unlink_urb_from_ep(hcd, urb);
-		spin_unlock_irqrestore(&sw_hcd->lock, flags);
-
-		return -ENOMEM;
-	}
-
+	qh = qh_temp;
 	memset(qh, 0, sizeof(struct sw_hcd_qh));
 
 	qh->hep = hep;
@@ -2759,12 +2920,11 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 	 * until we get real dma queues (with an entry for each urb/buffer),
 	 * we only have work to do in the former case.
 	 */
-	spin_lock_irqsave(&sw_hcd->lock, flags);
 	if (hep->hcpriv) {
-		/* some concurrent activity submitted another urb to hep...
-		 * odd, rare, error prone, but legal.
-		 */
+		DMSG_PANIC("ERR: some concurrent activity submitted another urb to hep\n");
+
 		kfree(qh);
+		qh = NULL;
 		ret = 0;
 	}else{
 		ret = sw_hcd_schedule(sw_hcd, qh, epd->bEndpointAddress & USB_ENDPOINT_DIR_MASK);
@@ -2772,23 +2932,23 @@ int sw_hcd_urb_enqueue(struct usb_hcd *hcd, struct urb *urb, gfp_t mem_flags)
 
     if (ret == 0) {
 		urb->hcpriv = qh;
-		/* FIXME set urb->start_frame for iso/intr, it's tested in
-		 * sw_hcd_start_urb(), but otherwise only konicawc cares ...
-		 */
+	}else{
+		DMSG_PANIC("ERR: sw_hcd_schedule failed\n");
+	}
+
+
+done:
+	if (ret != 0) {
+		usb_hcd_unlink_urb_from_ep(hcd, urb);
+		kfree(qh);
+		qh = NULL;
 	}
 
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
-done:
-	if (ret != 0) {
-		spin_lock_irqsave(&sw_hcd->lock, flags);
-		usb_hcd_unlink_urb_from_ep(hcd, urb);
-		spin_unlock_irqrestore(&sw_hcd->lock, flags);
-		kfree(qh);
-	}
-
 	return ret;
 }
+EXPORT_SYMBOL(sw_hcd_urb_enqueue);
 
 /*
 *******************************************************************************
@@ -2821,7 +2981,7 @@ static int sw_hcd_cleanup_urb(struct urb *urb, struct sw_hcd_qh *qh, int is_in)
 
     /* check argment */
     if(urb == NULL || qh == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, urb=0x%p, qh=0x%p\n", urb, qh);
 	    return -1;
     }
 
@@ -2830,9 +2990,10 @@ static int sw_hcd_cleanup_urb(struct urb *urb, struct sw_hcd_qh *qh, int is_in)
     hw_end = ep->epnum;
     usbc_base = ep->sw_hcd->mregs;
 
-	DMSG_INFO("sw_hcd_cleanup_urb: qh(0x%p, 0x%x, 0x%x), urb(0x%p, %d, %d)\n",
+	DMSG_INFO("sw_hcd_cleanup_urb: qh(0x%p,0x%x,0x%x), urb(0x%p,%d,%d), ep(0x%p,%d,0x%p,0x%p)\n",
 		      qh, qh->epnum, qh->type,
-		      urb, urb->transfer_buffer_length, urb->actual_length);
+		      urb, urb->transfer_buffer_length, urb->actual_length,
+		      ep, ep->epnum, ep->in_qh, ep->out_qh);
 
 	sw_hcd_ep_select(usbc_base, hw_end);
 
@@ -2849,7 +3010,7 @@ static int sw_hcd_cleanup_urb(struct urb *urb, struct sw_hcd_qh *qh, int is_in)
 	/* turn off DMA requests, discard state, stop polling ... */
 	if (is_in) {
 		/* giveback saves bulk toggle */
-		csr = sw_hcd_h_flush_rxfifo(ep, 0);
+		csr = sw_hcd_h_rx_flush_fifo(ep, 0);
 
 		/* REVISIT we still get an irq; should likely clear the
 		 * endpoint's irq status here to avoid bogus irqs.
@@ -2910,7 +3071,7 @@ int sw_hcd_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 
     /* check argment */
     if(hcd == NULL || urb == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, hcd=0x%p, urb=0x%p\n", hcd, urb);
 	    return -1;
     }
 
@@ -2949,6 +3110,7 @@ int sw_hcd_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	 * OK to hold off until after some IRQ, though.
 	 */
 	if(!qh->is_ready || urb->urb_list.prev != &qh->hep->urb_list){
+		DMSG_PANIC("WRN: urb is not valid\n");
 		ret = -EINPROGRESS;
     }else{
 		switch (qh->type) {
@@ -3005,6 +3167,7 @@ done:
 
 	return ret;
 }
+EXPORT_SYMBOL(sw_hcd_urb_dequeue);
 
 /*
 *******************************************************************************
@@ -3036,7 +3199,7 @@ void sw_hcd_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 
     /* check argment */
     if(hcd == NULL || hep == NULL){
-        DMSG_PANIC("ERR: invalid argment\n");
+        DMSG_PANIC("ERR: invalid argment, hcd=0x%p, hep=0x%p\n", hcd, hep);
 	    return ;
     }
 
@@ -3045,9 +3208,9 @@ void sw_hcd_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
     sw_hcd = hcd_to_sw_hcd(hcd);
     is_in = epnum & USB_DIR_IN;
 
-	DMSG_INFO("[sw_hcd]: sw_hcd_h_disable, epnum = %x\n", epnum);
-
 	spin_lock_irqsave(&sw_hcd->lock, flags);
+
+	DMSG_INFO("[sw_hcd]: sw_hcd_h_disable, epnum = %x\n", epnum);
 
 	qh = hep->hcpriv;
 	if (qh == NULL){
@@ -3130,6 +3293,7 @@ exit:
 
     return;
 }
+EXPORT_SYMBOL(sw_hcd_h_disable);
 
 /*
 *******************************************************************************
@@ -3155,6 +3319,7 @@ int sw_hcd_h_get_frame_number(struct usb_hcd *hcd)
 
 	return USBC_Readw(USBC_REG_FRNUM(sw_hcd->mregs));
 }
+EXPORT_SYMBOL(sw_hcd_h_get_frame_number);
 
 /*
 *******************************************************************************
@@ -3186,6 +3351,7 @@ int sw_hcd_h_start(struct usb_hcd *hcd)
 
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_h_start);
 
 /*
 *******************************************************************************
@@ -3210,6 +3376,7 @@ void sw_hcd_h_stop(struct usb_hcd *hcd)
 	sw_hcd_stop(hcd_to_sw_hcd(hcd));
 	hcd->state = HC_STATE_HALT;
 }
+EXPORT_SYMBOL(sw_hcd_h_stop);
 
 /*
 *******************************************************************************
@@ -3229,6 +3396,7 @@ void sw_hcd_h_stop(struct usb_hcd *hcd)
 *
 *******************************************************************************
 */
+#if 0
 int sw_hcd_bus_suspend(struct usb_hcd *hcd)
 {
 	struct sw_hcd	*sw_hcd = hcd_to_sw_hcd(hcd);
@@ -3244,7 +3412,13 @@ int sw_hcd_bus_suspend(struct usb_hcd *hcd)
 
 	return 0;
 }
-
+#else
+int sw_hcd_bus_suspend(struct usb_hcd *hcd)
+{
+	return 0;
+}
+#endif
+EXPORT_SYMBOL(sw_hcd_bus_suspend);
 /*
 *******************************************************************************
 *                     sw_hcd_bus_resume
@@ -3268,6 +3442,7 @@ int sw_hcd_bus_resume(struct usb_hcd *hcd)
 	/* resuming child port does the work */
 	return 0;
 }
+EXPORT_SYMBOL(sw_hcd_bus_resume);
 
 
 

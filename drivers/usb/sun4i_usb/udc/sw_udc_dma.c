@@ -33,17 +33,12 @@
 #include <linux/interrupt.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
-#include <linux/gpio.h>
 
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 
-
 #include  "sw_udc_config.h"
-
 #include  "sw_udc_board.h"
-#include  "sw_udc.h"
-
 #include  "sw_udc_dma.h"
 
 static sw_udc_dma_parg_t sw_udc_dma_para;
@@ -479,7 +474,7 @@ __s32 sw_udc_dma_probe(struct sw_udc *dev)
 		return -1;
 	}
 
-	DMSG_INFO_EX("dma probe name(%s), dma_hdle = 0x%x\n",
+	DMSG_INFO_UDC("dma probe name(%s), dma_hdle = 0x%x\n",
 		      dev->sw_udc_dma.name, dev->sw_udc_dma.dma_hdle);
 
 	/* set callback */
@@ -510,7 +505,7 @@ __s32 sw_udc_dma_remove(struct sw_udc *dev)
 {
 	__u32 channel = 0;
 
-	DMSG_INFO_EX("dma remove\n");
+	DMSG_INFO_UDC("dma remove\n");
 
 	channel = DMACH_DUSB0;
 
