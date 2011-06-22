@@ -237,9 +237,9 @@ int clk_enable(struct clk *clk)
         /* try to enable clock */
         clk->clk->onoff = AW_CCU_CLK_ON;
         ret = clk->set_clk(clk->clk);
-        if(!ret) {
-            clk->enable++;
-        }
+    }
+    if(!ret) {
+        clk->enable++;
     }
     spin_unlock_irqrestore(&clockfw_lock, flags);
 
@@ -257,11 +257,12 @@ void clk_disable(struct clk *clk)
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
 
+    spin_lock_irqsave(&clockfw_lock, flags);
     clk->enable--;
     if(clk->enable){
+        spin_unlock_irqrestore(&clockfw_lock, flags);
         return;
     }
-    spin_lock_irqsave(&clockfw_lock, flags);
     if(clk->clk->onoff == AW_CCU_CLK_ON)
     {
         /* try to disalbe clock */
