@@ -16,7 +16,7 @@ extern void TCON_open(__u32 sel);//打开LCD控制器
 extern void TCON_close(__u32 sel);//关闭LCD控制器
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
 extern __s32 LCD_BL_EN(__u32 sel, __bool b_en);
-extern __s32 LCD_PWR_EN(__u32 sel, __bool b_en);
+extern __s32 LCD_POWER_EN(__u32 sel, __bool b_en);
 extern void LCD_CPU_register_irq(__u32 sel, void (*Lcd_cpuisr_proc) (void));
 extern void LCD_CPU_WR(__u32 sel, __u32 index, __u32 data);
 extern void LCD_CPU_WR_INDEX(__u32 sel,__u32 index);

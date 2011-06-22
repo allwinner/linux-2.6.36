@@ -24,14 +24,16 @@ typedef enum
     DISP_FORMAT_RGB556      =0x6,
     DISP_FORMAT_ARGB1555    =0x7,
     DISP_FORMAT_RGBA5551    =0x8,
-    DISP_FORMAT_RGB888      =0x9,
+    DISP_FORMAT_ARGB888     =0x9,//alpha padding to 0xff
     DISP_FORMAT_ARGB8888    =0xa,
+    DISP_FORMAT_RGB888      =0xb,
+    DISP_FORMAT_ARGB4444    =0xc,
 
-    DISP_FORMAT_YUV444      =0xb,
-    DISP_FORMAT_YUV422      =0xc,
-    DISP_FORMAT_YUV420      =0xd,
-    DISP_FORMAT_YUV411      =0xe,
-    DISP_FORMAT_CSIRGB      =0xf,
+    DISP_FORMAT_YUV444      =0x10,
+    DISP_FORMAT_YUV422      =0x11,
+    DISP_FORMAT_YUV420      =0x12,
+    DISP_FORMAT_YUV411      =0x13,
+    DISP_FORMAT_CSIRGB      =0x14,
 }__disp_pixel_fmt_t;
 
 
@@ -260,6 +262,22 @@ typedef enum
     DISP_EXIT_MODE_CLEAN_PARTLY = 1,//only clean interrupt temply
 }__disp_exit_mode_t;
 
+
+typedef enum//only for debug!!!
+{
+    DISP_REG_SCALER0 = 0,
+    DISP_REG_SCALER1 = 1,
+    DISP_REG_IMAGE0 = 2,
+    DISP_REG_IMAGE1 = 3,
+    DISP_REG_LCDC0 = 4,
+    DISP_REG_LCDC1 = 5,
+    DISP_REG_TVEC0 = 6,
+    DISP_REG_TVEC1 = 7,
+    DISP_REG_CCMU = 8,
+    DISP_REG_PIOC = 9,
+    DISP_REG_PWM = 10,
+}__disp_reg_index_t;
+
 typedef struct
 {
     __u32               addr[3];    // frame buffer的内容地址，对于rgb类型，只有addr[0]有效
@@ -269,8 +287,8 @@ typedef struct
     __disp_pixel_mod_t  mode;
     __bool              br_swap;    // blue red color swap flag, FALSE:RGB; TRUE:BGR,only used in rgb format
     __disp_cs_mode_t    cs_mode;    //color space 
-    __bool              b_interlace;
     __bool              b_trd_src;
+    __bool              b_interlace;
     __disp_3d_src_mode_t    trd_mode;
     __u32               trd_right_addr[3];//used when in frame packing 3d mode
 }__disp_fb_t;
@@ -332,7 +350,6 @@ typedef struct
     //__disp_rect_t   out_regn;
 }__disp_scaler_para_t;
 
-
 typedef struct
 {
     __disp_fb_t       fb;
@@ -357,66 +374,63 @@ typedef struct
 
 typedef struct
 {
-	__u32   port_index;
+	__u32   lcd_x;
+	__u32   lcd_y;
+	__u32   lcd_dclk_freq;
+	__u32   lcd_pwm_freq;
+	__u32   lcd_pwm_pol;
+	__u32   lcd_srgb;
+	__u32   lcd_swap;
 
-	__u8    lcd_if; //0:hv(sync+de); 1:8080; 2:ttl; 3:lvds
-	__u8    lcd_swap;
-	__u16   lcd_x;
-	__u16   lcd_y;
-	__u16   lcd_dclk_freq;
+	__u32   lcd_if; //0:hv(sync+de); 1:8080; 2:ttl; 3:lvds
 
-	__u8    lcd_uf;
-	__u16   lcd_vt;
-	__u16   lcd_ht;
-	__u16   lcd_vbp;
-	__u16   lcd_hbp;
+	__u32   lcd_uf;
+	__u32   lcd_vt;
+	__u32   lcd_ht;
+	__u32   lcd_vbp;
+	__u32   lcd_hbp;
 
-	__u8    lcd_hv_if;
-	__u8    lcd_hv_smode;
-	__u8    lcd_hv_s888_if;
-	__u8    lcd_hv_syuv_if;
-	__u8    lcd_hv_vspw;
-	__u16   lcd_hv_hspw;
-
-	__u8    lcd_hv_lde_used;
-	__u8    lcd_hv_lde_iovalue;
+	__u32   lcd_hv_if;
+	__u32   lcd_hv_smode;
+	__u32   lcd_hv_s888_if;
+	__u32   lcd_hv_syuv_if;
+	__u32   lcd_hv_vspw;
+	__u32   lcd_hv_hspw;
+	__u32   lcd_hv_lde_used;
+	__u32   lcd_hv_lde_iovalue;
 
 	__u32   lcd_ttl_stvh;
 	__u32   lcd_ttl_stvdl;
 	__u32   lcd_ttl_stvdp;
-
 	__u32   lcd_ttl_ckvt;
 	__u32   lcd_ttl_ckvh;
 	__u32   lcd_ttl_ckvd;
-
 	__u32   lcd_ttl_oevt;
 	__u32   lcd_ttl_oevh;
 	__u32   lcd_ttl_oevd;
-
 	__u32   lcd_ttl_sthh;
 	__u32   lcd_ttl_sthd;
 	__u32   lcd_ttl_oehh;
 	__u32   lcd_ttl_oehd;
-
 	__u32   lcd_ttl_revd;
-
 	__u32   lcd_ttl_datarate;
 	__u32   lcd_ttl_revsel;
 	__u32   lcd_ttl_datainv_en;
 	__u32   lcd_ttl_datainv_sel;
-	__u8    lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
-	__u8    lcd_cpu_da;
+	
+	__u32   lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
+	__u32   lcd_cpu_da;
 	__u32   lcd_frm;
+
+	__u32   lvds_channel;// 1: single channel; 2:dual channel
+	__u32   lvds_mode;// 0:NS mode; 1:JEIDA mode
+	__u32   lvds_datawidth;// 0:24bit; 1:18bit
 
 	__u32   lcd_io_cfg0;
 	__u32   lcd_io_cfg1;
-
-	__u32   lcd_srgb;
 	__u32   lcd_io_strength;
 
-	__u32   lcd_pwm_freq;
-	__u32   lcd_pwm_pol;
-
+	__u32   port_index;
 	__u32   start_delay;//not need to config for user
 	__u32   tcon_index; //not need to config for user
 }__panel_para_t;
@@ -431,19 +445,19 @@ typedef struct
 }__reg_bases_t;
 #endif
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 typedef struct
 {
 	__disp_layer_work_mode_t mode;
+	__u32 b_dual_screen;
+	__u32 screen_id;//use when b_dual_screen==FALSE, 0/1
+	__u32 b_double_buffer;
 	__u32 width;
 	__u32 height;
 	__u32 line_length;//in byte unit
 	__u32 smem_len;
-	__u32 ch1_offset;
-	__u32 ch2_offset;
-	__u32 b_double_buffer;
-	__u32 b_dual_screen;
+	__u32 ch1_offset;//use when PLANAR or UV_COMBINED mode
+	__u32 ch2_offset;//use when PLANAR mode
 }__disp_fb_create_para_t;
 
 
@@ -480,6 +494,8 @@ typedef enum tag_DISP_CMD
     DISP_CMD_CLK_OFF = 0x1e,
     DISP_CMD_SET_SCREEN_SIZE = 0x1f,//when the screen is not used to display(lcd/tv/vga/hdmi) directly, maybe capture the screen and scaler to dram, or as a layer of another screen
     DISP_CMD_CAPTURE_SCREEN = 0x20,//caputre screen and scaler to dram
+    DISP_CMD_DE_FLICKER_ON = 0x21,
+    DISP_CMD_DE_FLICKER_OFF = 0x22,
 
 //----layer----
     DISP_CMD_LAYER_REQUEST = 0x40,
@@ -635,20 +651,25 @@ typedef enum tag_DISP_CMD
 	DISP_CMD_MEM_GETADR = 0x2c2,
 	DISP_CMD_MEM_SELIDX = 0x2c3,
 	
-	DISP_CMD_SUSPEND = 0x2c4,
-	DISP_CMD_RESUME = 0x2c5,
+	DISP_CMD_SUSPEND = 0x2d0,
+	DISP_CMD_RESUME = 0x2d1,
+
+	DISP_CMD_PRINT_REG = 0x2e0,
 	 
 
 }__disp_cmd_t;
 
-#define FBIOGET_LAYER_HDL 0x4700
-#define FBIO_CLOSE 0x4701
-#define FBIO_OPEN 0x4702
-#define FBIO_ALPHA_ON 0x4703
-#define FBIO_ALPHA_OFF 0x4704
-#define FBIOPUT_ALPHA_VALUE 0x4705
-#define FBIO_DISPLAY_SCREEN0_ONLY 0x4706 //used when dual screen mode
-#define FBIO_DISPLAY_SCREEN1_ONLY 0x4707 //used when dual screen mode
-#define FBIO_DISPLAY_DUAL_SCREEN 0x4708 //used when dual screen mode
+#define FBIOGET_LAYER_HDL_0 0x4700
+#define FBIOGET_LAYER_HDL_1 0x4701
+
+#define FBIO_CLOSE 0x4710
+#define FBIO_OPEN 0x4711
+#define FBIO_ALPHA_ON 0x4712
+#define FBIO_ALPHA_OFF 0x4713
+#define FBIOPUT_ALPHA_VALUE 0x4714
+
+#define FBIO_DISPLAY_SCREEN0_ONLY 0x4720 //used when dual screen mode
+#define FBIO_DISPLAY_SCREEN1_ONLY 0x4721 //used when dual screen mode
+#define FBIO_DISPLAY_DUAL_SCREEN 0x4722 //used when dual screen mode
 
 #endif

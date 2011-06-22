@@ -764,6 +764,9 @@ static void __init squash_mem_tags(struct tag *tag)
 			tag->hdr.tag = ATAG_NONE;
 }
 
+
+extern int sw_plat_init(void);
+
 void __init setup_arch(char **cmdline_p)
 {
 	struct tag *tags = (struct tag *)&init_tags;
@@ -842,6 +845,8 @@ void __init setup_arch(char **cmdline_p)
 	parse_early_param();
 
 	arm_memblock_init(&meminfo, mdesc);
+
+	sw_plat_init();
 
 	paging_init(mdesc);
 	request_standard_resources(&meminfo, mdesc);

@@ -87,7 +87,6 @@ __s32 BSP_disp_get_saturation(__u32 sel)
 
 __s32 BSP_disp_enhance_enable(__u32 sel, __bool enable)
 {
-    DE_BE_Set_Enhance(sel, gdisp.screen[sel].bright, gdisp.screen[sel].contrast, gdisp.screen[sel].saturation);
     DE_BE_enhance_enable(sel, enable);
     gdisp.screen[sel].enhance_en = enable;
 
@@ -113,10 +112,17 @@ __s32 BSP_disp_set_screen_size(__u32 sel, __disp_rectsz_t * size)
 
 __s32 BSP_disp_set_yuv_output(__u32 sel, __bool bout_yuv)
 {
-    DE_BE_Output_Cfg_Csc_Coeff(sel, gdisp.screen[sel].bout_yuv);
+    DE_BE_Output_Cfg_Csc_Coeff(sel, bout_yuv);
 
     gdisp.screen[sel].bout_yuv = bout_yuv;
 
     return DIS_SUCCESS;
 }
 
+__s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en)
+{   
+    DE_BE_deflicker_enable(sel, b_en);
+    gdisp.screen[sel].de_flicker_en = b_en;
+    
+    return DIS_SUCCESS;
+}

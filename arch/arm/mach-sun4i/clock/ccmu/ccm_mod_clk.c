@@ -1550,7 +1550,7 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
         case AW_MOD_CLK_USBPHY1:
         case AW_MOD_CLK_USBPHY2:
         {
-            return (aw_ccu_reg->UsbClk.PhySpecClkGate == ((status == AW_CCU_CLK_OFF)? 0 : 1))? 0 : -1;
+            return 0;
         }
         case AW_MOD_CLK_USBOHCI0:
             aw_ccu_reg->UsbClk.OHCI0SpecClkGate = ((status == AW_CCU_CLK_OFF)? 0 : 1);
@@ -1641,7 +1641,7 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
         case AW_MOD_CLK_UART5:
         case AW_MOD_CLK_UART6:
         case AW_MOD_CLK_UART7:
-            return (status == AW_CCU_CLK_ON)? 0 : -1;
+            return 0;
 
         case AW_MOD_CLK_AXI_DRAM:
             aw_ccu_reg->AxiGate.SdramGate = (status == AW_CCU_CLK_OFF)? 0 : 1;

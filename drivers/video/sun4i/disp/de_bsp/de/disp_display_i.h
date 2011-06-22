@@ -5,10 +5,18 @@
 #include "ebios/ebios_lcdc_tve.h"
 
 #ifdef __LINUX_OSAL__
+#define DE_INF __inf
+#define DE_MSG __msg
+#define DE_WRN __wrn
+
 #define OSAL_IRQ_RETURN IRQ_HANDLED
 #endif
 
 #ifdef __MELIS_OSAL__
+#define DE_INF OSAL_printf
+#define DE_MSG OSAL_printf
+#define DE_WRN OSAL_printf
+
 #define OSAL_IRQ_RETURN DIS_SUCCESS
 #endif
 
@@ -23,9 +31,6 @@
 #define MAX_SPRITE_BLOCKS	32
 
 
-#define DE_INF OSAL_printf
-#define DE_WRN OSAL_printf
-#define DE_ERR OSAL_printf
 
 /*basic data information definition*/
 enum

@@ -16,7 +16,6 @@
 *********************************************************************************************************
 */
 
-#if CONFIG_PM
 #include <linux/module.h>
 #include <linux/suspend.h>
 #include <linux/cdev.h>
@@ -464,6 +463,4 @@ static void __exit aw_pm_exit(void)
 
 module_init(aw_pm_init);
 module_exit(aw_pm_exit);
-
-#endif
 
