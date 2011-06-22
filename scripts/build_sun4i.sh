@@ -96,6 +96,9 @@ clean_modules()
 #                      Main Runtine
 #
 #####################################################################
+
+export PATH=../buildroot/output/external-toolchain/bin:$PATH
+
 case "$1" in
 kernel)
     build_kernel
