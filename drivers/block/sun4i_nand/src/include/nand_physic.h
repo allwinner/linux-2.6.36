@@ -87,6 +87,15 @@ extern struct __NandPageCachePool_t PageCachePool;
 //define if the nand flash system can support external __s32er-leave operation
 #define SUPPORT_EXT_INTERLEAVE              (NAND_EXT_INTERLEAVE & NandStorageInfo.OperationOpt)
 
+//define if the nand flash system can support randomizer
+#define SUPPORT_RANDOM                      (NAND_RANDOM & NandStorageInfo.OperationOpt)
+
+//define if the nand flash system can support read retry
+#define SUPPORT_READ_RETRY                  (NAND_READ_RETRY & NandStorageInfo.OperationOpt)
+
+//define if the nand flash system can support read retry
+#define SUPPORT_READ_UNIQUE_ID              (NAND_READ_UNIQUE_ID & NandStorageInfo.OperationOpt)
+
 //define the count of the nand flash DIE in a nand flash chip
 #define DIE_CNT_OF_CHIP                     (NandStorageInfo.DieCntPerChip)
 
@@ -110,6 +119,18 @@ extern struct __NandPageCachePool_t PageCachePool;
 
 //define the information of the nand chip connect in the nand storage system
 #define CHIP_CONNECT_INFO                   (NandStorageInfo.ChipConnectInfo)
+
+//define the ReadRetryType of the nand chip connect in the nand storage system
+#define READ_RETRY_TYPE                   (NandStorageInfo.ReadRetryType)
+
+//define the ReadRetryType of the nand chip connect in the nand storage system
+#define READ_RETRY_MODE                   ((READ_RETRY_TYPE>>16)&0xff)
+
+//define the ReadRetryType of the nand chip connect in the nand storage system
+#define READ_RETRY_CYCLE                   ((READ_RETRY_TYPE>>8)&0xff)
+
+//define the ReadRetryType of the nand chip connect in the nand storage system
+#define READ_RETRY_REG_CNT                   ((READ_RETRY_TYPE>>0)&0xff)
 
 //define the nand flash access frequence parameter
 #define NAND_ACCESS_FREQUENCE               (NandStorageInfo.FrequencePar)
@@ -194,6 +215,7 @@ __s32 PHY_ResetChip(__u32 nChip);
 ************************************************************************************************************************
 */
 __s32 PHY_ReadNandId(__s32 nChip, void *pChipID);
+__s32 PHY_ReadNandUniqueId(__s32 bank, void *pChipID);
 
 
 /*
@@ -303,6 +325,10 @@ __s32 PHY_PageCopyback(struct __PhysicOpPara_t *pSrcPage, struct __PhysicOpPara_
 ************************************************************************************************************************
 */
 __s32 PHY_SynchBank(__u32 nBank, __u32 bMode);
+
+
+__s32 PHY_GetDefaultParam(__u32 bank);
+__s32 PHY_SetDefaultParam(__u32 bank);
 
 #endif  //ifnedf __NAND_PHYSIC_H__
 
