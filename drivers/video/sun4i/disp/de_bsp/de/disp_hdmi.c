@@ -182,14 +182,3 @@ __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src)
     return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func)
-{
-    gdisp.init_para.Hdmi_open = func->Hdmi_open;
-    gdisp.init_para.Hdmi_close = func->Hdmi_close;
-    gdisp.init_para.hdmi_set_mode = func->hdmi_set_mode;
-    gdisp.init_para.hdmi_mode_support = func->hdmi_mode_support;
-    gdisp.init_para.hdmi_get_HPD_status = func->hdmi_get_HPD_status;
-    
-    return DIS_SUCCESS;
-}
-

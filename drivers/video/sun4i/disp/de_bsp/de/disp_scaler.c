@@ -310,27 +310,39 @@ __s32 Scaler_Exit(__u32 sel)
       
 __s32 Scaler_open(__u32 sel)
 {
+    DE_INF("scaler %d open\n", sel);
+
     scaler_clk_on(sel);
     DE_SCAL_Reset(sel);
     DE_SCAL_Enable(sel);
-    
+
     return DIS_SUCCESS;
 }
 
 __s32 Scaler_close(__u32 sel)
 {
+    DE_INF("scaler %d close\n", sel);
+
     DE_SCAL_Reset(sel);
     DE_SCAL_Disable(sel);
     scaler_clk_off(sel);
 
+    memset(&gdisp.scaler[sel], 0, sizeof(__disp_scaler_t));
+    gdisp.scaler[sel].bright = 32;
+    gdisp.scaler[sel].contrast = 32;
+    gdisp.scaler[sel].saturation = 32;
+    gdisp.scaler[sel].hue = 32;
     gdisp.scaler[sel].status &= SCALER_USED_MASK;
+
     return DIS_SUCCESS;
 }
 
 __s32 Scaler_Request(__u32 sel)
 {
     __s32 ret = DIS_NO_RES;
-    
+
+    DE_INF("Scaler_Request\n");
+
     if(sel == 0)//request scaler0
     {
         if(!(gdisp.scaler[0].status & SCALER_USED))
@@ -359,7 +371,6 @@ __s32 Scaler_Request(__u32 sel)
 
     if(ret == 0 || ret == 1)
     {
-        DE_INF("scaler %d request ok\n", ret);
         Scaler_open(ret);
         gdisp.scaler[ret].b_close = FALSE;
         gdisp.scaler[ret].status |= SCALER_USED;
@@ -372,9 +383,10 @@ __s32 Scaler_Request(__u32 sel)
 }
 
 
-
 __s32 Scaler_Release(__u32 sel, __bool b_display)
 {   
+    DE_INF("Scaler_Release\n");
+    
     DE_SCAL_Set_Di_Ctrl(sel, 0, 0, 0, 0);
     if(b_display == FALSE)
     {
@@ -384,11 +396,7 @@ __s32 Scaler_Release(__u32 sel, __bool b_display)
     {
         gdisp.scaler[sel].b_close = TRUE;
     }
-    memset(&gdisp.scaler[sel], 0, sizeof(__disp_scaler_t));
-    gdisp.scaler[sel].bright = 32;
-    gdisp.scaler[sel].contrast = 32;
-    gdisp.scaler[sel].saturation = 32;
-    gdisp.scaler[sel].hue = 32;
+    
     return DIS_SUCCESS;
 }
 

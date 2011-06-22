@@ -219,14 +219,6 @@ void DRV_scaler_finish(__u32 sel)
     up(g_disp_drv.scaler_finished_sem[sel]);
 }
 
-
-__s32 disp_set_hdmi_func(__disp_hdmi_func * func)
-{
-    BSP_disp_set_hdmi_func(func);
-    
-    return 0;
-}
-
 void DRV_disp_wait_cmd_finish(__u32 sel)
 {
     if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
@@ -272,11 +264,20 @@ __s32 DRV_DISP_Init(void)
     para.scaler_begin   		= DRV_scaler_begin;
     para.scaler_finish  		= DRV_scaler_finish;
     para.tve_interrup   		= NULL;
+#ifdef CONFIG_LYCHEE_HDMI_SUN4I
+	para.Hdmi_open  			= Hdmi_open;
+	para.Hdmi_close  			= Hdmi_close;
+	para.hdmi_set_mode  		= Hdmi_set_display_mode;
+	para.hdmi_mode_support		= Hdmi_mode_support;
+	para.hdmi_get_HPD_status	= Hdmi_get_HPD_status;
+#else
 	para.Hdmi_open  			= NULL;
 	para.Hdmi_close  			= NULL;
 	para.hdmi_set_mode  		= NULL;
 	para.hdmi_mode_support		= NULL;
 	para.hdmi_get_HPD_status	= NULL;
+
+#endif
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
@@ -1741,11 +1742,8 @@ static void __exit disp_module_exit(void)
     cdev_del(my_cdev);
 }
 
-EXPORT_SYMBOL(disp_set_hdmi_func);
-
-
-//late_initcall(disp_module_init);
-module_init(disp_module_init);
+late_initcall(disp_module_init);
+//module_init(disp_module_init);
 module_exit(disp_module_exit);
 
 MODULE_AUTHOR("danling_xiao");

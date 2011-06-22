@@ -10,9 +10,6 @@ ssize_t hdmi_write(struct file *file, const char __user *buf, size_t count, loff
 int hdmi_mmap(struct file *file, struct vm_area_struct * vma);
 long hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
-
-extern __s32 disp_set_hdmi_func(__disp_hdmi_func * func);
-
 extern __s32 Hdmi_init(void);
 extern __s32 Hdmi_exit(void);
 

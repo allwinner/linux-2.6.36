@@ -85,4 +85,11 @@ extern __s32 Fb_Init(void);
 extern __s32 Fb_Exit(void);
 extern __s32 DRV_disp_print_reg(__u32 id);
 
+
+extern __s32 Hdmi_open(void);
+extern __s32 Hdmi_close(void);
+extern __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode);
+extern __s32 Hdmi_mode_support(__u8 mode);
+extern __s32 Hdmi_get_HPD_status(void);
+
 #endif

@@ -58,6 +58,7 @@
 #define LCDC_TTL2_OFF			(0x078)				/*LCD Controller TTL2 registers offset*/
 #define LCDC_TTL3_OFF			(0x07c)				/*LCD Controller TTL3 registers offset*/
 #define LCDC_TTL4_OFF			(0x080)				/*LCD Controller TTL4 registers offset*/
+#define LCDC_LVDS_OFF			(0x084)				/*LCD Controller LVDS registers offset*/
 #define LCDC_IOCTL0_OFF		    (0x088)				/*LCD Controller io control0 registers offset*/
 #define LCDC_IOCTL1_OFF			(0x08c)				/*LCD Controller io control1 registers offset*/
 
@@ -70,9 +71,12 @@
 #define LCDC_HDTV5_OFF			(0x0a8)				/*LCD Controller HDTV5 registers offset*/
 #define LCDC_IOCTL2_OFF		    (0x0f0)				/*LCD Controller io control2 registers offset*/
 #define LCDC_IOCTL3_OFF			(0x0f4)				/*LCD Controller io control3 registers offset*/
-#define LCDC_DUBUG_OFF          (0x0fc)                /*LCD Controller debug register*/
+#define LCDC_DUBUG_OFF          (0x0fc)             /*LCD Controller debug register*/
 
+#define LCDC_CEU_OFF          	(0x100)
 #define	LCDC_MUX_CTRL			(0x200)
+#define	LCDC_LVDS_ANA0			(0x220)
+#define	LCDC_LVDS_ANA1			(0x224)
 
 #define LCDC_GET_REG_BASE(sel)    ((sel)==0?(lcdc_reg_base0):(lcdc_reg_base1))
 

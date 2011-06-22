@@ -164,7 +164,6 @@ static const struct file_operations hdmi_fops =
 
 int __init hdmi_module_init(void)
 {
-    __disp_hdmi_func disp_func;
 	int ret = 0, err;
 	
 	__inf("----------- hdmi_module_init call --------------\n");
@@ -197,13 +196,6 @@ int __init hdmi_module_init(void)
 	}
 	
     __inf("hdmi major:%d\n", MAJOR(devid));
-
-	disp_func.Hdmi_open = Hdmi_open;
-	disp_func.Hdmi_close = Hdmi_close;
-	disp_func.hdmi_set_mode = Hdmi_set_display_mode;
-	disp_func.hdmi_mode_support = Hdmi_mode_support;
-	disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
-	disp_set_hdmi_func(&disp_func);
 
 	return ret;
 }
