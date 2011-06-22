@@ -23,7 +23,7 @@
 #include "wifi_engine.h"
 #include "wifi_engine_internal.h"
 
-char *nrx_ifname = NULL;
+char *nrx_ifname = "wlan0";
 char *nrx_config = "/lib/firmware";
 int nrx_unplug = 0;
 
