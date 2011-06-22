@@ -26,6 +26,8 @@ extern char *__bss_end;
 static sp_backup;
 static void standby(void);
 static __u32 dcdc2, dcdc3, ldo1, ldo2, ldo3, ldo4;
+static struct sun4i_clk_div_t  clk_div;
+static struct sun4i_clk_div_t  tmp_clk_div;
 
 /* parameter for standby, it will be transfered from sys_pwm module */
 struct aw_pm_info  pm_info;
@@ -158,11 +160,15 @@ static void standby(void)
     standby_set_voltage(POWER_VOL_LDO3,  STANDBY_LDO3_VOL);
     standby_set_voltage(POWER_VOL_LDO4,  STANDBY_LDO4_VOL);
 
-    #if 0
+    /* set clock division cpu:axi:ahb:apb = 2:2:2:1 */
+    standby_clk_getdiv(&clk_div);
+    tmp_clk_div.axi_div = 0;
+    tmp_clk_div.ahb_div = 0;
+    tmp_clk_div.apb_div = 0;
+    standby_clk_setdiv(&tmp_clk_div);
+    standby_mdelay(10);
     /* switch cpu to 32k */
     standby_clk_core2losc();
-    #endif
-
     #if(ALLOW_DISABLE_HOSC)
     // disable HOSC, and disable LDO
     standby_clk_hoscdisable();
@@ -180,11 +186,10 @@ static void standby(void)
     standby_clk_ldoenable();
     standby_clk_hoscenable();
     #endif
-
-    #if 0
     /* switch clock to LOSC */
     standby_clk_core2hosc();
-    #endif
+    /* restore clock division */
+    standby_clk_setdiv(&clk_div);
 
     /* check system wakeup event */
     pm_info.standby_para.event = 0;

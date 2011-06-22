@@ -98,7 +98,7 @@ __s32 standby_clk_exit(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_core2losc(void)
@@ -116,7 +116,7 @@ __s32 standby_clk_core2losc(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_core2hosc(void)
@@ -134,7 +134,7 @@ __s32 standby_clk_core2hosc(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_core2pll(void)
@@ -152,7 +152,7 @@ __s32 standby_clk_core2pll(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_plldisable(void)
@@ -179,7 +179,7 @@ __s32 standby_clk_plldisable(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_pllenable(void)
@@ -206,7 +206,7 @@ __s32 standby_clk_pllenable(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_hoscdisable(void)
@@ -224,7 +224,7 @@ __s32 standby_clk_hoscdisable(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_hoscenable(void)
@@ -242,7 +242,7 @@ __s32 standby_clk_hoscenable(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_ldodisable(void)
@@ -265,7 +265,7 @@ __s32 standby_clk_ldodisable(void)
 *
 * Arguments  : none
 *
-* Returns    : EPDK_OK;
+* Returns    : 0;
 *********************************************************************************************************
 */
 __s32 standby_clk_ldoenable(void)
@@ -279,3 +279,54 @@ __s32 standby_clk_ldoenable(void)
     return 0;
 }
 
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_setdiv
+*
+* Description: switch core clock to 32k low osc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 standby_clk_setdiv(struct sun4i_clk_div_t  *clk_div)
+{
+    if(!clk_div)
+    {
+        return -1;
+    }
+
+    CmuReg->SysClkDiv.AXIClkDiv = clk_div->axi_div;
+    CmuReg->SysClkDiv.AHBClkDiv = clk_div->ahb_div;
+    CmuReg->SysClkDiv.APB0ClkDiv = clk_div->apb_div;
+
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_getdiv
+*
+* Description: switch core clock to 32k low osc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div)
+{
+    if(!clk_div)
+    {
+        return -1;
+    }
+
+    clk_div->axi_div = CmuReg->SysClkDiv.AXIClkDiv;
+    clk_div->ahb_div = CmuReg->SysClkDiv.AHBClkDiv;
+    clk_div->apb_div = CmuReg->SysClkDiv.APB0ClkDiv;
+
+    return 0;
+}

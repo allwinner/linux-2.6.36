@@ -52,7 +52,7 @@ extern char *standby_bin_end;
 
 static struct aw_pm_info standby_info = {
     .standby_para = {
-        .event = SUSPEND_WAKEUP_SRC_EXINT|SUSPEND_WAKEUP_SRC_KEY,
+        .event = SUSPEND_WAKEUP_SRC_KEY,
     },
     .pmu_arg = {
         .twi_port = 0,
