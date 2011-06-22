@@ -378,8 +378,8 @@ static int sun4i_cpufreq_resume(struct cpufreq_policy *policy)
 
 #else   /* #ifdef CONFIG_PM */
 
-#define s3c_cpufreq_resume NULL
-#define s3c_cpufreq_suspend NULL
+#define sun4i_cpufreq_suspend   NULL
+#define sun4i_cpufreq_resume    NULL
 
 #endif  /* #ifdef CONFIG_PM */
 
