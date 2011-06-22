@@ -86,7 +86,7 @@ module_param(g_dev_minor, int, S_IRUGO);
 #define IMAGE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x24)
 #define SCALE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x28)
 
-void *reserved_mem = (void *)(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x80000000 + 64*1024);
+void *reserved_mem = (void *)(CONFIG_SW_SYSMEM_RESERVED_BASE|0xc0000000 + 64*1024);//lys modify
 int cedarmem_size = CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 64*1024;
 
 struct iomap_para{
@@ -122,8 +122,7 @@ u32 int_sta=0,int_value;
  */
 static irqreturn_t VideoEngineInterupt(int irq, void *dev)
 {
-    volatile int* ve_int_ctrl_reg;
-    //volatile int* ve_status_reg;
+    volatile int* ve_int_ctrl_reg;    
     volatile int* modual_sel_reg;
     int modual_sel;
    
@@ -137,24 +136,19 @@ static irqreturn_t VideoEngineInterupt(int irq, void *dev)
 	/* estimate Which video format */
     switch (modual_sel)
     {
-        case 0: //mpeg124
-            //ve_status_reg = (int *)(addrs.regs_macc + 0x100 + 0x1c);
+        case 0: //mpeg124            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x100 + 0x14);
             break;
-        case 1: //h264
-            //ve_status_reg = (int *)(addrs.regs_macc + 0x200 + 0x28);
+        case 1: //h264            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x200 + 0x20);
             break;
-        case 2: //vc1
-            //ve_status_reg = (int *)(addrs.regs_macc + 0x300 + 0x2c);
+        case 2: //vc1           
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x300 + 0x24);
             break;
-        case 3: //rmvb
-            //ve_status_reg = (int *)(addrs.regs_macc + 0x400 + 0x1c);
+        case 3: //rmvb            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x400 + 0x14);
             break;
-        default:
-            //ve_status_reg = (int *)(addrs.regs_macc + 0x100 + 0x1c);
+        default:            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x100 + 0x14);
             printk("macc modual sel not defined!\n");
             break;
@@ -166,17 +160,12 @@ static irqreturn_t VideoEngineInterupt(int irq, void *dev)
     else
         *ve_int_ctrl_reg = *ve_int_ctrl_reg & (~0xF);
 	
-	cedar_devp->irq_value = 0;//*ve_status_reg;
-	//*ve_status_reg = cedar_devp->irq_value;
+	cedar_devp->irq_value = 0;	
 	cedar_devp->irq_flag = 1;	
-	
-	//printk("ve status = %#x\n", cedar_devp->irq_value);
+		
     //any interrupt will wake up wait queue
     wake_up_interruptible(&wait_ve);        //ioctl
-
-	// wait up poll wait queue
-	// cedar_devp->irq_flag = 1;
-	// wake_up_interruptible(&cedar_devp->wq); //poll
+	
     return IRQ_HANDLED;
 }
 
@@ -210,7 +199,6 @@ static int task_done_flag = 0;
 static int cedarv_tread(void *arg)
 {
 	do {
-
 		wait_event_interruptible(cedarv_wait,	!list_empty(&cedarv_task_list));
 
 		if (kthread_should_stop())
@@ -369,17 +357,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 				v = readl(0xf1c2013c);
 				v |= (1<<0);
-				writel(v,0xf1c2013c);
-			
-				
-				//reset ace
-				v = readl(0xf1c20148);
-				v &= ~(1<<16);
-				writel(v,0xf1c20148);
-			
-				v = readl(0xf1c20148);
-				v |= (1<<16);
-				writel(v,0xf1c20148);
+				writel(v,0xf1c2013c);		
 		}
 		break;
 		case IOCTL_SET_VE_FREQ:
@@ -424,9 +402,6 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			/* Set AVS_CNT1 init value as zero  */
             writel(0, devp->iomap_addrs.regs_ccmu + 0xc88);
 
-
-
-
 			v = readl(devp->iomap_addrs.regs_ccmu + 0x144);
             v |= 1<<31;
             writel(v, devp->iomap_addrs.regs_ccmu + 0x144);
@@ -469,32 +444,6 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
                 return -EFAULT;                           
         }
         break;
-       
-/*
-        case IOCTL_ENABLE_IRQ:
-        {
-            if(devp->irq_has_enable == 0){
-                int ret = request_irq(VE_IRQ_NO, VideoEngineInterupt, 0, "cedar_dev", NULL);
-            	if (ret < 0) {
-            		printk("request irq err\n");
-            		return -EINVAL;
-            	}
-                //enable_irq(cedar_devp->irq);
-                devp->irq_has_enable = 1;
-            }
-         }
-         break;
-
-        case IOCTL_DISABLE_IRQ:
-        {
-            if(devp->irq_has_enable){
-                //disable_irq(cedar_devp->irq);
-                free_irq(VE_IRQ_NO, NULL);
-                devp->irq_has_enable = 0;
-            }
-        }
-        break;
-*/        
         default:
         break;
     }    
@@ -539,14 +488,11 @@ static int cedardev_release(struct inode *inode, struct file *filp)
 
 void cedardev_vma_open(struct vm_area_struct *vma)
 {
-//    printk(KERN_NOTICE "cedardev VMA open, virt %lx, phys %lx\n", 
-//		vma->vm_start, vma->vm_pgoff << PAGE_SHIFT);
 	return;
 } 
 
 void cedardev_vma_close(struct vm_area_struct *vma)
 {
-//    printk(KERN_NOTICE "cedardev VMA close.\n");
 	return;
 }
 
@@ -612,94 +558,6 @@ static struct file_operations cedardev_fops = {
 	.llseek  = no_llseek,
     .unlocked_ioctl   = cedardev_ioctl,
 };
-#if 0
-int VEPLLTable[74][6] = 
-{
-	//set, actual, Nb, Kb, Mb, Pb
-	{ 60,  60,  5,  2,  2,  1},
-	{ 66,  66, 11,  0,  0,  2},
-	{ 72,  72,  3,  3,  0,  2},
-	{ 78,  78, 13,  0,  0,  2},
-	{ 84,  84,  7,  1,  0,  2},
-	
-	{ 90,  90,  5,  2,  0,  2},
-	{ 96,  96,  3,  3,  2,  0},
-	{102, 102, 17,  0,  0,  2},
-	{108, 108,  6,  2,  0,  2},
-	{114, 114, 19,  0,  0,  2},
-	
-	{120, 120,  5,  2,  2,  0},
-	{126, 126,  7,  2,  0,  2},
-	{132, 132, 11,  0,  0,  1},
-	{138, 138, 23,  0,  0,  2},
-	{144, 144,  3,  3,  0,  1},
-	
-	{150, 150, 25,  0,  0,  2},
-	{156, 156, 13,  0,  0,  1},
-	{162, 162,  9,  2,  0,  2},
-	{168, 168,  7,  1,  0,  1},
-	{174, 174, 29,  0,  0,  2},
-	
-	{180, 180,  5,  2,  0,  1},
-	{186, 186, 31,  0,  0,  2},
-	{192, 192,  4,  3,  0,  1},
-	{198, 198, 11,  2,  0,  2},
-	{204, 204, 17,  0,  0,  1},
-	
-	{210, 208, 13,  1,  2,  0},
-	{216, 216,  6,  2,  0,  1},
-	{222, 224,  7,  3,  2,  0},
-	{228, 228, 19,  0,  0,  1},
-	{234, 234, 13,  2,  0,  2},
-	
-	{240, 240,  5,  3,  0,  1},
-	{246, 248, 31,  0,  2,  0},
-	{252, 252,  7,  2,  0,  1},
-	{258, 256,  8,  3,  2,  0},
-	{264, 264, 11,  0,  0,  0},
-	
-	{270, 270, 15,  2,  0,  2},
-	{276, 276, 23,  0,  0,  1},
-	{282, 288,  3,  3,  0,  0},
-	{288, 288,  3,  3,  0,  0},
-	{294, 288,  3,  3,  0,  0},
-	
-	{300, 300, 25,  0,  0,  1},
-	{306, 306, 17,  2,  0,  2},
-	{312, 312, 13,  0,  0,  0},
-	{318, 320, 10,  3,  2,  0},
-	{324, 324,  9,  2,  0,  1},
-	{330, 336,  7,  1,  0,  0},
-	{336, 336,  7,  1,  0,  0},
-	{342, 342, 19,  2,  0,  2},
-	{348, 348, 29,  0,  0,  1},
-	{354, 352, 11,  3,  2,  0},
-	{360, 360,  5,  2,  0,  0},
-	{366, 368, 23,  1,  2,  0},
-	{372, 372, 31,  0,  0,  1},
-	{378, 378, 21,  2,  0,  2},
-	{384, 384,  4,  3,  0,  0},
-	{390, 384,  4,  3,  0,  0},
-	{396, 396, 11,  2,  0,  1},
-	{402, 400, 25,  1,  2,  0},
-	{408, 408, 17,  0,  0,  0},
-	{414, 414, 23,  2,  0,  2},
-	{420, 416, 13,  3,  2,  0},
-	{426, 432,  6,  2,  0,  0},
-	{432, 432,  6,  2,  0,  0},
-	{438, 432,  6,  2,  0,  0},
-	{444, 448, 14,  3,  2,  0},
-	{450, 450, 25,  2,  0,  2},
-	{456, 456, 19,  0,  0,  0},
-	{462, 464, 29,  1,  2,  0},
-	{468, 468, 13,  2,  0,  1},
-	{474, 480,  5,  3,  0,  0},
-	{480, 480,  5,  3,  0,  0},
-	{486, 486, 27,  2,  0,  2},
-	{492, 496, 31,  1,  2,  0},
-	{498, 496, 31,  1,  2,  0}
-};
-#endif
 
 static int __init cedardev_init(void)
 {
@@ -760,64 +618,17 @@ static int __init cedardev_init(void)
 	if (!cedar_devp->iomap_addrs.regs_ccmu){        
 		printk("cannot map region for ccmu");        
 	} 
-//		printk("cannot map region for sdarmc");        
-//	}
-//	cedar_devp->iomap_addrs.regs_sramc = ioremap(SRAM_REGS_BASE, 4096);
-//    if (!cedar_devp->iomap_addrs.regs_sramc){        
-//		printk("cannot map region for sdarmc");        
-//	}
-//	printk("[cedar dev]: install start..4. \n");
-	 	 
-//	printk("set cpu image0/1 scale0/1 ve dram priority start!\n");
-	
-	 	// set cpu priority	 	
-//	cedar_prip->cpu_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x60);
-//	writel(0x00000309, cedar_prip->cpu_sram_pri_reg);
-
-	// set de priority
-//	cedar_prip->ve_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x80);
-//	writel(0x00031001, cedar_prip->ve_sram_pri_reg);
-
-	// set image0 priority
-//	cedar_prip->image0_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x70);
-//	writel(0x00030701, cedar_prip->image0_sram_pri_reg);
-	
-	// set scale0 priority
-//	cedar_prip->scale0_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x74);
-//	writel(0x00031001, cedar_prip->scale0_sram_pri_reg);
-	
-	// set image1 priority
-//	cedar_prip->image1_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x84);
-//	writel(0x00030701, cedar_prip->image1_sram_pri_reg);
-
-	// set scale1 priority
-//	cedar_prip->scale1_sram_pri_reg = (cedar_devp->iomap_addrs.regs_sdramc + 0x88);
-//	writel(0x00031001, cedar_prip->scale1_sram_pri_reg);
-//	printk("set cpu image0/1 scale0/1 ve dram priority end!\n");
-
 	printk("%s %d\n", __FUNCTION__, __LINE__);
 
 	//macc PLL
-//	fq = VE_PLL_FREQ/6;
-//	fq -= 10;
 	val = readl(0xf1c20018);
 	val &= 0x7ffc0000;
 	val |= 1<<31;
-//	v |= (VEPLLTable[fq][5])<<16; //Pb
-//	v |= (VEPLLTable[fq][2])<<8; //Nb
-//	v |= (VEPLLTable[fq][3])<<4; //Kb
-//	v |= (VEPLLTable[fq][4])<<0; //Mb
 	val |= (0x0)<<16; //Pb
 	val |= (0x3)<<8; //Nb
 	val |= (0x3)<<4; //Kb
 	val |= (0x0)<<0; //Mb
 	writel(val,0xf1c20018);
-//	delay_icache(1);
-	
-	//Active AHB bus to ACE
-	val = readl(0xf1c20060);
-	val |= (1<<16);
-	writel(val,0xf1c20060);
 	
 	//Active AHB bus to MACC
 	val = readl(0xf1c20064);
@@ -833,13 +644,6 @@ static int __init cedardev_init(void)
 	val |= (1<<31);
 	val |= (1<<0);
 	writel(val,0xf1c2013c);
-	
-	//Power on and release reset ace
-	val = readl(0xf1c20148);
-	val |= (1<<31);
-	val |= (1<<16);
-	val |= (1<<0);//ratio
-	writel(val,0xf1c20148);
 	
 	//gate on the bus to SDRAM
 	val = readl(0xf1c20100);
@@ -857,12 +661,6 @@ static int __init cedardev_init(void)
 	val |= 0x7fffffff;
 	writel(val,0xf1c00000);
 	
-	//ACE_SRAM mapping to AC320
-	val = readl(0xf1c00004);
-	val |= (3<<8);
-	writel(val,0xf1c00004);
-
-
 	/* Create char device */
 	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
 	devno = MKDEV(g_dev_major, g_dev_minor);
