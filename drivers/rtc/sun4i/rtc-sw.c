@@ -18,7 +18,7 @@
 #include <asm/delay.h>
 
 #include "regs-rtc.h"
-
+#define PWM_CTRL_REG_BASE         (0xf1c20c00+0x200)
 /*
  * notice: IN 23 A version, operation(eg. write date, time reg) 
  * that will affect losc reg, will also affect pwm reg at the same time
@@ -219,8 +219,8 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	time_tmp = (TIME_SET_SEC_VALUE(tm->tm_sec)|TIME_SET_MIN_VALUE(tm->tm_min)
                     |TIME_SET_HOUR_VALUE(tm->tm_hour));
    	#ifdef BACKUP_PWM
-	    pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
-	    pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+	    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
 	#endif                
 	writel(time_tmp,  base + AW1623_RTC_TIME_REG);
@@ -230,22 +230,22 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
     {       
         dev_err(dev, "fail to set rtc time.\n");
         #ifdef BACKUP_PWM
-    	    writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
-    	    writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+    	    writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+    	    writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 			
-			pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
-	    	pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+			pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	    	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 			printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
         #endif
         return -1;
     }
     /*  
     #ifdef BACKUP_PWM
-       writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
-       writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+       writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+       writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 
-	   pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
-	   pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+	   pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	   pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 	   printk("[rtc-pwm] 3 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
     #endif*/
 
@@ -256,8 +256,8 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	
 	/*
 	#ifdef BACKUP_PWM
-    	pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
-    	pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+    	pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+    	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 		
 	   printk("[rtc-pwm] 4 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
     #endif*/
@@ -269,21 +269,21 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
     {       
         dev_err(dev, "fail to set rtc date.\n");
         #ifdef BACKUP_PWM
-            writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
-            writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+            writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+            writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 
-			pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
-	    pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+			pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 	    printk("[rtc-pwm] 5 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
         #endif
         return -1;
     }  
     #ifdef BACKUP_PWM
-       writel(pwm_ctrl_reg_backup, 0xf1c20c00 + 0);
-       writel(pwm_ch0_period_backup, 0xf1c20c00 + 4);
+       writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+       writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 		
- 		pwm_ctrl_reg_backup = readl(0xf1c20c00 + 0);
-	    pwm_ch0_period_backup = readl(0xf1c20c00 + 4);
+ 		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 	    printk("[rtc-pwm] 6 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
     #endif
     //wait about 70us to make sure the the time is really written into target.
@@ -442,7 +442,12 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 	struct rtc_device *rtc;	
 	//struct resource *res;
 	int ret;
-	//unsigned int tmp_data;
+
+	#ifdef BACKUP_PWM
+	unsigned int tmp_data;  
+	unsigned int pwm_ctrl_reg_backup = 0;
+	unsigned int pwm_ch0_period_backup = 0;
+	#endif
 
     //marked by young
     /*{
@@ -471,15 +476,25 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
      * on fpga board, internal 32k clk src is the default, and can not be changed                           
      */
     //RTC CLOCK SOURCE internal 32K HZ 
-   
-	/*    
-	tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
-    tmp_data |= (RTC_SOURCE_INTERNAL | REG_LOSCCTRL_MAGIC);                  
-	writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);
- 
-	_dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);  
-    */
-    
+    #ifdef BACKUP_PWM
+	    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
+		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+	    
+	    tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
+        tmp_data |= (RTC_SOURCE_EXTERNAL | REG_LOSCCTRL_MAGIC); //external     32768hz osc             
+	    writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);        
+	    _dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);  
+    #endif
+
+    #ifdef BACKUP_PWM        
+        writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+        writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);		
+		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+		pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
+		printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+    #endif        
+
 	device_init_wakeup(&pdev->dev, 1);
 
 	/* register RTC and exit */
