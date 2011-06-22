@@ -338,7 +338,21 @@ static struct sun4i_cpu_freq_t suspend_freq;
 */
 static int sun4i_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pmsg)
 {
-    return sun4i_cpufreq_getcur(&suspend_freq);
+    struct sun4i_cpu_freq_t suspend;
+
+    CPUFREQ_DBG("%s, set cpu frequency to 60Mhz to prepare enter standby\n", __func__);
+
+    sun4i_cpufreq_getcur(&suspend_freq);
+
+    /* set cpu frequency to 60M hz for standby */
+    suspend.pll = 60000000;
+    suspend.div.cpu_div = 1;
+    suspend.div.axi_div = 1;
+    suspend.div.ahb_div = 2;
+    suspend.div.apb_div = 2;
+    sun4i_cpufreq_settarget(NULL, &suspend);
+
+    return 0;
 }
 
 
