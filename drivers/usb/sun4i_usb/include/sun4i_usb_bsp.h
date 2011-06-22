@@ -6,7 +6,7 @@
 *				        (c) Copyright 2006-2010, All winners Co,Ld.
 *							       All Rights Reserved
 *
-* File Name 	: sun3i_usb_bsp.h
+* File Name 	: sun4i_usb_bsp.h
 *
 * Author 		: javen
 *
@@ -18,8 +18,8 @@
 *
 *************************************************************************************
 */
-#ifndef  __SUN3I_USB_BSP_H__
-#define  __SUN3I_USB_BSP_H__
+#ifndef  __SUN4I_USB_BSP_H__
+#define  __SUN4I_USB_BSP_H__
 
 //-----------------------------------------------------------------------
 //   ¶ÁÐ´¼Ä´æÆ÷, 8bit, 16bit, 32bit
@@ -819,5 +819,5 @@ __s32 USBC_init(bsp_usbc_t *usbc);
 __s32 USBC_exit(bsp_usbc_t *usbc);
 
 
-#endif   //__SUN3I_USB_BSP_H__
+#endif   //__SUN4I_USB_BSP_H__
 

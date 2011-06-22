@@ -6,24 +6,28 @@
 *				        (c) Copyright 2006-2010, All winners Co,Ld.
 *							       All Rights Reserved
 *
-* File Name 	: sun3i_sys_reg.h
+* File Name 	: usbc_platform.h
 *
 * Author 		: javen
 *
-* Description 	: 寄存器定义
+* Description 	: USB控制器设备信息
 *
 * History 		:
 *      <author>    		<time>       	<version >    		<desc>
-*       javen     	  2010-12-20           1.0          create this file
+*       javen     	  2011-4-14            1.0          create this file
 *
 *************************************************************************************
 */
-#ifndef  __SUN3I_SYS_REG_H__
-#define  __SUN3I_SYS_REG_H__
+#ifndef  __USBC_PLATFORM_H__
+#define  __USBC_PLATFORM_H__
 
+__s32 usbc0_platform_device_init(void);
+__s32 usbc1_platform_device_init(void);
+__s32 usbc2_platform_device_init(void);
 
-#define  SRAMC_BASE	            0x01c00000
+__s32 usbc0_platform_device_exit(void);
+__s32 usbc1_platform_device_exit(void);
+__s32 usbc2_platform_device_exit(void);
 
-
-#endif   //__SUN3I_SYS_REG_H__
+#endif   //__USBC_PLATFORM_H__
 
