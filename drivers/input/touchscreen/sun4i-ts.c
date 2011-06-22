@@ -102,7 +102,7 @@ static int tp_flag = 0;
 
                                
 #define TPDATA_MASK            (0xfff)
-
+#define FILTER_NOISE_LOWER_LIMIT  (2)
 
 
 struct sun4i_ts_data {
@@ -186,24 +186,30 @@ void tp_do_tasklet(unsigned long data)
   		}
   		case TP_UP :
     	{
-	        ts_data->touchflag = 0; 
-	        ts_data->count     = 0;
-		    input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,0);
-		    input_sync(ts_data->input);
+    	    if(1 == ts_data->touchflag)
+    	    {
+                ts_data->touchflag = 0; 
+                ts_data->count     = 0;
+                input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,0);
+                input_sync(ts_data->input);
+    	    }
 		    break;
   		}
 
   		case TP_DATA_VA:
   		{
-            input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-            input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
-            input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
-            #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
-                printk("x = %d, y = %d\n",ts_data->x,ts_data->y);
-            #endif
-            input_mt_sync(ts_data->input);	        		
-            input_sync(ts_data->input);	
-
+  		    if(ts_data->count > FILTER_NOISE_LOWER_LIMIT)
+  		    {
+      		    ts_data->touchflag = 1;
+                input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+                input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
+                input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
+                #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
+                    printk("x = %d, y = %d\n",ts_data->x,ts_data->y);
+                #endif
+                input_mt_sync(ts_data->input);	        		
+                input_sync(ts_data->input);	
+            }
 /*
   			if(((ts_data->dx) > DUAL_TOUCH)&&((ts_data->dy) > DUAL_TOUCH))
   			{
@@ -340,7 +346,8 @@ static irqreturn_t sun4i_isr_tp(int irq, void *dev_id)
 	}
 
 	if(reg_val&FIFO_DATA_PENDING)
-	{    		
+	{   
+	    ts_data->count++;
 		ts_data->x      = readl(TP_BASSADDRESS + TP_DATA);
 		ts_data->y      = readl(TP_BASSADDRESS + TP_DATA);		
    	    ts_data->dx     = readl(TP_BASSADDRESS + TP_DATA);
