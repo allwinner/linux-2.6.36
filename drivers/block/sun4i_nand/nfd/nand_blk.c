@@ -743,7 +743,7 @@ static int collect_thread(void *tmparg)
 	while (!arg->quit){
 		ret = wait_event_interruptible(arg->wait,after_write);
 		if(ret==0){
-			printk("[N]start to flush\n");
+			//printk("[N]start to flush\n");
 			do{
 				after_write = 0;
 				ssleep(arg->timeout);
@@ -902,7 +902,7 @@ static int nand_flush(struct nand_blk_dev *dev)
 	#endif	
 		up(&mytr.nand_ops_mutex);
 		dbg_inf("nand_flush \n");
-		printk("[N]flush over\n");
+		//printk("[N]flush over\n");
 	}
 	return 0;	
 }

@@ -75,13 +75,13 @@ static struct platform_device android_pmem_device1 = {
 static int __init init_pmem_devs(void)
 {
 	void *pmem_base = NULL;
-	unsigned long size = CONFIG_ANDROID_PMEM_SIZE * 1024 * 1024 / 2;
+	unsigned long size = CONFIG_ANDROID_PMEM_SIZE * 1024 * 1024  - 4 * 1024 * 1024;
 
 	pmem_base = (void *)CONFIG_ANDROID_PMEM_BASE;
 	android_pmem_pdata.start = (unsigned long)pmem_base;
 	android_pmem_pdata.size = size;
 	android_pmem_adsp_pdata.start = (unsigned long)(((char *)pmem_base) + size);
-	android_pmem_adsp_pdata.size = size;
+	android_pmem_adsp_pdata.size = 4*1024*1024; /* 4MB for ADSP */
 
 	pr_info("pmem: base=0x%x, size=0x%x\n", (unsigned int)android_pmem_pdata.start,
 		(unsigned int)android_pmem_pdata.size);
@@ -129,7 +129,6 @@ static int read_chip_sid(char* page, char** start, off_t off, int count,
 		readl(SW_VA_SID_IO_BASE + 0xc));
 }
 
-
 static int __init platform_proc_init(void)
 {
 	struct proc_dir_entry *sid_entry = NULL;
@@ -139,7 +138,7 @@ static int __init platform_proc_init(void)
 
 	if (!sid_entry) {
 		pr_err("Create sid at /proc failed\n");
-	}		
+	}
 
 	return 0;
 }
