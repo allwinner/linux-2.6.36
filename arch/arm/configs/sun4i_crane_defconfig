@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Wed Jun 22 17:17:48 2011
+# Thu Jun 23 09:48:32 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -237,7 +237,7 @@ CONFIG_ARCH_SUN4I=y
 # CONFIG_ARCH_OMAP is not set
 # CONFIG_PLAT_SPEAR is not set
 CONFIG_SW_SYSMEM_RESERVED_BASE=0x43000000
-CONFIG_SW_SYSMEM_RESERVED_SIZE=16448
+CONFIG_SW_SYSMEM_RESERVED_SIZE=82944
 
 #
 # All winner system configure
