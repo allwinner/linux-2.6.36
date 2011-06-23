@@ -70,7 +70,11 @@ int axp_register_notifier(struct device *dev, struct notifier_block *nb,
 	struct axp_mfd_chip *chip = dev_get_drvdata(dev);
 
 	chip->ops->enable_irqs(chip, irqs);
-	return blocking_notifier_chain_register(&chip->notifier_list, nb);
+	if(NULL != nb) {
+	    return blocking_notifier_chain_register(&chip->notifier_list, nb);
+    }
+
+    return 0;
 }
 EXPORT_SYMBOL_GPL(axp_register_notifier);
 
@@ -80,7 +84,11 @@ int axp_unregister_notifier(struct device *dev, struct notifier_block *nb,
 	struct axp_mfd_chip *chip = dev_get_drvdata(dev);
 
 	chip->ops->disable_irqs(chip, irqs);
-	return blocking_notifier_chain_unregister(&chip->notifier_list, nb);
+	if(NULL != nb) {
+	    return blocking_notifier_chain_unregister(&chip->notifier_list, nb);
+	}
+
+	return 0;
 }
 EXPORT_SYMBOL_GPL(axp_unregister_notifier);
 
