@@ -18,14 +18,14 @@ __s32 Disp_TVEC_Init(__u32 sel)
 	TVE_init(sel);
     tve_clk_off(sel);
 
-    gdisp.screen[0].dac_source[0] = DISP_TV_DAC_SRC_COMPOSITE;
-    gdisp.screen[0].dac_source[1] = DISP_TV_DAC_SRC_Y;
-    gdisp.screen[0].dac_source[2] = DISP_TV_DAC_SRC_PB;
-    gdisp.screen[0].dac_source[3] = DISP_TV_DAC_SRC_PR;
-    gdisp.screen[1].dac_source[0] = DISP_TV_DAC_SRC_COMPOSITE;
-    gdisp.screen[1].dac_source[1] = DISP_TV_DAC_SRC_Y;
-    gdisp.screen[1].dac_source[2] = DISP_TV_DAC_SRC_PB;
-    gdisp.screen[1].dac_source[3] = DISP_TV_DAC_SRC_PR;
+    gdisp.screen[0].dac_source[0] = DISP_TV_DAC_SRC_Y;
+    gdisp.screen[0].dac_source[1] = DISP_TV_DAC_SRC_PB;
+    gdisp.screen[0].dac_source[2] = DISP_TV_DAC_SRC_PR;
+    gdisp.screen[0].dac_source[3] = DISP_TV_DAC_SRC_COMPOSITE;
+    gdisp.screen[1].dac_source[0] = DISP_TV_DAC_SRC_Y;
+    gdisp.screen[1].dac_source[1] = DISP_TV_DAC_SRC_PB;
+    gdisp.screen[1].dac_source[2] = DISP_TV_DAC_SRC_PR;
+    gdisp.screen[1].dac_source[3] = DISP_TV_DAC_SRC_COMPOSITE;
     
     gdisp.screen[0].tv_mode = DISP_TV_MOD_720P_50HZ;
     gdisp.screen[1].tv_mode = DISP_TV_MOD_720P_50HZ;

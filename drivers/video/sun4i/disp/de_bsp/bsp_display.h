@@ -470,6 +470,13 @@ typedef struct
 	__u32   lcd_ttl_revsel;
 	__u32   lcd_ttl_datainv_en;
 	__u32   lcd_ttl_datainv_sel;
+
+	__u32   lcd_lvds_ch;
+	__u32   lcd_lvds_even_odd;
+	__u32   lcd_lvds_dir;
+	__u32   lcd_lvds_mode;
+	__u32	lcd_lvds_bitwidth;
+	__u32	lcd_lvds_correct_mode;
 	
 	__u32   lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
 	__u32   lcd_cpu_da;
@@ -676,7 +683,6 @@ extern __s32 BSP_disp_hdmi_get_mode(__u32 sel);
 extern __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode);
 extern __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel);
 extern __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src);
-extern __s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func);
 
 extern __s32 BSP_disp_vga_open(__u32 sel);
 extern __s32 BSP_disp_vga_close(__u32 sel);

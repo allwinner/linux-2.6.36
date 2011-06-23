@@ -3,6 +3,7 @@
 
 #include "types.h"
 #define __bool signed char
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #ifndef __BSP_DRV_DISPLAY_H__
 #define __BSP_DRV_DISPLAY_H__
@@ -417,6 +418,13 @@ typedef struct
 	__u32   lcd_ttl_revsel;
 	__u32   lcd_ttl_datainv_en;
 	__u32   lcd_ttl_datainv_sel;
+
+	__u32   lcd_lvds_ch;
+	__u32   lcd_lvds_even_odd;
+	__u32   lcd_lvds_dir;
+	__u32   lcd_lvds_mode;
+	__u32	lcd_lvds_bitwidth;
+	__u32	lcd_lvds_correct_mode;
 	
 	__u32   lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
 	__u32   lcd_cpu_da;

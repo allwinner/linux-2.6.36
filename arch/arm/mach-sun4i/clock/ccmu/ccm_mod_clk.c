@@ -1288,6 +1288,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
             return -1;
         }
         case AW_MOD_CLK_LCD0CH1_S1:
+            return 0;
         case AW_MOD_CLK_LCD0CH1_S2:
         {
             switch(parent)
@@ -1310,6 +1311,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
             return -1;
         }
         case AW_MOD_CLK_LCD1CH1_S1:
+            return 0;
         case AW_MOD_CLK_LCD1CH1_S2:
         {
             switch(parent)

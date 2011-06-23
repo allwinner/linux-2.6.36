@@ -1,6 +1,7 @@
 #include "drv_disp_i.h"
 #include "dev_disp.h"
 
+// 1M + 64M(ve) + 16M(fb)
 #define FB_RESERVED_MEM
 
 extern fb_info_t g_fbi;
@@ -21,10 +22,34 @@ static struct alloc_struct_t boot_heap_head, boot_heap_tail;
 
 __s32 parser_disp_init_para(__disp_init_t * init_para)
 {
+    __u32 i = 0;
+
+    memset(init_para, 0, sizeof(__disp_init_t));
+    
 #ifdef CONFIG_LYCHEE_DISPLAY_INIT_CONFIG_SUN4I
     init_para->b_init = 1;
 
-    init_para->output_type[0] = (__disp_output_type_t)CONFIG_LYCHEE_DISPLAY_SCREEN0_OUTPUT_TYPE;
+    switch (CONFIG_LYCHEE_DISPLAY_SCREEN0_OUTPUT_TYPE)
+    {
+        case 0:
+            init_para->output_type[0] = DISP_OUTPUT_TYPE_NONE;
+            break;
+        case 1:
+            init_para->output_type[0] = DISP_OUTPUT_TYPE_LCD;
+            break;
+        case 2:
+            init_para->output_type[0] = DISP_OUTPUT_TYPE_TV;
+            break;
+        case 3:
+            init_para->output_type[0] = DISP_OUTPUT_TYPE_HDMI;
+            break;
+        case 4:
+            init_para->output_type[0] = DISP_OUTPUT_TYPE_VGA;
+            break;
+        default:
+            init_para->output_type[0] = DISP_OUTPUT_TYPE_LCD;
+            break;
+    }
     init_para->tv_mode[0] = (__disp_tv_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN0_TV_MODE;
     init_para->vga_mode[0] = (__disp_vga_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN0_VGA_MODE;
     #ifdef CONFIG_LYCHEE_DISPLAY_SCREEN0_FB_DOUBLE_BUFFER
@@ -49,7 +74,27 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     #ifdef CONFIG_LYCHEE_DISPLAY_DUAL_DIFF_SCREEN
     init_para->disp_mode = 2;
     
-    init_para->output_type[1] = (__disp_output_type_t)CONFIG_LYCHEE_DISPLAY_SCREEN1_OUTPUT_TYPE;
+    switch (CONFIG_LYCHEE_DISPLAY_SCREEN1_OUTPUT_TYPE)
+    {
+        case 0:
+            init_para->output_type[1] = DISP_OUTPUT_TYPE_NONE;
+            break;
+        case 1:
+            init_para->output_type[1] = DISP_OUTPUT_TYPE_LCD;
+            break;
+        case 2:
+            init_para->output_type[1] = DISP_OUTPUT_TYPE_TV;
+            break;
+        case 3:
+            init_para->output_type[1] = DISP_OUTPUT_TYPE_HDMI;
+            break;
+        case 4:
+            init_para->output_type[1] = DISP_OUTPUT_TYPE_VGA;
+            break;
+        default:
+            init_para->output_type[1] = DISP_OUTPUT_TYPE_LCD;
+            break;
+    }
     init_para->tv_mode[1] = (__disp_tv_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN1_TV_MODE;
     init_para->vga_mode[1] = (__disp_vga_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN1_VGA_MODE;
     #ifdef CONFIG_LYCHEE_DISPLAY_SCREEN1_FB_DOUBLE_BUFFER
@@ -76,6 +121,23 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     init_para->b_init = 0;
 #endif
 
+    __inf("====display init para begin====\n");
+    __inf("b_init:%d\n", init_para->b_init);
+    __inf("disp_mode:%d\n", init_para->disp_mode);
+    for(i=0; i<2; i++)
+    {
+        __inf("output_type[%d]:%d\n", i, init_para->output_type[i]);
+        __inf("tv_mode[%d]:%d\n", i, init_para->tv_mode[i]);
+        __inf("vga_mode[%d]:%d\n", i, init_para->vga_mode[i]);
+
+        __inf("b_double_buffer[%d]:%d\n", i, init_para->b_double_buffer[i]);
+        __inf("fb_width[%d]:%d\n", i, init_para->fb_width[i]);
+        __inf("fb_height[%d]:%d\n", i, init_para->fb_height[i]);
+        __inf("format[%d]:%d\n", i, init_para->format[i]);
+        __inf("seq[%d]:%d\n", i, init_para->seq[i]);
+        __inf("br_swap[%d]:%d\n", i, init_para->br_swap[i]);
+    }
+    __inf("====display init para end====\n");
     return 0;
 }
 
@@ -846,6 +908,7 @@ __s32 Display_Fb_Request(__disp_fb_create_para_t *fb_para)
 
 	__msg("Display_Fb_Request\n");
 
+
 	fbinfo = framebuffer_alloc(0, g_fbi.dev);
 
 	fbinfo->fbops   = &dispfb_ops;
@@ -893,6 +956,7 @@ __s32 Display_Fb_Request(__disp_fb_create_para_t *fb_para)
     for(i = 0; i < fb_para->b_dual_screen+1; i++)
     {
         __u32 sel = 0;
+	    __u32 screen_width, screen_height;
 
         if(!fb_para->b_dual_screen)
         {
@@ -902,7 +966,10 @@ __s32 Display_Fb_Request(__disp_fb_create_para_t *fb_para)
         {
             sel = i;
         }
-        
+
+	    screen_width = BSP_disp_get_screen_width(sel);
+	    screen_height = BSP_disp_get_screen_height(sel);
+
         hdl = BSP_disp_layer_request(sel, fb_para->mode);
 
         memset(&layer_para, 0, sizeof(__disp_layer_info_t));
@@ -920,12 +987,31 @@ __s32 Display_Fb_Request(__disp_fb_create_para_t *fb_para)
         {
             layer_para.src_win.y = fb_para->height;
         }
-        layer_para.src_win.width = fb_para->width;
-        layer_para.src_win.height = fb_para->height;
         layer_para.scn_win.x = 0;
         layer_para.scn_win.y = 0;
-        layer_para.scn_win.width = fb_para->width;
-        layer_para.scn_win.height = fb_para->height;
+
+        if(fb_para->width <= screen_width)
+        {
+            layer_para.src_win.width = fb_para->width;
+            layer_para.scn_win.width = fb_para->width;
+        }
+        else
+        {
+            layer_para.src_win.width = screen_width;
+            layer_para.scn_win.width = screen_width;
+        }
+        
+        if(fb_para->height <= screen_height)
+        {
+            layer_para.src_win.height = fb_para->height;
+            layer_para.scn_win.height = fb_para->height;
+        }
+        else
+        {
+            layer_para.src_win.height = screen_height;
+            layer_para.scn_win.height = screen_height;
+        }
+        
         layer_para.fb.addr[0] = (__u32)fbinfo->fix.smem_start;
         layer_para.fb.addr[1] = (__u32)fbinfo->fix.smem_start+fb_para->ch1_offset;
         layer_para.fb.addr[2] = (__u32)fbinfo->fix.smem_start+fb_para->ch2_offset;
@@ -956,7 +1042,7 @@ __s32 Display_Fb_Release(__s32 fb_hdl)
 {
 	__s32 fb_id = FBHANDTOID(fb_hdl);
 
-    __msg("Display_Fb_Release call\n");
+    __msg("Display_Fb_Release, fb_hdl:%d\n", fb_hdl);
     
 	if(fb_id >= 0)
 	{
@@ -998,9 +1084,9 @@ __s32 Fb_Init(void)
     __disp_init_t disp_init;
     
 #ifdef FB_RESERVED_MEM
-    __inf("CONFIG_SW_SYSMEM_RESERVED_BASE:%x,CONFIG_SW_SYSMEM_RESERVED_SIZE:%x K\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
+    __inf("CONFIG_SW_SYSMEM_RESERVED_BASE:%x,CONFIG_SW_SYSMEM_RESERVED_SIZE:%d K\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
     
-    fb_create_heap(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x80000000 + 0x8000 + 64*1024*1024, CONFIG_SW_SYSMEM_RESERVED_SIZE*1024 - 0x8000);
+    fb_create_heap(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x80000000 + 65*1024*1024, CONFIG_SW_SYSMEM_RESERVED_SIZE*1024 - 65*1024*1024);
 #endif
 
     parser_disp_init_para(&disp_init);
@@ -1011,41 +1097,6 @@ __s32 Fb_Init(void)
 
         fb_num = (disp_init.disp_mode==2)?2:1;
         screen_num = (disp_init.disp_mode==0 || disp_init.disp_mode==1)?1:2;
-
-        for(i = 0; i<fb_num; i++)
-        {
-            __u32 screen_id = i;
-
-            if(disp_init.disp_mode == 1)
-            {
-                screen_id = 1;
-            }
-            
-            fb_para.mode = DISP_LAYER_WORK_MODE_NORMAL;
-            fb_para.b_dual_screen = (disp_init.disp_mode==3)?1:0;
-            fb_para.screen_id = screen_id;
-            fb_para.b_double_buffer = disp_init.b_double_buffer[i];
-            fb_para.line_length = disp_init.fb_width[i] * 4;
-            fb_para.smem_len = fb_para.line_length * disp_init.fb_height[i] * (fb_para.b_dual_screen+1) * (fb_para.b_double_buffer + 1);
-            fb_para.width = disp_init.fb_width[i];
-            fb_para.height = disp_init.fb_height[i];
-            fb_para.ch1_offset = 0;
-            fb_para.ch2_offset = 0;
-            Display_Fb_Request(&fb_para);
-
-            info = g_fbi.fbinfo[i];
-            info->var.xoffset= 0;
-            info->var.yoffset= 0;
-            info->var.xres = disp_init.fb_width[i];
-            info->var.yres = disp_init.fb_height[i] * (fb_para.b_dual_screen+1);
-            info->var.xres_virtual= disp_init.fb_width[i];
-            info->var.yres_virtual= disp_init.fb_height[i] * (fb_para.b_dual_screen+1) * (fb_para.b_double_buffer + 1);
-            info->var.nonstd = 0;
-            disp_fb_to_var(disp_init.format[i], disp_init.seq[i], disp_init.br_swap[i], &info->var);
-            Fb_set_par(info);
-
-            fb_draw_colorbar((__u32)info->screen_base, disp_init.fb_width[i], disp_init.fb_height[i]*(fb_para.b_dual_screen+1)*(fb_para.b_double_buffer + 1), &info->var);
-        }
 
         for(i = 0; i<screen_num; i++)
         {
@@ -1069,20 +1120,58 @@ __s32 Fb_Init(void)
                 BSP_disp_vga_open(i);
             }
         }
-    }
 
-//----print reg----
-    DRV_disp_print_reg(DISP_REG_SCALER0);
-	DRV_disp_print_reg(DISP_REG_SCALER1);
-    DRV_disp_print_reg(DISP_REG_IMAGE0);
-	DRV_disp_print_reg(DISP_REG_IMAGE1);
-    DRV_disp_print_reg(DISP_REG_LCDC0);
-    DRV_disp_print_reg(DISP_REG_LCDC1); 
-    DRV_disp_print_reg(DISP_REG_TVEC0); 
-    DRV_disp_print_reg(DISP_REG_TVEC1); 
-    DRV_disp_print_reg(DISP_REG_CCMU); 
-    DRV_disp_print_reg(DISP_REG_PIOC); 
-    DRV_disp_print_reg(DISP_REG_PWM); 
+        for(i = 0; i<fb_num; i++)
+        {
+            __u32 screen_id = i;
+
+            if(disp_init.disp_mode == 1)
+            {
+                screen_id = 1;
+            }
+            
+            fb_para.mode = DISP_LAYER_WORK_MODE_NORMAL;
+            fb_para.b_dual_screen = (disp_init.disp_mode==3)?1:0;
+            fb_para.screen_id = screen_id;
+            fb_para.b_double_buffer = disp_init.b_double_buffer[i];
+            fb_para.line_length = disp_init.fb_width[i] * ((disp_init.format[i]==DISP_FORMAT_ARGB8888)?4:((disp_init.format[i]==DISP_FORMAT_RGB888)?3:2));
+            fb_para.smem_len = fb_para.line_length * disp_init.fb_height[i] * (fb_para.b_dual_screen+1) * (fb_para.b_double_buffer + 1);
+            fb_para.width = disp_init.fb_width[i];
+            fb_para.height = disp_init.fb_height[i];
+            fb_para.ch1_offset = 0;
+            fb_para.ch2_offset = 0;
+            Display_Fb_Request(&fb_para);
+
+            info = g_fbi.fbinfo[i];
+            disp_fb_to_var(disp_init.format[i], disp_init.seq[i], disp_init.br_swap[i], &(info->var));
+            info->var.xoffset= 0;
+            info->var.yoffset= 0;
+            info->var.xres = disp_init.fb_width[i];
+            info->var.yres = disp_init.fb_height[i] * (fb_para.b_dual_screen+1);
+            info->var.xres_virtual= disp_init.fb_width[i];
+            info->var.yres_virtual= disp_init.fb_height[i] * (fb_para.b_dual_screen+1) * (fb_para.b_double_buffer + 1);
+            info->var.nonstd = 0;
+            Fb_set_par(info);
+
+            fb_draw_colorbar((__u32)info->screen_base, disp_init.fb_width[i], disp_init.fb_height[i]*(fb_para.b_dual_screen+1)*(fb_para.b_double_buffer + 1), &info->var);
+        }
+
+
+        DRV_disp_print_reg(DISP_REG_SCALER0);
+    	DRV_disp_print_reg(DISP_REG_SCALER1);
+        DRV_disp_print_reg(DISP_REG_IMAGE0);
+        DRV_disp_print_reg(DISP_REG_LCDC0);
+        DRV_disp_print_reg(DISP_REG_TVEC0); 
+        DRV_disp_print_reg(DISP_REG_CCMU); 
+        if(screen_num == 2)
+        {
+    	    DRV_disp_print_reg(DISP_REG_IMAGE1);
+    	    DRV_disp_print_reg(DISP_REG_LCDC1); 
+    	    DRV_disp_print_reg(DISP_REG_TVEC1); 
+        }
+        DRV_disp_print_reg(DISP_REG_PIOC); 
+        DRV_disp_print_reg(DISP_REG_PWM);
+    }
 
 	return 0;
 }

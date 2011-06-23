@@ -129,10 +129,23 @@ __u32 LCDC_get_cur_line(__u32 sel, __u32 tcon_index)
 
 __s32 LCDC_set_int_line(__u32 sel,__u32 tcon_index, __u32 num)
 {
+    __u32 tmp = 0;
+
+    tmp = LCDC_RUINT32(sel, LCDC_GINT0_OFF);
+    
 	if(tcon_index==0)
+	{
+		LCDC_CLR_BIT(sel,LCDC_GINT0_OFF,1<<29);	
 		LCDC_INIT_BIT(sel,LCDC_GINT1_OFF,0x7ff<<16,num<<16);	
+	}
 	else
-		LCDC_INIT_BIT(sel,LCDC_GINT1_OFF,0x7ff,num);		
+	{
+		LCDC_CLR_BIT(sel,LCDC_GINT0_OFF,1<<28);			
+		LCDC_INIT_BIT(sel,LCDC_GINT1_OFF,0x7ff,num);	
+    }
+
+    LCDC_WUINT32(sel, LCDC_GINT0_OFF, tmp);
+    
 	return 0;
 }
 
@@ -181,10 +194,11 @@ __s32 TCON0_close(__u32 sel)
 
 void TCON0_cfg(__u32 sel, __panel_para_t * info)
 {
-    __u32 tmp;
 	__u32 vblank_len;
+	__u32 lcd_if_reg = 0;
 
     vblank_len = info->lcd_vt/2 - info->lcd_y;
+    
 	if(vblank_len > 30)
 	{
 		info->start_delay	= 30;
@@ -193,17 +207,32 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	{
 		info->start_delay	= vblank_len - 1;
 	}
+	
+	switch(info->lcd_if)
+	{
+		case LCDC_LCDIF_HV:
+			lcd_if_reg = 0;
+			break;
+		case LCDC_LCDIF_CPU:
+			lcd_if_reg = 1;
+			break;
+		case LCDC_LCDIF_TTL:
+			lcd_if_reg = 2;
+			break;
+		case LCDC_LCDIF_LVDS:
+			lcd_if_reg = 0;
+			break;
+	}
 
-    tmp = LCDC_RUINT32(sel, LCDC_CTL_OFF);
-    
-    LCDC_WUINT32(sel, LCDC_CTL_OFF,tmp | (info->lcd_if <<24) | (info->lcd_swap<< 23) | (0<<20) | (info->start_delay<<4) );
 
-	tmp = LCDC_RUINT32(sel, LCDC_DCLK_OFF);
-	LCDC_WUINT32(sel, LCDC_DCLK_OFF, tmp |((__u32)(1<<31/*lcd clk enable*/)));
 
+	LCDC_INIT_BIT(sel, LCDC_CTL_OFF,0x0ffffff0,(lcd_if_reg <<24) | (info->lcd_swap<< 23) | (0<<20) | (info->start_delay<<4));
+	
+	LCDC_SET_BIT(sel, LCDC_DCLK_OFF, (__u32)1<<31);
+	
 	LCDC_WUINT32(sel, LCDC_BASIC0_OFF,((info->lcd_x - 1)<<16) | (info->lcd_y - 1) );
 	
-	LCDC_WUINT32(sel, LCDC_BASIC1_OFF,(info->lcd_uf <<31) | (info->lcd_ht <<16) | info->lcd_hbp);	
+	LCDC_WUINT32(sel, LCDC_BASIC1_OFF,(info->lcd_ht <<16) | info->lcd_hbp);	
 
 	LCDC_WUINT32(sel, LCDC_BASIC2_OFF,(info->lcd_vt <<16) | info->lcd_vbp);
 
@@ -232,6 +261,12 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	{
 		LCDC_WUINT32(sel, LCDC_CPUIF_OFF,(info->lcd_cpu_if<<29) |(1<<26));
 	}
+	else if(info->lcd_if == LCDC_LCDIF_LVDS)
+	{
+		LCDC_WUINT32(sel, LCDC_LVDS_OFF,(info->lcd_lvds_ch<<30) |(info->lcd_lvds_even_odd<<29) |
+							 (info->lcd_lvds_dir<<28) | (info->lcd_lvds_mode<<27) | (info->lcd_lvds_bitwidth<<26) |
+							 (info->lcd_lvds_correct_mode<<23) );
+	}	
 	else
 	{
 	   ;
@@ -616,7 +651,8 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
 	cfg.b_rgb_remap_io = 1;//rgb
 	cfg.b_remap_if      = 1;
 	TCON1_cfg(sel, &cfg);
-
+    TCON_set_hdmi_src(sel);
+    
     return 0;
 }
 
@@ -807,7 +843,15 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
     cfg.b_rgb_remap_io = 0;
     cfg.b_remap_if      = 0;
     TCON1_cfg(sel, &cfg);
-
+    if(mode == DISP_TV_MOD_PAL || mode == DISP_TV_MOD_NTSC)
+    {
+        TCON_set_cvbs_src(sel);
+    }
+    else
+    {
+        TCON_set_ypbpr_src(sel);
+    }
+    
     return 0;
 }
 
@@ -1007,8 +1051,66 @@ void LCD_CPU_Burst_Write(__u32 sel, int addr,int data1,int data2)
 	//my_stmia(LCDC_GET_REG_BASE(sel) + addr,data1,data2);
 }
 
-//from 19
-__u32 LCD_CPU_IO_extend(__u32 value)
+__u32 LCD_CPU_Busy(__u32 sel)
+{
+	volatile __u32 i;
+	__u32 counter=0;
+	__u32 reg_val;
+	
+	LCDC_SET_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT0);	
+	for(i=0;i<80;i++);
+	
+	while(1)
+	{
+		reg_val = LCDC_RUINT32(sel, LCDC_CPUIF_OFF);
+		if(reg_val & 0x00c00000)
+		{
+			if(counter>200)
+				return 0;
+		    else
+		    	counter++;
+		}
+		else
+		{
+			return 0;
+		}
+	}	
+	
+//	return (LCDC_RUINT32(sel, LCDC_CPUIF_OFF) & (LCDC_BIT23 | LCDC_BIT22));
+}
+
+void LCD_CPU_WR_INDEX_24b(__u32 sel, __u32 index)
+{
+	while(LCD_CPU_Busy(sel));                             	//check wr finish
+	LCDC_CLR_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT25);         	//ca =0
+	while(LCD_CPU_Busy(sel));                             	//check wr finish
+	LCDC_WUINT32(sel, LCDC_CPUWR_OFF, index);				// write data on 8080 bus
+//	while(LCD_CPU_Busy(sel));                             	//check wr finish
+}
+
+void LCD_CPU_WR_DATA_24b(__u32 sel, __u32 data)
+{
+	while(LCD_CPU_Busy(sel));                             	//check wr finish	
+	LCDC_SET_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT25);     			//ca =1
+	while(LCD_CPU_Busy(sel));                             	//check wr finish
+	LCDC_WUINT32(sel, LCDC_CPUWR_OFF,data);
+//	while(LCD_CPU_Busy(sel));                             	//check wr finish
+}
+
+void LCD_CPU_WR_24b(__u32 sel, __u32 index, __u32 data)
+{
+	LCD_CPU_WR_INDEX_24b(sel,index);
+	LCD_CPU_WR_DATA_24b(sel,data);	
+}
+
+void LCD_CPU_RD_24b(__u32 sel, __u32 index, __u32 *data)
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+//16bit
+
+__u32 LCD_CPU_IO_extend_16b(__u32 value)
 {
 	return
 		  ((value & 0xfc00)<<8)
@@ -1017,7 +1119,7 @@ __u32 LCD_CPU_IO_extend(__u32 value)
 		| ((value & 0x001f)<<3);
 }
 
-__u32 LCD_CPU_IO_shrink(__u32 value)
+__u32 LCD_CPU_IO_shrink_16b(__u32 value)
 {
 	return
 		  ((value & 0xfc0000)>>8)
@@ -1026,74 +1128,23 @@ __u32 LCD_CPU_IO_shrink(__u32 value)
 		| ((value & 0x0000f8)>>3);
 }
 
-void LCD_CPU_WR_24b(__u32 sel, __u32 index, __u32 data)
-{
-	__u32 lcd_cpu;
-
-	LCDC_CLR_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT25);         		//ca =0
-	LCD_CPU_Burst_Write(sel, LCDC_CPUWR_OFF, index, index);		// write data on 8080 bus
-
-	do{
-		lcd_cpu = LCDC_RUINT32(sel, LCDC_CPUIF_OFF);
-	} while(lcd_cpu&LCDC_BIT23);                             	//check wr finish
-
-
-	LCDC_SET_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT25);     			//ca =1
-	LCD_CPU_Burst_Write(sel, LCDC_CPUWR_OFF, data,data);
-
-	do{
-		lcd_cpu = LCDC_RUINT32(sel, LCDC_CPUIF_OFF);
-	} while(lcd_cpu&LCDC_BIT23);                             //check wr finish
-}
-
-void LCD_CPU_WR_INDEX_24b(__u32 sel, __u32 index)
-{
-	__u32 lcd_cpu;
-
-	LCDC_CLR_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT25);         		//ca =0
-	LCD_CPU_Burst_Write(sel, LCDC_CPUWR_OFF, index,index);		// write data on 8080 bus
-
-	do{
-		lcd_cpu = LCDC_RUINT32(sel, LCDC_CPUIF_OFF);
-	} while(lcd_cpu&LCDC_BIT23);                             	//check wr finish
-}
-
-void LCD_CPU_WR_DATA_24b(__u32 sel, __u32 data)
-{
-	__u32 lcd_cpu;
-
-	LCDC_SET_BIT(sel, LCDC_CPUIF_OFF,LCDC_BIT25);     			//ca =1
-	LCD_CPU_Burst_Write(sel, LCDC_CPUWR_OFF, data,data);
-
-	do{
-		lcd_cpu = LCDC_RUINT32(sel, LCDC_CPUIF_OFF);
-	} while(lcd_cpu&LCDC_BIT23);                             	//check wr finish
-}
-
-void LCD_CPU_RD_24b(__u32 sel, __u32 index, __u32 *data)
-{
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-
 void LCD_CPU_WR(__u32 sel, __u32 index, __u32 data)
 {
-	LCD_CPU_WR_24b(sel,LCD_CPU_IO_extend(index),LCD_CPU_IO_extend(data));
+	LCD_CPU_WR_24b(sel,LCD_CPU_IO_extend_16b(index),LCD_CPU_IO_extend_16b(data));
 }
 
 void LCD_CPU_WR_INDEX(__u32 sel, __u32 index)
 {
-    LCD_CPU_WR_INDEX_24b(sel,LCD_CPU_IO_extend(index));
+    LCD_CPU_WR_INDEX_24b(sel,LCD_CPU_IO_extend_16b(index));
 }
 
 void LCD_CPU_WR_DATA(__u32 sel, __u32 data)
 {
-	LCD_CPU_WR_DATA_24b(sel,LCD_CPU_IO_extend(data));
+	LCD_CPU_WR_DATA_24b(sel,LCD_CPU_IO_extend_16b(data));
 }
 
 void LCD_CPU_RD(__u32 sel, __u32 index, __u32 *data)
 {
-	
 }
 
 void LCD_CPU_AUTO_FLUSH(__u32 sel, __u8 en)
@@ -1122,6 +1173,22 @@ void LCD_XY_SWAP(__u32 sel)
 }
 
 
+__s32 LCD_LVDS_open(__u32 sel)
+{
+	LCDC_SET_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 
+	LCDC_WUINT32(sel, LCDC_LVDS_ANA0,0x3F710000);
+	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,0x7C1F7C1F);
+    return 0;
+}
+
+__s32 LCD_LVDS_close(__u32 sel)
+{
+	LCDC_WUINT32(sel, LCDC_LVDS_ANA0,0);
+	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,0);
+	LCDC_CLR_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 	
+	return 0;
+}
+
 #define ____TCON_MUX_CTL____
 
 __u8 TCON_mux_init(void)
@@ -1132,10 +1199,335 @@ __u8 TCON_mux_init(void)
 	return 0;
 }
 
-__u8 TCON_hdmi_src(__u8 src)
+__u8 TCON_set_hdmi_src(__u8 src)
 {
-	if(src>2)
-		src = 2;
-	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0xf<<8,src<<8);	//hdmi output select
+	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<8,src<<8);
 	return 0;	
+}
+
+__u8 TCON_set_ypbpr_src(__u8 src)
+{
+	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<4,src<<4);
+	return 0;	
+}
+
+__u8 TCON_set_cvbs_src(__u8 src)
+{
+	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<0,src<<0);
+	return 0;	
+}
+
+#define ____TCON_CEU____
+
+
+static __u32 range_cut(__s32 *x_value,__s32 x_min,__s32 x_max)
+{
+	if(*x_value>x_max)
+	{
+		*x_value = x_max;
+		return 1;	
+	}
+	else if(*x_value<x_min)
+	{
+		*x_value = x_min;
+		return 1;				
+	}
+	else
+		return 0;
+}
+
+static void rect_multi(__s32 *dest, __s32 *src1, __s32 *src2)
+{
+	__u32 x,y,z;
+	__s64 val_int64;
+	
+	for(x=0;x<4;x++)
+		for(y=0;y<4;y++)
+		{
+			val_int64 = 0;
+			for(z=0;z<4;z++)
+				val_int64 += (__s64)src1[x*4+z]*src2[z*4+y];
+			val_int64 = (val_int64+512)>>10;
+			dest[x*4+y] = val_int64;
+		}
+}
+
+static __s32 reg_corr(__s32 val,__u32 bit)
+{
+	if(val>=0)
+		return val;
+	else
+		return (bit) | (__u32)(-val);
+}
+
+static void rect_ceu_pro(__s32 *p_rect,__s32 b,__s32 c,__s32 s,__s32 h)
+{
+	const __u8 table_sin[91]=
+	{
+		  0,     2,     4,     7,     9,    11,    13,    16,    18,    20,
+		 22,    24,    27,    29,    31,    33,    35,    37,    40,    42,
+		 44,    46,    48,    50,    52,    54,    56,    58,    60,    62,
+		 64,    66,    68,    70,    72,    73,    75,    77,    79,    81,
+		 82,    84,    86,    87,    89,    91,    92,    94,    95,    97,
+		 98,    99,   101,   102,   104,   105,   106,   107,   109,   110,
+		111,   112,   113,   114,   115,   116,   117,   118,   119,   119,
+		120,   121,   122,   122,   123,   124,   124,   125,   125,   126,
+		126,   126,   127,   127,   127,   128,   128,   128,   128,   128,
+		128
+	};
+
+	const __s32 f_csh=1024;
+	const __s32 f_sh=8;
+	__s32 h1=0,h2=0,h3=0,h4=0;
+
+	if(h>=0 && h<90)
+	{
+		h1 =  table_sin[90-h];
+		h2 =  table_sin[h];
+		h3 = -table_sin[h];
+		h4 =  table_sin[90-h];
+	}
+	else if(h>=90 && h<180)
+	{
+		h1 = -table_sin[h-90];
+		h2 =  table_sin[180-h];
+		h3 = -table_sin[180-h];
+		h4 = -table_sin[h-90];
+	}
+	else if(h>=180 && h<270)
+	{
+		h1 = -table_sin[270-h];
+		h2 = -table_sin[h-180];
+		h3 =  table_sin[h-180];
+		h4 = -table_sin[270-h];
+	}
+	else if(h>=270 && h<=360)
+	{
+		h1 =  table_sin[h-270];
+		h2 = -table_sin[360-h];
+		h3 =  table_sin[360-h];
+		h4 =  table_sin[h-270];
+	}
+
+	p_rect[0] = c*f_sh;                  
+	p_rect[1] = 0;                       
+	p_rect[2] = 0;                       
+	p_rect[3] = -16*c*f_sh+(b+16)*f_csh; 
+	p_rect[4] = 0;                       
+	p_rect[5] = (c*s*h1) >>11;           
+	p_rect[6] = (c*s*h2) >>11;           
+	p_rect[7] = 128*(1*f_csh-p_rect[5]-p_rect[6]);   
+	p_rect[8] = 0;                       
+	p_rect[9] = (c*s*h3) >>11;           
+	p_rect[10] = (c*s*h4) >>11;           
+	p_rect[11] = 128*(1*f_csh-p_rect[9]-p_rect[10]);   
+	p_rect[12] = 0;
+	p_rect[13] = 0;
+	p_rect[14] = 0;
+	p_rect[15] = 1024;
+}
+
+static void lcd_ceu(__u32 r2y_type,__u32 cen_type,__u32 y2r_type, __s32 b,__s32 c,__s32 s,__s32 h,__s32* p_coff)
+{
+	const __s32 rect_1[16]=
+	{
+		1024,	   0,	   0,	   0,
+			0,	1024,	   0,	   0,
+			0,	   0,	1024,	   0,
+			0,	   0,      0,	1024
+	};
+
+	const __s32 rect_r2y_sd[16]=
+	{
+		 263,	 516,	100,	 16384,
+		-152,	-298,	450,    131072,
+		 450,	-377,	-73,	131072,
+		   0,	   0,	  0,	  1024
+	};
+
+	const __s32 rect_r2y_hd[16]=
+	{
+		 187,	 629,	 63,	16384,
+		-103,	-346,	450,	131072,
+		 450,	-409,	-41,	131072,
+		   0,	   0,	  0,	  1024
+	};
+
+	const __s32 rect_y2r_sd[16]=
+	{
+		1192,	   0,	1634,	-228262,
+		1192,	-400,	-833,	 138740,
+		1192,	2066,	   0,	-283574,
+		   0,	   0,      0,	   1024 
+	};
+
+	const __s32 rect_y2r_hd[16]=
+	{
+		1192,	   0,	1836,	-254083,
+		1192,	-218,	-547,	  78840,
+		1192,	2166,	   0,	-296288,
+		   0,	   0,      0,	   1024
+	};
+
+	__s32 rect_tmp0[16];
+	__s32 rect_tmp1[16];	
+
+	__s32* p_rect = 0;
+	__s32* p_r2y = 0;
+	__s32* p_y2r = 0;
+	__s32* p_ceu = 0;	
+	__u32 i = 0;
+	
+	if(r2y_type)
+	{
+		if(r2y_type==1)
+			p_r2y = (__s32*)rect_r2y_sd;
+		else if(r2y_type==2)
+			p_r2y = (__s32*)rect_r2y_hd;
+		p_rect = p_r2y;		
+	}
+	else
+		p_rect = (__s32*)rect_1;
+
+	if(cen_type)
+	{
+		range_cut(&b,-600,600);
+		range_cut(&c,   0,300);
+		range_cut(&s,   0,300);
+		range_cut(&h,   0,360);
+		p_ceu = rect_tmp1;
+		rect_ceu_pro(p_ceu,b,c,s,h);
+		rect_multi(rect_tmp0,p_ceu,p_rect);
+		p_rect = rect_tmp0;
+	}		
+
+	if(y2r_type)
+	{
+		if(y2r_type==1)
+			p_y2r = (__s32*)rect_y2r_sd;
+		else if(y2r_type==2)
+			p_y2r = (__s32*)rect_y2r_hd;
+		rect_multi(rect_tmp1,p_y2r,p_rect);
+		p_rect = rect_tmp1;
+	}
+/*
+	const __s32 rect_srgb_warm[16]=
+	{
+		 1280,	   0,	   0,	   0,
+			0,	1024,	   0,	   0,
+			0,	   0,	 819,	   0,
+			0,	   0,      0,	1024
+	};
+
+	const __s32 rect_srgb_cool[16]=
+	{
+		 819,	   0,	   0,	   0,
+			0,	1024,	   0,	   0,
+			0,	   0,	1280,	   0,
+			0,	   0,      0,	1024
+	};
+
+	if(srgb_type)
+	{
+		if(srgb_type==1)
+			p_srgb == (__s32*)rect_srgb_warm;
+		else if(srgb_type==2)
+			p_srgb == (__s32*)rect_srgb_cool;
+		rect_multi(rect_tmp0,p_srgb,p_rect);
+		p_rect = rect_tmp0;		
+	}
+*/
+	for(i=0;i<12;i++)
+		*(p_coff+i) = *(p_rect+i);
+}
+
+//*********************************************************************************************
+// function         : LCDC_ceu(__u32 sel,__u32 func,__s32 b,__s32 c,__s32 s,__s32 h)
+// description      : lcdc color enhance
+// parameters       :
+//              	sel:	sel tcon
+//					func:	0:disable
+//							1:rgb->rgb
+//							2:yuv->yuv
+//                	b:		brightness		(-600 - 600)	default
+//					c:		contastness		(0 - 300)
+//					s:		saturture		(0 - 300)
+// 					h:		hue				(0 - 360)
+//*********************************************************************************************** 
+
+void LCDC_ceu(__u32 sel,__u32 func,__s32 b,__s32 c,__s32 s,__s32 h)
+{
+	__s32 ceu_coff[12];
+	__u32 error;
+	
+	if(func==1 || func==2)
+	{
+		if(func==1)
+		{
+			lcd_ceu(1,1,1,b,c,s,h,ceu_coff);
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x40, 0x000000ff);
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x44, 0x000000ff);
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x48, 0x000000ff);				
+		}
+		else if(func==2)
+		{			
+			lcd_ceu(0,1,0,b,c,s,h,ceu_coff);
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x40, 0x000000eb);
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x44, 0x000000f0);
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x48, 0x000000f0);		
+		}		
+		
+		ceu_coff[0]  = (ceu_coff[0] +2)  >>2;
+		ceu_coff[1]  = (ceu_coff[1] +2)  >>2;
+		ceu_coff[2]  = (ceu_coff[2] +2)  >>2;
+		ceu_coff[3]  = (ceu_coff[3] +32) >>6;			
+		ceu_coff[4]  = (ceu_coff[4] +2)  >>2;
+		ceu_coff[5]  = (ceu_coff[5] +2)  >>2;
+		ceu_coff[6]  = (ceu_coff[6] +2)  >>2;
+		ceu_coff[7]  = (ceu_coff[7] +32) >>6;		
+		ceu_coff[8]  = (ceu_coff[8] +2)  >>2;
+		ceu_coff[9]  = (ceu_coff[9] +2)  >>2;
+		ceu_coff[10] = (ceu_coff[10]+2)  >>2;
+		ceu_coff[11] = (ceu_coff[11]+32) >>6; 	
+		
+		error = 0;                              
+		error |= range_cut(ceu_coff+0,-4095,4095);    
+		error |= range_cut(ceu_coff+1,-4095,4095);    
+		error |= range_cut(ceu_coff+2,-4095,4095); 
+		error |= range_cut(ceu_coff+3,-262143,262143);		   
+		error |= range_cut(ceu_coff+4,-4095,4095);    
+		error |= range_cut(ceu_coff+5,-4095,4095);    
+		error |= range_cut(ceu_coff+6,-4095,4095);
+		error |= range_cut(ceu_coff+7,-262143,262143);		    
+		error |= range_cut(ceu_coff+8,-4095,4095);    
+		error |= range_cut(ceu_coff+9,-4095,4095);    
+		error |= range_cut(ceu_coff+10,-4095,4095); 
+		error |= range_cut(ceu_coff+11,-262143,262143);
+		
+		if(error)
+		{
+			LCDC_CLR_BIT(sel, LCDC_CEU_OFF, (__u32)1<<31);	
+			return;
+		}
+		else
+		{		
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x10, reg_corr(ceu_coff[0],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x14, reg_corr(ceu_coff[1],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x18, reg_corr(ceu_coff[2],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x1c, reg_corr(ceu_coff[3],1<<18));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x20, reg_corr(ceu_coff[4],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x24, reg_corr(ceu_coff[5],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x28, reg_corr(ceu_coff[6],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x2c, reg_corr(ceu_coff[7],1<<18));					
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x30, reg_corr(ceu_coff[8],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x34, reg_corr(ceu_coff[9],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x38, reg_corr(ceu_coff[10],1<<12));
+			LCDC_WUINT32(sel, LCDC_CEU_OFF+0x3c, reg_corr(ceu_coff[11],1<<18));	
+			LCDC_SET_BIT(sel, LCDC_CEU_OFF, (__u32)1<<31);			
+		}
+	}
+	else
+	{
+		LCDC_CLR_BIT(sel, LCDC_CEU_OFF, (__u32)1<<31);
+	}				
 }

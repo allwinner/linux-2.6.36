@@ -27,6 +27,7 @@ typedef enum
     LCDC_LCDIF_HV 			= 0, 
     LCDC_LCDIF_CPU 			= 1,
     LCDC_LCDIF_TTL 			= 2,
+    LCDC_LCDIF_LVDS			= 3,
 }__lcdc_lcdif_t; 
   
 
@@ -129,6 +130,8 @@ void    LCD_CPU_RD(__u32 sel, __u32 index, __u32 *data);
 void    LCD_CPU_AUTO_FLUSH(__u32 sel, __u8 en);
 void    LCD_CPU_DMA_FLUSH(__u32 sel, __u8 en);
 void    LCD_XY_SWAP(__u32 sel);
+__s32	LCD_LVDS_open(__u32 sel);
+__s32	LCD_LVDS_close(__u32 sel);
 
 __s32   TCON0_open(__u32 sel);
 __s32   TCON0_close(__u32 sel);
@@ -137,6 +140,7 @@ __s32   TCON0_get_width(__u32 sel);
 __s32   TCON0_get_height(__u32 sel);
 __s32   TCON0_set_dclk_div(__u32 sel, __u8 div);
 __s32   TCON0_select_src(__u32 sel, __u8 src);
+
 
 __u32 	TCON1_open(__u32 sel);
 __u32 	TCON1_close	(__u32 sel);
@@ -153,7 +157,9 @@ __s32   TCON1_set_gamma_table(__u32 sel, __u32 address,__u32 size);
 __s32   TCON1_set_gamma_Enable(__u32 sel, __bool enable);
 
 __u8 	TCON_mux_init(void);
-__u8	TCON_hdmi_src(__u8 src);
+__u8    TCON_set_hdmi_src(__u8 src);
+__u8    TCON_set_ypbpr_src(__u8 src);
+__u8    TCON_set_cvbs_src(__u8 src);
 
 __s32   TVE_set_reg_base(__u32 sel,__u32 address);
 __u32   TVE_get_reg_base(__u32 sel);
