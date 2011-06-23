@@ -352,6 +352,8 @@ static int codec_play_open(void)
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
 	codec_wr_control(SW_DAC_FIFOC ,0x1fff, TX_TRI_LEVEL, 0xf);
+
+	codec_wr_control(SW_DAC_FIFOC ,0x3,DRA_LEVEL,0x3);
 	//send last sample when dac fifo under run
 	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x1);
 	//set TX FIFO MODE

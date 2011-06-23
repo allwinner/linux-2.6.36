@@ -36,6 +36,7 @@
 
 #define LAST_SE                   (26)
 #define TX_FIFO_MODE              (24)
+#define DRA_LEVEL                 (21)
 #define TX_TRI_LEVEL              (8)
 #define DAC_MODE                  (6)			//not used yet
 #define TASR                      (5)			//not used yet

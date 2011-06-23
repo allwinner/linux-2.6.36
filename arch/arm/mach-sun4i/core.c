@@ -285,6 +285,7 @@ int sw_plat_init(void)
 	pr_info("Reserve memory for system, base=%x, size=%d\n",
 		CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
 
+	memblock_reserve(CONFIG_ANDROID_PMEM_BASE - 0x2000000, 0x2000000);
 	return 0;
 }
 
