@@ -665,10 +665,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
 		switch(substream->runtime->rate){
 			case 44100:			
-				clk_set_rate(codec_moduleclk, 22579200);
 				clk_set_rate(codec_pll2clk, 22579200);
+				clk_set_rate(codec_moduleclk, 22579200);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -677,10 +677,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-				clk_set_rate(codec_moduleclk, 22579200);	
 				clk_set_rate(codec_pll2clk, 22579200);
+				clk_set_rate(codec_moduleclk, 22579200);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}		
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -688,10 +688,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 11025:
-				clk_set_rate(codec_moduleclk, 22579200);	
 				clk_set_rate(codec_pll2clk, 22579200);
+				clk_set_rate(codec_moduleclk, 22579200);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -699,10 +699,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 48000:
-				clk_set_rate(codec_moduleclk, 24576000);
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}					
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -710,10 +710,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 96000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -721,10 +721,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 192000:
-				clk_set_rate(codec_moduleclk, 24576000);
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}					
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -732,10 +732,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 32000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -743,10 +743,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 24000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -754,10 +754,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 16000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -765,10 +765,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 12000:
-				clk_set_rate(codec_moduleclk, 24576000);
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}					
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -776,10 +776,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 8000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -787,10 +787,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			default:
-				clk_set_rate(codec_moduleclk, 24576000);
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}									
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -819,10 +819,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	}else{
 		switch(substream->runtime->rate){
 			case 44100:
-				clk_set_rate(codec_moduleclk, 22579200);	
 				clk_set_rate(codec_pll2clk, 22579200);
+				clk_set_rate(codec_moduleclk, 22579200);					
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}			
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -831,10 +831,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);	
-					clk_set_rate(codec_pll2clk, 22579200);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}						
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -842,21 +842,21 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 11025:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);	
-					clk_set_rate(codec_pll2clk, 22579200);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}							
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(4<<29);
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
-			case 48000:
+			case 48000:				
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
-					clk_set_rate(codec_pll2clk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}					
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -864,10 +864,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 32000:
-				clk_set_rate(codec_moduleclk, 24576000);
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}					
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -875,10 +875,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 24000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -886,10 +886,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 16000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -897,10 +897,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 12000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -908,10 +908,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 8000:
-				clk_set_rate(codec_moduleclk, 24576000);	
 				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -919,10 +919,10 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			default:
-				clk_set_rate(codec_moduleclk, 24576000);
-				clk_set_rate(codec_pll2clk, 24576000);	
+				clk_set_rate(codec_pll2clk, 24576000);
+				clk_set_rate(codec_moduleclk, 24576000);	
 				if (-1 == clk_enable(codec_moduleclk)){
-					printk("open codec_moduleclk failed; \n");
+					//printk("open codec_moduleclk failed; \n");
 				}				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
