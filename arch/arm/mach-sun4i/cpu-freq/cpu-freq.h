@@ -33,7 +33,7 @@
 #endif
 
 
-#define SUN4I_CPUFREQ_MAX       (1152000000)     /* config the maximum frequency of sun4i core */
+#define SUN4I_CPUFREQ_MAX       (1008000000)    /* config the maximum frequency of sun4i core */
 #define SUN4I_CPUFREQ_MIN       (60000000)      /* config the minimum frequency of sun4i core */
 #define SUN4I_FREQTRANS_LATENCY (2000000)       /* config the transition latency, based on ns */
 
