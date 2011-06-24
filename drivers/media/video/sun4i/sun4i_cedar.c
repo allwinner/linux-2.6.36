@@ -69,7 +69,11 @@ int g_dev_minor = CEDARDEV_MINOR;
 module_param(g_dev_major, int, S_IRUGO);//S_IRUGO represent that g_dev_major can be read,but canot be write
 module_param(g_dev_minor, int, S_IRUGO);
 
+#ifdef CHIP_VERSION_F23
 #define VE_IRQ_NO (53)
+#else
+#define VE_IRQ_NO (48)
+#endif
 
 #define CCMU_VE_PLL_REG      (0xf1c20000)
 #define CCMU_AHB_GATE_REG    (0xf1c2000c)
@@ -86,7 +90,7 @@ module_param(g_dev_minor, int, S_IRUGO);
 #define IMAGE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x24)
 #define SCALE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x28)
 
-void *reserved_mem = (void *)(CONFIG_SW_SYSMEM_RESERVED_BASE|0xc0000000 + 64*1024);//lys modify
+void *reserved_mem = (void *)( (CONFIG_SW_SYSMEM_RESERVED_BASE | 0xC0000000) + 64*1024);
 int cedarmem_size = CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 64*1024;
 
 struct iomap_para{
@@ -261,6 +265,7 @@ int cedardev_check_delay(int check_prio)
 	return timeout_total;
 }
 
+#ifdef CHIP_VERSION_F23
 static unsigned int g_ctx_reg0;
 static void save_context()
 {
@@ -271,7 +276,37 @@ static void restore_context()
 {
 	writel(g_ctx_reg0, 0xf1c20e00);
 }
+#else
+	#define save_context() 
+	#define restore_context() 
+#endif
 //#define dbg_print printk
+
+#ifdef CHIP_VERSION_F23
+short VEPLLTable[][6] = 
+{
+	//set, actual, Nb, Kb, Mb, Pb
+	{ 60,  60,  5,  2,  2,  1},
+	{ 90,  90,  5,  2,  0,  2},
+	{120, 120,  5,  2,  2,  0},
+	{150, 150, 25,  0,  0,  2},
+	{180, 180,  5,  2,  0,  1},
+	{216, 216,  6,  2,  0,  1},
+	{240, 240,  5,  3,  0,  1},
+	{270, 270, 15,  2,  0,  2},
+	{300, 300, 25,  0,  0,  1},
+	{330, 336,  7,  1,  0,  0},
+	{360, 360,  5,  2,  0,  0},
+	{384, 384,  4,  3,  0,  0},
+	{402, 400, 25,  1,  2,  0},
+	{420, 416, 13,  3,  2,  0},
+	{444, 448, 14,  3,  2,  0},
+	{456, 456, 19,  0,  0,  0},
+	{468, 468, 13,  2,  0,  1},
+	{480, 480,  5,  3,  0,  0},
+	{492, 496, 31,  1,  2,  0},
+};
+#endif
 
 /*
  * ioctl function
@@ -338,35 +373,90 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return cedar_devp->irq_value;
 		
 		case IOCTL_ENABLE_VE: 
+#ifdef CHIP_VERSION_F20
             v = readl(CCMU_VE_CLK_REG);   
 			v |= (0x1 << 7);              // Do not gate the speccial clock for DE
 			writel(v, CCMU_VE_CLK_REG);	
+#else
+			v = readl(0xf1c2013c);
+			v |= (1<<31 | 1<<0);
+			writel(v,0xf1c2013c);
+#endif			
 			break;
 			
 		case IOCTL_DISABLE_VE: 
+#ifdef CHIP_VERSION_F20			
             v = readl(CCMU_VE_CLK_REG);   
 			v &= ~(0x1 << 7);             // Gate the speccial clock for DE
 			writel(v, CCMU_VE_CLK_REG);	
+#else
+			v = readl(0xf1c2013c);
+			v &= ~(1<<31 | 1<<0);
+			writel(v,0xf1c2013c);
+#endif			
 			break;
+			
 		case IOCTL_RESET_VE:				
-		{			
-			/*reset ve*/
-				v = readl(0xf1c2013c);
-				v &= ~(1<<0);
-				writel(v,0xf1c2013c);
-
-				v = readl(0xf1c2013c);
-				v |= (1<<0);
-				writel(v,0xf1c2013c);		
-		}
+#ifdef CHIP_VERSION_F20
+			v = readl(CCMU_SDRAM_PLL_REG);
+			v &= ~(0x1 << 24);            
+			writel(v, CCMU_SDRAM_PLL_REG);
+			//----------------------------
+			v = readl(CCMU_VE_CLK_REG);   
+			v &= ~(0x1 << 5);             // Reset VE
+			writel(v, CCMU_VE_CLK_REG);
+			v |= (0x1 << 5);              // Reset VE
+			writel(v, CCMU_VE_CLK_REG);
+			//-----------------------------
+			v = readl(CCMU_SDRAM_PLL_REG);
+			v |= (0x1 << 24);            
+			writel(v, CCMU_SDRAM_PLL_REG);
+#else		
+			v = readl(0xf1c20100);
+	        v &= ~(1<<0);
+			writel(v,0xf1c20100);
+			//-----------------------------
+			v = readl(0xf1c2013c);
+			v &= ~(1<<0);
+			writel(v,0xf1c2013c);
+			v |= (1<<0);
+			writel(v,0xf1c2013c);
+			//-----------------------------
+			v = readl(0xf1c20100);
+	        v |= (1<<0);
+			writel(v,0xf1c20100);
+#endif		
 		break;
+		
 		case IOCTL_SET_VE_FREQ:
-			/* VE Clock Setting */
+#ifdef CHIP_VERSION_F20
 			v = readl(CCMU_VE_PLL_REG);
 			v |= (0x1 << 15);             // Enable VE PLL;
 			v &= ~(0x1 << 12);            // Disable ByPass;
 			v |= (arg - 30) / 6;                
 			writel(v, CCMU_VE_PLL_REG);
+#else
+			{
+				int freq = (int)arg;
+				int fq;
+				if(freq > 492 || freq < 60){
+					return ret;
+				}
+				for(fq=0;;fq++){
+					if(freq <= VEPLLTable[fq][0])
+						break;
+				}
+				printk("Attention: set ve freq to %d MHz\n", VEPLLTable[fq][0]);
+				v = readl(0xf1c20018);
+				v &= 0x7ffc0000;
+				v |= 1<<31;
+				v |= (VEPLLTable[fq][5])<<16; //Pb
+				v |= (VEPLLTable[fq][2])<<8; //Nb
+				v |= (VEPLLTable[fq][3])<<4; //Kb
+				v |= (VEPLLTable[fq][4])<<0; //Mb
+				writel(v,0xf1c20018);
+			}
+#endif			
 			break;
 		
         case IOCTL_GETVALUE_AVS2:
@@ -378,11 +468,12 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             int arg_s = (int)arg;		
             int temp;	        
             save_context();
-            v = readl(devp->iomap_addrs.regs_ccmu + 0xc44);				        
+            v = readl(devp->iomap_addrs.regs_ccmu + 0xc8c);				        
             temp = v & 0xffff0000;		
             temp =temp + temp*arg_s/100;                
-            v = (temp & 0xffff0000) | (v&0x0000ffff);                
-            writel(v, devp->iomap_addrs.regs_ccmu + 0xc44);
+            v = (temp & 0xffff0000) | (v&0x0000ffff);   
+            printk("Kernel AVS ADJUST Print: 0x%x\n", v);             
+            writel(v, devp->iomap_addrs.regs_ccmu + 0xc8c);
             restore_context();
             break;
         }
@@ -402,10 +493,17 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			/* Set AVS_CNT1 init value as zero  */
             writel(0, devp->iomap_addrs.regs_ccmu + 0xc88);
 
+#ifdef CHIP_VERSION_F20
+            v = readl(devp->iomap_addrs.regs_ccmu + 0x040);
+            v |= 1<<8;
+            writel(v, devp->iomap_addrs.regs_ccmu + 0x040);
+#endif
+
+#ifdef CHIP_VERSION_F23
 			v = readl(devp->iomap_addrs.regs_ccmu + 0x144);
             v |= 1<<31;
             writel(v, devp->iomap_addrs.regs_ccmu + 0x144);
-
+#endif
 			restore_context();
             break;
             
@@ -437,9 +535,9 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         case IOCTL_GET_ENV_INFO:
         {
             struct cedarv_env_infomation env_info;
-            env_info.phymem_start = (unsigned int)0xc8000000;//reserved_mem;
+            env_info.phymem_start = (unsigned int)reserved_mem;
+            env_info.phymem_total_size = cedarmem_size;
 	        env_info.address_macc = (unsigned int)cedar_devp->iomap_addrs.regs_macc;
-            env_info.phymem_total_size = 0x4000000;//cedarmem_size;
             if (copy_to_user((char *)arg, &env_info, sizeof(struct cedarv_env_infomation)))                
                 return -EFAULT;                           
         }
@@ -620,6 +718,51 @@ static int __init cedardev_init(void)
 	} 
 	printk("%s %d\n", __FUNCTION__, __LINE__);
 
+
+#ifdef CHIP_VERSION_F20
+	writel(0x00000309, 0xf1c01060); 
+	writel(0x00000309, 0xf1c01064); 
+	writel(0x00000301, 0xf1c01068); 
+	writel(0x00000305, 0xf1c0106c); 
+	writel(0x00030701, 0xf1c01070); 
+	writel(0x00031001, 0xf1c01074); 
+	writel(0x00031001, 0xf1c01078); 
+	writel(0x00030701, 0xf1c0107c); 
+	writel(0x00031001, 0xf1c01080); 
+	writel(0x00030701, 0xf1c01084); 
+	writel(0x00031001, 0xf1c01088); 
+	writel(0x00030701, 0xf1c0108c); 
+	writel(0x00000000, 0xf1c01090); 
+	writel(0x00031001, 0xf1c01094); 
+	writel(0x00031001, 0xf1c01098); 
+	writel(0x00000301, 0xf1c0109c); 
+
+	/* VE Clock Setting */
+	val = readl(CCMU_VE_PLL_REG);
+	val |= (0x1 << 15);             // Enable VE PLL;
+	val &= ~(0x1 << 12);            // Disable ByPass;
+	//VE freq: 0x16->162; 0x17->168; 0x18->174; 0x19->180
+	//         0x1a->186; 0x1b->192; 0x1c->198; 0x1d->204
+	//         0x1e->210;
+	val |= 0x19;                
+	writel(val, CCMU_VE_PLL_REG);
+	printk("-----[cedar_dev] set ve clock -> %#x\n", val);
+
+	val = readl(CCMU_AHB_GATE_REG); 
+	val |= (0x1 << 15);             // Disable VE AHB clock gating
+	writel(val, CCMU_AHB_GATE_REG);
+
+	val = readl(CCMU_VE_CLK_REG);   
+	val |= (0x1 << 7);              // Do not gate the speccial clock for DE
+	val |= (0x1 << 5);              // Reset VE
+	writel(val, CCMU_VE_CLK_REG);
+
+	val = readl(CCMU_SDRAM_PLL_REG);
+	val |= (0x1 << 24);             // Do not gate DRAM clock for VD
+	writel(val, CCMU_SDRAM_PLL_REG);
+
+#else
+
 	//macc PLL
 	val = readl(0xf1c20018);
 	val &= 0x7ffc0000;
@@ -647,7 +790,6 @@ static int __init cedardev_init(void)
 	
 	//gate on the bus to SDRAM
 	val = readl(0xf1c20100);
-	val |= (1<<29);
 	val |= (1<<0);
 	writel(val,0xf1c20100);
 	
@@ -660,6 +802,8 @@ static int __init cedardev_init(void)
 	val = readl(0xf1c00000);
 	val |= 0x7fffffff;
 	writel(val,0xf1c00000);
+	
+#endif
 	
 	/* Create char device */
 	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
