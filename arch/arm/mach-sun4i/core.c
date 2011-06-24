@@ -23,6 +23,7 @@
 #include <asm/hardware/icst.h>
 #include <asm/hardware/vic.h>
 #include <asm/mach-types.h>
+#include <asm/setup.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/flash.h>
@@ -299,7 +300,6 @@ core_initcall(sw_core_init);
 extern int sw_register_clocks(void);
 void __init softwinner_init(void)
 {
-	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
 	sysdev_register(&sw_sysdev);
 }
 
@@ -334,14 +334,14 @@ static void __init softwinner_fixup(struct machine_desc *desc,
 				  struct tag *tags, char **cmdline,
 				  struct meminfo *mi)
 {
-#if 0
-	if (tags != phys_to_virt(S3C2410_SDRAM_PA + 0x100)) {
+	u32 size;
+	size = DRAMC_get_dram_size();
+	if( size ) {
 		mi->nr_banks=1;
-		mi->bank[0].start = 0x30000000;
-		mi->bank[0].size = SZ_64M;
+		mi->bank[0].start = 0x40000000;
+		mi->bank[0].size = SZ_1M * size;
 	}
-#endif
-	pr_info("softwinner_fixup\n");
+	pr_info("__init softwinner_fixup\n");
 }
 
 struct sys_timer softwinner_timer = {
@@ -353,7 +353,7 @@ MACHINE_START(SUN4I, "sun4i")
         .phys_io        = 0x01c00000,
         .io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
         .map_io         = softwinner_map_io,
-	.fixup          = softwinner_fixup,
+        .fixup          = softwinner_fixup,
         .init_irq       = softwinner_init_irq,
         .timer          = &softwinner_timer,
         .init_machine   = softwinner_init,
