@@ -172,7 +172,7 @@ void tp_do_tasklet(unsigned long data)
     //struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
 
 	struct sun4i_ts_data *ts_data = mtTsData;	
-	//int x1,x2,y1,y2;
+	int x1,x2,y1,y2;
 
 	
 	
@@ -186,7 +186,7 @@ void tp_do_tasklet(unsigned long data)
   		}
   		case TP_UP :
     	{
-    	    if(1 == ts_data->touchflag)
+    	    if(1 == ts_data->touchflag || 2 == ts_data->touchflag)
     	    {
                 ts_data->touchflag = 0; 
                 ts_data->count     = 0;
@@ -201,58 +201,61 @@ void tp_do_tasklet(unsigned long data)
   		    if(ts_data->count > FILTER_NOISE_LOWER_LIMIT)
   		    {
       		    ts_data->touchflag = 1;
-                input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-                input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
-                input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
-                #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
-                    printk("x = %d, y = %d\n",ts_data->x,ts_data->y);
-                #endif
-                input_mt_sync(ts_data->input);	        		
-                input_sync(ts_data->input);	
+                /*
+                  input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+                  input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
+                  input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
+                  #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
+                      printk("x = %d, y = %d\n",ts_data->x,ts_data->y);
+                  #endif
+                  input_mt_sync(ts_data->input);	        		
+                  input_sync(ts_data->input);	
+                  */
+               
+  			    if(((ts_data->dx) > DUAL_TOUCH)&&((ts_data->dy) > DUAL_TOUCH))
+  			    {
+  			    	ts_data->touchflag = 2;
+  			    	ts_data->count = 0;
+	  		    	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+	  		    	x1 = 2048 - (ts_data->dx<<2);
+	  		    	y1 = 2048 - (ts_data->dy<<2);
+			      	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
+			      	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
+			      	input_mt_sync(ts_data->input);
+			      	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+	  		    	x2 = 2048 + (ts_data->dx<<2);
+	  		    	y2 = 2048 + (ts_data->dy<<2);
+			      	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x2);
+			      	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y2);
+			    	input_mt_sync(ts_data->input);
+			    	input_sync(ts_data->input);
+		            }else{
+//		                 if((ts_data->touchflag == 2)&&((ts_data->count++)>TOUCH_CHANGE))
+//		                 {
+//		                 	 input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+//			                 input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
+//			                 input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
+//			                 input_mt_sync(ts_data->input);	        		
+//			                 input_sync(ts_data->input);		        		
+//		                 }
+                
+		            	 
+		            	 if(1 == ts_data->touchflag)
+		            	 {
+		            	 	 input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+			    	  	     input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
+			    	  	     input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
+			    	  	     #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
+		  	    			     printk("x = %d, y = %d\n",ts_data->x,ts_data->y);
+			    			 #endif
+			    	  	     input_mt_sync(ts_data->input);	        		
+			    		     input_sync(ts_data->input);				        		
+		            	 }
+		            	
+		            }
+              
             }
-/*
-  			if(((ts_data->dx) > DUAL_TOUCH)&&((ts_data->dy) > DUAL_TOUCH))
-  			{
-  				ts_data->touchflag = 2;
-  				ts_data->count = 0;
-	  			input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-	  			x1 = 2048 - (ts_data->dx<<2);
-	  			y1 = 2048 - (ts_data->dy<<2);
-			  	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
-			  	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
-			  	input_mt_sync(ts_data->input);
-			  	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-	  			x2 = 2048 + (ts_data->dx<<2);
-	  			y2 = 2048 + (ts_data->dy<<2);
-			  	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x2);
-			  	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y2);
-				input_mt_sync(ts_data->input);
-				input_sync(ts_data->input);
-		        }else{
-//		        	 if((ts_data->touchflag == 2)&&((ts_data->count++)>TOUCH_CHANGE))
-//		        	 {
-//		        	 	 input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-//				  	     input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
-//				  	     input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
-//				  	     input_mt_sync(ts_data->input);	        		
-//					     input_sync(ts_data->input);		        		
-//		        	 }
 
-		        	 
-		        	 if(ts_data->touchflag == 0)
-		        	 {
-		        	 	 input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-				  	     input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
-				  	     input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);	
-				  	     #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
-		  				     printk("x = %d, y = %d\n",ts_data->x,ts_data->y);
-						 #endif
-				  	     input_mt_sync(ts_data->input);	        		
-					     input_sync(ts_data->input);				        		
-		        	 }
-		        	
-		        }
-		     */
   			break;
   		}
   		
