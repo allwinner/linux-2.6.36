@@ -330,7 +330,8 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->red.length = 8;
         var->green.length = 8;
         var->blue.length = 8;
-        if(seq == DISP_SEQ_ARGB && br_swap == 0)
+		
+		if(seq == DISP_SEQ_ARGB && br_swap == 0)
         {
             var->transp.offset = 24;
             var->red.offset = 16;
@@ -346,18 +347,19 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         }
         else if(seq == DISP_SEQ_ARGB && br_swap == 1)
         {
-            var->blue.offset = 24;
-            var->green.offset = 16;
-            var->red.offset = 8;
-            var->transp.offset = 0;
+            var->transp.offset = 24;
+            var->blue.offset = 16;
+            var->green.offset = 8;
+            var->red.offset = 0;
         }
         else if(seq == DISP_SEQ_BGRA && br_swap == 1)
         {
-            var->blue.offset = 24;
+            var->red.offset = 24;
             var->green.offset = 16;
-            var->red.offset = 8;
+            var->blue.offset = 8;
             var->transp.offset = 0;
-        }
+        }        
+		
     }
     else if(format==DISP_FORMAT_RGB888)
     {
@@ -616,7 +618,7 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
             }
 
             BSP_disp_layer_set_para(sel, hdl, &layer_para);
-            DRV_disp_wait_cmd_finish(sel);
+            //DRV_disp_wait_cmd_finish(sel);
         }
     }
     

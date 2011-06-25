@@ -31,7 +31,7 @@
 #define PMEM_MAX_ORDER 128
 #define PMEM_MIN_ALLOC PAGE_SIZE
 
-#define PMEM_DEBUG  1
+#define PMEM_DEBUG  0
 #define USE_MISC 	0
 #if USE_MISC==0
 #include <linux/cdev.h>
