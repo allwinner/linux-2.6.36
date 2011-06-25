@@ -97,7 +97,8 @@ clean_modules()
 #
 #####################################################################
 
-export PATH=../buildroot/output/external-toolchain/bin:$PATH
+LICHEE_ROOT=`(cd ${LICHEE_KDIR}/..; pwd)`
+export PATH=${LICHEE_ROOT}/buildroot/output/external-toolchain/bin:$PATH
 
 case "$1" in
 kernel)

@@ -68,14 +68,14 @@ build_kernel()
 
 build_modules()
 {
-    #make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
+    make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
     make -C modules/wifi/Nanoradio-c047-7 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
 
     make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
-        CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
+        CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all
 }
 
 clean_kernel()
@@ -97,7 +97,9 @@ clean_modules()
 #
 #####################################################################
 
-export PATH=../buildroot/output/external-toolchain/bin:$PATH
+LICHEE_ROOT=`(cd ${LICHEE_KDIR}/..; pwd)`
+
+export PATH=${LICHEE_ROOT}/buildroot/output/external-toolchain/bin:$PATH
 
 case "$1" in
 kernel)
