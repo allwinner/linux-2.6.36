@@ -6,7 +6,7 @@
 *				        (c) Copyright 2006-2010, All winners Co,Ld.
 *							       All Rights Reserved
 *
-* File Name 	: sw_xhci_sun4i.h
+* File Name 	: sw_hci_sun4i.h
 *
 * Author 		: yangnaitian
 *
@@ -132,9 +132,9 @@
 //   interrupt register
 //-----------------------------------------------------------------------
 #define SW_INT_SRC_EHCI0            		39
-#define SW_INT_SRC_OHCI0                64
+#define SW_INT_SRC_OHCI0                    64
 #define SW_INT_SRC_EHCI1            		40
-#define SW_INT_SRC_OHCI1                65
+#define SW_INT_SRC_OHCI1                    65
 
 //-----------------------------------------------------------------------
 //   SDRAM Control register
@@ -192,12 +192,16 @@ struct sw_hci_hcd{
 	__u32 sdram_reg_start;
 	__u32 sdram_reg_length;
 
+	struct platform_device *pdev;
+	struct usb_hcd *hcd;
+
 	struct clk	*sie_clk;				/* SIE clock handle 	*/
 	struct clk	*phy_gate;				/* PHY clock handle 	*/
 	struct clk	*phy_reset;				/* PHY0 clock handle 	*/
 	__u32 clk_is_open;					/* is usb clock open 	*/
 
 	__u32 irq_no;						/* interrupt number 	*/
+	__u32 usbc_no;						/* usb controller number */
 
 	unsigned Drv_vbus_Handle;
 	user_gpio_set_t drv_vbus_gpio_set;
@@ -206,7 +210,7 @@ struct sw_hci_hcd{
 
 
 
-#endif   //__SW_XHCI_SUN4I_H__
+#endif   //__SW_HCI_SUN4I_H__
 
 
 

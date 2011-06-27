@@ -34,4 +34,4 @@ obj-$(CONFIG_USB_ISP1760_HCD)	+= isp1760.o
 obj-$(CONFIG_USB_HWA_HCD)	+= hwa-hc.o
 obj-$(CONFIG_USB_IMX21_HCD)	+= imx21-hcd.o
 
-obj-$(CONFIG_USB_SW_SUN4I_HCI0)	+= sw_hci_sun4i.o
+obj-$(CONFIG_USB_SW_SUN4I_HCI)	+= sw_hci_sun4i.o

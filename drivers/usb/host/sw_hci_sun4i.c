@@ -6,7 +6,7 @@
 *				        (c) Copyright 2006-2010, All winners Co,Ld.
 *							       All Rights Reserved
 *
-* File Name 	: sw_xhci_sun4i.c
+* File Name 	: sw_hci_sun4i.c
 *
 * Author 		: yangnaitian
 *
@@ -54,130 +54,75 @@
 #include  "sw_hci_sun4i.h"
 
 //---------------------------------------------------------------
-//  EHCI0
+//  EHCI
 //---------------------------------------------------------------
 
-#define  SW_EHCI0_NAME		"sw-ehci0"
-static const char ehci0_name[] = SW_EHCI0_NAME;
+#define  SW_EHCI_NAME		"sw-ehci"
+static const char ehci_name[] = SW_EHCI_NAME;
 
-/*
-static struct resource sw_ehci0_resources[] = {
+static struct sw_hci_hcd sw_ehci0;
+static struct sw_hci_hcd sw_ehci1;
+
+static u64 sw_ehci_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device sw_usb_ehci_device[] = {
 	[0] = {
-		.start		= SW_USB1_BASE,
-		.end		= (0x1000 - 1),
-		.flags		= IORESOURCE_MEM,
+		.name		= ehci_name,
+		.id			= 1,
+		.dev 		= {
+			.dma_mask			= &sw_ehci_dmamask,
+			.coherent_dma_mask	= DMA_BIT_MASK(32),
+			.platform_data		= &sw_ehci0,
+		},
 	},
 
 	[1] = {
-		.start		= SW_SRAM_BASE,
-		.end		= (SW_SRAM_BASE + SW_SRAM_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
+		.name		= ehci_name,
+		.id			= 2,
+		.dev 		= {
+			.dma_mask			= &sw_ehci_dmamask,
+			.coherent_dma_mask	= DMA_BIT_MASK(32),
+			.platform_data		= &sw_ehci1,
+		},
 	},
-
-	[2] = {
-		.start		= SW_CCMU_BASE,
-		.end		= (SW_CCMU_BASE + SW_CCMU_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-
-	[3] = {
-		.start		= SW_GPIO_BASE,
-		.end		= (SW_GPIO_BASE + SW_GPIO_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-
-	[4] = {
-		.start		= SW_SDRAM_BASE,
-		.end		= (SW_SDRAM_BASE + SW_SDRAM_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-	
-	[5] = {
-		.start		= SW_HCI0_PASS_BY_BASE,
-		.end		= (SW_HCI0_PASS_BY_BASE + SW_HCI0_PASS_BY_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-};
-*/
-
-static u64 sw_ehci0_dmamask = DMA_BIT_MASK(32);
-
-static struct platform_device sw_usb_ehci0_device = {
-	.name		= ehci0_name,
-	.id			= -1,
-	.dev 		= {
-		.dma_mask			= &sw_ehci0_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-	},
-
-//	.num_resources	= ARRAY_SIZE(sw_ehci0_resources),
-//	.resource		= sw_ehci0_resources,
 };
 
 //---------------------------------------------------------------
-//  OHCI0
+//  OHCI
 //---------------------------------------------------------------
-#define  SW_OHCI0_NAME		"sw-ohci0"
-static const char ohci0_name[] = SW_OHCI0_NAME;
+#define  SW_OHCI_NAME		"sw-ohci"
+static const char ohci_name[] = SW_OHCI_NAME;
 
-/*
-static struct resource sw_ohci0_resources[] = {
+static struct sw_hci_hcd sw_ohci0;
+static struct sw_hci_hcd sw_ohci1;
+
+static u64 sw_ohci_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device sw_usb_ohci_device[] = {
 	[0] = {
-		.start		= SW_USB1_BASE,
-		.end		= (0x1000 - 1),
-		.flags		= IORESOURCE_MEM,
+		.name		= ohci_name,
+		.id			= 1,
+		.dev 		= {
+			.dma_mask			= &sw_ohci_dmamask,
+			.coherent_dma_mask	= DMA_BIT_MASK(32),
+			.platform_data		= &sw_ohci0,
+		},
 	},
 
 	[1] = {
-		.start		= SW_SRAM_BASE,
-		.end		= (SW_SRAM_BASE + SW_SRAM_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-
-	[2] = {
-		.start		= SW_CCMU_BASE,
-		.end		= (SW_CCMU_BASE + SW_CCMU_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-
-	[3] = {
-		.start		= SW_GPIO_BASE,
-		.end		= (SW_GPIO_BASE + SW_GPIO_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-
-	[4] = {
-		.start		= SW_SDRAM_BASE,
-		.end		= (SW_SDRAM_BASE + SW_SDRAM_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
-	},
-	
-	[5] = {
-		.start		= SW_HCI0_PASS_BY_BASE,
-		.end		= (SW_HCI0_PASS_BY_BASE + SW_HCI0_PASS_BY_BASE_LEN - 1),
-		.flags		= IORESOURCE_MEM,
+		.name		= ohci_name,
+		.id			= 2,
+		.dev 		= {
+			.dma_mask			= &sw_ohci_dmamask,
+			.coherent_dma_mask	= DMA_BIT_MASK(32),
+			.platform_data		= &sw_ohci1,
+		},
 	},
 };
-*/
-
-static u64 sw_ohci0_dmamask = DMA_BIT_MASK(32);
-
-static struct platform_device sw_usb_ohci0_device = {
-	.name		= ohci0_name,
-	.id			= -1,
-	.dev 		= {
-		.dma_mask			= &sw_ohci0_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-	},
-
-//	.num_resources	= ARRAY_SIZE(sw_ohci0_resources),
-//	.resource		= sw_ohci0_resources,
-};
-
 
 /*
 *******************************************************************************
-*                     sw_xhci_sun4i_init
+*                     sw_hci_sun4i_init
 *
 * Description:
 *    void
@@ -193,17 +138,30 @@ static struct platform_device sw_usb_ohci0_device = {
 *
 *******************************************************************************
 */
-static int __init sw_hci0_sun4i_init(void)
+static int __init sw_hci_sun4i_init(void)
 {
-	platform_device_register(&sw_usb_ehci0_device);
-    platform_device_register(&sw_usb_ohci0_device);
+#ifdef  CONFIG_USB_SW_SUN4I_EHCI0
+	platform_device_register(&sw_usb_ehci_device[0]);
+#endif
+
+#ifdef  CONFIG_USB_SW_SUN4I_EHCI1
+ 	platform_device_register(&sw_usb_ehci_device[1]);
+#endif
+
+#ifdef  CONFIG_USB_SW_SUN4I_OHCI0
+  	platform_device_register(&sw_usb_ohci_device[0]);
+#endif
+ 
+#ifdef  CONFIG_USB_SW_SUN4I_OHCI1
+ 	platform_device_register(&sw_usb_ohci_device[1]);
+#endif
 
     return 0;
 }
 
 /*
 *******************************************************************************
-*                     usb_manager_exit
+*                     sw_hci_sun4i_exit
 *
 * Description:
 *    void
@@ -219,15 +177,27 @@ static int __init sw_hci0_sun4i_init(void)
 *
 *******************************************************************************
 */
-static void __exit sw_hci0_sun4i_exit(void)
+static void __exit sw_hci_sun4i_exit(void)
 {
-   
-  	platform_device_unregister(&sw_usb_ohci0_device);
-	platform_device_unregister(&sw_usb_ehci0_device);
-	
+#ifdef  CONFIG_USB_SW_SUN4I_EHCI0
+	platform_device_unregister(&sw_usb_ehci_device[0]);
+#endif
+
+#ifdef  CONFIG_USB_SW_SUN4I_EHCI1
+ 	platform_device_unregister(&sw_usb_ehci_device[1]);
+#endif
+
+#ifdef  CONFIG_USB_SW_SUN4I_OHCI0
+  	platform_device_unregister(&sw_usb_ohci_device[0]);
+#endif
+ 
+#ifdef  CONFIG_USB_SW_SUN4I_OHCI1
+ 	platform_device_unregister(&sw_usb_ohci_device[1]);
+#endif
+
     return ;
 }
 
-module_init(sw_hci0_sun4i_init);
-module_exit(sw_hci0_sun4i_exit);
+module_init(sw_hci_sun4i_init);
+module_exit(sw_hci_sun4i_exit);
 
