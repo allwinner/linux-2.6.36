@@ -84,9 +84,11 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 			       sw_udc_io->sie_clk, sw_udc_io->phy_clk, sw_udc_io->phy0_clk, sw_udc_io->clk_is_open);
 	}
 
+#if 0
 	DMSG_INFO("[udc0]: open, 0x60(0x%x), 0xcc(0x%x)\n",
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
+#endif
 
 	return 0;
 }
@@ -125,9 +127,11 @@ u32 close_usb_clock(sw_udc_io_t *sw_udc_io)
 			       sw_udc_io->sie_clk, sw_udc_io->phy_clk, sw_udc_io->phy0_clk, sw_udc_io->clk_is_open);
 	}
 
+#if 0
 	DMSG_INFO("[udc0]: close, 0x60(0x%x), 0xcc(0x%x)\n",
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
+#endif
 
 	return 0;
 }
