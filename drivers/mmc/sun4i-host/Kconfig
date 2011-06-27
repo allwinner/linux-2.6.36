@@ -14,6 +14,6 @@ config SUN4I_MMC_SW
 	  If unsure, say N.
 	  
 config SUN4I_MMC_SW_DBG
-	tristate "SW SUN4I Card Host driver debug control"
+	bool "SW SUN4I Card Host driver debug control"
 	depends on SUN4I_MMC_SW
 
