@@ -97,8 +97,9 @@ typedef struct __CCMU_PLL4_VE_REG0018
     __u32   FactorK:2;          //bit4,  PLL4 factor K
     __u32   reserved1:2;        //bit6,  reserved
     __u32   FactorN:5;          //bit8,  PLL4 factor N
+    __u32   reserved2:3;        //bit13, reserved
     __u32   FactorP:2;          //bit16, PLL4 output external divider P
-    __u32   reserved2:1;        //bit18, reserved
+    __u32   reserved3:1;        //bit18, reserved
     __u32   VCOGain:1;          //bit19, PLL4 VCO gain control
     __u32   PLLBias:5;          //bit20, PLL4 Bias control
     __u32   VCOBias:5;          //bit25, PLL4 VCO bias control
