@@ -242,8 +242,9 @@ typedef struct __CCMU_AHBCLK_GATE0_REG0060
 {
     __u32   Usb0Gate:1;         //bit0,  gating AHB clock for USB0, 0-mask, 1-pass
     __u32   Usb1Gate:1;         //bit1,  gating AHB clock for USB1, 0-mask, 1-pass
-    __u32   Usb2Gate:1;         //bit2,  gating AHB clock for USB2, 0-mask, 1-pass
-    __u32   reserved0:2;        //bit3,  reserved
+    __u32   reserved0:1;        //bit2,  reserved
+    __u32   Usb2Gate:1;         //bit3,  gating AHB clock for USB2, 0-mask, 1-pass
+    __u32   reserved1:1;        //bit4,  reserved
     __u32   SsGate:1;           //bit5,  gating AHB clock for SS, 0-mask, 1-pass
     __u32   DmaGate:1;          //bit6,  gating AHB clock for DMA, 0-mask, 1-pass
     __u32   BistGate:1;         //bit7,  gating AHB clock for BIST, 0-mask, 1-pass
@@ -254,11 +255,11 @@ typedef struct __CCMU_AHBCLK_GATE0_REG0060
     __u32   MsGate:1;           //bit12, gating AHB clock for MS, 0-mask, 1-pass
     __u32   NandGate:1;         //bit13, gating AHB clock for NAND, 0-mask, 1-pass
     __u32   SdramGate:1;        //bit14, gating AHB clock for SDRAM, 0-mask, 1-pass
-    __u32   reserved1:1;        //bit15, reserved
+    __u32   reserved2:1;        //bit15, reserved
     __u32   AceGate:1;          //bit16, gating AHB clock for ACE, 0-mask, 1-pass
     __u32   EmacGate:1;         //bit17, gating AHB clock for EMAC, 0-mask, 1-pass
     __u32   TsGate:1;           //bit18, gating AHB clock for TS, 0-mask, 1-pass
-    __u32   reserved2:1;        //bit19, reserved
+    __u32   reserved3:1;        //bit19, reserved
     __u32   Spi0Gate:1;         //bit20, gating AHB clock for SPI0, 0-mask, 1-pass
     __u32   Spi1Gate:1;         //bit21, gating AHB clock for SPI1, 0-mask, 1-pass
     __u32   Spi2Gate:1;         //bit22, gating AHB clock for SPI2, 0-mask, 1-pass
@@ -266,7 +267,7 @@ typedef struct __CCMU_AHBCLK_GATE0_REG0060
     __u32   PataGate:1;         //bit24, gating AHB clock for PATA, 0-mask, 1-pass
     __u32   SataGate:1;         //bit25, gating AHB clock for SATA, 0-mask, 1-pass
     __u32   GpsGate:1;          //bit26, gating AHB clock for GPS, 0-mask, 1-pass
-    __u32   reserved3:5;        //bit27, reserved
+    __u32   reserved4:5;        //bit27, reserved
 } __ccmu_ahbclk_gate0_reg0060_t;
 
 
