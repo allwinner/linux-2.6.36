@@ -66,15 +66,15 @@ struct cedarv_engine_task {
 #define CCMU_REGS_pBASE     (REGS_pBASE + 0x20000)    // clock manager unit
 #define MACC_REGS_pBASE     (REGS_pBASE + 0x0E000)    // media accelerate VE
 #define SS_REGS_pBASE       (REGS_pBASE + 0x15000)    // Security System
-#define TIMER_REGS_pBASE    (REGS_pBASE + 0x20c00)    // Timer
 #define SDRAM_REGS_pBASE    (REGS_pBASE + 0x01000)    // SDRAM Controller
+#define AVS_REGS_pBASE      (REGS_pBASE + 0x20c00)
 
 #define SRAM_REGS_BASE      SRAM_REGS_pBASE           // SRAM Controller
 #define CCMU_REGS_BASE      CCMU_REGS_pBASE           // Clock Control manager unit  OK
 #define MACC_REGS_BASE      MACC_REGS_pBASE           // Media ACCelerate
 #define SS_REGS_BASE        SS_REGS_pBASE             // Security System
-#define TIMER_REGS_BASE     TIMER_REGS_pBASE          // Timer
 #define SDRAM_REGS_BASE		SDRAM_REGS_pBASE          //SDRAM Controller   OK
+#define AVS_REGS_BASE       AVS_REGS_pBASE
 
 #define MPEG_REGS_BASE      (MACC_REGS_BASE + 0x100)  // MPEG engine
 #define H264_REGS_BASE      (MACC_REGS_BASE + 0x200)  // H264 engine
@@ -84,18 +84,10 @@ struct cedarv_engine_task {
 #define CCMU_REGS_SIZE      (1024)  // 1K
 #define MACC_REGS_SIZE      (4096)  // 4K
 #define SS_REGS_SIZE        (4096)  // 4K
-#define TIMER_REGS_SIZE     (1024)  // 1K
 /*--------------------------------------------------------------------------------*/
 
 #define SRAM_REG_o_CFG	    (0x00)
 #define SRAM_REG_ADDR_CFG   (SRAM_REGS_BASE + SRAM_REG_o_CFG) // SRAM MAP Cfg Reg 0
 /*--------------------------------------------------------------------------------*/
-
-#define AVS_CNT_CTL_REG     (TIMER_REGS_BASE + 0x80) // AVS Counter Control Reg
-#define AVS0_CNTVAL_REG     (TIMER_REGS_BASE + 0x84) // AVS0 Counter Value Reg
-#define AVS1_CNTVAL_REG     (TIMER_REGS_BASE + 0x88) // AVS1 Counter Value Reg
-#define AVS_CNT_DIVISOR_REG (TIMER_REGS_BASE + 0x8c) // AVS Counter Divisor Reg
-
-
 
 #endif

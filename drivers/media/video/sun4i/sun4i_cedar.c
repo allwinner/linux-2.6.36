@@ -59,7 +59,7 @@
 
 #undef cdebug
 #ifdef CEDAR_DEBUG
-#  define cdebug(fmt, args...) printk( KERN_DEBUG "[cedar]: " fmt, ## args)
+#  define cdebug(fmt, args...) pr_debug( KERN_DEBUG "[cedar]: " fmt, ## args)
 #else
 #  define cdebug(fmt, args...)
 #endif
@@ -74,28 +74,22 @@ module_param(g_dev_minor, int, S_IRUGO);
 #else
 #define VE_IRQ_NO (48)
 #endif
-
+#ifdef CHIP_VERSION_F23
+struct clk *ve_moduleclk, *ve_pll4clk, *ahb_veclk, *dram_veclk, *avs_moduleclk, *hosc_clk;
+#else
 #define CCMU_VE_PLL_REG      (0xf1c20000)
-#define CCMU_AHB_GATE_REG    (0xf1c2000c)
-#define CCMU_SDRAM_PLL_REG   (0xf1c20020)
 #define CCMU_VE_CLK_REG      (0xf1c20028)
-#define CCMU_TS_SS_CLK_REG   (0xf1c2003c)
-#define CCMU_AHB_APB_CFG_REG (0xf1c20008)
-
-#define SRAM_MASTER_CFG_REG  (0xf1c01060)
-#define CPU_SRAM_PRIORITY_REG    (SRAM_MASTER_CFG_REG + 0x00)
-#define VE_SRAM_PRIORITY_REG     (SRAM_MASTER_CFG_REG + 0x20)
-#define IMAGE0_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x10)
-#define SCALE0_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x14)
-#define IMAGE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x24)
-#define SCALE1_SRAM_PRIORITY_REG (SRAM_MASTER_CFG_REG + 0x28)
-
+#endif
 void *reserved_mem = (void *)( (CONFIG_SW_SYSMEM_RESERVED_BASE | 0xC0000000) + 64*1024);
 int cedarmem_size = CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 64*1024;
 
 struct iomap_para{
 	volatile char* regs_macc;
+	#ifdef CHIP_VERSION_F23
+	volatile char* regs_avs;
+	#else
 	volatile char* regs_ccmu;
+	#endif
 };
 
 static DECLARE_WAIT_QUEUE_HEAD(wait_ve);
@@ -154,7 +148,7 @@ static irqreturn_t VideoEngineInterupt(int irq, void *dev)
             break;
         default:            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x100 + 0x14);
-            printk("macc modual sel not defined!\n");
+            pr_debug("macc modual sel not defined!\n");
             break;
     }
 
@@ -280,7 +274,6 @@ static void restore_context()
 	#define save_context() 
 	#define restore_context() 
 #endif
-//#define dbg_print printk
 
 #ifdef CHIP_VERSION_F23
 short VEPLLTable[][6] = 
@@ -333,11 +326,11 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     	case IOCTL_ENGINE_REQ:
 		task_ptr = kmalloc(sizeof(struct cedarv_engine_task), GFP_KERNEL);
 		if(!task_ptr){
-			printk("get mem for IOCTL_ENGINE_REQ\n");
+			pr_debug("get mem for IOCTL_ENGINE_REQ\n");
 			return PTR_ERR(task_ptr);
 		}
 		if(copy_from_user((void*)task_ptr,(void __user*)arg, sizeof(struct __cedarv_task))){
-			printk("IOCTL_ENGINE_REQ copy_from_user fail\n");
+			pr_debug("IOCTL_ENGINE_REQ copy_from_user fail\n");
 			return -EFAULT;
 		}
 
@@ -351,7 +344,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
     	case IOCTL_ENGINE_REL:
 		if (copy_from_user(&karg, (void *)arg, sizeof(unsigned long))){
-			printk("IOCTL_ENGINE_REL,copy_from_user fail\n");
+			pr_debug("IOCTL_ENGINE_REL,copy_from_user fail\n");
 			return -EFAULT;
 		}		
 		ret = cedardev_del_task(karg);//karg是传递过来的id号
@@ -360,7 +353,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		
 		case IOCTL_ENGINE_CHECK_DELAY:
 		if(copy_from_user(&karg,(void *)arg, sizeof(unsigned long))){
-			printk("IOCTL_ENGINE_CHECK_DELAY copy_from_user fail\n");
+			pr_debug("IOCTL_ENGINE_CHECK_DELAY copy_from_user fail\n");
 			return -EFAULT;
 		}
 		ret = cedardev_check_delay(karg);//karg是传递过来的优先级
@@ -378,9 +371,10 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v |= (0x1 << 7);              // Do not gate the speccial clock for DE
 			writel(v, CCMU_VE_CLK_REG);	
 #else
-			v = readl(0xf1c2013c);
-			v |= (1<<31 | 1<<0);
-			writel(v,0xf1c2013c);
+            clk_enable(ve_moduleclk);
+//			v = readl(0xf1c2013c);
+//			v |= (1<<31 | 1<<0);
+//			writel(v,0xf1c2013c);
 #endif			
 			break;
 			
@@ -390,9 +384,10 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v &= ~(0x1 << 7);             // Gate the speccial clock for DE
 			writel(v, CCMU_VE_CLK_REG);	
 #else
-			v = readl(0xf1c2013c);
-			v &= ~(1<<31 | 1<<0);
-			writel(v,0xf1c2013c);
+//			v = readl(0xf1c2013c);
+//			v &= ~(1<<31 | 1<<0);
+//			writel(v,0xf1c2013c);
+			clk_disable(ve_moduleclk);
 #endif			
 			break;
 			
@@ -412,19 +407,9 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v |= (0x1 << 24);            
 			writel(v, CCMU_SDRAM_PLL_REG);
 #else		
-			v = readl(0xf1c20100);
-	        v &= ~(1<<0);
-			writel(v,0xf1c20100);
-			//-----------------------------
-			v = readl(0xf1c2013c);
-			v &= ~(1<<0);
-			writel(v,0xf1c2013c);
-			v |= (1<<0);
-			writel(v,0xf1c2013c);
-			//-----------------------------
-			v = readl(0xf1c20100);
-	        v |= (1<<0);
-			writel(v,0xf1c20100);
+            clk_reset(dram_veclk, 0);
+            clk_reset(ve_moduleclk, 0);
+
 #endif		
 		break;
 		
@@ -439,6 +424,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			{
 				int freq = (int)arg;
 				int fq;
+				int ret = 0;
 				if(freq > 492 || freq < 60){
 					return ret;
 				}
@@ -446,34 +432,31 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					if(freq <= VEPLLTable[fq][0])
 						break;
 				}
-				printk("Attention: set ve freq to %d MHz\n", VEPLLTable[fq][0]);
-				v = readl(0xf1c20018);
-				v &= 0x7ffc0000;
-				v |= 1<<31;
-				v |= (VEPLLTable[fq][5])<<16; //Pb
-				v |= (VEPLLTable[fq][2])<<8; //Nb
-				v |= (VEPLLTable[fq][3])<<4; //Kb
-				v |= (VEPLLTable[fq][4])<<0; //Mb
-				writel(v,0xf1c20018);
+				pr_debug("Attention: set ve freq to %d MHz\n", VEPLLTable[fq][0]);				
+                clk_set_rate(ve_pll4clk, 1000000 * VEPLLTable[fq][0]);   
+                /*clk_get_rate used to test the ve_pll4clk rate*/  
+                ret = clk_get_rate(ve_pll4clk);           
+                pr_debug("After set rate, the ve_pll4clk rate is:%d\n", ret);
 			}
+
 #endif			
 			break;
 		
         case IOCTL_GETVALUE_AVS2:
 			/* Return AVS1 counter value */
-            return readl(devp->iomap_addrs.regs_ccmu + 0xc88);
+            return readl(cedar_devp->iomap_addrs.regs_avs + 0x88);
 
         case IOCTL_ADJUST_AVS2:	    
         {	        
             int arg_s = (int)arg;		
             int temp;	        
             save_context();
-            v = readl(devp->iomap_addrs.regs_ccmu + 0xc8c);				        
+            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        
             temp = v & 0xffff0000;		
             temp =temp + temp*arg_s/100;                
             v = (temp & 0xffff0000) | (v&0x0000ffff);   
-            printk("Kernel AVS ADJUST Print: 0x%x\n", v);             
-            writel(v, devp->iomap_addrs.regs_ccmu + 0xc8c);
+            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
+            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
             restore_context();
             break;
         }
@@ -481,28 +464,22 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         case IOCTL_CONFIG_AVS2:
         	save_context();
 			/* Set AVS counter divisor */
-            v = readl(devp->iomap_addrs.regs_ccmu + 0xc8c);
+            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);
             v = 239 << 16 | (v & 0xffff);
-            writel(v, devp->iomap_addrs.regs_ccmu + 0xc8c);
+            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
 			
 			/* Enable AVS_CNT1 and Pause it */
-            v = readl(devp->iomap_addrs.regs_ccmu + 0xc80);
+            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
             v |= 1 << 9 | 1 << 1;
-            writel(v, devp->iomap_addrs.regs_ccmu + 0xc80);
+            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
 
 			/* Set AVS_CNT1 init value as zero  */
-            writel(0, devp->iomap_addrs.regs_ccmu + 0xc88);
+            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
 
 #ifdef CHIP_VERSION_F20
             v = readl(devp->iomap_addrs.regs_ccmu + 0x040);
             v |= 1<<8;
             writel(v, devp->iomap_addrs.regs_ccmu + 0x040);
-#endif
-
-#ifdef CHIP_VERSION_F23
-			v = readl(devp->iomap_addrs.regs_ccmu + 0x144);
-            v |= 1<<31;
-            writel(v, devp->iomap_addrs.regs_ccmu + 0x144);
 #endif
 			restore_context();
             break;
@@ -510,25 +487,25 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         case IOCTL_RESET_AVS2:
             /* Set AVS_CNT1 init value as zero */
             save_context();
-            writel(0, devp->iomap_addrs.regs_ccmu + 0xc88);
+            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
             restore_context();
             break;
             
         case IOCTL_PAUSE_AVS2:
             /* Pause AVS_CNT1 */
             save_context();
-            v = readl(devp->iomap_addrs.regs_ccmu + 0xc80);
+            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
             v |= 1 << 9;
-            writel(v, devp->iomap_addrs.regs_ccmu + 0xc80);
+            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
             restore_context();
             break;
             
         case IOCTL_START_AVS2:
 		    /* Start AVS_CNT1 : do not pause */
 		    save_context();
-            v = readl(devp->iomap_addrs.regs_ccmu + 0xc80);
+            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
             v &= ~(1 << 9);
-            writel(v, devp->iomap_addrs.regs_ccmu + 0xc80);
+            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
             restore_context();
             break;
 
@@ -560,9 +537,7 @@ static int cedardev_open(struct inode *inode, struct file *filp)
 	
 	/* init other resource here */
     devp->irq_flag = 0;
-
 	up(&devp->sem);
-
 	nonseekable_open(inode, filp);
 	return 0;
 }
@@ -572,14 +547,11 @@ static int cedardev_release(struct inode *inode, struct file *filp)
 	struct cedar_dev *devp;
 	
 	devp = filp->private_data;
-
 	if (down_interruptible(&devp->sem)) {
 		return -ERESTARTSYS;
-	}
-	
+	}	
 	/* release other resource here */
     devp->irq_flag = 1;
-
 	up(&devp->sem);
 	return 0;
 }
@@ -607,7 +579,6 @@ static int cedardev_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	unsigned int io_ram = 0;
     VAddr = vma->vm_pgoff << 12;
-
 	addrs = cedar_devp->iomap_addrs;
 
     if(VAddr == (unsigned int)addrs.regs_macc) {
@@ -659,12 +630,12 @@ static struct file_operations cedardev_fops = {
 
 static int __init cedardev_init(void)
 {
-	int ret;
+	int ret = 0;
 	int devno;
 	unsigned int val;
 	dev_t dev = 0;
 	
-	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
+	printk("[cedar dev]: install start!!!\n");
 	/*register or alloc the device number.*/
 	if (g_dev_major) {
 		dev = MKDEV(g_dev_major, g_dev_minor);	
@@ -675,21 +646,16 @@ static int __init cedardev_init(void)
 		g_dev_minor = MINOR(dev);
 	}
 
-	 printk("[cedar dev]: install start..1. \n");
-
 	if (ret < 0) {
-		printk(KERN_WARNING "cedar_dev: can't get major %d\n", g_dev_major);
+		pr_debug(KERN_WARNING "cedar_dev: can't get major %d\n", g_dev_major);
 		return ret;
 	}
 	
-	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
 	cedar_devp = kmalloc(sizeof(struct cedar_dev), GFP_KERNEL);
 	if (cedar_devp == NULL) {
-		printk("malloc mem for cedar device err\n");
+		pr_debug("malloc mem for cedar device err\n");
 		return -ENOMEM;
-	}
-	
-	printk("[cedar dev]: install start..2. \n");
+	}		
 	memset(cedar_devp, 0, sizeof(struct cedar_dev));
 	cedar_devp->irq = VE_IRQ_NO;
 
@@ -700,26 +666,21 @@ static int __init cedardev_init(void)
 
     ret = request_irq(VE_IRQ_NO, VideoEngineInterupt, 0, "cedar_dev", NULL);
     if (ret < 0) {
-        printk("request irq err\n");
+        pr_debug("request irq err\n");
         return -EINVAL;
     }
-	
-	printk("the func: %s, the Line: %d\n", __func__, __LINE__);    	
-    printk("[cedar dev]: install start..3. \n");
-    /* map for macc io space */
+	/* map for macc io space */
     cedar_devp->iomap_addrs.regs_macc = ioremap(MACC_REGS_BASE, 4096);
     if (!cedar_devp->iomap_addrs.regs_macc){
-        printk("cannot map region for macc");
+        pr_debug("cannot map region for macc");
     }
 	/* map for ccmu io space */
-	cedar_devp->iomap_addrs.regs_ccmu = ioremap(CCMU_REGS_BASE, 4096); //1024 ?
+	#ifdef CHIP_VERSION_F20
+	cedar_devp->iomap_addrs.regs_ccmu = ioremap(CCMU_REGS_BASE, 1024); //1024 ?
 	if (!cedar_devp->iomap_addrs.regs_ccmu){        
-		printk("cannot map region for ccmu");        
+		pr_debug("cannot map region for ccmu");        
 	} 
-	printk("%s %d\n", __FUNCTION__, __LINE__);
-
-
-#ifdef CHIP_VERSION_F20
+	pr_debug("%s %d\n", __FUNCTION__, __LINE__);
 	writel(0x00000309, 0xf1c01060); 
 	writel(0x00000309, 0xf1c01064); 
 	writel(0x00000301, 0xf1c01068); 
@@ -746,7 +707,7 @@ static int __init cedardev_init(void)
 	//         0x1e->210;
 	val |= 0x19;                
 	writel(val, CCMU_VE_PLL_REG);
-	printk("-----[cedar_dev] set ve clock -> %#x\n", val);
+	pr_debug("-----[cedar_dev] set ve clock -> %#x\n", val);
 
 	val = readl(CCMU_AHB_GATE_REG); 
 	val |= (0x1 << 15);             // Disable VE AHB clock gating
@@ -762,77 +723,91 @@ static int __init cedardev_init(void)
 	writel(val, CCMU_SDRAM_PLL_REG);
 
 #else
+    cedar_devp->iomap_addrs.regs_avs = ioremap(AVS_REGS_BASE, 1024);	
+	ve_pll4clk = clk_get(NULL,"ve_pll");
+	if (-1 == clk_enable(ve_pll4clk)) {
+		pr_debug("ve_pll4clk failed; \n");
+	}
+	clk_set_rate(ve_pll4clk, 288000000);	
+	
+	/*clk_get_rate used to testing the freq!!!*/
+	ret = clk_get_rate(ve_pll4clk);      
+	printk("After set rate, the ve_pll4clk rate is:%d\n", ret);
+	/* getting ahb clk for ve!(macc) */
+	ahb_veclk = clk_get(NULL,"ahb_ve");		
+	if (-1 == clk_enable(ahb_veclk)) {
+		pr_debug("ahb_veclk failed; \n");
+	}
 
-	//macc PLL
-	val = readl(0xf1c20018);
-	val &= 0x7ffc0000;
-	val |= 1<<31;
-	val |= (0x0)<<16; //Pb
-	val |= (0x3)<<8; //Nb
-	val |= (0x3)<<4; //Kb
-	val |= (0x0)<<0; //Mb
-	writel(val,0xf1c20018);
-	
-	//Active AHB bus to MACC
-	val = readl(0xf1c20064);
-	val |= (1<<0);
-	writel(val,0xf1c20064);
-	
-	//Power on and release reset ve
-	val = readl(0xf1c2013c);
-	val &= ~(1<<0); //reset ve
-	writel(val,0xf1c2013c);
+	ve_moduleclk = clk_get(NULL,"ve");	
+	if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
+		pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+	}
+	if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
+		pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+	}
+	if (-1 == clk_enable(ve_moduleclk)) {
+		pr_debug("ve_moduleclk failed; \n");
+	}	
+	if(clk_reset(ve_moduleclk, 1)){
+		pr_debug("reset ve_moduleclk failed!!!\n");
+	}
+		
+	/*geting dram clk for ve!*/
+	dram_veclk = clk_get(NULL, "sdram_ve");
 
-	val = readl(0xf1c2013c);
-	val |= (1<<31);
-	val |= (1<<0);
-	writel(val,0xf1c2013c);
+	if (-1 == clk_enable(dram_veclk)) {
+		pr_debug("dram_veclk failed; \n");
+	}
 	
-	//gate on the bus to SDRAM
-	val = readl(0xf1c20100);
-	val |= (1<<0);
-	writel(val,0xf1c20100);
-	
+    hosc_clk = clk_get(NULL,"hosc");	
+    avs_moduleclk = clk_get(NULL,"avs");	
+	if (clk_set_parent(avs_moduleclk, hosc_clk)) {
+		pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
+	}
+	if (-1 == clk_enable(avs_moduleclk)) {
+		pr_debug("ve_moduleclk failed; \n");
+	}
 	//VE_SRAM mapping to AC320
 	val = readl(0xf1c00000);
 	val &= 0x80000000;
-	writel(val,0xf1c00000);
-	
+	writel(val,0xf1c00000);	
 	//remapping SRAM to MACC for codec test
 	val = readl(0xf1c00000);
 	val |= 0x7fffffff;
 	writel(val,0xf1c00000);
 	
-#endif
-	
+	/*for clk test*/
+	printk("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
+	printk("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
+	printk("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
+	printk("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
+	printk("SRAM:0xf1c00000 is:%x\n", *(volatile int *)0xf1c00000);
+#endif	
 	/* Create char device */
-	printk("the func: %s, the Line: %d\n", __func__, __LINE__);
 	devno = MKDEV(g_dev_major, g_dev_minor);
 	cdev_init(&cedar_devp->cdev, &cedardev_fops);
 	cedar_devp->cdev.owner = THIS_MODULE;
 	cedar_devp->cdev.ops = &cedardev_fops;
 	ret = cdev_add(&cedar_devp->cdev, devno, 1);
 	if (ret) {
-		printk(KERN_NOTICE "Err:%d add cedardev", ret);
-	}
-    printk("[cedar dev]: dev install successfully \n");
-    
+		pr_debug(KERN_NOTICE "Err:%d add cedardev", ret);
+	}   
     cedar_devp->class = class_create(THIS_MODULE, "cedar_dev");
     cedar_devp->dev   = device_create(cedar_devp->class, NULL, devno, NULL, "cedar_dev");
-	printk("the func: %s, the Line: %d\n", __func__, __LINE__);    	
 
 	cedarv_tsk = kthread_create(cedarv_tread, NULL, "cedarv_tread");
 	if (IS_ERR(cedarv_tsk)) {
 		ret = PTR_ERR(cedarv_tsk);
 		cedarv_tsk = NULL;
-		printk("create_thread for the cedar_engine error\n");
+		pr_debug("create_thread for the cedar_engine error\n");
 		return ret;
 	}
 	wake_up_process(cedarv_tsk);
+	pr_debug("[cedar dev]: install end!!!\n");
 	return 0;
 }
 module_init(cedardev_init);
-
 
 static void __exit cedardev_exit(void)
 {
@@ -841,8 +816,18 @@ static void __exit cedardev_exit(void)
 
     free_irq(VE_IRQ_NO, NULL);
 	iounmap(cedar_devp->iomap_addrs.regs_macc);
+	#ifdef CHIP_VERSION_F20
 	iounmap(cedar_devp->iomap_addrs.regs_ccmu);
-
+	#else
+	iounmap(cedar_devp->iomap_addrs.regs_avs);
+	clk_disable(ve_moduleclk);	
+	clk_put(ve_moduleclk);	
+	clk_put(dram_veclk);
+	clk_put(ahb_veclk);
+	clk_put(ve_pll4clk);
+	clk_disable(avs_moduleclk);	
+	clk_put(avs_moduleclk);
+	#endif
 	/* Destroy char device */
 	if (cedar_devp) {
 		cdev_del(&cedar_devp->cdev);
