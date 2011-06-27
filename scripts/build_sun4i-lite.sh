@@ -78,6 +78,8 @@ build_modules()
     #    CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all
 
     export LANG=en_US.UTF-8
+    unset LANGUAGE
+
     cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali
     USING_MMU=1 USING_UMP=0 USING_PMM=0 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
     cp mali.ko ${LICHEE_MOD_DIR}
