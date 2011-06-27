@@ -1106,10 +1106,12 @@ int sw_usb_disable_ehci(__u32 usbc_no)
 
 	DMSG_INFO("sw_usb_disable_ehci%d\n", sw_ehci->usbc_no);
 
+#ifdef CONFIG_PM
 	ehci_bus_suspend(hcd);
 	udelay(1000);
 	sw_ehci_hcd_suspend(dev);
 	udelay(1000);
+#endif
 
 	return 0;
 }
@@ -1164,8 +1166,10 @@ int sw_usb_enable_ehci(__u32 usbc_no)
 
 	DMSG_INFO("sw_usb_enable_ehci%d\n", sw_ehci->usbc_no);
 
+#ifdef CONFIG_PM
 	sw_ehci_hcd_resume(dev);
 	ehci_bus_resume(hcd);
+#endif
 
 	return 0;
 }
