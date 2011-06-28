@@ -17,6 +17,7 @@
 */
 #include "standby_i.h"
 
+#define TWI_CHECK_TIMEOUT       (0xff)
 
 static __twic_reg_t*   TWI_REG_BASE[3] = {
     (__twic_reg_t*)SW_VA_TWI0_IO_BASE,
@@ -47,7 +48,7 @@ __s32 standby_twi_init(int group)
     twi_reg  = TWI_REG_BASE[group];
     TwiClkRegBak = twi_reg->reg_clkr;
     TwiCtlRegBak = 0x80&twi_reg->reg_ctl;/* backup INT_EN;no need for BUS_EN(0xc0)  */
-    twi_reg->reg_clkr = (2<<3)|1;
+    twi_reg->reg_clkr = (2<<3)|3;
     twi_reg->reg_reset |= 0x1;
 
     return 0;
@@ -68,11 +69,10 @@ __s32 standby_twi_init(int group)
 */
 __s32 standby_twi_exit(void)
 {
-    unsigned int i = 0xff;
     /* softreset twi module  */
     twi_reg->reg_reset |= 0x1;
     /* delay */
-    for(; i > 0; i--);
+    standby_mdelay(10);
 
     /* restore clock division */
     twi_reg->reg_clkr = TwiClkRegBak;
@@ -97,7 +97,7 @@ __s32 standby_twi_exit(void)
 static int _standby_twi_stop(void)
 {
     unsigned int   nop_read;
-    unsigned int   timeout = 0xff;
+    unsigned int   timeout = TWI_CHECK_TIMEOUT;
 
     twi_reg->reg_ctl = (twi_reg->reg_ctl & 0xc0) | 0x10;/* set stop+clear int flag */
 
@@ -110,14 +110,14 @@ static int _standby_twi_stop(void)
         return -1;
     }
     // 2. twi fsm is idle(0xf8).
-    timeout = 0xff;
+    timeout = TWI_CHECK_TIMEOUT;
     while((0xf8 != twi_reg->reg_status)&&(timeout--));
     if(timeout == 0)
     {
         return -1;
     }
     // 3. twi scl & sda must high level.
-    timeout = 0xff;
+    timeout = TWI_CHECK_TIMEOUT;
     while((0x3a != twi_reg->reg_lctl)&&(timeout--));
     if(timeout == 0)
     {
@@ -165,7 +165,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
 
     //1.Send Start
     twi_reg->reg_ctl |= 0x20;
-    timeout = 0xff;
+    timeout = TWI_CHECK_TIMEOUT;
     while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
     if(timeout == 0)
     {
@@ -180,7 +180,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
     //2.Send Slave Address
     twi_reg->reg_data = (saddr<<1) | 0; /* slave address + write */
     twi_reg->reg_ctl &= 0xf7;/* clear int flag */
-    timeout = 0xff;
+    timeout = TWI_CHECK_TIMEOUT;
     while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
     if(timeout == 0)
     {
@@ -195,7 +195,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
     //3.Send Byte Address
     twi_reg->reg_data = baddr;
     twi_reg->reg_ctl &= 0xf7;/* clear int flag */
-    timeout = 0xff;
+    timeout = TWI_CHECK_TIMEOUT;
     while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
     if(timeout == 0)
     {
@@ -212,7 +212,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
         //4.Send Data to be write
         twi_reg->reg_data = *data;
         twi_reg->reg_ctl &= 0xf7;/* clear int flag */
-        timeout = 0xff;
+        timeout = TWI_CHECK_TIMEOUT;
         while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
         if(timeout == 0)
         {
@@ -228,7 +228,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
     {
         //4. Send restart for read
         twi_reg->reg_ctl = (twi_reg->reg_ctl & 0xc0) | 0x20;/* set start+clear int flag */
-        timeout = 0xff;
+        timeout = TWI_CHECK_TIMEOUT;
         while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
         if(timeout == 0)
         {
@@ -243,7 +243,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
         //5.Send Slave Address
         twi_reg->reg_data = (saddr<<1) | 1;/* slave address+ read */
         twi_reg->reg_ctl &= 0xf7;/* clear int flag then 0x40 come in */
-        timeout = 0xff;
+        timeout = TWI_CHECK_TIMEOUT;
         while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
         if(timeout == 0)
         {
@@ -257,7 +257,7 @@ __s32 twi_byte_rw(enum twi_op_type_e op, __u8 saddr, __u8 baddr, __u8 *data)
 
         //6.Get data
         twi_reg->reg_ctl &= 0xf7;/* clear int flag then data come in */
-        timeout = 0xff;
+        timeout = TWI_CHECK_TIMEOUT;
         while((!(twi_reg->reg_ctl & 0x08))&&(timeout--));
         if(timeout == 0)
         {

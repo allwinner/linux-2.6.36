@@ -32,7 +32,7 @@ typedef unsigned long long  __u64;
 
 void standby_memcpy(void *dest, void *src, int n);
 void standby_mdelay(int ms);
-
+void standby_delay(int cycle);
 
 #endif  //__COMMON_H__
 

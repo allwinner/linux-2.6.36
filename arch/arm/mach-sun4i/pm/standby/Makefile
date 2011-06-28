@@ -11,11 +11,11 @@ INCLUDE   = -I$(SRCDIR)\
 
 INPUTFILE = common.c standby.c stack.S standby_clock.c dram/dram.c  \
             standby_int.c standby_ir.c standby_key.c standby_power.c    \
-            standby_tmr.c standby_twi.c standby_usb.c
+            standby_tmr.c standby_twi.c standby_usb.c standby_delay.S
 
 OBJ = common.o standby.o stack.o standby_clock.o dram/dram.o    \
       standby_int.o standby_ir.o standby_key.o standby_power.o  \
-      standby_tmr.o standby_twi.o standby_usb.o
+      standby_tmr.o standby_twi.o standby_usb.o standby_delay.o
 
 
 OUPUTFILE = standby
@@ -35,6 +35,7 @@ all:$(INPUTFILE)
 	$(CROSS_COMPILE)gcc $(INCLUDE) $(CFLAGS) standby_tmr.c      -o standby_tmr.o
 	$(CROSS_COMPILE)gcc $(INCLUDE) $(CFLAGS) standby_twi.c      -o standby_twi.o
 	$(CROSS_COMPILE)gcc $(INCLUDE) $(CFLAGS) standby_usb.c      -o standby_usb.o
+	$(CROSS_COMPILE)gcc $(INCLUDE) $(CFLAGS) standby_delay.S    -o standby_delay.o
 	$(CROSS_COMPILE)gcc $(INCLUDE) $(CFLAGS) dram/dram.c        -o dram/dram.o
 	$(CROSS_COMPILE)gcc $(INCLUDE) $(CFLAGS) stack.S            -o stack.o
 

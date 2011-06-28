@@ -30,11 +30,6 @@
 #include <asm/io.h>
 #include <linux/power/aw_pm.h>
 
-#ifdef CONFIG_AW_AXP
-#include <linux/i2c.h>
-#include <linux/mfd/axp-mfd.h>
-#endif
-
 #define AW_PM_DBG   1
 #undef PM_DBG
 #if(AW_PM_DBG)
@@ -52,7 +47,7 @@ extern char *standby_bin_end;
 
 static struct aw_pm_info standby_info = {
     .standby_para = {
-        .event = SUSPEND_WAKEUP_SRC_KEY,
+        .event = SUSPEND_WAKEUP_SRC_EXINT,
     },
     .pmu_arg = {
         .twi_port = 0,
@@ -110,11 +105,6 @@ static int aw_pm_valid(suspend_state_t state)
 int aw_pm_begin(suspend_state_t state)
 {
     PM_DBG("%d state begin\n", state);
-
-    #ifdef CONFIG_AW_AXP
-    /* config pmu interrupt for wakeup */
-    axp_register_notifier(&axp->dev, 0, AXP19_IRQ_PEKLO|AXP19_IRQ_PEKSH|AXP18_IRQ_BATLO);
-    #endif
 
     return 0;
 }
@@ -255,10 +245,6 @@ void aw_pm_finish(void)
 void aw_pm_end(void)
 {
     PM_DBG("aw_pm_end!\n");
-    #ifdef CONFIG_AW_AXP
-    /* config pmu interrupt for wakeup */
-    axp_unregister_notifier(&axp->dev, 0, AXP19_IRQ_PEKLO|AXP19_IRQ_PEKSH|AXP18_IRQ_BATLO);
-    #endif
 }
 
 

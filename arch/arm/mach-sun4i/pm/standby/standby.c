@@ -118,7 +118,7 @@ int main(struct aw_pm_info *arg)
     standby_power_exit();
     standby_tmr_exit();
     standby_int_exit();
-    standby_clk_init();
+    standby_clk_exit();
 
     /* report which wake source wakeup system */
     arg->standby_para.event = pm_info.standby_para.event;
@@ -140,6 +140,10 @@ int main(struct aw_pm_info *arg)
 */
 static void standby(void)
 {
+    /* switch cpu clock to HOSC, and disable pll */
+    standby_clk_core2hosc();
+    standby_clk_plldisable();
+
     /* backup voltages */
     dcdc2 = standby_get_voltage(POWER_VOL_DCDC2);
     dcdc3 = standby_get_voltage(POWER_VOL_DCDC3);
@@ -147,10 +151,6 @@ static void standby(void)
     ldo2 = standby_get_voltage(POWER_VOL_LDO2);
     ldo3 = standby_get_voltage(POWER_VOL_LDO3);
     ldo4 = standby_get_voltage(POWER_VOL_LDO4);
-
-    /* switch cpu clock to HOSC, and disable pll */
-    standby_clk_core2hosc();
-    standby_clk_plldisable();
 
     /* adjust voltage */
     standby_set_voltage(POWER_VOL_DCDC2, STANDBY_DCDC2_VOL);
@@ -174,9 +174,6 @@ static void standby(void)
     standby_clk_hoscdisable();
     standby_clk_ldodisable();
     #endif
-
-    /* clear lradc key */
-    standby_query_key();
 
     /* cpu enter sleep, wait wakeup by interrupt */
     asm("WFI");

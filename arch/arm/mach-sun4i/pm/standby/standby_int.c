@@ -60,6 +60,9 @@ __s32 standby_int_init(void)
     IntcReg->TypeSel[1] = 0;
     IntcReg->TypeSel[2] = 0;
 
+    /* clear external irq pending */
+    IntcReg->IrqPend[0] = 1;
+
     return 0;
 }
 

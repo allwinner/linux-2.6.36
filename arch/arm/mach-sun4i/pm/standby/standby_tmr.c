@@ -56,9 +56,9 @@ __s32 standby_tmr_init(void)
 
     /* config timer1 for process udelay */
     TmrReg->Tmr1Ctl  = 0;
-    for(i=0; i<20000; i++);
+    standby_delay(20000);
     TmrReg->Tmr1Ctl  = (1<<7)|(5<<4);
-    for(i=0; i<20000; i++);
+    standby_delay(20000);
 
     return 0;
 }
@@ -187,8 +187,7 @@ void standby_tmr_mdlay(int ms)
     TmrReg->Tmr1IntVal = ms;
     TmrReg->Tmr1Ctl   |= (1<<1);
     TmrReg->Tmr1Ctl   |= (1<<0);
-    for(i=0; i<30000; i++);
-
+    standby_delay(3000);
     while(TmrReg->Tmr1CntVal);
 
     return;

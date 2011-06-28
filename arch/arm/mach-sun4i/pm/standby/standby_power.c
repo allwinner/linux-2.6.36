@@ -17,6 +17,7 @@
 */
 #include "standby_i.h"
 
+static __u8 AxpIrqEn[5];
 
 
 //==============================================================================
@@ -37,7 +38,25 @@
 */
 __s32 standby_power_init(void)
 {
+    __u8 val, mask, reg_val;
+    __s32   i;
+
 	standby_twi_init(AXP_IICBUS);
+
+    #if(AXP_WAKEUP & AXP_WAKEUP_KEY)
+    /* enable pek long/short */
+	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	reg_val |= 0x03;
+	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+    #endif
+
+    #if(AXP_WAKEUP & AXP_WAKEUP_LOWBATT)
+    /* enable low voltage warning */
+	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+	reg_val |= 0x03;
+	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+    #endif
+
     return 0;
 }
 
@@ -55,9 +74,26 @@ __s32 standby_power_init(void)
 */
 __s32 standby_power_exit(void)
 {
+    __u8    reg_val;
+
+    #if(AXP_WAKEUP & AXP_WAKEUP_KEY)
+    /* enable pek long/short */
+	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+	reg_val &= ~0x03;
+	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN3, &reg_val);
+    #endif
+
+    #if(AXP_WAKEUP & AXP_WAKEUP_LOWBATT)
+    /* enable low voltage warning */
+	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+	reg_val &= ~0x03;
+	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+    #endif
+
     standby_twi_exit();
     return 0;
 }
+
 
 static inline int check_range(struct axp_info *info,__s32 voltage)
 {
@@ -156,6 +192,7 @@ void  standby_set_voltage(enum power_vol_type_e type, __s32 voltage)
 		reg_val = (reg_val & ~mask) | val;
 		twi_byte_rw(TWI_OP_WR,AXP_ADDR,info->vol_reg, &reg_val);
 	}
+
 	return;
 }
 

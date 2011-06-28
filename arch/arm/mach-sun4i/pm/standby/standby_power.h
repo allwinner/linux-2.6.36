@@ -41,6 +41,18 @@ enum power_vol_type_e{
 #define AXP20_BUCK2     (0x23)
 #define AXP20_BUCK3     (0x27)
 
+#define AXP20_IRQEN1    (0x40)
+#define AXP20_IRQEN2    (0x41)
+#define AXP20_IRQEN3    (0x42)
+#define AXP20_IRQEN4    (0x43)
+#define AXP20_IRQEN5    (0x44)
+
+#define AXP20_IRQ1      (0x48)
+#define AXP20_IRQ2      (0x49)
+#define AXP20_IRQ3      (0x4A)
+#define AXP20_IRQ4      (0x4B)
+#define AXP20_IRQ5      (0x4C)
+
 #define AXP20LDO1       1300
 
 
@@ -64,6 +76,14 @@ struct axp_info {
     int     vol_shift;
     int     vol_nbits;
 };
+
+
+#define AXP_WAKEUP_KEY          (1<<0)
+#define AXP_WAKEUP_LOWBATT      (1<<1)
+#define AXP_WAKEUP_USB          (1<<2)
+#define AXP_WAKEUP_AC           (1<<3)
+
+#define AXP_WAKEUP              (AXP_WAKEUP_KEY | AXP_WAKEUP_USB | AXP_WAKEUP_AC)
 
 extern __s32 standby_power_init(void);
 extern __s32 standby_power_exit(void);
