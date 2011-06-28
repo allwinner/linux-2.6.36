@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Mon Jun 27 17:14:37 2011
+# Tue Jun 28 09:42:27 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -450,6 +450,7 @@ CONFIG_WIRELESS_EXT=y
 CONFIG_WEXT_CORE=y
 CONFIG_WEXT_PROC=y
 CONFIG_WEXT_SPY=y
+CONFIG_WEXT_PRIV=y
 CONFIG_CFG80211=y
 CONFIG_NL80211_TESTMODE=y
 CONFIG_CFG80211_DEVELOPER_WARNINGS=y
@@ -678,6 +679,7 @@ CONFIG_LIBERTAS=m
 # CONFIG_RT2X00 is not set
 # CONFIG_WL12XX is not set
 # CONFIG_ZD1211RW is not set
+CONFIG_RTL8192CU=m
 
 #
 # Enable WiMAX (Networking options) to see the WiMAX drivers
