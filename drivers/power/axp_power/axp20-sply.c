@@ -31,6 +31,10 @@
 #include "axp-cfg.h"
 #include "axp-sply.h"
 
+static DEFINE_MUTEX(twi_mutex);
+
+
+
 static inline int axp20_vbat_to_mV(uint16_t reg)
 {
 	return ((int)((( reg >> 8) << 4 ) | (reg & 0x000F))) * 1100 / 1000;
@@ -744,6 +748,8 @@ static int axp_main_task(void *arg)
     status_bat = 0;
     pre_status_bat =0;
 
+    mutex_lock(&twi_mutex);
+
 	axp_write(charger->master,AXP20_TIMER_CTL,0x80);
 	axp_reads(charger->master,AXP20_DATA_BUFFER1,2,temp_value);
 	Real_Cou_Flag = (temp_value[0] & 0x80);
@@ -751,6 +757,8 @@ static int axp_main_task(void *arg)
 	if(Real_Cou_Flag)
 		charger->battery_info->energy_full_design=5 * (((temp_value[0] & 0x7f) << 4) + ((temp_value[1] & 0xf0) >> 4));
 	axp_reads(charger->master,AXP20_DATA_BUFFER2,2,temp_value);
+
+    mutex_unlock(&twi_mutex);
 
 	Bat_Rdc = ((temp_value[0] & 0x07) << 8) + temp_value[1];
 
@@ -768,6 +776,9 @@ static int axp_main_task(void *arg)
 
 	while(1){
 		if(kthread_should_stop()) break;
+
+        mutex_lock(&twi_mutex);
+
         axp_charger_update_state(charger);
         axp_charger_update(charger);
 		axp_reads(charger->master,POWER20_INTSTS1, 5, v);
@@ -966,12 +977,15 @@ static int axp_main_task(void *arg)
             	axp_set_bits(charger->master,AXP20_COULOMB_CONTROL,0xA0);
             }
         }
-	/* if battery volume changed, inform uevent */
+	    /* if battery volume changed, inform uevent */
         if(charger->rest_vol - pre_rest_vol){
 			printk("battery vol change: %d, %d \n", pre_rest_vol, charger->rest_vol);
 			pre_rest_vol = charger->rest_vol;
 			power_supply_changed(&charger->batt);
         }
+
+        mutex_unlock(&twi_mutex);
+
 		ssleep(1);
 
     }
@@ -1594,6 +1608,91 @@ static int axp_battery_remove(struct platform_device *dev)
 	return 0;
 }
 
+
+static uint64_t irqs_back;
+
+static int axp20_suspend(struct platform_device *dev, pm_message_t state)
+{
+    uint8_t irq_r[5] = {0, 0, 0, 0, 0};
+    uint8_t irq_w[9];
+
+    struct axp_charger *charger = platform_get_drvdata(dev);
+
+    mutex_lock(&twi_mutex);
+
+    /*clear all irqs events*/
+    irq_w[0] = 0xff;
+	irq_w[1] = POWER20_INTSTS2;
+	irq_w[2] = 0xff;
+	irq_w[3] = POWER20_INTSTS3;
+	irq_w[4] = 0xff;
+	irq_w[5] = POWER20_INTSTS4;
+	irq_w[6] = 0xff;
+	irq_w[7] = POWER20_INTSTS5;
+	irq_w[8] = 0xff;
+	axp_writes(charger->master,POWER20_INTSTS1,9,irq_w);
+
+    /*store irq enabled*/
+    axp_reads(charger->master,POWER20_INTEN1, 5, irq_r);
+	irqs_back = (((uint64_t)irq_r[4]) << 32 )|(irq_r[3] << 24 )|(irq_r[2] << 16) | (irq_r[1] << 8) | irq_r[0];
+
+    return 0;
+}
+
+static int axp20_resume(struct platform_device *dev)
+{
+    struct axp_charger *charger = platform_get_drvdata(dev);
+    uint8_t v[5];
+	uint8_t w[9];
+	uint64_t events;
+	bool peklong;
+    bool pekshort;
+
+    axp_register_notifier(charger->master, NULL, irqs_back);
+
+    axp_reads(charger->master,POWER20_INTSTS1, 5, v);
+    events = (((uint64_t)v[4]) << 32 )|(v[3] << 24 )|(v[2] << 16) | (v[1] << 8) | v[0];
+	w[0] = v[0];
+	w[1] = POWER20_INTSTS2;
+	w[2] = v[1];
+	w[3] = POWER20_INTSTS3;
+	w[4] = v[2];
+	w[5] = POWER20_INTSTS4;
+	w[6] = v[3];
+	w[7] = POWER20_INTSTS5;
+	w[8] = v[4];
+	peklong = (events & AXP20_IRQ_PEKLO)? 1 : 0;
+	pekshort = (events & AXP20_IRQ_PEKSH )? 1 : 0;
+
+    if(peklong)
+	{
+		printk("press long\n");
+		axp_writes(charger->master,POWER20_INTSTS1,9,w);
+		input_report_key(powerkeydev, KEY_POWER, 1);
+		input_sync(powerkeydev);
+		ssleep(2);
+		printk("press long up\n");
+		input_report_key(powerkeydev, KEY_POWER, 0);
+		input_sync(powerkeydev);
+	}
+
+	if(pekshort)
+	{
+		printk("press short\n");
+		axp_writes(charger->master,POWER20_INTSTS1,9,w);
+
+		input_report_key(powerkeydev, KEY_POWER, 1);
+		input_sync(powerkeydev);
+		msleep(100);
+		input_report_key(powerkeydev, KEY_POWER, 0);
+		input_sync(powerkeydev);
+	}
+
+    mutex_unlock(&twi_mutex);
+
+    return 0;
+}
+
 static struct platform_driver axp_battery_driver = {
 	.driver	= {
 		.name	= "axp20-supplyer",
@@ -1601,6 +1700,8 @@ static struct platform_driver axp_battery_driver = {
 	},
 	.probe = axp_battery_probe,
 	.remove = axp_battery_remove,
+	.suspend = axp20_suspend,
+	.resume = axp20_resume,
 };
 
 static int axp_battery_init(void)
