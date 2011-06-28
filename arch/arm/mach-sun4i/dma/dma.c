@@ -1055,7 +1055,7 @@ int sw_dma_request(unsigned int channel,
 	chan->in_use = 1;
 
 	temp = readl(dma_base + SW_DMA_DIRQPD);
-	temp &= ~(3 << (chan->number<<1));
+	temp &= (3 << (chan->number<<1));
 	writel(temp, dma_base + SW_DMA_DIRQPD);
 
 	local_irq_restore(flags);
@@ -1394,7 +1394,7 @@ int sw_dma_config(unsigned int channel, struct dma_hw_conf* user_conf)
 	}
 
 	temp = readl(dma_base + SW_DMA_DIRQEN);
-	temp &= ~(3 << (chan->number<<1));
+	temp &= (3 << (chan->number<<1));
 	temp |= hw_conf->hf_irq << (chan->number<<1);
 	writel(temp, dma_base + SW_DMA_DIRQEN);
 
