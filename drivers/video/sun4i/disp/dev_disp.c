@@ -221,17 +221,17 @@ void DRV_scaler_finish(__u32 sel)
 
 void DRV_disp_wait_cmd_finish(__u32 sel)
 {
-    if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
-    {
-        long timeout = 50 * HZ / 1000;//50ms
+	if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE) {
+		long timeout = 50;//50ms
 
-        g_disp_drv.b_cmd_finished[sel] = 0;
-        timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1, timeout);
-        if(timeout == 0)
-        {
-            __inf("wait cmd finished timeout\n");
-        }
-    }
+		g_disp_drv.b_cmd_finished[sel] = 0;
+		timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1,
+					     msecs_to_jiffies(timeout));
+		if(timeout == 0) {
+			//__inf("wait cmd finished timeout\n");
+			printk("FB: wait cmd finished timeout\n");
+		}
+	}
 }
 
 __s32 DRV_disp_int_process(__u32 sel)
