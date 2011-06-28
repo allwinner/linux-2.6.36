@@ -107,9 +107,9 @@ int g2d_exit(void)
 }
 void g2d_wait_cmd_finish(void)
 {
-	long timeout = 50 * HZ / 1000;
+	long timeout = 30; /* 50ms */
 	
-	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, timeout);
+	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, msecs_to_jiffies(timeout));
 	if(timeout == 0)
 	{
 		printk("wait g2d irq pending flag timeout\n");
