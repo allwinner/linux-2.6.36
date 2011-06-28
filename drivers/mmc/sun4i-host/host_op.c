@@ -711,7 +711,7 @@ static inline void awsmc_procfs_remove(struct awsmc_host *smc_host)
     char awsmc_proc_rootname[16] = {0};
     sprintf(awsmc_proc_rootname, "driver/%s", dev_name(dev));
 
-    remove_proc_entry("proc_dbglevel", smc_host->proc_root);
+    remove_proc_entry("debug-level", smc_host->proc_root);
     remove_proc_entry("register", smc_host->proc_root);
     remove_proc_entry("hostinfo", smc_host->proc_root);
     remove_proc_entry("drv-version", smc_host->proc_root);
