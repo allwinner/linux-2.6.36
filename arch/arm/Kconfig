@@ -275,6 +275,7 @@ config ARCH_SUN4I
 	select ARM_AMBA
 	select HAVE_CLK
 	select ARM_VIC
+	select ZONE_DMA
 	select ARCH_HAS_CPUFREQ
 	#select CHIP_ID
 	#select COMMON_CLKDEV
