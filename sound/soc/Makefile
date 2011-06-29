@@ -21,3 +21,4 @@ obj-$(CONFIG_SND_SOC)	+= txx9/
 obj-$(CONFIG_SND_SOC)	+= sun4i/
 obj-$(CONFIG_SND_SOC)	+= sun4i/i2s/
 obj-$(CONFIG_SND_SOC)	+= sun4i/spdif/
+obj-$(CONFIG_SND_SOC)	+= sun4i/aw_i2s/
