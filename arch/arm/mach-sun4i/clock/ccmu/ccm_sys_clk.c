@@ -668,7 +668,8 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
             __s32   tmpStep = 3, tmpDly;
 
             ccm_clk_get_pll_para(&factor, rate);
-            tmpDly = ccu_clk_uldiv(rate*500, (1<<tmpStep) * 1000000);
+            tmpDly = ccu_clk_uldiv(24 * factor.FactorN * (factor.FactorK + 1), factor.FactorM + 1);
+            tmpDly = ccu_clk_uldiv((__u64)tmpDly*500, (1<<tmpStep));
 
             /* set a high division to set on pll */
             aw_ccu_reg->Pll1Ctl.PLLDivP = tmpStep;
@@ -677,7 +678,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
             aw_ccu_reg->Pll1Ctl.FactorN = factor.FactorN;
             aw_ccu_reg->Pll1Ctl.FactorK = factor.FactorK;
             aw_ccu_reg->Pll1Ctl.FactorM = factor.FactorM;
-            /* delay 200us for pll be stably */
+            /* delay 500us for pll be stably */
             __delay(tmpDly);
 
             /* adjust divider P step by step, and delay 500us for every step */
@@ -686,7 +687,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
                 tmpStep--;
                 tmpDly <<= 1;
                 aw_ccu_reg->Pll1Ctl.PLLDivP = tmpStep;
-                /* delay 200us for pll be stably */
+                /* delay 500us for pll be stably */
                 __delay(tmpDly);
             }
 

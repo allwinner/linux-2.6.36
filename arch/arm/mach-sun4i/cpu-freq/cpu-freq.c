@@ -121,7 +121,7 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
     frequency = cpu_cur.pll / cpu_cur.div.cpu_div;
     frequency /= 4;
     clk_set_rate(clk_axi, frequency);
-    frequency /= 1;
+    frequency /= 2;
     clk_set_rate(clk_ahb, frequency);
     frequency /= 2;
     clk_set_rate(clk_apb, frequency);
