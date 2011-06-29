@@ -40,19 +40,17 @@ typedef enum
 
 extern void delay_ms(__u32 t);
 
-extern void HDMI_set_reg_base(__u32 base);
-extern __s32 Hdmi_hal_set_display_mode(__u8 hdmi_mode);
-extern __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para);
-extern __s32 Hdmi_hal_audio_enable(__u8 mode, __u8 channel);
-extern __s32 Hdmi_hal_mode_support(__u8 mode);
-extern __s32 Hdmi_hal_get_HPD_status(void);
-extern __hdmi_state_t Hdmi_hal_get_connection_status(void);
-extern __s32 Hdmi_hal_standby_exit(void);
-extern __s32 Hdmi_hal_main_task(void);
+extern void  Hdmi_set_reg_base(__u32 base);
 extern __s32 Hdmi_hal_init(void);
 extern __s32 Hdmi_hal_exit(void);
-
-#define DelayMS delay_ms
+extern __s32 Hdmi_hal_video_enable(__bool enable);
+extern __s32 Hdmi_hal_set_display_mode(__u8 hdmi_mode);
+extern __s32 Hdmi_hal_audio_enable(__u8 mode, __u8 channel);
+extern __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para);
+extern __s32 Hdmi_hal_mode_support(__u8 mode);
+extern __s32 Hdmi_hal_get_HPD(void);
+extern __s32 Hdmi_hal_get_state(void);
+extern __s32 Hdmi_hal_main_task(void);
 
 
 #endif
