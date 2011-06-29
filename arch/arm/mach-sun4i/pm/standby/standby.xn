@@ -4,6 +4,7 @@ ENTRY(main)
 
 SECTIONS
 {
+	__standby_start = . ;
 	.text 0xf0000000 :
 	{
 		standby.o(.text)
@@ -15,5 +16,6 @@ SECTIONS
 	__bss_start = . ;
 	.bss : { *(.sbss) *(.scommon) *(.bss) *(COMMON) }
 	__bss_end = .;
+	__standby_end = . ;
 }
 

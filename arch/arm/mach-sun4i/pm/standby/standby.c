@@ -22,6 +22,8 @@ extern unsigned int save_sp(void);
 extern void restore_sp(unsigned int sp);
 extern char *__bss_start;
 extern char *__bss_end;
+extern char *__standby_start;
+extern char *__standby_end;
 
 static sp_backup;
 static void standby(void);
@@ -59,6 +61,8 @@ int main(struct aw_pm_info *arg)
 
     /* copy standby parameter from dram */
     standby_memcpy(&pm_info, arg, sizeof(pm_info));
+    /* copy standby code & data to load tlb */
+    standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
 
     /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
     /* init module before dram enter selfrefresh */
