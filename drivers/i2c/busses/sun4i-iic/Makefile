@@ -1,4 +1,4 @@
 
-i2c-sun3i-bus-y :=  sun3i_i2c_private.o sun3i_i2c.o
+i2c-sun4i-bus-y :=  sun4i_i2c_private.o sun4i_i2c.o
 
-obj-$(CONFIG_SUN4I_IIC) += i2c-sun3i-bus.o
+obj-$(CONFIG_SUN4I_IIC) += i2c-sun4i-bus.o

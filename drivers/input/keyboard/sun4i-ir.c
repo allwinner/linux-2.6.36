@@ -30,6 +30,17 @@ static u32 ir_gpio_hdle;
 
 #define SYS_GPIO_CFG_EN
 #define SYS_CLK_CFG_EN
+//#define DEBUG_IR
+
+#ifdef DEBUG_IR
+#define DEBUG_IR_LEVEL0
+#define DEBUG_IR_LEVEL2
+#define DEBUG_IR_LEVEL1
+#else
+#undef DEBUG_IR_LEVEL0
+#undef DEBUG_IR_LEVEL2
+#undef DEBUG_IR_LEVEL1
+#endif
 
 //#define DEBUG_IR_LEVEL0
 //#define DEBUG_IR_LEVEL2
@@ -89,8 +100,8 @@ static unsigned int ir_cnt = 0;
 
 static struct input_dev *ir_dev;
 static struct timer_list *s_timer; 
-unsigned long ir_code=0;
-int timer_used=0;
+static unsigned long ir_code=0;
+static int timer_used=0;
 
 struct ir_raw_buffer	
 {
@@ -555,8 +566,12 @@ static int __init ir_init(void)
 	ir_dev->id.product = 0x0001;
 	ir_dev->id.version = 0x0100;
 
+    #ifdef REPORT_REPEAT_KEY_VALUE
 	ir_dev->evbit[0] = BIT_MASK(EV_KEY)|BIT_MASK(EV_REP) ;
-
+    #else
+    ir_dev->evbit[0] = BIT_MASK(EV_KEY);
+    #endif
+    
 	for (i = 0; i < 256; i++)
 		set_bit(ir_keycodes[i], ir_dev->keybit);
 		

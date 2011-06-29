@@ -654,4 +654,9 @@ config  TOUCHSCREEN_SUN4I_TS
        help
            sun4i-ts touchscreen driver
 
+config  TOUCHSCREEN_BYD_0X7E_TS
+       tristate  "byd0x7ets touchscreen driver"
+       help
+          byd0x7ets touchscreen driver
+
 endif

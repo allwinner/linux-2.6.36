@@ -43,7 +43,7 @@
 #define  FIRST_CONCERT_DLY   (2<<24)
 #define  CHAN                (0)
 #define  ADC_CHAN_SELECT     (CHAN<<22)
-#define  LRADC_KEY_MODE      (1)
+#define  LRADC_KEY_MODE      (0)
 #define  KEY_MODE_SELECT     (LRADC_KEY_MODE<<12)
 #define  LEVELB_VOL          (0<<4)
 
@@ -151,11 +151,22 @@ static volatile unsigned int key_val;
 static struct input_dev *sun4ikbd_dev;
 static unsigned char scancode;
 
+#define REPORT_START_NUM           (5)
+#define REPORT_KEY_LOW_LIMIT_COUNT (3)
+#define MAX_CYCLE_COUNTER          (100)
+//#define REPORT_REPEAT_KEY_BY_INPUT_CORE
+//#define REPORT_REPEAT_KEY_FROM_HW
+#define INITIAL_VALUE              (0Xff)
 
+static unsigned char key_cnt = 0;
+static unsigned char cycle_buffer[REPORT_START_NUM] = {0};
+static unsigned char transfer_code = INITIAL_VALUE;
 
 static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 {
 	unsigned int  reg_val;
+	int judge_flag = 0;
+	int loop = 0;
 	
 	#ifdef KEY_DEBUG
 	    printk("Key Interrupt\n");
@@ -171,24 +182,127 @@ static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 	
 	if(reg_val&LRADC_ADC0_DATAPEND)
 	{
-		key_val = readl(KEY_BASSADDRESS + LRADC_DATA0);
-		scancode = keypad_mapindex[key_val&0x3f];
-        #ifdef KEY_DEBUG
-		    printk("key_val == %u , scancode == %u \n", key_val, scancode);
-        #endif
-
-		input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
-		input_sync(sun4ikbd_dev);			
-	}   
+	    key_val = readl(KEY_BASSADDRESS+LRADC_DATA0);
+        if(key_val < 0x3f)
+        {
+        		/*key_val = readl(KEY_BASSADDRESS + LRADC_DATA0);
+                  cancode = keypad_mapindex[key_val&0x3f];
+                  #ifdef KEY_DEBUG
+                  printk("raw data: key_val == %u , scancode == %u \n", key_val, scancode);
+                  #endif
+                  */
+        
+                cycle_buffer[key_cnt%REPORT_START_NUM] = key_val&0x3f;
+                if((key_cnt + 1) < REPORT_START_NUM)
+                {
+                    //do not report key message
+                     
+                }else{
+                       //scancode = cycle_buffer[(key_cnt-2)%REPORT_START_NUM];
+                       if(cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM] \
+                                       == cycle_buffer[(key_cnt - REPORT_START_NUM + 2)%REPORT_START_NUM])
+                        {
+                                key_val = cycle_buffer[(key_cnt - REPORT_START_NUM + 1)%REPORT_START_NUM];
+                                scancode = keypad_mapindex[key_val&0x3f];
+                                judge_flag = 1;
+                         
+                        }  
+                        if((!judge_flag) && cycle_buffer[(key_cnt - REPORT_START_NUM + 4)%REPORT_START_NUM] \
+                                       == cycle_buffer[(key_cnt - REPORT_START_NUM + 5)%REPORT_START_NUM])
+                        {
+                                key_val = cycle_buffer[(key_cnt - REPORT_START_NUM + 5)%REPORT_START_NUM];
+                                scancode = keypad_mapindex[key_val&0x3f];
+                                judge_flag = 1;
+                                                                   
+                        }  
+                        if(1 == judge_flag)
+                        {
+                            #ifdef KEY_DEBUG_LEVEL2
+                                printk("report data: key_val :%8d transfer_code: %8d , scancode: %8d\n",\
+                                        key_val, transfer_code, scancode);
+                            #endif
+                            
+                            if(transfer_code == scancode){
+                                //report repeat key value
+                                #ifdef REPORT_REPEAT_KEY_FROM_HW
+                                    input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 0);
+                                    input_sync(sun4ikbd_dev);
+                                    input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
+                                    input_sync(sun4ikbd_dev);
+                                #else
+                                //do not report key value
+                                #endif
+                            }else if(INITIAL_VALUE != transfer_code){                                 
+                                 //report previous key value up signal + report current key value down
+                                 input_report_key(sun4ikbd_dev, sun4i_scankeycodes[transfer_code], 0);
+                                 input_sync(sun4ikbd_dev);
+                                 input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
+                                 input_sync(sun4ikbd_dev);
+                                 transfer_code = scancode;
+                                
+                            }else{
+                                 //INITIAL_VALUE == transfer_code, first time to report key event
+                                 input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
+                                 input_sync(sun4ikbd_dev);
+                                 transfer_code = scancode;
+                            }
+                            
+                        }
+                              
+                }
+               key_cnt++;
+               if(key_cnt > 2 * MAX_CYCLE_COUNTER ){
+                    key_cnt -= MAX_CYCLE_COUNTER;
+               }
+               
+         }
+     }
         
 	if(reg_val&LRADC_ADC0_UPPEND)
 	{
-		input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 0);
-		input_sync(sun4ikbd_dev);	
-		#ifdef KEY_DEBUG
-		    printk("key up \n");
-		#endif	
+	    if(key_cnt > REPORT_START_NUM)
+	    {
+	        if(INITIAL_VALUE != transfer_code)
+	        {
+	            #ifdef KEY_DEBUG_LEVEL2
+                    printk("report data: key_val :%8d transfer_code: %8d \n",key_val, transfer_code);
+                #endif
+                input_report_key(sun4ikbd_dev, sun4i_scankeycodes[transfer_code], 0);
+                input_sync(sun4ikbd_dev);
+	        }
+            
+	    }else if((key_cnt + 1) >= REPORT_KEY_LOW_LIMIT_COUNT)
+	    {   
+	        //rely on hardware first_delay work, need to be verified!
+            if(cycle_buffer[0] == cycle_buffer[1])
+            {
+                key_val = cycle_buffer[0];
+                scancode = keypad_mapindex[key_val&0x3f];
+                 #ifdef KEY_DEBUG_LEVEL2
+                     printk("report data: key_val :%8d scancode: %8d \n",key_val, scancode);
+                 #endif
+                input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 1);
+                input_sync(sun4ikbd_dev);   
+                input_report_key(sun4ikbd_dev, sun4i_scankeycodes[scancode], 0);
+                input_sync(sun4ikbd_dev);  
+            }
+
+	    }
+	    
+#ifdef KEY_DEBUG
+             printk("key up \n");
+#endif
+
+        key_cnt = 0;
+        judge_flag = 0;
+        transfer_code = INITIAL_VALUE;
+        for(loop = 0; loop < REPORT_START_NUM; loop++)
+        {
+            cycle_buffer[loop] = 0; 
+        }
+       
 	}
+	
 	writel(reg_val,KEY_BASSADDRESS + LRADC_INT_STA);
 	return IRQ_HANDLED;
 }
@@ -215,7 +329,12 @@ static int __init sun4ikbd_init(void)
 	sun4ikbd_dev->id.product = 0x0001;
 	sun4ikbd_dev->id.version = 0x0100;
 
-	sun4ikbd_dev->evbit[0] = BIT_MASK(EV_KEY)|BIT_MASK(EV_REP) ;
+    #ifdef REPORT_REPEAT_KEY_BY_INPUT_CORE
+	    sun4ikbd_dev->evbit[0] = BIT_MASK(EV_KEY)|BIT_MASK(EV_REP);
+	    printk("REPORT_REPEAT_KEY_BY_INPUT_CORE is defined, support report repeat key value. \n");
+	#else
+	    sun4ikbd_dev->evbit[0] = BIT_MASK(EV_KEY);
+	#endif
 
 	for (i = 0; i < KEY_MAX_CNT; i++)
 		set_bit(sun4i_scankeycodes[i], sun4ikbd_dev->keybit);
