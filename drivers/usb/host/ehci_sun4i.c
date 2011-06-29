@@ -57,6 +57,219 @@ extern int usb_disabled(void);
 
 /*
 *******************************************************************************
+*                     USBC_Phy_GetCsr
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static __u32 USBC_Phy_GetCsr(__u32 usbc_no)
+{
+	__u32 val = 0x0;
+
+	switch(usbc_no){
+		case 0:
+			val = SW_VA_USB0_IO_BASE + 0x404;
+		break;
+
+		case 1: 
+			val = SW_VA_USB0_IO_BASE + 0x404;
+		break;
+
+		case 2:
+			val = SW_VA_USB0_IO_BASE + 0x404;
+		break;
+
+		default:
+		break;
+	}
+
+	return val;
+}
+
+/*
+*******************************************************************************
+*                     USBC_Phy_TpRead
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
+{
+	__u32 temp = 0, ret = 0;
+	__u32 i=0;
+	__u32 j=0;	
+
+	for(j = len; j > 0; j--)
+	{
+		/* set  the bit address to be read */
+		temp = USBC_Readl(USBC_Phy_GetCsr(usbc_no));
+		temp &= ~(0xff << 8);
+		temp |= ((addr + j -1) << 8);
+		USBC_Writel(temp, USBC_Phy_GetCsr(usbc_no));
+
+		for(i = 0; i < 0x4; i++);
+
+		temp = USBC_Readl(USBC_Phy_GetCsr(usbc_no));
+		ret <<= 1;
+		ret |= ((temp >> (16 + usbc_no)) & 0x1); 
+	}
+
+	return ret;
+}
+
+/*
+*******************************************************************************
+*                     USBC_Phy_TpWrite
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static __u32 USBC_Phy_TpWrite(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
+{
+	__u32 temp = 0, dtmp = 0;
+//	__u32 i=0;
+	__u32 j=0;
+
+	dtmp = data;
+	for(j = 0; j < len; j++)
+	{
+		/* set  the bit address to be write */
+		temp = USBC_Readl(USBC_Phy_GetCsr(usbc_no));
+		temp &= ~(0xff << 8);
+		temp |= ((addr + j) << 8);
+		USBC_Writel(temp, USBC_Phy_GetCsr(usbc_no));
+
+		temp = USBC_Readb(USBC_Phy_GetCsr(usbc_no));
+		temp &= ~(0x1 << 7);
+		temp |= (dtmp & 0x1) << 7;
+		temp &= ~(0x1 << (usbc_no << 1));
+		USBC_Writeb(temp, USBC_Phy_GetCsr(usbc_no));
+
+		temp = USBC_Readb(USBC_Phy_GetCsr(usbc_no));
+		temp |= (0x1 << (usbc_no << 1));
+		USBC_Writeb( temp, USBC_Phy_GetCsr(usbc_no));
+
+		temp = USBC_Readb(USBC_Phy_GetCsr(usbc_no));
+		temp &= ~(0x1 << (usbc_no <<1 ));
+		USBC_Writeb(temp, USBC_Phy_GetCsr(usbc_no));
+		dtmp >>= 1;
+	}
+
+	return data;
+}
+
+/*
+*******************************************************************************
+*                     USBC_Phy_Read
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static __u32 USBC_Phy_Read(__u32 usbc_no, __u32 addr, __u32 len)
+{
+	return USBC_Phy_TpRead(usbc_no, addr, len);	
+}
+
+/*
+*******************************************************************************
+*                     USBC_Phy_Write
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static __u32 USBC_Phy_Write(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
+{
+	return USBC_Phy_TpWrite(usbc_no, addr, data, len);
+}
+
+/*
+*******************************************************************************
+*                     UsbPhyInit
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void UsbPhyInit(__u32 usbc_no)
+{
+	DMSG_INFO("csr1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
+
+	USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
+
+	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
+	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
+
+	return;
+}
+
+
+/*
+*******************************************************************************
 *                     get_usb_cfg
 *
 * Description:
@@ -342,6 +555,8 @@ static int open_ehci_clock(struct sw_hci_hcd *sw_ehci)
 			      sw_ehci->sie_clk, sw_ehci->phy_gate, 
 			      sw_ehci->phy_reset, sw_ehci->clk_is_open);
 	}
+
+	UsbPhyInit(sw_ehci->usbc_no);
 
 #ifdef  SW_USB_EHCI_DEBUG
 	DMSG_INFO("[%s%d]: open_ehci_clock, 0x60(0x%x), 0xcc(0x%x)\n", 
