@@ -843,15 +843,9 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
     cfg.b_rgb_remap_io = 0;
     cfg.b_remap_if      = 0;
     TCON1_cfg(sel, &cfg);
-    if(mode == DISP_TV_MOD_PAL || mode == DISP_TV_MOD_NTSC)
-    {
-        TCON_set_cvbs_src(sel);
-    }
-    else
-    {
-        TCON_set_ypbpr_src(sel);
-    }
-    
+
+    TCON_set_tv_src(sel, sel);
+        
     return 0;
 }
 
@@ -965,7 +959,8 @@ __s32 TCON1_set_vga_mode(__u32 sel, __u8 mode)
     cfg.b_rgb_remap_io = 0;
     cfg.b_remap_if      = 1;
     TCON1_cfg(sel, &cfg);
-
+    TCON_set_tv_src(sel, sel);
+    
     return 0;
 }
 
@@ -1205,15 +1200,16 @@ __u8 TCON_set_hdmi_src(__u8 src)
 	return 0;	
 }
 
-__u8 TCON_set_ypbpr_src(__u8 src)
+__u8 TCON_set_tv_src(__u32 tv_index, __u8 src)
 {
-	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<4,src<<4);
-	return 0;	
-}
-
-__u8 TCON_set_cvbs_src(__u8 src)
-{
-	LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<0,src<<0);
+    if(tv_index == 0)
+    {
+	    LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<4,src<<4);
+	}
+	else
+	{
+	    LCDC_INIT_BIT(0,LCDC_MUX_CTRL,0x3<<0,src<<0);
+	}
 	return 0;	
 }
 

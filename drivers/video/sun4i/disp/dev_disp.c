@@ -3,6 +3,9 @@
 fb_info_t g_fbi;
 __disp_drv_t g_disp_drv;
 
+#define MY_BYTE_ALIGN(x) ( ( (x + (4*1024-1)) >> 12) << 12)             /* alloc based on 4K byte */
+static struct alloc_struct_t boot_heap_head, boot_heap_tail;
+
 
 static unsigned int gbuffer[4096];
 static __u32 output_type[2] = {0,0};
@@ -60,95 +63,95 @@ static struct resource disp_resource[DISP_IO_NUM] =
 };
 
 
-__s32 DRV_disp_print_reg(__u32 id)
-{   
-    __u32 base = 0, size = 0;
-    __u32 i = 0;
+__s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
+{    
+	if(pHeapHead <0xc0000000) 
+	{
+	    __wrn("pHeapHead:%x <0xc0000000\n", pHeapHead);
+	    return -1;                             //检查Head地址是否合法
+	}
 
-    switch(id)
+    boot_heap_head.size    = boot_heap_tail.size = 0;
+    boot_heap_head.address = pHeapHead;
+    boot_heap_tail.address = pHeapHead + nHeapSize;
+    boot_heap_head.next    = &boot_heap_tail;
+    boot_heap_tail.next    = 0;
+
+    __inf("head:%x,tail:%x\n" ,boot_heap_head.address, boot_heap_tail.address);
+    return 0;
+}
+
+void *disp_malloc(__u32 num_bytes)
+{
+    struct alloc_struct_t *ptr, *newptr;
+    __u32  actual_bytes;
+
+    if (!num_bytes) 
     {
-        case DISP_REG_SCALER0:
-            base = (__u32)g_fbi.io[DISP_IO_SCALER0];
-            size = 0xa18;
-            __inf("scaler0:\n");
+        return 0;
+    }
+
+    actual_bytes = MY_BYTE_ALIGN(num_bytes);    /* translate the byte count to size of long type       */
+    
+    ptr = &boot_heap_head;                      /* scan from the boot_heap_head of the heap            */
+
+    while (ptr && ptr->next)                    /* look for enough memory for alloc                    */
+    {
+        if (ptr->next->address >= (ptr->address + ptr->size + (8 * 1024) + actual_bytes))
+        {
             break;
-            
-        case DISP_REG_SCALER1:
-            base = (__u32)g_fbi.io[DISP_IO_SCALER1];
-            size = 0xa18;
-            __inf("scaler1:\n");
-            break;
-            
-        case DISP_REG_IMAGE0:
-            base = (__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x800;
-            size = 0xdff - 0x800;
-            __inf("image0:\n");
-            break;
-            
-        case DISP_REG_IMAGE1:
-            base = (__u32)g_fbi.io[DISP_IO_IMAGE1] + 0x800;
-            size = 0xdff - 0x800;
-            __inf("image1:\n");
-            break;
-        case DISP_REG_LCDC0:
-            base = (__u32)g_fbi.io[DISP_IO_LCDC0];
-            size = 0x100;
-            __inf("lcdc0:\n");
-            break;
-            
-        case DISP_REG_LCDC1:
-            base = (__u32)g_fbi.io[DISP_IO_LCDC1];
-            size = 0x100;
-            __inf("lcdc1:\n");
-            break;
-            
-        case DISP_REG_TVEC0:
-            base = (__u32)g_fbi.io[DISP_IO_TVEC0];
-            size = 0x20c;
-            __inf("tvec0:\n");
-            break;
-            
-        case DISP_REG_TVEC1:
-            base = (__u32)g_fbi.io[DISP_IO_TVEC1];
-            size = 0x20c;
-            __inf("tvec1:\n");
-            break;
-            
-        case DISP_REG_CCMU:
-            base = g_fbi.base_ccmu;
-            size = 0x158;
-            __inf("ccmu:\n");
-            break;
-            
-        case DISP_REG_PIOC:
-            base = g_fbi.base_pioc;
-            size = 0x228;
-            __inf("pioc:\n");
-            break;
-            
-        case DISP_REG_PWM:
-            base = g_fbi.base_pwm + 0x200;
-            size = 0x0c;
-            __inf("pwm:\n");
-            break;
-            
-        default:
-            return DIS_FAIL;
+        }
+                                                /* find enough memory to alloc                         */
+        ptr = ptr->next;
+    }
+
+    if (!ptr->next)
+    {
+        __wrn(" it has reached the boot_heap_tail of the heap now\n");
+        return 0;                   /* it has reached the boot_heap_tail of the heap now              */
+    }
+
+    newptr = (struct alloc_struct_t *)(ptr->address + ptr->size);
+                                                /* create a new node for the memory block             */
+    if (!newptr)
+    {
+        __wrn(" create the node failed, can't manage the block\n");
+        return 0;                               /* create the node failed, can't manage the block     */
     }
     
-    for(i=0; i<size; i+=16)
+    /* set the memory block chain, insert the node to the chain */
+    newptr->address = ptr->address + ptr->size + 4*1024;
+    newptr->size    = actual_bytes;
+    newptr->o_size  = num_bytes;
+    newptr->next    = ptr->next;
+    ptr->next       = newptr;
+
+    return (void *)newptr->address;
+}
+
+void  disp_free(void *p)
+{
+    struct alloc_struct_t *ptr, *prev;
+
+	if( p == NULL )
+		return;
+
+    ptr = &boot_heap_head;                /* look for the node which po__s32 this memory block                     */
+    while (ptr && ptr->next)
     {
-        __u32 reg[4];
-        
-        reg[0] = sys_get_wvalue(base + i);
-        reg[1] = sys_get_wvalue(base + i + 4);
-        reg[2] = sys_get_wvalue(base + i + 8);
-        reg[3] = sys_get_wvalue(base + i + 12);
-        
-        __inf("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+        if (ptr->next->address == (__u32)p)
+            break;              /* find the node which need to be release                              */
+        ptr = ptr->next;
     }
-    
-    return DIS_SUCCESS;
+
+	prev = ptr;
+	ptr = ptr->next;
+
+    if (!ptr) return;           /* the node is heap boot_heap_tail                                               */
+
+    prev->next = ptr->next;     /* delete the node which need be released from the memory block chain  */
+
+    return ;
 }
 
 __s32 DRV_lcd_open(__u32 sel)
@@ -210,28 +213,36 @@ __s32 DRV_lcd_close(__u32 sel)
 
 __s32 DRV_scaler_begin(__u32 sel)
 {
-    down(g_disp_drv.scaler_finished_sem[sel]);
+    long timeout = 5000;//5000ms
+
+    timeout = wait_event_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 1, msecs_to_jiffies(timeout));
+    g_disp_drv.b_scaler_finished[sel] = 0;
+    if(timeout == 0)
+    {
+        __wrn("wait scaler finished timeout\n");
+        return -1;
+    }
     return 0;
 }
 
 void DRV_scaler_finish(__u32 sel)
 {
-    up(g_disp_drv.scaler_finished_sem[sel]);
+    g_disp_drv.b_scaler_finished[sel] = 1;
+    wake_up(&g_disp_drv.scaler_queue[sel]);
 }
 
 void DRV_disp_wait_cmd_finish(__u32 sel)
 {
-	if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE) {
+    if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
+    {
 		long timeout = 50;//50ms
 
-		g_disp_drv.b_cmd_finished[sel] = 0;
-		timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1,
-					     msecs_to_jiffies(timeout));
-		if(timeout == 0) {
-			//__inf("wait cmd finished timeout\n");
-			printk("FB: wait cmd finished timeout\n");
-		}
-	}
+        g_disp_drv.b_cmd_finished[sel] = 0;
+		timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1, msecs_to_jiffies(timeout));
+        {
+            __inf("wait cmd finished timeout\n");
+        }
+    }
 }
 
 __s32 DRV_disp_int_process(__u32 sel)
@@ -282,25 +293,10 @@ __s32 DRV_DISP_Init(void)
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
 
-	g_disp_drv.scaler_finished_sem[0] = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
-    if(!g_disp_drv.scaler_finished_sem[0])
-    {
-        __wrn("create scaler_finished_sem[0] fail!\n");
-        return -1;
-    }  
-	sema_init(g_disp_drv.scaler_finished_sem[0],0);
-
-
-	g_disp_drv.scaler_finished_sem[1] = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
-    if(!g_disp_drv.scaler_finished_sem[1])
-    {
-        __wrn("create scaler_finished_sem[1] fail!\n");
-        return -1;
-    }    
-	sema_init(g_disp_drv.scaler_finished_sem[1],0);
-
     init_waitqueue_head(&g_disp_drv.my_queue[0]);
     init_waitqueue_head(&g_disp_drv.my_queue[1]);
+    init_waitqueue_head(&g_disp_drv.scaler_queue[0]);
+    init_waitqueue_head(&g_disp_drv.scaler_queue[1]);
 
     BSP_disp_init(&para);
     BSP_disp_open();
@@ -314,16 +310,14 @@ __s32 DRV_DISP_Exit(void)
     Fb_Exit();
     BSP_disp_close();
     BSP_disp_exit(g_disp_drv.exit_mode);
-
-	kfree(g_disp_drv.scaler_finished_sem[0]);
-	kfree(g_disp_drv.scaler_finished_sem[1]);
-
+    
     return 0;
 } 
 
 
 int disp_mem_request(int sel,__u32 size)
 {
+#ifndef FB_RESERVED_MEM
 	unsigned map_size = 0;
 	struct page *page;
 
@@ -354,10 +348,31 @@ int disp_mem_request(int sel,__u32 size)
 		__wrn("alloc_pages fail!\n");
 		return -ENOMEM;
 	}
+#else
+    __u32 ret = 0;
+    
+	ret = (__u32)disp_malloc(size);
+	if(ret != 0)
+	{
+	    g_disp_mm[sel].info_base = (void*)ret;
+	    g_disp_mm[sel].mem_start = virt_to_phys(g_disp_mm[sel].info_base);
+	    memset(g_disp_mm[sel].info_base,0,size);
+	    __inf("pa=0x%08lx va=0x%p size:0x%x\n",g_disp_mm[sel].mem_start, g_disp_mm[sel].info_base, size);
+
+	    return 0;
+	}
+	else
+	{
+		__wrn("disp_malloc fail!\n");
+		return -ENOMEM;
+	}
+#endif
+
 }
 
 int disp_mem_release(int sel)
 {
+#ifndef FB_RESERVED_MEM
 	unsigned map_size = PAGE_ALIGN(g_disp_mm[sel].mem_len);
 	unsigned page_size = map_size;
 
@@ -366,7 +381,16 @@ int disp_mem_release(int sel)
 
 	free_pages((unsigned long)(g_disp_mm[sel].info_base),get_order(page_size));
 	memset(&g_disp_mm[sel],0,sizeof(struct info_mm));
+#else
+	if(g_disp_mm[sel].info_base == 0)
+		return -EINVAL;
+
+    disp_free((void *)g_disp_mm[sel].info_base);
+    memset(&g_disp_mm[sel],0,sizeof(struct info_mm));
+#endif
+
 	return 0;
+
 }
 
 int disp_mmap(struct file *file, struct vm_area_struct * vma)
@@ -399,6 +423,301 @@ ssize_t disp_write(struct file *file, const char __user *buf, size_t count, loff
 {
     return 0;
 }
+
+static int __init disp_probe(struct platform_device *pdev)//called when platform_driver_register
+{
+	fb_info_t * info = NULL;
+	struct resource *res;
+	int ret = 0;
+	int size;
+	int i;
+
+	__inf("disp_probe call\n");
+	
+	info = &g_fbi;
+	
+	info->dev = &pdev->dev;
+	platform_set_drvdata(pdev,info);
+	
+	for(i=0;i<DISP_IO_NUM;i++)
+	{
+		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
+		if (res == NULL) 
+		{
+			__wrn("platform_get_resource fail\n");
+			ret = -ENXIO;
+			if(i==DISP_IO_SCALER0)
+			{
+				goto dealloc_fb;
+			}
+			else if(i==DISP_IO_SCALER1)
+			{
+				goto release_regs0;
+			}
+			else if(i==DISP_IO_IMAGE0)
+			{
+				goto release_regs1;
+			}
+			else if(i==DISP_IO_IMAGE1)
+			{
+				goto release_regs2;
+			}
+			else if(i==DISP_IO_LCDC0)
+			{
+				goto release_regs3;
+			}
+			else if(i==DISP_IO_LCDC1)
+			{
+				goto release_regs4;
+			}
+			else if(i==DISP_IO_TVEC0)
+			{
+				goto release_regs5;
+			}
+			else if(i==DISP_IO_TVEC1)
+			{
+				goto release_regs6;
+			}
+		}
+		
+		size = (res->end - res->start) + 1;
+		info->mem[i] = request_mem_region(res->start, size, pdev->name);
+		if (info->mem[i] == NULL) 
+		{
+			__wrn("request_mem_region fail\n");
+			ret = -ENOENT;
+			if(i==DISP_IO_SCALER0)
+			{
+				goto dealloc_fb;
+			}
+			else if(i==DISP_IO_SCALER1)
+			{
+				goto release_regs0;
+			}
+			else if(i==DISP_IO_IMAGE0)
+			{
+				goto release_regs1;
+			}
+			else if(i==DISP_IO_IMAGE1)
+			{
+				goto release_regs2;
+			}
+			else if(i==DISP_IO_LCDC0)
+			{
+				goto release_regs3;
+			}
+			else if(i==DISP_IO_LCDC1)
+			{
+				goto release_regs4;
+			}
+			else if(i==DISP_IO_TVEC0)
+			{
+				goto release_regs5;
+			}
+			else if(i==DISP_IO_TVEC1)
+			{
+				goto release_regs6;
+			}
+		}
+
+		info->io[i] = ioremap(res->start, size);
+		if (info->io[i] == NULL) 
+		{
+			__wrn("ioremap() fail\n");
+			ret = -ENXIO;
+			if(i==DISP_IO_SCALER0)
+			{
+				goto release_mem0;
+			}
+			else if(i==DISP_IO_SCALER1)
+			{
+				goto release_mem1;
+			}
+			else if(i==DISP_IO_IMAGE0)
+			{
+				goto release_mem2;
+			}
+			else if(i==DISP_IO_IMAGE1)
+			{
+				goto release_mem3;
+			}
+			else if(i==DISP_IO_LCDC0)
+			{
+				goto release_mem4;
+			}
+			else if(i==DISP_IO_LCDC1)
+			{
+				goto release_mem5;
+			}
+			else if(i==DISP_IO_TVEC0)
+			{
+				goto release_mem6;
+			}
+			else if(i==DISP_IO_TVEC1)
+			{
+				goto release_mem7;
+			}
+	    }
+	}
+
+	info->base_ccmu = 0xf1c20000; 
+	info->base_sdram = 0xf1c01000;
+	info->base_pioc = 0xf1c20800; 
+	info->base_pwm = 0xf1c20c00;
+	
+	__inf("SCALER0 base 0x%08x\n", (__u32)info->io[DISP_IO_SCALER0]);
+	__inf("SCALER1 base 0x%08x\n", (__u32)info->io[DISP_IO_SCALER1]);
+	__inf("IMAGE0 base 0x%08x\n", (__u32)info->io[DISP_IO_IMAGE0] + 0x800);
+	__inf("IMAGE1 base 0x%08x\n", (__u32)info->io[DISP_IO_IMAGE1] + 0x800);
+	__inf("LCDC0 base 0x%08x\n", (__u32)info->io[DISP_IO_LCDC0]);
+	__inf("LCDC1 base 0x%08x\n", (__u32)info->io[DISP_IO_LCDC1]);
+	__inf("TVEC0 base 0x%08x\n", (__u32)info->io[DISP_IO_TVEC0]);
+	__inf("TVEC1 base 0x%08x\n", (__u32)info->io[DISP_IO_TVEC1]);
+	__inf("CCMU base 0x%08x\n", info->base_ccmu);
+	__inf("SDRAM base 0x%08x\n", info->base_sdram);
+	__inf("PIO base 0x%08x\n", info->base_pioc);
+	__inf("PWM base 0x%08x\n", info->base_pwm);
+
+    DRV_DISP_Init();
+
+	return 0;
+
+release_mem7:
+	release_resource(info->mem[7]);
+	kfree(info->mem[7]);
+	
+release_regs6:
+	iounmap(info->io[6]);
+release_mem6:
+	release_resource(info->mem[6]);
+	kfree(info->mem[6]);
+
+release_regs5:
+	iounmap(info->io[5]);
+release_mem5:
+	release_resource(info->mem[5]);
+	kfree(info->mem[5]);
+
+release_regs4:
+	iounmap(info->io[4]);
+release_mem4:
+	release_resource(info->mem[4]);
+	kfree(info->mem[4]);
+
+release_regs3:
+	iounmap(info->io[3]);
+release_mem3:
+	release_resource(info->mem[3]);
+	kfree(info->mem[3]);
+
+release_regs2:
+	iounmap(info->io[2]);
+release_mem2:
+	release_resource(info->mem[2]);
+	kfree(info->mem[2]);
+
+release_regs1:
+	iounmap(info->io[1]);
+release_mem1:
+	release_resource(info->mem[1]);
+	kfree(info->mem[1]);
+
+release_regs0:
+	iounmap(info->io[0]);
+release_mem0:
+	release_resource(info->mem[0]);
+	kfree(info->mem[0]);
+	
+dealloc_fb:
+	platform_set_drvdata(pdev, NULL);
+	kfree(info);
+
+	return ret;
+}
+
+
+static int disp_remove(struct platform_device *pdev)
+{
+	fb_info_t *info = platform_get_drvdata(pdev);
+	int i;
+
+	__inf("disp_remove call\n");
+	
+	for(i=0;i<DISP_IO_NUM - 3;i++)
+	{
+		iounmap(info->io[i]);
+
+		release_resource(info->mem[i]);
+		kfree(info->mem[i]);
+	}
+
+	platform_set_drvdata(pdev, NULL);
+
+	return 0;
+}
+
+int disp_suspend(struct platform_device *pdev, pm_message_t state)
+{
+    int i = 0;
+    
+    __inf("disp_suspend call\n");
+
+    for(i=0; i<2; i++)
+    {
+        output_type[i] = BSP_disp_get_output_type(i);
+        if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
+        {
+            DRV_lcd_close(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
+        {
+            BSP_disp_tv_close(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_VGA)
+        {
+            BSP_disp_vga_close(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_HDMI)
+        {
+            BSP_disp_hdmi_close(i);
+        }
+    }
+
+    BSP_disp_clk_off();
+    
+    return 0;
+}
+
+int disp_resume(struct platform_device *pdev)
+{
+    int i = 0;
+
+    __inf("disp_resume call\n");
+    BSP_disp_clk_on();
+
+    for(i=0; i<2; i++)
+    {
+        if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
+        {
+            DRV_lcd_open(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
+        {
+            BSP_disp_tv_open(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_VGA)
+        {
+            BSP_disp_vga_open(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_HDMI)
+        {
+            BSP_disp_hdmi_open(i);
+        }
+    }
+
+    return 0;
+}
+
 
 long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -1343,15 +1662,19 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			break;
 
 		case DISP_CMD_SUSPEND:
-			ret = BSP_disp_clk_off();
+		{   
+		    pm_message_t state;
+		    
+			ret = disp_suspend(0, state);
 			break;
-
+        }
+        
 		case DISP_CMD_RESUME:
-			ret = BSP_disp_clk_on();
+			ret = disp_resume(0);
 			break;
 
         case DISP_CMD_PRINT_REG:
-            ret = DRV_disp_print_reg(ubuffer[0]);
+            ret = BSP_disp_print_reg(1, ubuffer[0]);
             break;
             
 		default:
@@ -1359,300 +1682,6 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     }
 
 	return ret;
-}
-
-static int __init disp_probe(struct platform_device *pdev)//called when platform_driver_register
-{
-	fb_info_t * info = NULL;
-	struct resource *res;
-	int ret = 0;
-	int size;
-	int i;
-
-	__inf("disp_probe call\n");
-	
-	info = &g_fbi;
-	
-	info->dev = &pdev->dev;
-	platform_set_drvdata(pdev,info);
-	
-	for(i=0;i<DISP_IO_NUM;i++)
-	{
-		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
-		if (res == NULL) 
-		{
-			__wrn("platform_get_resource fail\n");
-			ret = -ENXIO;
-			if(i==DISP_IO_SCALER0)
-			{
-				goto dealloc_fb;
-			}
-			else if(i==DISP_IO_SCALER1)
-			{
-				goto release_regs0;
-			}
-			else if(i==DISP_IO_IMAGE0)
-			{
-				goto release_regs1;
-			}
-			else if(i==DISP_IO_IMAGE1)
-			{
-				goto release_regs2;
-			}
-			else if(i==DISP_IO_LCDC0)
-			{
-				goto release_regs3;
-			}
-			else if(i==DISP_IO_LCDC1)
-			{
-				goto release_regs4;
-			}
-			else if(i==DISP_IO_TVEC0)
-			{
-				goto release_regs5;
-			}
-			else if(i==DISP_IO_TVEC1)
-			{
-				goto release_regs6;
-			}
-		}
-		
-		size = (res->end - res->start) + 1;
-		info->mem[i] = request_mem_region(res->start, size, pdev->name);
-		if (info->mem[i] == NULL) 
-		{
-			__wrn("request_mem_region fail\n");
-			ret = -ENOENT;
-			if(i==DISP_IO_SCALER0)
-			{
-				goto dealloc_fb;
-			}
-			else if(i==DISP_IO_SCALER1)
-			{
-				goto release_regs0;
-			}
-			else if(i==DISP_IO_IMAGE0)
-			{
-				goto release_regs1;
-			}
-			else if(i==DISP_IO_IMAGE1)
-			{
-				goto release_regs2;
-			}
-			else if(i==DISP_IO_LCDC0)
-			{
-				goto release_regs3;
-			}
-			else if(i==DISP_IO_LCDC1)
-			{
-				goto release_regs4;
-			}
-			else if(i==DISP_IO_TVEC0)
-			{
-				goto release_regs5;
-			}
-			else if(i==DISP_IO_TVEC1)
-			{
-				goto release_regs6;
-			}
-		}
-
-		info->io[i] = ioremap(res->start, size);
-		if (info->io[i] == NULL) 
-		{
-			__wrn("ioremap() fail\n");
-			ret = -ENXIO;
-			if(i==DISP_IO_SCALER0)
-			{
-				goto release_mem0;
-			}
-			else if(i==DISP_IO_SCALER1)
-			{
-				goto release_mem1;
-			}
-			else if(i==DISP_IO_IMAGE0)
-			{
-				goto release_mem2;
-			}
-			else if(i==DISP_IO_IMAGE1)
-			{
-				goto release_mem3;
-			}
-			else if(i==DISP_IO_LCDC0)
-			{
-				goto release_mem4;
-			}
-			else if(i==DISP_IO_LCDC1)
-			{
-				goto release_mem5;
-			}
-			else if(i==DISP_IO_TVEC0)
-			{
-				goto release_mem6;
-			}
-			else if(i==DISP_IO_TVEC1)
-			{
-				goto release_mem7;
-			}
-	    }
-	}
-
-	info->base_ccmu = 0xf1c20000; 
-	info->base_sdram = 0xf1c01000;
-	info->base_pioc = 0xf1c20800; 
-	info->base_pwm = 0xf1c20c00;
-	
-	__inf("SCALER0 base 0x%08x\n", (__u32)info->io[DISP_IO_SCALER0]);
-	__inf("SCALER1 base 0x%08x\n", (__u32)info->io[DISP_IO_SCALER1]);
-	__inf("IMAGE0 base 0x%08x\n", (__u32)info->io[DISP_IO_IMAGE0] + 0x800);
-	__inf("IMAGE1 base 0x%08x\n", (__u32)info->io[DISP_IO_IMAGE1] + 0x800);
-	__inf("LCDC0 base 0x%08x\n", (__u32)info->io[DISP_IO_LCDC0]);
-	__inf("LCDC1 base 0x%08x\n", (__u32)info->io[DISP_IO_LCDC1]);
-	__inf("TVEC0 base 0x%08x\n", (__u32)info->io[DISP_IO_TVEC0]);
-	__inf("TVEC1 base 0x%08x\n", (__u32)info->io[DISP_IO_TVEC1]);
-	__inf("CCMU base 0x%08x\n", info->base_ccmu);
-	__inf("SDRAM base 0x%08x\n", info->base_sdram);
-	__inf("PIO base 0x%08x\n", info->base_pioc);
-	__inf("PWM base 0x%08x\n", info->base_pwm);
-
-    DRV_DISP_Init();
-
-	return 0;
-
-release_mem7:
-	release_resource(info->mem[7]);
-	kfree(info->mem[7]);
-	
-release_regs6:
-	iounmap(info->io[6]);
-release_mem6:
-	release_resource(info->mem[6]);
-	kfree(info->mem[6]);
-
-release_regs5:
-	iounmap(info->io[5]);
-release_mem5:
-	release_resource(info->mem[5]);
-	kfree(info->mem[5]);
-
-release_regs4:
-	iounmap(info->io[4]);
-release_mem4:
-	release_resource(info->mem[4]);
-	kfree(info->mem[4]);
-
-release_regs3:
-	iounmap(info->io[3]);
-release_mem3:
-	release_resource(info->mem[3]);
-	kfree(info->mem[3]);
-
-release_regs2:
-	iounmap(info->io[2]);
-release_mem2:
-	release_resource(info->mem[2]);
-	kfree(info->mem[2]);
-
-release_regs1:
-	iounmap(info->io[1]);
-release_mem1:
-	release_resource(info->mem[1]);
-	kfree(info->mem[1]);
-
-release_regs0:
-	iounmap(info->io[0]);
-release_mem0:
-	release_resource(info->mem[0]);
-	kfree(info->mem[0]);
-	
-dealloc_fb:
-	platform_set_drvdata(pdev, NULL);
-	kfree(info);
-
-	return ret;
-}
-
-
-static int disp_remove(struct platform_device *pdev)
-{
-	fb_info_t *info = platform_get_drvdata(pdev);
-	int i;
-
-	__inf("disp_remove call\n");
-	
-	for(i=0;i<DISP_IO_NUM - 3;i++)
-	{
-		iounmap(info->io[i]);
-
-		release_resource(info->mem[i]);
-		kfree(info->mem[i]);
-	}
-
-	platform_set_drvdata(pdev, NULL);
-
-	return 0;
-}
-
-int disp_suspend(struct platform_device *pdev, pm_message_t state)
-{
-    int i = 0;
-    
-    __inf("disp_suspend call\n");
-
-    for(i=0; i<2; i++)
-    {
-        output_type[i] = BSP_disp_get_output_type(i);
-        if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
-        {
-            DRV_lcd_close(i);
-        }
-        else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
-        {
-            BSP_disp_tv_close(i);
-        }
-        else if(output_type[i] == DISP_OUTPUT_TYPE_VGA)
-        {
-            BSP_disp_vga_close(i);
-        }
-        else if(output_type[i] == DISP_OUTPUT_TYPE_HDMI)
-        {
-            BSP_disp_hdmi_close(i);
-        }
-    }
-
-    BSP_disp_clk_off();
-    
-    return 0;
-}
-
-int disp_resume(struct platform_device *pdev)
-{
-    int i = 0;
-
-    __inf("disp_resume call\n");
-    BSP_disp_clk_on();
-
-    for(i=0; i<2; i++)
-    {
-        if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
-        {
-            DRV_lcd_open(i);
-        }
-        else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
-        {
-            BSP_disp_tv_open(i);
-        }
-        else if(output_type[i] == DISP_OUTPUT_TYPE_VGA)
-        {
-            BSP_disp_vga_open(i);
-        }
-        else if(output_type[i] == DISP_OUTPUT_TYPE_HDMI)
-        {
-            BSP_disp_hdmi_open(i);
-        }
-    }
-
-    return 0;
 }
 
 static const struct file_operations disp_fops = 

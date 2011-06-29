@@ -252,9 +252,10 @@ __s32 Scaler_event_proc(__s32 irq, void *parg)
     __u8 fe_intflags;
     __u32 sel = (__u32)parg;
 
-    DE_INF("scaler interrupt!\n");
-
     fe_intflags = DE_SCAL_QueryINT(sel);
+
+    DE_INF("scaler interrupt, scal_int_status:0x%x!\n", fe_intflags);
+
     if(fe_intflags & DE_WB_END_IE)
     {        
         DE_SCAL_ClearINT(sel,DE_WB_END_IE);
@@ -913,7 +914,14 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
 
     DE_INF("scaler begin\n");
     ret = gdisp.init_para.scaler_begin(sel);	
-    DE_INF("scaler end\n");
+    if(ret != 0)
+    {
+        DE_WRN("do scaler fail, scal_int_status:0x%x\n", DE_SCAL_QueryINT(sel));
+    }
+    else
+    {
+        DE_INF("scaler finished successfully\n");
+    }
 
     DE_SCAL_Reset(sel);
     DE_SCAL_Writeback_Disable(sel);
@@ -1031,7 +1039,8 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
         DE_SCAL_Input_Select(scaler_idx, 6 + sel);
         DE_BE_set_display_size(sel, para->screen_size.width, para->screen_size.height);
         DE_BE_Output_Select(sel, 6 + scaler_idx);
-        DE_BE_Enable(sel);
+        image_clk_on(sel);
+        Image_open(sel);
         DE_BE_Cfg_Ready(sel);
     }
     else
@@ -1059,13 +1068,38 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     //{
     //}
     ret = gdisp.init_para.scaler_begin(scaler_idx);	
-    DE_INF("capture end\n");
+    if(ret != 0)
+    {
+        DE_WRN("do capture fail\n");
+        if(scaler_idx == 0)
+        {
+            BSP_disp_print_reg(0, DISP_REG_SCALER0);
+        }
+        else
+        {
+            BSP_disp_print_reg(0, DISP_REG_SCALER1);
+        }
+        if(sel == 0)
+        {
+            BSP_disp_print_reg(0, DISP_REG_IMAGE0);
+        }
+        else
+        {
+            BSP_disp_print_reg(0, DISP_REG_IMAGE1);
+        }
+    }
+    else
+    {
+        DE_INF("capture finished successfully\n");
+    }
 
+    
     DE_SCAL_Reset(scaler_idx);
     Scaler_Release(scaler_idx, FALSE);
     if(BSP_disp_get_output_type(sel) == DISP_OUTPUT_TYPE_NONE)
     {
         Image_close(sel);
+        image_clk_off(sel);
     }
     DE_BE_Output_Select(sel, sel);
 

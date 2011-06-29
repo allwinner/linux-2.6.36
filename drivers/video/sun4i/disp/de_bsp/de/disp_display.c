@@ -139,3 +139,111 @@ __s32 BSP_disp_close(void)
     return DIS_SUCCESS;
 }
 
+
+__s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
+{   
+    __u32 base = 0, size = 0;
+    __u32 i = 0;
+    unsigned char str[20];
+
+    switch(id)
+    {
+        case DISP_REG_SCALER0:
+            base = gdisp.init_para.base_scaler0;
+            size = 0xa18;
+            sprintf(str, "scaler0:\n");
+            break;
+            
+        case DISP_REG_SCALER1:
+            base = gdisp.init_para.base_scaler1;
+            size = 0xa18;
+            sprintf(str, "scaler1:\n");
+            break;
+            
+        case DISP_REG_IMAGE0:
+            base = gdisp.init_para.base_image0 + 0x800;
+            size = 0xdff - 0x800;
+            sprintf(str, "image0:\n");
+            break;
+            
+        case DISP_REG_IMAGE1:
+            base = gdisp.init_para.base_image1 + 0x800;
+            size = 0xdff - 0x800;
+            sprintf(str, "image1:\n");
+            break;
+        case DISP_REG_LCDC0:
+            base = gdisp.init_para.base_lcdc0;
+            size = 0x100;
+            sprintf(str, "lcdc0:\n");
+            break;
+            
+        case DISP_REG_LCDC1:
+            base = gdisp.init_para.base_lcdc1;
+            size = 0x100;
+            sprintf(str, "lcdc1:\n");
+            break;
+            
+        case DISP_REG_TVEC0:
+            base = gdisp.init_para.base_tvec0;
+            size = 0x20c;
+            sprintf(str, "tvec0:\n");
+            break;
+            
+        case DISP_REG_TVEC1:
+            base = gdisp.init_para.base_tvec1;
+            size = 0x20c;
+            sprintf(str, "tvec1:\n");
+            break;
+            
+        case DISP_REG_CCMU:
+            base = gdisp.init_para.base_ccmu;
+            size = 0x158;
+            sprintf(str, "ccmu:\n");
+            break;
+            
+        case DISP_REG_PIOC:
+            base = gdisp.init_para.base_pioc;
+            size = 0x228;
+            sprintf(str, "pioc:\n");
+            break;
+            
+        case DISP_REG_PWM:
+            base = gdisp.init_para.base_pwm + 0x200;
+            size = 0x0c;
+            sprintf(str, "pwm:\n");
+            break;
+            
+        default:
+            return DIS_FAIL;
+    }
+
+    if(b_force_on)
+    {
+        printk("%s", str);
+    }
+    else
+    {
+        DE_INF("%s", str);
+    }
+    for(i=0; i<size; i+=16)
+    {
+        __u32 reg[4];
+        
+        reg[0] = sys_get_wvalue(base + i);
+        reg[1] = sys_get_wvalue(base + i + 4);
+        reg[2] = sys_get_wvalue(base + i + 8);
+        reg[3] = sys_get_wvalue(base + i + 12);
+
+        if(b_force_on)
+        {
+            printk("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+        }
+        else
+        {
+            DE_INF("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+        }
+    }
+    
+    return DIS_SUCCESS;
+}
+

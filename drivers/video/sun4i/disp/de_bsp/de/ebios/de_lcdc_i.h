@@ -84,7 +84,7 @@
 #define LCDC_RUINT32(sel,offset)                (*((volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) )))
 
 #define LCDC_SET_BIT(sel,offset,bit)            (*((volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) )) |=(bit))
-#define LCDC_CLR_BIT(sel,offset,bit)            (*((volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) )) &=(~bit))
+#define LCDC_CLR_BIT(sel,offset,bit)            (*((volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) )) &=(~(bit)))
 #define LCDC_INIT_BIT(sel,offset,c,s)			(*((volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) )) = \
 												(((*(volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) )) & (~(c))) | (s)))
 

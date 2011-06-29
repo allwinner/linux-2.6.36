@@ -7,14 +7,37 @@
 static struct semaphore *run_sem = NULL;
 static struct task_struct * HDMI_task;
 
-__u32 cfg_change = 0;
-
 void delay_ms(__u32 t)
 {
     __u32 timeout = t*HZ/1000;
     
     set_current_state(TASK_INTERRUPTIBLE);
     schedule_timeout(timeout);
+}
+
+
+__s32 Hdmi_open(void)
+{
+    __inf("[Hdmi_open]\n");
+
+    Hdmi_hal_video_enable(1);
+	if(ghdmi.bopen == 0)
+	{
+		up(run_sem);
+	}
+	ghdmi.bopen = 1;
+
+	return 0;
+}
+
+__s32 Hdmi_close(void)
+{
+    __inf("[Hdmi_close]\n");
+    
+	Hdmi_hal_video_enable(0); 
+	ghdmi.bopen = 0;
+
+	return 0;
 }
 
 __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode)
@@ -75,8 +98,21 @@ __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode)
 	}
 
 	ghdmi.mode = mode;
-	cfg_change = 1;
 	return Hdmi_hal_set_display_mode(hdmi_mode);
+}
+
+__s32 Hdmi_Audio_Enable(__u8 mode, __u8 channel)
+{
+    __inf("[Hdmi_Audio_Enable],ch:%d\n",channel);
+    
+	return Hdmi_hal_audio_enable(mode, channel);
+}
+
+__s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para)
+{
+    __inf("[Hdmi_Set_Audio_Para]\n");
+    
+	return Hdmi_hal_set_audio_para(audio_para);
 }
 
 __s32 Hdmi_mode_support(__u8 mode)
@@ -139,47 +175,7 @@ __s32 Hdmi_mode_support(__u8 mode)
 
 __s32 Hdmi_get_HPD_status(void)
 {
-	return Hdmi_hal_get_HPD_status();
-}
-
-__s32 Hdmi_open(void)
-{
-    __inf("[Hdmi_open]\n");
-    
-	if(ghdmi.bopen == 0)
-	{
-		up(run_sem);
-	}
-	ghdmi.bopen = 1;
-
-	return 0;
-}
-
-__s32 Hdmi_close(void)
-{
-    __inf("[Hdmi_close]\n");
-    
-	Hdmi_hal_standby_exit(); 
-	ghdmi.bopen = 0;
-
-	return 0;
-}
-
-
-__s32 Hdmi_Audio_Enable(__u8 mode, __u8 channel)
-{
-    __inf("[Hdmi_Audio_Enable],ch:%d\n",channel);
-    
-    cfg_change = 1;
-	return Hdmi_hal_audio_enable(mode, channel);
-}
-
-__s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para)
-{
-    __inf("[Hdmi_Set_Audio_Para]\n");
-    
-    cfg_change = 1;
-	return Hdmi_hal_set_audio_para(audio_para);
+	return Hdmi_hal_get_HPD();
 }
 
 int Hdmi_run_thread(void *parg)
@@ -191,15 +187,10 @@ int Hdmi_run_thread(void *parg)
 			down(run_sem);
 		}
 		
-        if(cfg_change || (Hdmi_hal_get_connection_status() != HDMI_STATE_PLAY_BACK))
-        {
-		    Hdmi_hal_main_task();
-		}
+		Hdmi_hal_main_task();
 
-		if(Hdmi_hal_get_connection_status() == HDMI_STATE_PLAY_BACK)
-		{
-		    cfg_change = 0;
-		    
+		if(Hdmi_hal_get_state() == HDMI_STATE_PLAY_BACK)
+		{		    
 			delay_ms(100);
 		}
 		else
@@ -222,15 +213,14 @@ __s32 Hdmi_init(void)
 	{
 	    __s32 err = 0;
 	    
-		printk("Unable to start kernel thread %s.\n","hdmi proc");
+		__wrn("Unable to start kernel thread %s.\n","hdmi proc");
 		err = PTR_ERR(HDMI_task);
 		HDMI_task = NULL;
 		return err;
 	}
 	wake_up_process(HDMI_task);
 
-    HDMI_set_reg_base((__u32)ghdmi.io);
-
+    Hdmi_set_reg_base((__u32)ghdmi.io);
 	Hdmi_hal_init();
 
 	return 0;

@@ -75,6 +75,7 @@ void TCON_close(__u32 sel)
 
 __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
 {
+/*
     __u32 tmp = 0;
 
     if(b_en)
@@ -89,7 +90,37 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         tmp &= (~(1<<4));
         sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);    
     }
+*/
+    if(b_en)
+    {
+        __hdle hdl;
+        user_gpio_set_t  gpio_set[1];
+        
+        gpio_set->port = 2;
+        gpio_set->port_num = 2;
+        gpio_set->mul_sel = 1;
+        gpio_set->pull = 1;
+        gpio_set->drv_level = 1;
+        gpio_set->data = 1;
 
+        hdl = OSAL_GPIO_Request(gpio_set, 1);
+        OSAL_GPIO_Release(hdl, 2);
+    }
+    else
+    {
+        __hdle hdl;
+        user_gpio_set_t  gpio_set[1];
+        
+        gpio_set->port = 2;
+        gpio_set->port_num = 2;
+        gpio_set->mul_sel = 1;
+        gpio_set->pull = 1;
+        gpio_set->drv_level = 1;
+        gpio_set->data = 0;
+
+        hdl = OSAL_GPIO_Request(gpio_set, 1);
+        OSAL_GPIO_Release(hdl, 2);
+    }
     return 0;
 }
 
@@ -261,6 +292,7 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
 //lcd_pwm_div = log2(24000/(16*pwm_freq));
 __s32 Disp_pwm_cfg(__u32 sel)
 {
+/*
     __u32 tmp;
     __u32 pwm_div;
     __u8 lcd_pwm_div = 0x04;
@@ -328,6 +360,7 @@ __s32 Disp_pwm_cfg(__u32 sel)
         sys_put_wvalue(gdisp.init_para.base_pioc+0x120,tmp | (2<<12));//pwm io,PI3, bit14:12
     }
 
+    */
 	return DIS_SUCCESS;
 }
 
@@ -366,52 +399,29 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
         }
         else if(sel == 1)
         {
-            if(gpanel_info[sel].port_index == 0)
+            switch(out_type)
             {
-                switch(out_type)
-                {
-                    case DISP_OUTPUT_TYPE_LCD:
-                    case DISP_OUTPUT_TYPE_HDMI:
-                        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x44444444);
-                        sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x44444444);
-                        sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x44444444);
-                        tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff0000;
-                        sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00004444);
-                        break;
-                    case DISP_OUTPUT_TYPE_VGA:
-                        tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x6c) & 0xffff00ff;
-                        sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,tmp | 0x00004400);
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else
-            {
-                switch(out_type)
-                {
-                case DISP_OUTPUT_TYPE_LCD:
-                case DISP_OUTPUT_TYPE_HDMI:
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff0000;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002222);
-                    break;
-                case DISP_OUTPUT_TYPE_VGA:
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0xfc) & 0xffff00ff;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,tmp | 0x00002200);
-                    break;
-                default:
-                    break;
-            }
+            case DISP_OUTPUT_TYPE_LCD:
+            case DISP_OUTPUT_TYPE_HDMI:
+                sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff0000;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002222);
+                break;
+            case DISP_OUTPUT_TYPE_VGA:
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0xfc) & 0xffff00ff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,tmp | 0x00002200);
+                break;
+            default:
+                break;
             }
         }
 
     }
     else
     {
-        if(gpanel_info[sel].port_index == 0)
+        if(sel == 0)
         {
             sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x00000000);
             sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x00000000);
@@ -421,9 +431,9 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
         else
         {
             sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0xf0,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0xf4,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0xf8,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x00000000);
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x108,0x00000000);
         }
     }
 
@@ -736,22 +746,7 @@ __s32 BSP_disp_get_screen_width(__u32 sel)
 {    
 	__u32 width = 0;
 	
-    if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_HDMI)
-    {
-    	width = tv_mode_to_width(gdisp.screen[sel].hdmi_mode);
-    }
-    else if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_TV)
-    {
-    	width = tv_mode_to_width(gdisp.screen[sel].tv_mode);
-    }
-    else if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_VGA)
-    {
-    	width = vga_mode_to_width(gdisp.screen[sel].vga_mode);
-    }
-    else
-    {
-    	width = gpanel_info[sel].lcd_x;
-    }
+    width = DE_BE_get_display_width(sel);
 
     return width;
 }
@@ -760,22 +755,7 @@ __s32 BSP_disp_get_screen_height(__u32 sel)
 {    
 	__u32 height = 0;
 	
-    if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_HDMI)
-    {
-    	height = tv_mode_to_height(gdisp.screen[sel].hdmi_mode);
-    }
-    else if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_TV)
-    {
-    	height = tv_mode_to_height(gdisp.screen[sel].tv_mode);
-    }
-    else if(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_VGA)
-    {
-    	height = vga_mode_to_height(gdisp.screen[sel].vga_mode);
-    }
-    else
-    {
-    	height = gpanel_info[sel].lcd_y;
-    }
+    height = DE_BE_get_display_height(sel);
 
     return height;
 }

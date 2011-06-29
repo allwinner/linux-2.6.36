@@ -706,6 +706,24 @@ __s32 DE_BE_set_display_size(__u32 sel, __u32 width, __u32 height)
     return 0;
 }
 
+__s32 DE_BE_get_display_width(__u32 sel)
+{
+    __u32 tmp;
+    
+    tmp = DE_BE_RUINT32(sel, DE_BE_DISP_SIZE_OFF) & 0x0000ffff;
+
+    return tmp + 1;
+}
+
+__s32 DE_BE_get_display_height(__u32 sel)
+{
+    __u32 tmp;
+    
+    tmp = (DE_BE_RUINT32(sel, DE_BE_DISP_SIZE_OFF) & 0xffff0000)>>16;
+
+    return tmp + 1;
+}
+
 __s32 DE_BE_EnableINT(__u8 sel,__u32 irqsrc)
 {
     __u32 tmp;

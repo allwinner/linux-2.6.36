@@ -57,4 +57,8 @@ __s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para);
 extern __s32 hdmi_i2c_add_driver(void);
 extern __s32 hdmi_i2c_del_driver(void);
 
+#define sys_get_wvalue(n)   (*((volatile __u32 *)(n)))          /* word input */
+#define sys_put_wvalue(n,c) (*((volatile __u32 *)(n))  = (c))   /* word output */
+
+
 #endif

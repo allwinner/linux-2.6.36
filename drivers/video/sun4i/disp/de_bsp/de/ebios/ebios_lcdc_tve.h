@@ -158,8 +158,7 @@ __s32   TCON1_set_gamma_Enable(__u32 sel, __bool enable);
 
 __u8 	TCON_mux_init(void);
 __u8    TCON_set_hdmi_src(__u8 src);
-__u8    TCON_set_ypbpr_src(__u8 src);
-__u8    TCON_set_cvbs_src(__u8 src);
+__u8    TCON_set_tv_src(__u32 tv_index, __u8 src);
 
 __s32   TVE_set_reg_base(__u32 sel,__u32 address);
 __u32   TVE_get_reg_base(__u32 sel);

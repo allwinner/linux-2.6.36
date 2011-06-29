@@ -393,8 +393,7 @@ __s32 DE_BE_YUV_CH_Set_Src(__u32 sel, de_yuv_ch_src_t * in_src)
     {
     	return 0;
     }
-    //printk("in_fmt:%x,pixseq:%x,ch0_line_stride:%x,ch1_line_stride:%x,ch2_line_stride:%x,ch0_addr:%x,ch1_addr:%x,ch2_addr:%x\n",
-    //	in_fmt,pixseq,ch0_line_stride,ch1_line_stride,ch2_line_stride,ch0_addr,ch1_addr,ch2_addr);
+
     DE_BE_YUV_CH_Set_Format(sel, in_fmt,pixseq);
     //set line stride
     DE_BE_YUV_CH_Set_Line_Width(sel, 0x00, ch0_line_stride<<3);

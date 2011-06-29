@@ -454,18 +454,26 @@ typedef struct
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef enum
+{
+    FB_MODE_SCREEN0 = 0,
+    FB_MODE_SCREEN1 = 1,
+    FB_MODE_TWO_SAME_SCREEN_TB = 2,//two screen, top buffer for screen0, bottom buffer for screen1
+    FB_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS = 3,//two screen, they have same contents; screen0 is normal layer, screen1 is scaler layer.
+}__fb_mode_t;
+
 typedef struct
 {
-	__disp_layer_work_mode_t mode;
-	__u32 b_dual_screen;
-	__u32 screen_id;//use when b_dual_screen==FALSE, 0/1
-	__u32 b_double_buffer;
-	__u32 width;
-	__u32 height;
-	__u32 line_length;//in byte unit
-	__u32 smem_len;
-	__u32 ch1_offset;//use when PLANAR or UV_COMBINED mode
-	__u32 ch2_offset;//use when PLANAR mode
+	__disp_layer_work_mode_t    mode;
+	__fb_mode_t                 fb_mode;
+	__u32                       b_double_buffer;
+	__u32                       width;
+	__u32                       height;
+	__u32                       line_length;//in byte unit
+	__u32                       smem_len;
+	__u32                       ch1_offset;//use when PLANAR or UV_COMBINED mode
+	__u32                       ch2_offset;//use when PLANAR mode
 }__disp_fb_create_para_t;
 
 
@@ -676,8 +684,9 @@ typedef enum tag_DISP_CMD
 #define FBIO_ALPHA_OFF 0x4713
 #define FBIOPUT_ALPHA_VALUE 0x4714
 
-#define FBIO_DISPLAY_SCREEN0_ONLY 0x4720 //used when dual screen mode
-#define FBIO_DISPLAY_SCREEN1_ONLY 0x4721 //used when dual screen mode
-#define FBIO_DISPLAY_DUAL_SCREEN 0x4722 //used when dual screen mode
+#define FBIO_DISPLAY_SCREEN0_ONLY 0x4720
+#define FBIO_DISPLAY_SCREEN1_ONLY 0x4721
+#define FBIO_DISPLAY_TWO_SAME_SCREEN_TB 0x4722
+#define FBIO_DISPLAY_TWO_DIFF_SCREEN_SAME_CONTENTS 0x4723
 
 #endif

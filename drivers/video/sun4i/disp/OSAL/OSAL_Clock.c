@@ -213,7 +213,7 @@ __s32 OSAL_CCMU_SetSrcFreq( __u32 nSclkNo, __u32 nFreq )
         return -1;
     }
     if(nFreq == clk_get_rate(hSysClk)){
-       // printk("Sys clk[%d] freq is alreay %d, not need to set.\n", nSclkNo, nFreq);
+       // __inf("Sys clk[%d] freq is alreay %d, not need to set.\n", nSclkNo, nFreq);
         clk_put(hSysClk);
         return 0;
     }

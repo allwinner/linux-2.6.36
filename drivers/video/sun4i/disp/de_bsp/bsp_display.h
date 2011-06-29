@@ -561,6 +561,7 @@ extern __s32 BSP_disp_init(__disp_bsp_init_para * para);
 extern __s32 BSP_disp_exit(__u32 mode);
 extern __s32 BSP_disp_open(void);
 extern __s32 BSP_disp_close(void);
+extern __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id);
 extern __s32 BSP_disp_cmd_cache(__u32 sel);
 extern __s32 BSP_disp_cmd_submit(__u32 sel);
 extern __s32 BSP_disp_set_bk_color(__u32 sel, __disp_color_t *color);

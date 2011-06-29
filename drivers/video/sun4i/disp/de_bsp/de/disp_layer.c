@@ -3,6 +3,7 @@
 #include "disp_display.h"
 #include "disp_scaler.h"
 #include "disp_event.h"
+#include "disp_clk.h"
 
 
 static __s32 Layer_Get_Idle_Hid(__u32 sel)
@@ -412,6 +413,7 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
             if(layer_man->para.b_from_screen)
             {
                 Image_close(1-sel);
+                image_clk_off(1-sel);
                 gdisp.screen[1-sel].image_output_type = 0;
             }
             Scaler_Release(layer_man->scaler_index, TRUE);      /*release a scaler object */
@@ -838,7 +840,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if(player->b_from_screen)
     {
-        layer_man->para.mode = DISP_LAYER_WORK_MODE_SCALER;
+        player->mode = DISP_LAYER_WORK_MODE_SCALER;
     }
     
     if(layer_man->status & LAYER_USED)
@@ -906,6 +908,8 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
         	    scaler.in_fb.mode = DISP_MOD_INTERLEAVED;
         	    scaler.in_fb.br_swap = FALSE;
         	    scaler.in_fb.cs_mode = DISP_BT601;
+        	    image_clk_on(sel);
+        	    Image_open(1 - sel);
         	    DE_BE_Output_Select(1-sel, 6+layer_man->scaler_index);
         	    DE_SCAL_Input_Select(layer_man->scaler_index, 6 + (1-sel));
         	    gdisp.screen[1-sel].image_output_type = IMAGE_OUTPUT_SCALER;

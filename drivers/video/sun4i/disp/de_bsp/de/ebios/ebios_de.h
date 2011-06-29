@@ -332,6 +332,8 @@ __s32 DE_BE_Sprite_Set_Palette_Table(__u32 sel, __u32 address, __u32 offset, __u
 __s32 DE_BE_Set_Enhance(__u8 sel,__u32 brightness, __u32 contrast, __u32 saturaion);
 __s32 DE_BE_enhance_enable(__u32 sel, __bool enable);
 __s32 DE_BE_set_display_size(__u32 sel, __u32 width, __u32 height);
+__s32 DE_BE_get_display_width(__u32 sel);
+__s32 DE_BE_get_display_height(__u32 sel);
 __s32 DE_BE_deflicker_enable(__u32 sel, __bool enable);
 __s32 DE_BE_output_csc_enable(__u32 sel, __bool enable);
 __s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __bool bout_yuv);
