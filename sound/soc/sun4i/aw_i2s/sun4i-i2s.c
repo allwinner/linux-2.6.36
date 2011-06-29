@@ -468,12 +468,6 @@ static int sun4i_i2s_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	return 0;
 }
 
-//u32 sun4i_i2s_get_clockrate(void)
-//{
-//	return 0;
-//}
-EXPORT_SYMBOL_GPL(sun4i_i2s_get_clockrate);
-
 #define VA_I2S_GPIO_CFG0_BASE  (0xF1C20800 + 0x24)
 #define VA_I2S_GPIO_CFG1_BASE  (0xF1C20800 + 0x28)
 
