@@ -62,9 +62,11 @@ static struct sun4i_dma_params sun4i_i2s_pcm_stereo_in = {
 };
 
 
- struct sun4i_i2s_info sun4i_iis;
+struct sun4i_i2s_info sun4i_iis;
+EXPORT_SYMBOL(sun4i_iis);
+
 static u32 i2s_handle = 0;
- static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
+static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
 
 void sun4i_snd_txctrl_i2s(int on)
 {
