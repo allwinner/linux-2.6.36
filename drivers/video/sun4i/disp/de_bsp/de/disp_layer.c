@@ -834,6 +834,8 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
     __u32 prio_tmp = 0;
     __u32 size;
     
+    player->b_from_screen = 0;
+
     hid = HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
 
