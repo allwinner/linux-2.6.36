@@ -255,10 +255,10 @@
 
 unsigned int sun4i_i2s_get_clockrate(void);
 extern struct sun4i_i2s_info sun4i_i2s;
-extern struct snd_soc_dai sun4i_i2s_dai;
+extern struct snd_soc_dai sun4i_iis_dai;
 
-extern void sun4i_snd_txctrl_iis(int on);
-extern void sun4i_snd_rxctrl_iis(int on);
+extern void sun4i_snd_txctrl_i2s(int on);
+extern void sun4i_snd_rxctrl_i2s(int on);
 struct sun4i_i2s_info {
 	void __iomem   *regs;    /* IIS BASE */
 	void __iomem   *ccmregs;  //CCM BASE

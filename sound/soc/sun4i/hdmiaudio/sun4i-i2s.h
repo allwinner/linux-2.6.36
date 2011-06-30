@@ -19,7 +19,7 @@
 	#define SUN4I_IISCTL_TXEN			(1<<2)
 	#define SUN4I_IISCTL_RXEN			(1<<1)
 	#define SUN4I_IISCTL_GEN			(1<<0)
-	
+	 
 #define SUN4I_IISFAT0 		(0x04)
 	#define SUN4I_IISFAT0_LRCP					(1<<7)
 	#define SUN4I_IISFAT0_BCP					(1<<6)

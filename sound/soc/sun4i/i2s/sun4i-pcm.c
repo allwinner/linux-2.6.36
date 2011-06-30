@@ -186,7 +186,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 //		printk("[IIS]Entered %s\n", __func__);
 		
 	//set channel : mono or stereo
-	reg_val = readl(sun4i_i2s.regs + SUN4I_TXCHMAP);
+	reg_val = readl(sun4i_iis.regs + SUN4I_TXCHMAP);
 	reg_val &= ~(SUN4I_TXCHMAP_CH0(8));
 	reg_val &= ~(SUN4I_TXCHMAP_CH1(8));
 	switch(substream->runtime->channels)
@@ -206,7 +206,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 			
 	}
 //	printk("[IIS]reg_val = %#x\n",reg_val);
-	writel(reg_val, sun4i_i2s.regs + SUN4I_TXCHMAP);	
+	writel(reg_val, sun4i_iis.regs + SUN4I_TXCHMAP);	
 	 
 		
 	codec_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
@@ -221,9 +221,9 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 		
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
 			    codec_dma_conf->drqsrc_type  = DRQ_TYPE_SDRAM;
-				codec_dma_conf->drqdst_type  = DRQ_TYPE_HDMIAUDIO;
-				codec_dma_conf->xfer_type    = DMAXFER_D_BWORD_S_BWORD;
-				codec_dma_conf->address_type = DMAADDRT_D_IO_S_LN;
+				codec_dma_conf->drqdst_type  = DRQ_TYPE_IIS;
+				codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
+				codec_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
 				codec_dma_conf->dir          = SW_DMA_WDEV;
 				codec_dma_conf->reload       = 0;
 				codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
@@ -298,7 +298,7 @@ static snd_pcm_uframes_t sun4i_pcm_pointer(struct snd_pcm_substream *substream)
 	snd_pcm_uframes_t offset = 0;
 	//	printk("[IIS]Entered %s\n", __func__);
 	spin_lock(&prtd->lock);
-	sw_dma_getcurposition(DMACH_HDMIAUDIO, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
+	sw_dma_getcurposition(DMACH_NIIS, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
 
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 		res = dmadst - prtd->dma_start;
@@ -433,25 +433,25 @@ static int sun4i_pcm_new(struct snd_card *card,
 	return ret;
 }
 
-struct snd_soc_platform sun4i_soc_platform_iis = {
+struct snd_soc_platform sun4i_soc_platform_i2s = {
 		.name			=    "sun4i-audio",
 		.pcm_ops  =    &sun4i_pcm_ops,
 		.pcm_new	=		 sun4i_pcm_new,
 		.pcm_free	=		 sun4i_pcm_free_dma_buffers,
 };
-EXPORT_SYMBOL_GPL(sun4i_soc_platform_iis);
+EXPORT_SYMBOL_GPL(sun4i_soc_platform_i2s);
 
-static int __init sun4i_soc_platform_iis_init(void)
+static int __init sun4i_soc_platform_i2s_init(void)
 {
-	return snd_soc_register_platform(&sun4i_soc_platform_iis);
+	return snd_soc_register_platform(&sun4i_soc_platform_i2s);
 }
-module_init(sun4i_soc_platform_iis_init);
+module_init(sun4i_soc_platform_i2s_init);
 
-static void __exit sun4i_soc_platform_iis_exit(void)
+static void __exit sun4i_soc_platform_i2s_exit(void)
 {
-	snd_soc_unregister_platform(&sun4i_soc_platform_iis);
+	snd_soc_unregister_platform(&sun4i_soc_platform_i2s);
 }
-module_exit(sun4i_soc_platform_iis_exit);
+module_exit(sun4i_soc_platform_i2s_exit);
 
 MODULE_AUTHOR("All winner");
 MODULE_DESCRIPTION("SUN4I PCM DMA module");

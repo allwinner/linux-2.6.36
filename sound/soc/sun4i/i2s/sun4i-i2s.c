@@ -15,13 +15,18 @@
 #include <linux/clk.h>
 #include <linux/jiffies.h>
 #include <linux/io.h>
-#include <linux/gpio.h>
+//#include <linux/gpio.h>
 
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/initval.h>
 #include <sound/soc.h>
+
+#include <mach/clock.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+
 
 #include <mach/hardware.h>
 //#include <mach/gpio.h>
@@ -42,25 +47,28 @@ static struct sw_dma_client sun4i_dma_client_in = {
 
 static struct sun4i_dma_params sun4i_i2s_pcm_stereo_out = {
 	.client		=	&sun4i_dma_client_out,
-	//.channel	=	DMACH_NIIS,
-	.channel	=	DMACH_HDMIAUDIO,
-	.dma_addr 	=	0,
+	.channel	=	DMACH_NIIS,
+	//.channel	=	DMACH_HDMIAUDIO,
+	.dma_addr 	=	SUN4I_IISBASE + SUN4I_IISTXFIFO,
 	.dma_size 	=   4,               /* dma transfer 32bits */
 };
 
 static struct sun4i_dma_params sun4i_i2s_pcm_stereo_in = {
 	.client		=	&sun4i_dma_client_in,
-	//.channel	=	DMACH_NIIS,
-	.channel	=	DMACH_HDMIAUDIO,
+	.channel	=	DMACH_NIIS,
+	//.channel	=	DMACH_HDMIAUDIO,
 	.dma_addr 	=	SUN4I_IISBASE + SUN4I_IISRXFIFO,
 	.dma_size 	=   4,               /* dma transfer 32bits */
 };
 
 
- struct sun4i_i2s_info sun4i_i2s;
- static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
+struct sun4i_i2s_info sun4i_iis;
+EXPORT_SYMBOL(sun4i_iis);
 
-void sun4i_snd_txctrl_iis(int on)
+static u32 i2s_handle = 0;
+static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
+
+void sun4i_snd_txctrl_i2s(int on)
 {
 //	u32 i;
 	u32 reg_val;
@@ -68,106 +76,106 @@ void sun4i_snd_txctrl_iis(int on)
 //	printk("[IIS]in function %s, on = %d, line = %d\n", __func__, on, __LINE__);
 	
 		//flush TX FIFO
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISFCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISFCTL);
 		reg_val |= SUN4I_IISFCTL_FTX;	
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISFCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISFCTL);
 	
 		//clear TX counter
-		writel(0, sun4i_i2s.regs + SUN4I_IISTXCNT);
+		writel(0, sun4i_iis.regs + SUN4I_IISTXCNT);
 
 	if(on){
 		/* IIS TX ENABLE */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val |= SUN4I_IISCTL_TXEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
-	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 			
 		/* enable DMA DRQ mode for play */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISINT);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISINT);
 		reg_val |= SUN4I_IISINT_TXDRQEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISINT);
-	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISINT);
+	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 		
 		//Global Enable Digital Audio Interface
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val |= SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
-	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 
 	}else{
 		/* IIS TX DISABLE */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val &= ~SUN4I_IISCTL_TXEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
-	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+	//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 			
 		/* DISBALE dma DRQ mode */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISINT);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISINT);
 		reg_val &= ~SUN4I_IISINT_TXDRQEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISINT);
-	//		printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISINT);
+	//		printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 			
 		//Global disable Digital Audio Interface
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val &= ~SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
-	//		printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+	//		printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 	}
 		
 }
 
-void sun4i_snd_rxctrl_iis(int on)
+void sun4i_snd_rxctrl_i2s(int on)
 {
 	u32 reg_val;
 	
 	//	printk("[IIS]Entered %s\n", __func__);
 	
 	//flush RX FIFO
-	reg_val = readl(sun4i_i2s.regs + SUN4I_IISFCTL);
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISFCTL);
 	reg_val |= SUN4I_IISFCTL_FRX;	
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISFCTL);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISFCTL);
 
 	//clear RX counter
-	writel(0, sun4i_i2s.regs + SUN4I_IISRXCNT);
+	writel(0, sun4i_iis.regs + SUN4I_IISRXCNT);
 	
 	if(on){
 		/* IIS RX ENABLE */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val |= SUN4I_IISCTL_RXEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 			
 		/* enable DMA DRQ mode for record */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISINT);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISINT);
 		reg_val |= SUN4I_IISINT_RXDRQEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISINT);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISINT);
 			
 		//Global Enable Digital Audio Interface
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val |= SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 			
 	}else{
 		/* IIS RX DISABLE */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val &= ~SUN4I_IISCTL_RXEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 			
 		/* DISBALE dma DRQ mode */
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISINT);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISINT);
 		reg_val &= ~SUN4I_IISINT_RXDRQEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISINT);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISINT);
 				
 		//Global disable Digital Audio Interface
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val &= ~SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 	}
 		
 }
 
 static inline int sun4i_snd_is_clkmaster(void)
 {
-	return ((readl(sun4i_i2s.regs + SUN4I_IISCTL) & SUN4I_IISCTL_MS) ? 0 : 1);
+	return ((readl(sun4i_iis.regs + SUN4I_IISCTL) & SUN4I_IISCTL_MS) ? 0 : 1);
 }
 
 static int sun4i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
@@ -177,12 +185,12 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 
 	//	printk("[IIS]Entered %s\n", __func__);
 	//SDO ON
-	reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 	reg_val |= (SUN4I_IISCTL_SDO0EN | SUN4I_IISCTL_SDO1EN | SUN4I_IISCTL_SDO2EN | SUN4I_IISCTL_SDO3EN); 
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 
 	/* master or slave selection */
-	reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 	switch(fmt & SND_SOC_DAIFMT_MASTER_MASK){
 		case SND_SOC_DAIFMT_CBM_CFM:   /* codec clk & frm master */
 			reg_val |= SUN4I_IISCTL_MS;
@@ -193,15 +201,15 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 		default:
 			return -EINVAL;
 	}
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 	
 	
 	/* pcm or i2s mode selection */
-	reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
-	reg_val1 = readl(sun4i_i2s.regs + SUN4I_IISFAT0);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val1, __LINE__);
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
+	reg_val1 = readl(sun4i_iis.regs + SUN4I_IISFAT0);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val1, __LINE__);
 	reg_val1 &= ~SUN4I_IISFAT0_FMT_RVD;
 	switch(fmt & SND_SOC_DAIFMT_FORMAT_MASK){
 		case SND_SOC_DAIFMT_I2S:        /* I2S mode */
@@ -227,14 +235,14 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 		default:
 			return -EINVAL;
 	}
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
-	writel(reg_val1, sun4i_i2s.regs + SUN4I_IISFAT0);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val1, __LINE__);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
+	writel(reg_val1, sun4i_iis.regs + SUN4I_IISFAT0);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val1, __LINE__);
 	
 	/* DAI signal inversions */
-	reg_val1 = readl(sun4i_i2s.regs + SUN4I_IISFAT0);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val1, __LINE__);
+	reg_val1 = readl(sun4i_iis.regs + SUN4I_IISFAT0);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val1, __LINE__);
 	switch(fmt & SND_SOC_DAIFMT_INV_MASK){
 		case SND_SOC_DAIFMT_NB_NF:     /* normal bit clock + frame */
 			reg_val1 &= ~SUN4I_IISFAT0_LRCP;
@@ -253,55 +261,55 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 			reg_val1 |= SUN4I_IISFAT0_BCP;
 			break;
 	}
-	writel(reg_val1, sun4i_i2s.regs + SUN4I_IISFAT0);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val1, __LINE__);
+	writel(reg_val1, sun4i_iis.regs + SUN4I_IISFAT0);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val1, __LINE__);
 	
 	/* word select size */
-	reg_val = readl(sun4i_i2s.regs + SUN4I_IISFAT0);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISFAT0);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 	reg_val &= ~SUN4I_IISFAT0_WSS_32BCLK;
-	if(sun4i_i2s.ws_size == 16)
+	if(sun4i_iis.ws_size == 16)
 		reg_val |= SUN4I_IISFAT0_WSS_16BCLK;
-	else if(sun4i_i2s.ws_size == 20) 
+	else if(sun4i_iis.ws_size == 20) 
 		reg_val |= SUN4I_IISFAT0_WSS_20BCLK;
-	else if(sun4i_i2s.ws_size == 24)
+	else if(sun4i_iis.ws_size == 24)
 		reg_val |= SUN4I_IISFAT0_WSS_24BCLK;
 	else
 		reg_val |= SUN4I_IISFAT0_WSS_32BCLK;
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISFAT0);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISFAT0);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 
 	/* PCM REGISTER setup */
-	reg_val = sun4i_i2s.pcm_txtype&0x3;
-	reg_val |= sun4i_i2s.pcm_rxtype<<2;
+	reg_val = sun4i_iis.pcm_txtype&0x3;
+	reg_val |= sun4i_iis.pcm_rxtype<<2;
 	
-	if(!sun4i_i2s.pcm_sync_type)
+	if(!sun4i_iis.pcm_sync_type)
 		reg_val |= SUN4I_IISFAT1_SSYNC;							//short sync		
-	if(sun4i_i2s.pcm_sw == 16)
+	if(sun4i_iis.pcm_sw == 16)
 		reg_val |= SUN4I_IISFAT1_SW;
 			
-	reg_val |=((sun4i_i2s.pcm_start_slot - 1)&0x3)<<6;		//start slot index
+	reg_val |=((sun4i_iis.pcm_start_slot - 1)&0x3)<<6;		//start slot index
 		
-	reg_val |= sun4i_i2s.pcm_lsb_first<<9;			//MSB or LSB first
+	reg_val |= sun4i_iis.pcm_lsb_first<<9;			//MSB or LSB first
 		
-	if(sun4i_i2s.pcm_sync_period == 256)
+	if(sun4i_iis.pcm_sync_period == 256)
 		reg_val |= 0x4<<12;
-	else if (sun4i_i2s.pcm_sync_period == 128)
+	else if (sun4i_iis.pcm_sync_period == 128)
 		reg_val |= 0x3<<12;
-	else if (sun4i_i2s.pcm_sync_period == 64)
+	else if (sun4i_iis.pcm_sync_period == 64)
 		reg_val |= 0x2<<12;
-	else if (sun4i_i2s.pcm_sync_period == 32)
+	else if (sun4i_iis.pcm_sync_period == 32)
 		reg_val |= 0x1<<12;
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISFAT1);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISFAT1);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 	
 	/* set FIFO control register */
 	reg_val = 0 & 0x3;
 	reg_val |= (0 & 0x1)<<2;
 	reg_val |= SUN4I_IISFCTL_RXTL(0xf);				//RX FIFO trigger level
 	reg_val |= SUN4I_IISFCTL_TXTL(0x40);				//TX FIFO empty trigger level
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISFCTL);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.regs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISFCTL);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.regs, reg_val, __LINE__);
 	return 0;
 }
 
@@ -339,11 +347,11 @@ static int sun4i_i2s_trigger(struct snd_pcm_substream *substream,
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 				{
-					sun4i_snd_rxctrl_iis(1);
+					sun4i_snd_rxctrl_i2s(1);
 				}
 			else
 				{
-					sun4i_snd_txctrl_iis(1);
+					sun4i_snd_txctrl_i2s(1);
 				}
 			sw_dma_ctrl(dma_data->channel, SW_DMAOP_STARTED);
 			break;
@@ -352,11 +360,11 @@ static int sun4i_i2s_trigger(struct snd_pcm_substream *substream,
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 			{
-				sun4i_snd_rxctrl_iis(0);
+				sun4i_snd_rxctrl_i2s(0);
 			}
 			else
 			{
-			  sun4i_snd_txctrl_iis(0);
+			  sun4i_snd_txctrl_i2s(0);
 			}
 			break;
 		default:
@@ -376,28 +384,28 @@ static int sun4i_i2s_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id,
 	if (!freq)
 	{
 		/*
-		reg_val = readl(sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
+		reg_val = readl(sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
 		reg_val &= ~(1<<27);
 		reg_val |= SUN4I_CCM_AUDIO_HOSC_PLL_REG_FRE24576MHZ;
 		reg_val &= ~(0x1f<<0);
 		reg_val |= 0x9<<0;
 		reg_val &= ~(0x7f<<8);
 		reg_val |= 0x53<<8;
-		writel(reg_val, sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
+		writel(reg_val, sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
 		*/
 		clk_set_rate(i2s_pll2clk, 24576000);
 	}	
 	else
 	{
 		/*
-		reg_val = readl(sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
+		reg_val = readl(sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
 		reg_val &= ~(1<<27);
 		reg_val |= SUN4I_CCM_AUDIO_HOSC_PLL_REG_FRE225792MHZ;
 		reg_val &= ~(0x1f<<0);
 		reg_val |= 0xA<<0;
 		reg_val &= ~(0x7F<<8);
 		reg_val |= 0x5E<<8;
-		writel(reg_val, sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
+		writel(reg_val, sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
 		*/
 		clk_set_rate(i2s_pll2clk, 22579200);
 	}
@@ -425,8 +433,8 @@ static int sun4i_i2s_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 			div = 0x9;
 		else if(div == 64)
 			div = 0xa;
-		reg = (readl(sun4i_i2s.regs + SUN4I_IISCLKD) & ~SUN4I_IISCLKD_MCLK_MASK) | (div << SUN4I_IISCLKD_MCLK_OFFS);
-		writel(reg, sun4i_i2s.regs + SUN4I_IISCLKD);
+		reg = (readl(sun4i_iis.regs + SUN4I_IISCLKD) & ~SUN4I_IISCLKD_MCLK_MASK) | (div << SUN4I_IISCLKD_MCLK_OFFS);
+		writel(reg, sun4i_iis.regs + SUN4I_IISCLKD);
 		break;
 	case SUN4I_DIV_BCLK:
 		if(div <= 8)
@@ -439,34 +447,28 @@ static int sun4i_i2s_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 			div = 0x6;
 		else if(div == 64)
 			div = 0x7;
-		reg = (readl(sun4i_i2s.regs + SUN4I_IISCLKD) & ~SUN4I_IISCLKD_BCLK_MASK) | (div <<SUN4I_IISCLKD_BCLK_OFFS);
-		writel(reg, sun4i_i2s.regs + SUN4I_IISCLKD);
+		reg = (readl(sun4i_iis.regs + SUN4I_IISCLKD) & ~SUN4I_IISCLKD_BCLK_MASK) | (div <<SUN4I_IISCLKD_BCLK_OFFS);
+		writel(reg, sun4i_iis.regs + SUN4I_IISCLKD);
 		break;
 	default:
 		return -EINVAL;
 	}
 	
 	//diable MCLK output when high samplerate
-	reg = readl(sun4i_i2s.regs + SUN4I_IISCLKD);
+	reg = readl(sun4i_iis.regs + SUN4I_IISCLKD);
 	if(!(reg & 0xF))
 	{
 		reg &= ~SUN4I_IISCLKD_MCLKOEN;
-		writel(reg, sun4i_i2s.regs + SUN4I_IISCLKD);
+		writel(reg, sun4i_iis.regs + SUN4I_IISCLKD);
 	}
 	else
 	{
 		reg |= SUN4I_IISCLKD_MCLKOEN;
-		writel(reg, sun4i_i2s.regs + SUN4I_IISCLKD);
+		writel(reg, sun4i_iis.regs + SUN4I_IISCLKD);
 	}
 	
 	return 0;
 }
-
-u32 sun4i_i2s_get_clockrate(void)
-{
-	return 0;
-}
-EXPORT_SYMBOL_GPL(sun4i_i2s_get_clockrate);
 
 #define VA_I2S_GPIO_CFG0_BASE  (0xF1C20800 + 0x24)
 #define VA_I2S_GPIO_CFG1_BASE  (0xF1C20800 + 0x28)
@@ -481,41 +483,42 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 		int reg_val = 0;
 //	printk("[IIS]Entered %s\n", __func__);
 
-	sun4i_i2s.regs = ioremap(SUN4I_IISBASE, 0x100);
-	if (sun4i_i2s.regs == NULL)
+	sun4i_iis.regs = ioremap(SUN4I_IISBASE, 0x100);
+	if (sun4i_iis.regs == NULL)
 		return -ENXIO;
 		
-	sun4i_i2s.ccmregs = ioremap(SUN4I_CCMBASE, 0x100);
-	if (sun4i_i2s.ccmregs == NULL)
-		return -ENXIO;
+//	sun4i_iis.ccmregs = ioremap(SUN4I_CCMBASE, 0x100);
+//	if (sun4i_iis.ccmregs == NULL)
+//		return -ENXIO;
 		
-	sun4i_i2s.ioregs = ioremap(0x01C20800, 0x100);
-	if (sun4i_i2s.ioregs == NULL)
-		return -ENXIO;
+//	sun4i_iis.ioregs = ioremap(0x01C20800, 0x100);
+//	if (sun4i_iis.ioregs == NULL)
+//		return -ENXIO;
 	/*
 	//audio pll enable
-	reg_val = readl(sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.ccmregs, reg_val, __LINE__);
+	reg_val = readl(sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.ccmregs, reg_val, __LINE__);
 	reg_val |= SUN4I_CCM_AUDIO_HOSC_PLL_REG_AUDIOEN;
-	writel(reg_val, sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.ccmregs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_HOSC_PLL_REG);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.ccmregs, reg_val, __LINE__);
 	
 	//IIS APB gating
-	reg_val = readl(sun4i_i2s.ccmregs + SUN4I_CCM_APB_GATE_REG);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.ccmregs, reg_val, __LINE__);
+	reg_val = readl(sun4i_iis.ccmregs + SUN4I_CCM_APB_GATE_REG);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.ccmregs, reg_val, __LINE__);
 	reg_val |= SUN4I_CCM_APB_GATE_REG_IISGATE;
-	writel(reg_val, sun4i_i2s.ccmregs + SUN4I_CCM_APB_GATE_REG);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.ccmregs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.ccmregs + SUN4I_CCM_APB_GATE_REG);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.ccmregs, reg_val, __LINE__);
 	
 	//iis special clock gating
-	reg_val = readl(sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_CLK_REG);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.ccmregs, reg_val, __LINE__);
+	reg_val = readl(sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_CLK_REG);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.ccmregs, reg_val, __LINE__);
 	reg_val |= SUN4I_CCM_AUDIO_CLK_REG_IISSPECIALGATE;
 	reg_val &= ~(SUN4I_CCM_AUDIO_CLK_REG_DIV(3));
 	reg_val |= SUN4I_CCM_AUDIO_CLK_REG_DIV(3);
-	writel(reg_val, sun4i_i2s.ccmregs + SUN4I_CCM_AUDIO_CLK_REG);
-//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_i2s.ccmregs, reg_val, __LINE__);
+	writel(reg_val, sun4i_iis.ccmregs + SUN4I_CCM_AUDIO_CLK_REG);
+//	printk("[IIS]in function %s, base addr = %x, reg_val = %x, line = %d\n", __func__, sun4i_iis.ccmregs, reg_val, __LINE__);
 	*/
+		i2s_handle = gpio_request_ex("i2s_para", NULL);
 
 	//i2s apbclk
 		i2s_apbclk = clk_get(NULL, "apb_i2s");
@@ -551,48 +554,48 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 			printk("open i2s_moduleclk failed! line = %d\n", __LINE__);
 		}
 	
-	reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 	reg_val |= SUN4I_IISCTL_GEN;
-	writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 
  //for ic
  /*
 	// i2s gpio setting 
-	reg_val = readl(sun4i_i2s.ioregs + 0x24);
+	reg_val = readl(sun4i_iis.ioregs + 0x24);
 	reg_val &= ~0xFFF00000;
 	reg_val |= 0x22200000;
-	writel(reg_val, sun4i_i2s.ioregs + 0x24); 
+	writel(reg_val, sun4i_iis.ioregs + 0x24); 
 	
-	reg_val = readl(sun4i_i2s.ioregs + 0x28);
+	reg_val = readl(sun4i_iis.ioregs + 0x28);
 	reg_val &= ~0x000FFFFF;
 	reg_val |= 0x00022222;
-	writel(reg_val, sun4i_i2s.ioregs + 0x28); 
+	writel(reg_val, sun4i_iis.ioregs + 0x28); 
 
     //for FPGA
-    reg_val = readl(sun4i_i2s.ioregs + 0x48);
+    reg_val = readl(sun4i_iis.ioregs + 0x48);
 	reg_val &= ~0xFFFFF000;
 	reg_val |=  0x44444000;
-	writel(reg_val, sun4i_i2s.ioregs + 0x48); 
+	writel(reg_val, sun4i_iis.ioregs + 0x48); 
 	
-	reg_val = readl(sun4i_i2s.ioregs + 0x4C);
+	reg_val = readl(sun4i_iis.ioregs + 0x4C);
 	reg_val &= ~0x0FFF0000;
 	reg_val |=  0x04440000;
-	writel(reg_val, sun4i_i2s.ioregs + 0x4C); 
+	writel(reg_val, sun4i_iis.ioregs + 0x4C); 
 	
-	reg_val = readl(sun4i_i2s.ioregs + 0x50);
+	reg_val = readl(sun4i_iis.ioregs + 0x50);
 	reg_val &= ~0x000000F0;
 	reg_val |=  0x00000040;
-	writel(reg_val, sun4i_i2s.ioregs + 0x50); 
+	writel(reg_val, sun4i_iis.ioregs + 0x50); 
 	
-	reg_val = readl(sun4i_i2s.ioregs + 0x54);
+	reg_val = readl(sun4i_iis.ioregs + 0x54);
 	reg_val &= ~0x0000000F;
 	reg_val |=  0x00000004;
-	writel(reg_val, sun4i_i2s.ioregs + 0x54); 
+	writel(reg_val, sun4i_iis.ioregs + 0x54); 
  */   	
-	sun4i_snd_txctrl_iis(0);
-	sun4i_snd_rxctrl_iis(0);
+	sun4i_snd_txctrl_i2s(0);
+	sun4i_snd_rxctrl_i2s(0);
 	
-	iounmap(sun4i_i2s.ioregs);
+	iounmap(sun4i_iis.ioregs);
 	
 	return 0;
 }
@@ -606,9 +609,9 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 //	printk("[IIS]Entered %s\n", __func__);
 
 		//Global Enable Digital Audio Interface
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val &= ~SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 		
 		return 0;
 	}
@@ -617,9 +620,9 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 		u32 reg_val;
 //	printk("[IIS]Entered %s\n", __func__);
 		//Global Enable Digital Audio Interface
-		reg_val = readl(sun4i_i2s.regs + SUN4I_IISCTL);
+		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val |= SUN4I_IISCTL_GEN;
-		writel(reg_val, sun4i_i2s.regs + SUN4I_IISCTL);
+		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 		
 		return 0;
 	}
@@ -629,14 +632,14 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 #endif
 
 #define SUN4I_I2S_RATES (SNDRV_PCM_RATE_8000_192000 | SNDRV_PCM_RATE_KNOT)
-static struct snd_soc_dai_ops sun4i_i2s_dai_ops = {
+static struct snd_soc_dai_ops sun4i_iis_dai_ops = {
 		.trigger 		= sun4i_i2s_trigger,
 		.hw_params 	= sun4i_i2s_hw_params,
 		.set_fmt 		= sun4i_i2s_set_fmt,
 		.set_clkdiv = sun4i_i2s_set_clkdiv,
 		.set_sysclk = sun4i_i2s_set_sysclk, 
 };
-struct snd_soc_dai sun4i_i2s_dai = {
+struct snd_soc_dai sun4i_iis_dai = {
 	.name 		= "sun4i-i2s",
 	.id 			= 0,
 	.probe 		= sun4i_i2s_probe,
@@ -652,13 +655,13 @@ struct snd_soc_dai sun4i_i2s_dai = {
 		.channels_max = 2,
 		.rates = SUN4I_I2S_RATES,
 		.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE | SNDRV_PCM_FMTBIT_S24_LE,},
-	.ops = &sun4i_i2s_dai_ops,
+	.ops = &sun4i_iis_dai_ops,
 };		
-EXPORT_SYMBOL_GPL(sun4i_i2s_dai);
+EXPORT_SYMBOL_GPL(sun4i_iis_dai);
 
 static int __init sun4i_i2s_init(void)
 {
-	return snd_soc_register_dai(&sun4i_i2s_dai);
+	return snd_soc_register_dai(&sun4i_iis_dai);
 }
 module_init(sun4i_i2s_init);
 
@@ -676,7 +679,8 @@ static void __exit sun4i_i2s_exit(void)
 	//release apbclk
 	clk_put(i2s_apbclk);
 
-	snd_soc_unregister_dai(&sun4i_i2s_dai);
+	gpio_release(i2s_handle, 2);
+	snd_soc_unregister_dai(&sun4i_iis_dai);
 }
 module_exit(sun4i_i2s_exit);
 

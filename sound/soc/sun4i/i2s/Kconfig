@@ -1,6 +1,6 @@
 
-config SND_SUN4I_SOC_I2S
-	tristate "SoC Audio for the AllWinner SUN4I chips"
+config SND_SUN4I_SOC_I2S_INTERFACE
+	tristate "SoC i2s interface for the AllWinner SUN4I chips"
 	default n
 	help
 	  Say Y or M if you want to add support for codecs attached to
