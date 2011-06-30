@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Thu Jun 30 14:19:10 2011
+# Thu Jun 30 14:32:16 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -573,7 +573,8 @@ CONFIG_BLK_DEV=y
 CONFIG_SUN4I_NANDFLASH=y
 # CONFIG_SUN4I_NANDFLASH_TEST is not set
 # CONFIG_BLK_DEV_COW_COMMON is not set
-# CONFIG_BLK_DEV_LOOP is not set
+CONFIG_BLK_DEV_LOOP=y
+CONFIG_BLK_DEV_CRYPTOLOOP=y
 
 #
 # DRBD disabled because PROC_FS, INET or CONNECTOR not selected
