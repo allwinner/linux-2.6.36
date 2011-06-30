@@ -46,6 +46,8 @@
 #include <linux/libata.h>
 #include "ahci.h"
 
+#include <linux/slab.h>
+
 static int ahci_skip_host_reset;
 int ahci_ignore_sss;
 EXPORT_SYMBOL_GPL(ahci_ignore_sss);
@@ -540,10 +542,17 @@ static int ahci_scr_write(struct ata_link *link, unsigned int sc_reg, u32 val)
 	return -EINVAL;
 }
 
+#define SW_AHCI_PORT_DMA		0x70
 void ahci_start_engine(struct ata_port *ap)
 {
 	void __iomem *port_mmio = ahci_port_base(ap);
 	u32 tmp;
+
+	/*Setup DMA before Start DMA, by danielwang*/
+	tmp = readl(port_mmio + SW_AHCI_PORT_DMA);
+	tmp &= ~0xff00;
+	tmp |= 0x4400;
+	writel(tmp, port_mmio + SW_AHCI_PORT_DMA);
 
 	/* start DMA */
 	tmp = readl(port_mmio + PORT_CMD);
@@ -2053,7 +2062,11 @@ static int ahci_port_start(struct ata_port *ap)
 		rx_fis_sz = AHCI_RX_FIS_SZ;
 	}
 
-	mem = dmam_alloc_coherent(dev, dma_sz, &mem_dma, GFP_KERNEL);
+	//mem = dmam_alloc_coherent(dev, dma_sz, &mem_dma, GFP_KERNEL);
+	//danielwang
+	mem = kmalloc(dma_sz, GFP_DMA | GFP_KERNEL);
+	mem_dma = __pa(mem);
+	//printk("dmam_alloc_coherent mem = 0x%x, size = 0x%x, mem_dma=0x%x\n", (unsigned int)mem, (unsigned int)dma_sz, (unsigned int)mem_dma);  
 	if (!mem)
 		return -ENOMEM;
 	memset(mem, 0, dma_sz);
