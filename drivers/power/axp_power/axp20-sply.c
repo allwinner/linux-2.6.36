@@ -1664,26 +1664,13 @@ static int axp20_resume(struct platform_device *dev)
 	peklong = (events & AXP20_IRQ_PEKLO)? 1 : 0;
 	pekshort = (events & AXP20_IRQ_PEKSH )? 1 : 0;
 
-    if(peklong)
+	if(pekshort || peklong)
 	{
-		printk("press long\n");
-		axp_writes(charger->master,POWER20_INTSTS1,9,w);
-		input_report_key(powerkeydev, KEY_POWER, 1);
-		input_sync(powerkeydev);
-		ssleep(2);
-		printk("press long up\n");
-		input_report_key(powerkeydev, KEY_POWER, 0);
-		input_sync(powerkeydev);
-	}
-
-	if(pekshort)
-	{
-		printk("press short\n");
+		printk("press power key when suspend\n");
 		axp_writes(charger->master,POWER20_INTSTS1,9,w);
 
 		input_report_key(powerkeydev, KEY_POWER, 1);
 		input_sync(powerkeydev);
-		msleep(100);
 		input_report_key(powerkeydev, KEY_POWER, 0);
 		input_sync(powerkeydev);
 	}
