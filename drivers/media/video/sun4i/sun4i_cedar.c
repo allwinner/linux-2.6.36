@@ -146,6 +146,12 @@ static irqreturn_t VideoEngineInterupt(int irq, void *dev)
         case 3: //rmvb            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x400 + 0x14);
             break;
+        case 0xa: //isp            
+            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0xa00 + 0x08);
+            break;
+        case 0xb: //avc enc            
+            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0xb00 + 0x14);
+            break; 
         default:            
             ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x100 + 0x14);
             pr_debug("macc modual sel not defined!\n");
