@@ -471,7 +471,7 @@ serial_sw_set_termios(struct uart_port *port, struct ktermios *termios,
 		cval = UART_LCR_WLEN8;
 		break;
 	}
-	
+
 	if (termios->c_cflag & CSTOPB)
 		cval |= UART_LCR_STOP;
 	if (termios->c_cflag & PARENB)
@@ -824,21 +824,24 @@ static struct uart_driver serial_sw_reg = {
 
 static int serial_sw_suspend(struct platform_device *dev, pm_message_t state)
 {
+#if 0
         struct uart_sw_port *sport = platform_get_drvdata(dev);
 
         if (sport)
                 uart_suspend_port(&serial_sw_reg, &sport->port);
 
+#endif
         return 0;
 }
 
 static int serial_sw_resume(struct platform_device *dev)
 {
+#if 0
         struct uart_sw_port *sport = platform_get_drvdata(dev);
 
         if (sport)
                 uart_resume_port(&serial_sw_reg, &sport->port);
-
+#endif
         return 0;
 }
 
@@ -1021,7 +1024,7 @@ static int serial_sw_probe(struct platform_device *dev)
 			__REG(VA_PIO_BASE + PIOC_REG_o_A_CFG0)  &= ~( ( 7<<4 ) | ( 7<<0 ) );
 			__REG(VA_PIO_BASE + PIOC_REG_o_A_CFG0)  |=	( ( 3<<4 ) | ( 3<<0 ) );
 			break;
-	} 
+	}
 
 
 	return 0;
@@ -1120,7 +1123,7 @@ void sw_reconfig_uart(void)
 		uport = &port->port;
 		if (uport == NULL)
 			continue;
-		
+
 		if (uport->state == NULL)
 			continue;
 
