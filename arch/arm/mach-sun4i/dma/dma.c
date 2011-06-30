@@ -472,6 +472,7 @@ static int sw_dma_waitforload(struct sw_dma_chan *chan, int line)
 			switch (chan->load_state) {
 			case SW_DMALOAD_1LOADED:
 				chan->load_state = SW_DMALOAD_1RUNNING;
+				pr_debug("L%d(from %d), loadstate SW_DMALOAD_1LOADED -> SW_DMALOAD_1RUNNING\n", __LINE__, line);
 				break;
 
 			default:
@@ -527,10 +528,12 @@ static inline int sw_dma_loadbuffer(struct sw_dma_chan *chan, struct sw_dma_buf 
 
 	switch (chan->load_state) {
 	case SW_DMALOAD_NONE:
+		pr_debug("L%d, loadstate SW_DMALOAD_NONE -> SW_DMALOAD_1LOADED\n", __LINE__);
 		chan->load_state = SW_DMALOAD_1LOADED;
 		break;
 
 	case SW_DMALOAD_1RUNNING:
+		pr_debug("L%d, loadstate SW_DMALOAD_1RUNNING -> SW_DMALOAD_1LOADED_1RUNNING\n", __LINE__);
 		chan->load_state = SW_DMALOAD_1LOADED_1RUNNING;
 		break;
 
@@ -637,6 +640,7 @@ static int sw_dma_start(struct sw_dma_chan *chan)
 				pr_debug("%s: buff not yet loaded, no more todo\n",
 					 __func__);
 			} else {
+		        pr_debug("L%d, loadstate %d -> SW_DMALOAD_1RUNNING\n", __LINE__, chan->load_state);
 				chan->load_state = SW_DMALOAD_1RUNNING;
 				sw_dma_loadbuffer(chan, chan->next);
 			}
@@ -825,7 +829,8 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 	struct sw_dma_chan *chan;
 	struct sw_dma_buf  *buf;
 	unsigned long tmp;
-
+	unsigned long flags;
+    
 	writel(pend_bits, dma_base + SW_DMA_DIRQPD);
 
 	chan = &sw_chans[chan_nr];
@@ -846,56 +851,6 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		return;
 	
 	dbg_showchan(chan);
-
-	/* modify the channel state */
-
-	switch (chan->load_state) {
-	case SW_DMALOAD_1RUNNING:
-		/* TODO - if we are running only one buffer, we probably
-		 * want to reload here, and then worry about the buffer
-		 * callback */
-
-		chan->load_state = SW_DMALOAD_NONE;
-		break;
-
-	case SW_DMALOAD_1LOADED:
-		/* iirc, we should go back to NONE loaded here, we
-		 * had a buffer, and it was never verified as being
-		 * loaded.
-		 */
-
-		chan->load_state = SW_DMALOAD_NONE;
-		break;
-
-	case SW_DMALOAD_1LOADED_1RUNNING:
-		/* we'll worry about checking to see if another buffer is
-		 * ready after we've called back the owner. This should
-		 * ensure we do not wait around too long for the DMA
-		 * engine to start the next transfer
-		 */
-
-		chan->load_state = SW_DMALOAD_1LOADED;
-		if(!(( chan->dcon & SW_NDMA_CONF_CONTI) || (chan->dcon & SW_DDMA_CONF_CONTI))){
-			struct sw_dma_buf  *next = chan->curr->next;
-			
-			writel(__virt_to_bus(next->data), chan->addr_reg);
-			dma_wrreg(chan, SW_DMA_DCNT, next->size);
-			tmp = SW_DCONF_LOADING | chan->dcon;
-			dma_wrreg(chan, SW_DMA_DCONF, tmp);
-			tmp = dma_rdreg(chan, SW_DMA_DCONF);
-		}
-		break;
-
-	case SW_DMALOAD_NONE:
-		printk(KERN_ERR "dma%d: IRQ with no loaded buffer?\n",
-		       chan->number);
-		break;
-
-	default:
-		printk(KERN_ERR "dma%d: IRQ in invalid load_state %d\n",
-		       chan->number, chan->load_state);
-		break;
-	}
 
 	if (buf != NULL) {
 		/* update the chain to make sure that if we load any more
@@ -919,6 +874,61 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 	} else {
 	}
 
+	local_irq_save(flags);
+	/* modify the channel state */
+	switch (chan->load_state) {
+	case SW_DMALOAD_1RUNNING:
+		/* TODO - if we are running only one buffer, we probably
+		 * want to reload here, and then worry about the buffer
+		 * callback */
+
+		pr_debug("L%d, loadstate SW_DMALOAD_1RUNNING -> SW_DMALOAD_NONE\n", __LINE__);
+		chan->load_state = SW_DMALOAD_NONE;
+		break;
+
+	case SW_DMALOAD_1LOADED:
+		/* iirc, we should go back to NONE loaded here, we
+		 * had a buffer, and it was never verified as being
+		 * loaded.
+		 */
+
+		pr_debug("L%d, loadstate SW_DMALOAD_1LOADED -> SW_DMALOAD_NONE\n", __LINE__);
+		chan->load_state = SW_DMALOAD_NONE;
+		break;
+
+	case SW_DMALOAD_1LOADED_1RUNNING:
+		/* we'll worry about checking to see if another buffer is
+		 * ready after we've called back the owner. This should
+		 * ensure we do not wait around too long for the DMA
+		 * engine to start the next transfer
+		 */
+
+		pr_debug("L%d, loadstate SW_DMALOAD_1LOADED_1RUNNING -> SW_DMALOAD_1LOADED\n", __LINE__);
+		chan->load_state = SW_DMALOAD_1LOADED;
+		/*
+		if(!(( chan->dcon & SW_NDMA_CONF_CONTI) || (chan->dcon & SW_DDMA_CONF_CONTI))){
+			struct sw_dma_buf  *next = chan->curr->next;
+			
+			writel(__virt_to_bus(next->data), chan->addr_reg);
+			dma_wrreg(chan, SW_DMA_DCNT, next->size);
+			tmp = SW_DCONF_LOADING | chan->dcon;
+			dma_wrreg(chan, SW_DMA_DCONF, tmp);
+			tmp = dma_rdreg(chan, SW_DMA_DCONF);
+		}
+		*/
+		break;
+
+	case SW_DMALOAD_NONE:
+		printk(KERN_ERR "dma%d: IRQ with no loaded buffer?\n",
+		       chan->number);
+		break;
+
+	default:
+		printk(KERN_ERR "dma%d: IRQ in invalid load_state %d\n",
+		       chan->number, chan->load_state);
+		break;
+	}
+
 	if(chan->load_state == SW_DMALOAD_1LOADED && !((chan->dcon & SW_NDMA_CONF_CONTI)||(chan->dcon & SW_DDMA_CONF_CONTI))){
 
 		writel(__virt_to_bus(chan->curr->data), chan->addr_reg);
@@ -928,6 +938,8 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		tmp = dma_rdreg(chan, SW_DMA_DCONF);
 	}
 	
+	local_irq_restore(flags);
+	
 	/* only reload if the channel is still running... our buffer done
 	 * routine may have altered the state by requesting the dma channel
 	 * to stop or shutdown... */
@@ -936,7 +948,6 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 	 * function, we cope with unsetting reload, etc */
 
 	if (chan->next != NULL && chan->state != SW_DMA_IDLE) {
-		unsigned long flags;
 
 		switch (chan->load_state) {
 		case SW_DMALOAD_1RUNNING:
@@ -969,6 +980,7 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		local_irq_save(flags);
 		sw_dma_loadbuffer(chan, chan->next);
 		local_irq_restore(flags);
+		//printk("-------\n");
 	} else {
 		sw_dma_lastxfer(chan);
 
@@ -1139,6 +1151,7 @@ static int sw_dma_dostop(struct sw_dma_chan *chan)
 
 	/* should stop do this, or should we wait for flush? */
 	chan->state      = SW_DMA_IDLE;
+	pr_debug("L%d, loadstate %d -> SW_DMALOAD_NONE\n", __LINE__, chan->load_state);
 	chan->load_state = SW_DMALOAD_NONE;
 
 	local_irq_restore(flags);
@@ -1232,6 +1245,7 @@ static int sw_dma_started(struct sw_dma_chan *chan)
 				pr_debug("%s: buff not yet loaded, no more todo\n",
 					 __func__);
 			} else {
+	            pr_debug("L%d, loadstate %d -> SW_DMALOAD_NONE\n", __LINE__, chan->load_state);
 				chan->load_state = SW_DMALOAD_1RUNNING;
 				sw_dma_loadbuffer(chan, chan->next);
 			}
