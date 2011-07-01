@@ -244,6 +244,8 @@ static inline void Fb_unmap_video_memory(struct fb_info *info)
 #endif
 }
 
+
+
 __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool br_swap, struct fb_var_screeninfo *var)//todo
 {
     if(format==DISP_FORMAT_ARGB8888)
@@ -255,31 +257,31 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 8;
         if(seq == DISP_SEQ_ARGB && br_swap == 0)//argb
         {
-            var->transp.offset = var->red.offset + var->red.length;
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
+            var->transp.offset = var->red.offset + var->red.length;
         }
         else if(seq == DISP_SEQ_BGRA && br_swap == 0)//bgra
-        {
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
-            var->red.offset = var->transp.offset + var->transp.length;
+        {           
             var->transp.offset = 0;
+            var->red.offset = var->transp.offset + var->transp.length;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
         }
         else if(seq == DISP_SEQ_ARGB && br_swap == 1)//abgr
         {
-            var->transp.offset = var->blue.offset + var->blue.length;
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
+            var->transp.offset = var->blue.offset + var->blue.length;
         }
         else if(seq == DISP_SEQ_BGRA && br_swap == 1)//rgba
         {
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
-            var->blue.offset = var->transp.offset + var->transp.length;
             var->transp.offset = 0;
+            var->blue.offset = var->transp.offset + var->transp.length;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
         }
     }
     else if(format==DISP_FORMAT_RGB888)
@@ -291,15 +293,15 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 8;
         if(br_swap == 0)//rgb
         {
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
         }
         else//bgr
         {
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
         }
     }
     else if(format==DISP_FORMAT_RGB655)
@@ -311,15 +313,15 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 5;
         if(br_swap == 0)//rgb
         {
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
         }
         else//bgr
         {
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
         }
     }
     else if(format==DISP_FORMAT_RGB565)
@@ -331,15 +333,15 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 5;
         if(br_swap == 0)//rgb
         {
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
         }
         else//bgr
         {
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
         }
     }
     else if(format==DISP_FORMAT_RGB556)
@@ -351,15 +353,15 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 6;
         if(br_swap == 0)//rgb
         {
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
         }
         else//bgr
         {
-            var->blue.offset = var->blue.offset + var->blue.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->blue.offset + var->blue.length;
         }
     }
     else if(format==DISP_FORMAT_ARGB1555)
@@ -371,17 +373,17 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 5;
         if(br_swap == 0)//rgb
         {
-            var->transp.offset = var->red.offset + var->red.length;
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
+            var->transp.offset = var->red.offset + var->red.length;
         }
         else//bgr
         {
-            var->transp.offset = var->blue.offset + var->blue.length;
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
+            var->transp.offset = var->blue.offset + var->blue.length;
         }
     }
     else if(format==DISP_FORMAT_RGBA5551)
@@ -393,17 +395,17 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->transp.length = 1;
         if(br_swap == 0)//rgba
         {
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
-            var->blue.offset = var->transp.offset + var->transp.length;
             var->transp.offset = 0;
+            var->blue.offset = var->transp.offset + var->transp.length;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
         }
         else//bgra
         {
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
-            var->red.offset = var->transp.offset + var->transp.length;
             var->transp.offset = 0;
+            var->red.offset = var->transp.offset + var->transp.length;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
         }
     }
     else if(format==DISP_FORMAT_ARGB4444)
@@ -415,17 +417,17 @@ __s32 disp_fb_to_var(__disp_pixel_fmt_t format, __disp_pixel_seq_t seq, __bool b
         var->blue.length = 4;
         if(br_swap == 0)//argb
         {
-            var->transp.offset = var->red.offset + var->red.length;
-            var->red.offset = var->green.offset + var->green.length;
-            var->green.offset = var->blue.offset + var->blue.length;
             var->blue.offset = 0;
+            var->green.offset = var->blue.offset + var->blue.length;
+            var->red.offset = var->green.offset + var->green.length;
+            var->transp.offset = var->red.offset + var->red.length;
         }
         else//abgr
         {
-            var->transp.offset = var->blue.offset + var->blue.length;
-            var->blue.offset = var->green.offset + var->green.length;
-            var->green.offset = var->red.offset + var->red.length;
             var->red.offset = 0;
+            var->green.offset = var->red.offset + var->red.length;
+            var->blue.offset = var->green.offset + var->green.length;
+            var->transp.offset = var->blue.offset + var->blue.length;
         }
     }
 
