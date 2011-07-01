@@ -1019,6 +1019,50 @@ u32 sdxc_check_card_busy(struct awsmc_host* smc_host)
 * Returns    :  
 * Note       :
 *********************************************************************/
+void sdxc_regs_save(struct awsmc_host* smc_host)
+{
+	struct awsmc_ctrl_regs* bak_regs = &smc_host->bak_regs;
+
+	bak_regs->gctrl		= sdc_read(SDXC_REG_GCTRL);
+	bak_regs->clkc		= sdc_read(SDXC_REG_CLKCR);
+	bak_regs->timeout	= sdc_read(SDXC_REG_TMOUT);
+	bak_regs->buswid	= sdc_read(SDXC_REG_WIDTH);
+	bak_regs->waterlvl	= sdc_read(SDXC_REG_FTRGL);
+	bak_regs->funcsel	= sdc_read(SDXC_REG_FUNS);
+	bak_regs->debugc	= sdc_read(SDXC_REG_DBGC);
+	bak_regs->idmacc	= sdc_read(SDXC_REG_DMAC);
+}
+
+/*********************************************************************
+* Method	 :  
+* Description:  
+* Parameters :  
+*	            
+* Returns    :  
+* Note       :
+*********************************************************************/
+void sdxc_regs_restore(struct awsmc_host* smc_host)
+{
+	struct awsmc_ctrl_regs* bak_regs = &smc_host->bak_regs;
+
+    sdc_write(SDXC_REG_GCTRL, bak_regs->gctrl);
+    sdc_write(SDXC_REG_CLKCR, bak_regs->clkc);
+    sdc_write(SDXC_REG_TMOUT, bak_regs->timeout);
+    sdc_write(SDXC_REG_WIDTH, bak_regs->buswid);
+    sdc_write(SDXC_REG_FTRGL, bak_regs->waterlvl);
+    sdc_write(SDXC_REG_FUNS, bak_regs->funcsel);
+    sdc_write(SDXC_REG_DBGC, bak_regs->debugc);
+    sdc_write(SDXC_REG_DMAC, bak_regs->idmacc);
+}
+
+/*********************************************************************
+* Method	 :  
+* Description:  
+* Parameters :  
+*	            
+* Returns    :  
+* Note       :
+*********************************************************************/
 s32 sdxc_init(struct awsmc_host* smc_host)
 {
     /* reset controller */

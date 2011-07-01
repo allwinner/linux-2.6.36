@@ -122,6 +122,17 @@ typedef struct {
     void    (*check_status)(struct awsmc_host* host);
 } sdc_req_ops;
 
+struct awsmc_ctrl_regs {
+	u32		gctrl;
+	u32		clkc;
+	u32		timeout;
+	u32		buswid;
+	u32		waterlvl;
+	u32		funcsel;
+	u32		debugc;
+	u32		idmacc;
+};
+
 struct awsmc_host {
     
     struct platform_device      *pdev;
@@ -202,6 +213,8 @@ struct awsmc_host {
 	struct proc_dir_entry		*proc_dbglevel;
 	struct proc_dir_entry		*proc_regs;
 #endif
+	/* backup register structrue */
+	struct awsmc_ctrl_regs		bak_regs;
 };
 
 

@@ -261,7 +261,7 @@ static s32 awsmc_get_ro(struct mmc_host *mmc)
     int card_wp = 0;
     int ret;
     u32 gpio_val;
-    
+
     ret = script_parser_fetch(mmc_para[smc_host->pdev->id], "sdc_use_wp", &card_wp, sizeof(int));
     if (ret)
     {
@@ -924,23 +924,50 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
 static int awsmc_suspend(struct device *dev)
 {
     struct mmc_host *mmc = platform_get_drvdata(to_platform_device(dev));
+	struct awsmc_host *smc_host = mmc_priv(mmc);
+    int ret = 0;
 
     if (mmc)
     {
-        return  mmc_suspend_host(mmc);
+        /* backup registers */
+        sdxc_regs_save(smc_host);
+
+    	/* disable mmc mclk */
+    	clk_disable(smc_host->mclk);
+
+    	/* disable mmc hclk */
+    	clk_disable(smc_host->hclk);
+
+        ret = mmc_suspend_host(mmc);
     }
-    return 0;
+
+    awsmc_msg("smc %d suspend\n", smc_host->pdev->id);
+    return ret;
 }
 
 static int awsmc_resume(struct device *dev)
 {
     struct mmc_host *mmc = platform_get_drvdata(to_platform_device(dev));
+	struct awsmc_host *smc_host = mmc_priv(mmc);
+    int ret = 0;
 
     if (mmc)
     {
-        return mmc_resume_host(mmc);
+    	/* enable mmc hclk */
+    	clk_enable(smc_host->hclk);
+
+    	/* enable mmc mclk */
+    	clk_enable(smc_host->mclk);
+
+        /* restore registers */
+        sdxc_regs_restore(smc_host);
+        sdxc_program_clk(smc_host);
+
+        ret = mmc_resume_host(mmc);
     }
-    return 0;
+
+    awsmc_msg("smc %d resume\n", smc_host->pdev->id);
+    return ret;
 }
 
 static const struct dev_pm_ops awsmc_pm = {

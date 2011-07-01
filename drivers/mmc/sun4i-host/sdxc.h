@@ -240,5 +240,7 @@ void  sdxc_sel_ddr_mode(struct awsmc_host* smc_host);
 void  sdxc_sel_sdr_mode(struct awsmc_host* smc_host);
 u32 sdxc_check_card_busy(struct awsmc_host* smc_host);
 void sdxc_enable_sdio_irq(struct awsmc_host* smc_host, u32 enable);
+void sdxc_regs_save(struct awsmc_host* smc_host);
+void sdxc_regs_restore(struct awsmc_host* smc_host);
 
 #endif
