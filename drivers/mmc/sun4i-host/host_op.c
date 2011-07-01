@@ -929,6 +929,8 @@ static int awsmc_suspend(struct device *dev)
 
     if (mmc)
     {
+        ret = mmc_suspend_host(mmc);
+        
         /* backup registers */
         sdxc_regs_save(smc_host);
 
@@ -937,8 +939,6 @@ static int awsmc_suspend(struct device *dev)
 
     	/* disable mmc hclk */
     	clk_disable(smc_host->hclk);
-
-        ret = mmc_suspend_host(mmc);
     }
 
     awsmc_msg("smc %d suspend\n", smc_host->pdev->id);
