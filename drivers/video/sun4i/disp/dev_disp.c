@@ -1,5 +1,9 @@
 #include "dev_disp.h"
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
 fb_info_t g_fbi;
 __disp_drv_t g_disp_drv;
 
@@ -636,6 +640,7 @@ dealloc_fb:
 }
 
 
+
 static int disp_remove(struct platform_device *pdev)
 {
 	fb_info_t *info = platform_get_drvdata(pdev);
@@ -655,6 +660,43 @@ static int disp_remove(struct platform_device *pdev)
 
 	return 0;
 }
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+void backlight_early_suspend(struct early_suspend *h)
+{
+    int i = 0;
+
+    for(i=0; i<2; i++)
+    {
+        output_type[i] = BSP_disp_get_output_type(i);
+        if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
+        {
+            LCD_PWM_EN(i, 0);
+        }
+    }
+}
+
+void backlight_late_resume(struct early_suspend *h)
+{
+    int i = 0;
+
+    for(i=0; i<2; i++)
+    {
+        if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
+        {
+            LCD_PWM_EN(i, 1);
+        }
+    }
+}
+
+static struct early_suspend backlight_early_suspend_handler = 
+{
+    .level   = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+	.suspend = backlight_early_suspend,
+	.resume = backlight_late_resume,
+};
+
+#endif
 
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
@@ -700,6 +742,7 @@ int disp_resume(struct platform_device *pdev)
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
             DRV_lcd_open(i);
+            LCD_PWM_EN(i, 0);
         }
         else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
         {
@@ -1750,7 +1793,9 @@ int __init disp_module_init(void)
 	{	
 		ret = platform_driver_register(&disp_driver);
 	}
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    register_early_suspend(&backlight_early_suspend_handler);
+#endif
     __inf("disp major:%d\n", MAJOR(devid));
 
 	return ret;
@@ -1760,6 +1805,9 @@ static void __exit disp_module_exit(void)
 {
 	__inf("disp_module_exit\n");
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    unregister_early_suspend(&backlight_early_suspend_handler);
+#endif
     DRV_DISP_Exit();
     
 	platform_driver_unregister(&disp_driver);
