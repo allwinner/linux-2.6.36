@@ -1,5 +1,5 @@
-#ifndef _UDA134X_CODEC_H
-#define _UDA134X_CODEC_H
+#ifndef ANX7150_H
+#define ANX7150_H
 
 typedef struct hdmi_audio
 {

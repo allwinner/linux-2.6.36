@@ -17,21 +17,28 @@
 
 #include "anx7150.h"
 
-//#define HDMI
+#define HDMI
 
+//temp test for 23
 #ifdef HDMI
-static __audio_hdmi_func g_hdmi_func;
-
-int audio_set_hdmi_func(__audio_hdmi_func * func)
-{
-	g_hdmi_func.hdmi_audio_enable = func->hdmi_audio_enable;
-	g_hdmi_func.hdmi_set_audio_para = func->hdmi_set_audio_para;
-	
-	return 0;
-}
-
-EXPORT_SYMBOL(audio_set_hdmi_func);
+extern __s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para);
+extern __s32 Hdmi_Audio_Enable(__u8 mode,  __u8 channel);
 #endif
+
+
+//#ifdef HDMI
+//static __audio_hdmi_func g_hdmi_func;
+//
+//int audio_set_hdmi_func(__audio_hdmi_func * func)
+//{
+//	g_hdmi_func.hdmi_audio_enable = func->hdmi_audio_enable;
+//	g_hdmi_func.hdmi_set_audio_para = func->hdmi_set_audio_para;
+//	
+//	return 0;
+//}
+//
+//EXPORT_SYMBOL(audio_set_hdmi_func);
+//#endif
 
 
 #define ANX7150_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
@@ -61,12 +68,17 @@ static int anx7150_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 	hdmi_para.sample_rate = params_rate(params);
-//	printk("[IIS]Entered %s\n", __func__);
-//	printk("[IIS]hdmi_para.sample_rate:%d , hdmi_para.fs_betwee:%d\n", hdmi_para.sample_rate, hdmi_para.fs_between);
+	
 #ifdef HDMI
-	g_hdmi_func.hdmi_audio_enable(1, 1);
-	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
+	Hdmi_Audio_Enable(1, 1);
+	Hdmi_Set_Audio_Para(&hdmi_para);
 #endif
+
+
+//#ifdef HDMI
+//	g_hdmi_func.hdmi_audio_enable(1, 1);
+//	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
+//#endif
 	return 0;
 }
 

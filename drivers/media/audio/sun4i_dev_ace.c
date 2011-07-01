@@ -207,6 +207,13 @@ static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 	clk_disable(ahb_aceclk);
 	// Õ∑≈ahb_aceclk ±÷”æ‰±˙
 	clk_put(ahb_aceclk);
+	/*for clk test*/
+	pr_debug("[ace_suspend reg]\n");
+	pr_debug("ace_module CLK:0xf1c20148 is:%x\n", *(volatile int *)0xf1c20148);
+	pr_debug("ace_pll5_p CLK:0xf1c20020 is:%x\n", *(volatile int *)0xf1c20020);
+	pr_debug("dram_ace CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
+	pr_debug("ahb_ace CLK:0xf1c20060 is:%x\n", *(volatile int *)0xf1c20060);
+	pr_debug("[ace_suspend reg]\n");
 	return 0;
 }
 
@@ -217,7 +224,7 @@ static int snd_sw_ace_resume(struct platform_device *pdev)
 	ace_moduleclk = clk_get(NULL,"ace");
 	ace_pll5_pclk = clk_get(NULL, "sdram_pll_p");
 	if (clk_set_parent(ace_moduleclk, ace_pll5_pclk)) {
-		printk("try to set parent of ace_moduleclk to ace_pll5clk failed!\n");		
+		pr_debug("try to set parent of ace_moduleclk to ace_pll5clk failed!\n");		
 	}
 
 	if(clk_set_rate(ace_moduleclk, suspend_acerate)) {
@@ -241,6 +248,13 @@ static int snd_sw_ace_resume(struct platform_device *pdev)
 	if (-1 == clk_enable(ahb_aceclk)) {
 		printk("ahb_aceclk failed; \n");
 	}
+	/*for clk test*/
+	pr_debug("[ace resume reg]\n");
+	pr_debug("ace_module CLK:0xf1c20148 is:%x\n", *(volatile int *)0xf1c20148);
+	pr_debug("ace_pll5_p CLK:0xf1c20020 is:%x\n", *(volatile int *)0xf1c20020);
+	pr_debug("dram_ace CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
+	pr_debug("ahb_ace CLK:0xf1c20060 is:%x\n", *(volatile int *)0xf1c20060);
+	pr_debug("[ace resume reg]\n");
 	return 0;
 }
 
@@ -274,7 +288,7 @@ static int __init ace_dev_init(void)
     int err = 0;
 	int ret = 0;   	
 	unsigned long rate;
-	printk("[ace_drv] start!!!\n");
+	pr_debug("[ace_drv] start!!!\n");
 	ret = request_irq(ACE_IRQ_NO, ace_interrupt, 0, "ace_dev", NULL);
 	if (ret < 0) {
 	   printk("request ace irq err\n");

@@ -386,6 +386,14 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			if (-1 == clk_enable(avs_moduleclk)) {
 				pr_debug("ve_moduleclk failed; \n");
 			}
+			/*for clk test*/
+			pr_debug("[cedar request reg]\n");
+			pr_debug("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
+			pr_debug("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
+			pr_debug("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
+			pr_debug("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);		
+			pr_debug("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
+			pr_debug("[cedar request reg]\n");
 		}else{
 			cedar_count++;
 		}
@@ -408,17 +416,33 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}		
 		ret = cedardev_del_task(karg);//karg是传递过来的id号
 		#endif
-		if(cedar_count==0){
+		if(cedar_count==1){
 			clk_disable(ve_moduleclk);	
 			clk_put(ve_moduleclk);	
+			
+			clk_disable(dram_veclk);
 			clk_put(dram_veclk);
+			
+			clk_disable(ahb_veclk);
 			clk_put(ahb_veclk);
+			
 			clk_put(ve_pll4clk);
+			
 			clk_disable(avs_moduleclk);	
 			clk_put(avs_moduleclk);
-		}else{
+			cedar_count--;
+						/*for clk test*/
+			pr_debug("[cedar release reg]\n");
+			pr_debug("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
+			pr_debug("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
+			pr_debug("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
+			pr_debug("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);	
+			pr_debug("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
+			pr_debug("[cedar release reg]\n");
+		}else if(cedar_count > 1){
 			cedar_count--;
 		}
+
 		return ret;
 		break;
 		
@@ -700,57 +724,72 @@ static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 	clk_put(ahb_veclk);
 	clk_put(ve_pll4clk);
 	clk_disable(avs_moduleclk);	
-	clk_put(avs_moduleclk);
-	cedar_count = 0;
+	clk_put(avs_moduleclk);	
 	}
+		/*for clk test*/
+	pr_debug("[cedar suspend reg]\n");
+	pr_debug("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
+	pr_debug("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
+	pr_debug("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
+	pr_debug("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
+	pr_debug("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
+	pr_debug("[cedar suspend reg]\n");
 	return 0;
 }
 
 static int snd_sw_cedar_resume(struct platform_device *pdev)
 {
 	pr_debug("enter snd_sw_cedar_resume:%s,%d\n",__func__,__LINE__);
-	ve_pll4clk = clk_get(NULL,"ve_pll");
-	if (-1 == clk_enable(ve_pll4clk)) {
-		pr_debug("ve_pll4clk failed; \n");
-	}
-	clk_set_rate(ve_pll4clk, suspend_pll4clk);	
-	
-	/* getting ahb clk for ve!(macc) */
-	ahb_veclk = clk_get(NULL,"ahb_ve");		
-	if (-1 == clk_enable(ahb_veclk)) {
-		pr_debug("ahb_veclk failed; \n");
-	}
-
-	ve_moduleclk = clk_get(NULL,"ve");	
-	if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-		pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
-	}
-	if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-		pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
-	}
-	if (-1 == clk_enable(ve_moduleclk)) {
-		pr_debug("ve_moduleclk failed; \n");
-	}	
-	if(clk_reset(ve_moduleclk, 1)){
-		pr_debug("reset ve_moduleclk failed!!!\n");
-	}
+	if(cedar_count){
+		ve_pll4clk = clk_get(NULL,"ve_pll");
+		if (-1 == clk_enable(ve_pll4clk)) {
+			pr_debug("ve_pll4clk failed; \n");
+		}
+		clk_set_rate(ve_pll4clk, suspend_pll4clk);	
 		
-	/*geting dram clk for ve!*/
-	dram_veclk = clk_get(NULL, "sdram_ve");
-
-	if (-1 == clk_enable(dram_veclk)) {
-		pr_debug("dram_veclk failed; \n");
-	}
+		/* getting ahb clk for ve!(macc) */
+		ahb_veclk = clk_get(NULL,"ahb_ve");		
+		if (-1 == clk_enable(ahb_veclk)) {
+			pr_debug("ahb_veclk failed; \n");
+		}
 	
-    hosc_clk = clk_get(NULL,"hosc");	
-    avs_moduleclk = clk_get(NULL,"avs");	
-	if (clk_set_parent(avs_moduleclk, hosc_clk)) {
-		pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
+		ve_moduleclk = clk_get(NULL,"ve");	
+		if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
+			pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+		}
+		if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
+			pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+		}
+		if (-1 == clk_enable(ve_moduleclk)) {
+			pr_debug("ve_moduleclk failed; \n");
+		}	
+		if(clk_reset(ve_moduleclk, 1)){
+			pr_debug("reset ve_moduleclk failed!!!\n");
+		}
+			
+		/*geting dram clk for ve!*/
+		dram_veclk = clk_get(NULL, "sdram_ve");
+	
+		if (-1 == clk_enable(dram_veclk)) {
+			pr_debug("dram_veclk failed; \n");
+		}
+		
+	    hosc_clk = clk_get(NULL,"hosc");	
+	    avs_moduleclk = clk_get(NULL,"avs");	
+		if (clk_set_parent(avs_moduleclk, hosc_clk)) {
+			pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
+		}
+		if (-1 == clk_enable(avs_moduleclk)) {
+			pr_debug("ve_moduleclk failed; \n");
+		}		
 	}
-	if (-1 == clk_enable(avs_moduleclk)) {
-		pr_debug("ve_moduleclk failed; \n");
-	}
-	cedar_count++;
+		/*for clk test*/
+	pr_debug("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
+	pr_debug("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
+	pr_debug("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
+	pr_debug("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
+	pr_debug("SRAM:0xf1c00000 is:%x\n", *(volatile int *)0xf1c00000);
+	pr_debug("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
 	return 0;
 }
 
@@ -938,11 +977,11 @@ static int __init cedardev_init(void)
 	writel(val,0xf1c00000);
 	
 	/*for clk test*/
-	printk("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
-	printk("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
-	printk("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
-	printk("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
-	printk("SRAM:0xf1c00000 is:%x\n", *(volatile int *)0xf1c00000);
+	pr_debug("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
+	pr_debug("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
+	pr_debug("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
+	pr_debug("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
+	pr_debug("SRAM:0xf1c00000 is:%x\n", *(volatile int *)0xf1c00000);
 #endif	
 	/* Create char device */
 	devno = MKDEV(g_dev_major, g_dev_minor);

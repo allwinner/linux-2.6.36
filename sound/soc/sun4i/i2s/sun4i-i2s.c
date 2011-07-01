@@ -37,6 +37,9 @@
 #include "sun4i-pcm.h"
 #include "sun4i-i2s.h"
 
+
+static int regsave[8];
+
 static struct sw_dma_client sun4i_dma_client_out = {
 	.name = "I2S PCM Stereo out"
 };
@@ -62,11 +65,9 @@ static struct sun4i_dma_params sun4i_i2s_pcm_stereo_in = {
 };
 
 
-struct sun4i_i2s_info sun4i_iis;
-EXPORT_SYMBOL(sun4i_iis);
-
+ struct sun4i_i2s_info sun4i_iis;
 static u32 i2s_handle = 0;
-static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
+ static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
 
 void sun4i_snd_txctrl_i2s(int on)
 {
@@ -379,7 +380,7 @@ static int sun4i_i2s_trigger(struct snd_pcm_substream *substream,
 static int sun4i_i2s_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id, 
                                  unsigned int freq, int dir)
 {
-	u32 reg_val = 0;
+//	u32 reg_val = 0;
 //	printk("[IIS]Entered %s\, the MCLK freq = %d\n", __func__, freq);
 	if (!freq)
 	{
@@ -469,6 +470,12 @@ static int sun4i_i2s_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int div
 	
 	return 0;
 }
+
+//u32 sun4i_i2s_get_clockrate(void)
+//{
+//	return 0;
+//}
+//EXPORT_SYMBOL_GPL(sun4i_i2s_get_clockrate);
 
 #define VA_I2S_GPIO_CFG0_BASE  (0xF1C20800 + 0x24)
 #define VA_I2S_GPIO_CFG1_BASE  (0xF1C20800 + 0x28)
@@ -600,36 +607,92 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 	return 0;
 }
 
+static void iisregsave(void)
+{
+	regsave[0] = readl(sun4i_iis.regs + SUN4I_IISCTL);
+	regsave[1] = readl(sun4i_iis.regs + SUN4I_IISFAT0);
+	regsave[2] = readl(sun4i_iis.regs + SUN4I_IISFAT1);
+	regsave[3] = readl(sun4i_iis.regs + SUN4I_IISFCTL) | (0x3<<24);
+	regsave[4] = readl(sun4i_iis.regs + SUN4I_IISINT);
+	regsave[5] = readl(sun4i_iis.regs + SUN4I_IISCLKD);
+	regsave[6] = readl(sun4i_iis.regs + SUN4I_TXCHSEL);
+	regsave[7] = readl(sun4i_iis.regs + SUN4I_TXCHMAP);
+}
 
+static void iisregrestore(void)
+{
+	writel(regsave[0], sun4i_iis.regs + SUN4I_IISCTL);
+	writel(regsave[1], sun4i_iis.regs + SUN4I_IISFAT0);
+	writel(regsave[2], sun4i_iis.regs + SUN4I_IISFAT1);
+	writel(regsave[3], sun4i_iis.regs + SUN4I_IISFCTL);
+	writel(regsave[4], sun4i_iis.regs + SUN4I_IISINT);
+	writel(regsave[5], sun4i_iis.regs + SUN4I_IISCLKD);
+	writel(regsave[6], sun4i_iis.regs + SUN4I_TXCHSEL);
+	writel(regsave[7], sun4i_iis.regs + SUN4I_TXCHMAP);
+}
 
-#ifdef CONFIG_PM
+//#ifdef CONFIG_PM
 	static int sun4i_i2s_suspend(struct snd_soc_dai *cpu_dai)
 	{
 		u32 reg_val;
-//	printk("[IIS]Entered %s\n", __func__);
+    	printk("[IIS]Entered %s\n", __func__);
 
 		//Global Enable Digital Audio Interface
 		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val &= ~SUN4I_IISCTL_GEN;
 		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
+
+		iisregsave();
+		
+		//release the module clock
+		clk_disable(i2s_moduleclk);
+
+		clk_disable(i2s_apbclk);
+		//release the module clock
+		//clk_disable(i2s_pll2clk);
+
+		//release the module clock
+		//clk_disable(i2s_pllx8);
+		
+		//printk("[IIS]PLL2 0x01c20008 = %#x\n", *(volatile int*)0xF1C20008);
+		printk("[IIS]SPECIAL CLK 0x01c20068 = %#x, line= %d\n", *(volatile int*)0xF1C20068, __LINE__);
+		printk("[IIS]SPECIAL CLK 0x01c200B8 = %#x, line = %d\n", *(volatile int*)0xF1C200B8, __LINE__);
 		
 		return 0;
 	}
 	static int sun4i_i2s_resume(struct snd_soc_dai *cpu_dai)
 	{
 		u32 reg_val;
+		printk("[IIS]Entered %s\n", __func__);
+
+		//release the module clock
+		//clk_enable(i2s_pllx8);
+
+		//release the module clock
+		//clk_enable(i2s_pll2clk);
+		clk_enable(i2s_apbclk);
+
+		//release the module clock
+		clk_enable(i2s_moduleclk);
+		
+		iisregrestore();
+		
 //	printk("[IIS]Entered %s\n", __func__);
 		//Global Enable Digital Audio Interface
 		reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
 		reg_val |= SUN4I_IISCTL_GEN;
 		writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 		
+		//printk("[IIS]PLL2 0x01c20008 = %#x\n", *(volatile int*)0xF1C20008);
+		printk("[IIS]SPECIAL CLK 0x01c20068 = %#x, line= %d\n", *(volatile int*)0xF1C20068, __LINE__);
+		printk("[IIS]SPECIAL CLK 0x01c200B8 = %#x, line = %d\n", *(volatile int*)0xF1C200B8, __LINE__);
+		
 		return 0;
 	}
-#else
-	#define sun4i_i2s_suspend NULL
-	#define sun4i_i2s_resume  NULL
-#endif
+//#else
+//	#define sun4i_i2s_suspend NULL
+//	#define sun4i_i2s_resume  NULL
+//#endif
 
 #define SUN4I_I2S_RATES (SNDRV_PCM_RATE_8000_192000 | SNDRV_PCM_RATE_KNOT)
 static struct snd_soc_dai_ops sun4i_iis_dai_ops = {

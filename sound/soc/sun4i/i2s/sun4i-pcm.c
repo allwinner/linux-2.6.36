@@ -182,9 +182,9 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
 	struct dma_hw_conf *codec_dma_conf;
 	int ret = 0;
-	u32 reg_val  = 0;
+//	u32 reg_val  = 0;
 //		printk("[IIS]Entered %s\n", __func__);
-		
+/*		
 	//set channel : mono or stereo
 	reg_val = readl(sun4i_iis.regs + SUN4I_TXCHMAP);
 	reg_val &= ~(SUN4I_TXCHMAP_CH0(8));
@@ -207,7 +207,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 	}
 //	printk("[IIS]reg_val = %#x\n",reg_val);
 	writel(reg_val, sun4i_iis.regs + SUN4I_TXCHMAP);	
-	 
+*/	 
 		
 	codec_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
 	if (!codec_dma_conf)   

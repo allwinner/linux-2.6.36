@@ -11,7 +11,7 @@ struct sun4i_dma_params {
 	int dma_size;			
 };
 
-#define SUN4I_DAI_I2S			1
+#define SUN4I_DAI_HDMIAUDIO			1
 
 enum sun4i_dma_buffresult {
 	SUN4I_RES_OK,
@@ -19,7 +19,7 @@ enum sun4i_dma_buffresult {
 	SUN4I_RES_ABORT
 };
 /* platform data */
-extern struct snd_soc_platform sun4i_soc_platform_iis;
+extern struct snd_soc_platform sun4i_soc_platform_hdmiaudio;
 extern int sw_dma_enqueue(unsigned int channel, void *id,
 			dma_addr_t data, int size);
 			

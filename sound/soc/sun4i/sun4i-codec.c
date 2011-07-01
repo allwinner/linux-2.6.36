@@ -1285,10 +1285,18 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	 mdelay(100);
 	 suspend_codecrate =clk_get_rate(codec_moduleclk);
 	clk_disable(codec_moduleclk);
+	clk_put(codec_moduleclk);
 	// Õ∑≈codec_pll2clk ±÷”æ‰±˙
 	clk_put(codec_pll2clk);
 	// Õ∑≈codec_apbclk ±÷”æ‰±˙
+	clk_disable(codec_apbclk);
 	clk_put(codec_apbclk);
+	/*for clk test*/
+	pr_debug("[codec suspend reg]\n");
+	pr_debug("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
+	pr_debug("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
+	pr_debug("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
+	pr_debug("[codec suspend reg]\n");
 	return 0;	
 }
 
@@ -1339,6 +1347,12 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
+	/*for clk test*/
+	pr_debug("[codec resume reg]\n");
+	pr_debug("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
+	pr_debug("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
+	pr_debug("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
+	pr_debug("[codec resume reg]\n");
 	return 0;	
 }
 

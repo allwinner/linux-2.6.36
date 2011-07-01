@@ -10,4 +10,5 @@ struct sun4i_codecchip_platform_data {
 	void (*power)(int);
 	int model;
 }
+
 #endif

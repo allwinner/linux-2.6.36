@@ -15,8 +15,8 @@
 #include <mach/dma.h>
 
 
-#include "sun4i-i2s.h"
-#include "sun4i-pcm.h"
+#include "sun4i-hdmiaudio.h"
+#include "sun4i-hdmipcm.h"
 
 static volatile unsigned int dmasrc = 0;
 static volatile unsigned int dmadst = 0;
@@ -182,9 +182,9 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
 	struct dma_hw_conf *codec_dma_conf;
 	int ret = 0;
-	u32 reg_val  = 0;
+//	u32 reg_val  = 0;
 //		printk("[IIS]Entered %s\n", __func__);
-		
+/*		
 	//set channel : mono or stereo
 	reg_val = readl(sun4i_i2s.regs + SUN4I_TXCHMAP);
 	reg_val &= ~(SUN4I_TXCHMAP_CH0(8));
@@ -207,7 +207,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 	}
 //	printk("[IIS]reg_val = %#x\n",reg_val);
 	writel(reg_val, sun4i_i2s.regs + SUN4I_TXCHMAP);	
-	 
+*/	 
 		
 	codec_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
 	if (!codec_dma_conf)   
@@ -433,25 +433,25 @@ static int sun4i_pcm_new(struct snd_card *card,
 	return ret;
 }
 
-struct snd_soc_platform sun4i_soc_platform_iis = {
+struct snd_soc_platform sun4i_soc_platform_hdmiaudio = {
 		.name			=    "sun4i-audio",
 		.pcm_ops  =    &sun4i_pcm_ops,
 		.pcm_new	=		 sun4i_pcm_new,
 		.pcm_free	=		 sun4i_pcm_free_dma_buffers,
 };
-EXPORT_SYMBOL_GPL(sun4i_soc_platform_iis);
+EXPORT_SYMBOL_GPL(sun4i_soc_platform_hdmiaudio);
 
-static int __init sun4i_soc_platform_iis_init(void)
+static int __init sun4i_soc_platform_hdmiaudio_init(void)
 {
-	return snd_soc_register_platform(&sun4i_soc_platform_iis);
+	return snd_soc_register_platform(&sun4i_soc_platform_hdmiaudio);
 }
-module_init(sun4i_soc_platform_iis_init);
+module_init(sun4i_soc_platform_hdmiaudio_init);
 
-static void __exit sun4i_soc_platform_iis_exit(void)
+static void __exit sun4i_soc_platform_hdmiaudio_exit(void)
 {
-	snd_soc_unregister_platform(&sun4i_soc_platform_iis);
+	snd_soc_unregister_platform(&sun4i_soc_platform_hdmiaudio);
 }
-module_exit(sun4i_soc_platform_iis_exit);
+module_exit(sun4i_soc_platform_hdmiaudio_exit);
 
 MODULE_AUTHOR("All winner");
 MODULE_DESCRIPTION("SUN4I PCM DMA module");

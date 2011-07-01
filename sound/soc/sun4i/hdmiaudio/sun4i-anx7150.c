@@ -8,8 +8,8 @@
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
 
-#include "sun4i-i2s.h"
-#include "sun4i-pcm.h"
+#include "sun4i-hdmiaudio.h"
+#include "sun4i-hdmipcm.h"
 
 #include "anx7150.h"
 
@@ -242,13 +242,13 @@ static struct snd_soc_dai_link sun4i_anx7150_dai_link = {
 	.name = "ANX7150",
 	.stream_name = "ANX7150",
 	.codec_dai = &anx7150_dai,
-	.cpu_dai = &sun4i_i2s_dai,
+	.cpu_dai = &sun4i_hdmiaudio_dai,
 	.ops = &sun4i_anx7150_ops,
 };
 
 static struct snd_soc_card snd_soc_sun4i_anx7150 = {
 	.name = "SUN4I_ANX7150",
-	.platform = &sun4i_soc_platform_iis,
+	.platform = &sun4i_soc_platform_hdmiaudio,
 	.dai_link = &sun4i_anx7150_dai_link,
 	.num_links = 1,
 };

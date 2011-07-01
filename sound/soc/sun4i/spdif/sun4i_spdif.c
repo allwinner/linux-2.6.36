@@ -27,6 +27,9 @@
 #include "sun4i_spdma.h"
 #include "sun4i_spdif.h"
 
+static int regsave[6];
+
+
 static struct sw_dma_client sun4i_dma_client_out = {
 	.name = "SPDIF out"
 };
@@ -234,7 +237,7 @@ static int sun4i_spdif_trigger(struct snd_pcm_substream *substream,
 static int sun4i_spdif_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id, 
                                  unsigned int freq, int dir)
 {
-	u32 reg_val = 0;
+//	u32 reg_val = 0;
 //	printk("[SPDIF]Entered %s\, the MCLK freq = %d\n", __func__, freq);
 	if (!freq)
 	{
@@ -535,31 +538,88 @@ static int sun4i_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *d
 	return 0;
 }
 
-#ifdef CONFIG_PM
-	static int sun4i_spdif_suspend(struct snd_soc_dai *cpu_dai)
+static void spdifregsave(void)
+{
+	regsave[0] = readl(sun4i_spdif.regs + SUN4I_SPDIF_CTL);
+	regsave[1] = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCFG);
+	regsave[2] = readl(sun4i_spdif.regs + SUN4I_SPDIF_FCTL) | (0x3<<16);
+	regsave[3] = readl(sun4i_spdif.regs + SUN4I_SPDIF_INT);
+	regsave[4] = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+	regsave[5] = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
+}
+
+static void spdifregrestore(void)
+{
+	writel(regsave[0], sun4i_spdif.regs + SUN4I_SPDIF_CTL);
+	writel(regsave[1], sun4i_spdif.regs + SUN4I_SPDIF_TXCFG);
+	writel(regsave[2], sun4i_spdif.regs + SUN4I_SPDIF_FCTL);
+	writel(regsave[3], sun4i_spdif.regs + SUN4I_SPDIF_INT);
+	writel(regsave[4], sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+	writel(regsave[5], sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
+}
+
+//#ifdef CONFIG_PM
+static int sun4i_spdif_suspend(struct snd_soc_dai *cpu_dai)
 	{
 		u32 reg_val;
+		printk("[SPDIF]Enter %s\n", __func__);
 		
 		reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_CTL);
 		reg_val &= ~SUN4I_SPDIF_CTL_GEN;
 		writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_CTL);
+
+		spdifregsave();
+		
+		//disable the module clock
+		clk_disable(spdif_moduleclk);
+		
+		clk_disable(spdif_apbclk);	
+
+		//disable the module clock
+		//clk_disable(spdif_pll2clk);
+
+		//disable the module clock
+		//clk_disable(spdif_pllx8);
+		
+		//printk("[SPDIF]PLL2 0x01c20008 = %#x\n", *(volatile int*)0xF1C20008);
+		printk("[SPDIF]SPECIAL CLK 0x01c20068 = %#x, line= %d\n", *(volatile int*)0xF1C20068, __LINE__);
+		printk("[SPDIF]SPECIAL CLK 0x01c200C0 = %#x, line= %d\n", *(volatile int*)0xF1C200C0, __LINE__);
 		
 		return 0;
 	}
-	static int sun4i_spdif_resume(struct snd_soc_dai *cpu_dai)
+
+static int sun4i_spdif_resume(struct snd_soc_dai *cpu_dai)
 	{
 		u32 reg_val;
+		printk("[SPDIF]Enter %s\n", __func__);
+	
+		
+		//disable the module clock
+		//clk_enable(spdif_pllx8);
+
+		//disable the module clock
+		//clk_enable(spdif_pll2clk);
+		clk_enable(spdif_apbclk);		
+
+		//enable the module clock
+		clk_enable(spdif_moduleclk);
+		
+		spdifregrestore();
 		
 		reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_CTL);
 		reg_val |= SUN4I_SPDIF_CTL_GEN;
 		writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_CTL);
 		
+		//printk("[SPDIF]PLL2 0x01c20008 = %#x\n", *(volatile int*)0xF1C20008);
+		printk("[SPDIF]SPECIAL CLK 0x01c20068 = %#x, line= %d\n", *(volatile int*)0xF1C20068, __LINE__);
+		printk("[SPDIF]SPECIAL CLK 0x01c200C0 = %#x, line = %d\n", *(volatile int*)0xF1C200C0, __LINE__);
+		
 		return 0;
 	}
-#else
-	#define sun4i_spdif_suspend NULL
-	#define sun4i_spdif_resume  NULL
-#endif
+//#else
+//	#define sun4i_spdif_suspend NULL
+//	#define sun4i_spdif_resume  NULL
+//#endif
 
 #define SUN4I_SPDIF_RATES (SNDRV_PCM_RATE_8000_192000 | SNDRV_PCM_RATE_KNOT)
 static struct snd_soc_dai_ops sun4i_spdif_dai_ops = {
