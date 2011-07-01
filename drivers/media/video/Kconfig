@@ -1054,18 +1054,21 @@ menuconfig VIDEO_CSI_SUN4I
 	depends on VIDEO_DEV && VIDEO_V4L2
 
 if VIDEO_CSI_SUN4I
+config CSI_DEV_SEL
+	tristate
 
 config CSI_SUN4I
 	tristate "CSI v4l2 driver for sun4i"
 	default y
-	depends on I2C && VIDEO_DEV && VIDEO_V4L2
+	depends on CSI_DEV_SEL&&I2C && VIDEO_DEV && VIDEO_V4L2
 	select VIDEOBUF_DMA_CONTIG
 	
 config SUN4I_OV7670
 	tristate "OmniVision OV7670 sensor support"
 	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL
 	---help---
 	  This is a Video4Linux2 sensor-level driver for the OmniVision
 	  OV7670 VGA camera.
 
-endif # CSI_SUN4I	
+endif
