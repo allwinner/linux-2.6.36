@@ -1541,6 +1541,7 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
         case AW_MOD_CLK_SATA:
         {
             aw_ccu_reg->SataClk.SpecClkGate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            aw_ccu_reg->Pll6Ctl.OutputEn = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         }
         case AW_MOD_CLK_USBPHY:
