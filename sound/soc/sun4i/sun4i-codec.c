@@ -6,6 +6,9 @@
 * 
 ***************************************************************************************************/
 //#define DEBUG 0
+#ifndef CONFIG_PM
+#define CONFIG_PM
+#endif
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>
@@ -43,7 +46,7 @@ static int flag_id = 0;
 
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
-
+static unsigned long suspend_codecrate = 0;
 
 #define codec_RATES SNDRV_PCM_RATE_8000_192000
 #define codec_FORMATS (SNDRV_PCM_FMTBIT_S16_BE | SNDRV_PCM_FMTBIT_S16_LE |\
@@ -1261,6 +1264,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
  */
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
+	pr_debug("enter snd_sw_codec_suspend:%s,%d\n",__func__,__LINE__);
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
@@ -1279,7 +1283,12 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	 mdelay(100);
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
 	 mdelay(100);
-	
+	 suspend_codecrate =clk_get_rate(codec_moduleclk);
+	clk_disable(codec_moduleclk);
+	// Õ∑≈codec_pll2clk ±÷”æ‰±˙
+	clk_put(codec_pll2clk);
+	// Õ∑≈codec_apbclk ±÷”æ‰±˙
+	clk_put(codec_apbclk);
 	return 0;	
 }
 
@@ -1290,6 +1299,7 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
  */
 static int snd_sw_codec_resume(struct platform_device *pdev)
 {
+	pr_debug("enter snd_sw_codec_resume:%s,%d\n",__func__,__LINE__);
 	//pa unmute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
 	mdelay(400);
@@ -1309,6 +1319,26 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	 mdelay(20);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
 	mdelay(30);
+	/* codec_apbclk */
+	codec_apbclk = clk_get(NULL,"apb_audio_codec");
+	if (-1 == clk_enable(codec_apbclk)) {
+		printk("codec_apbclk failed; \n");
+	}
+	/* codec_pll2clk */
+	codec_pll2clk = clk_get(NULL,"audio_pll");
+			 
+	/* codec_moduleclk */
+	codec_moduleclk = clk_get(NULL,"audio_codec");
+
+	if (clk_set_parent(codec_moduleclk, codec_pll2clk)) {
+		printk("try to set parent of codec_moduleclk to codec_pll2clk failed!\n");		
+	}
+	if (clk_set_rate(codec_moduleclk, suspend_codecrate)) {
+			printk("set codec_moduleclk clock freq 24576000 failed!\n");
+	}
+	if (-1 == clk_enable(codec_moduleclk)){
+		printk("open codec_moduleclk failed; \n");
+	}
 	return 0;	
 }
 

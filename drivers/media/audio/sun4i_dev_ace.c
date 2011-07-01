@@ -192,7 +192,7 @@ static int acedev_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 {
-	printk("enter snd_sw_ace_suspend:%s,%d\n",__func__,__LINE__);
+	pr_debug("enter snd_sw_ace_suspend:%s,%d\n",__func__,__LINE__);
 	suspend_acerate = clk_get_rate(ace_moduleclk);
 	clk_disable(ace_moduleclk);
 	// Õ∑≈ace_moduleclk ±÷”æ‰±˙
@@ -213,7 +213,7 @@ static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 static int snd_sw_ace_resume(struct platform_device *pdev)
 {
 	/* ace_moduleclk */
-	printk("enter snd_sw_ace_resume:%s,%d\n",__func__,__LINE__);
+	pr_debug("enter snd_sw_ace_resume:%s,%d\n",__func__,__LINE__);
 	ace_moduleclk = clk_get(NULL,"ace");
 	ace_pll5_pclk = clk_get(NULL, "sdram_pll_p");
 	if (clk_set_parent(ace_moduleclk, ace_pll5_pclk)) {
@@ -241,7 +241,7 @@ static int snd_sw_ace_resume(struct platform_device *pdev)
 	if (-1 == clk_enable(ahb_aceclk)) {
 		printk("ahb_aceclk failed; \n");
 	}
-	return 0;dd
+	return 0;
 }
 
 static struct file_operations ace_dev_fops = {
