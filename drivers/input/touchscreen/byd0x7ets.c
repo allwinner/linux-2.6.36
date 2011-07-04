@@ -583,6 +583,7 @@ static int __devexit ft5x0x_ts_remove(struct i2c_client *client)
 
 static const struct i2c_device_id ft5x0x_ts_id[] = {
 	{ FT5X0X_NAME, 0 },
+	{}
 };
 MODULE_DEVICE_TABLE(i2c, ft5x0x_ts_id);
 
