@@ -356,7 +356,7 @@ static int nand_blktrans_thread(void *arg)
 		dev = req->rq_disk->private_data;
 	#if USE_BIO_MERGE==1
 		//spin_unlock_irq(rq->queue_lock);
-		IS_IDLE = 0;
+		//IS_IDLE = 0;
 		//printk("[N]request start\n");
 		__rq_for_each_bio(rq_iter.bio,req){
 			if(!bio_segments(rq_iter.bio)){
