@@ -56,3 +56,4 @@ obj-$(CONFIG_TOUCHSCREEN_W90X900)	+= w90p910_ts.o
 obj-$(CONFIG_TOUCHSCREEN_FT) += ft5x0x_ts_v1.o
 obj-$(CONFIG_TOUCHSCREEN_BYD_0X7E_TS) += byd0x7ets.o
 obj-$(CONFIG_TOUCHSCREEN_TPS6507X)	+= tps6507x-ts.o
+obj-$(CONFIG_TOUCHSCREEN_GT801)         += goodix_touch.o

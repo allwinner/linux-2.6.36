@@ -1154,7 +1154,12 @@ static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 	},
 };
 
-
+static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
+	{
+		I2C_BOARD_INFO("Goodix-TS", 0x55),
+		//.platform_data	= &goodix_data,
+	},//for GT80X of goodix
+};
 
 /*
 *    0  not used or error
@@ -1183,11 +1188,11 @@ static int __init i2c_adap_awxx_init(void)
 	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
 	printk("power, status = %d \n",status);
 	// bus-1
-	/*status = i2c_register_board_info(1, i2c_info_hdmi, ARRAY_SIZE(i2c_info_hdmi));
-	printk("hdmi, status = %d \n",status);*/
+	status = i2c_register_board_info(1, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
+	printk("================goodix==============, status = %d \n",status);
     // bus-0
 	status = i2c_register_board_info(2, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));
-	printk("tp, status = %d \n",status);
+	printk("=========================tp, status = %d ==================\n",status);
 
 
 
