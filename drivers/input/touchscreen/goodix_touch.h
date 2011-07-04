@@ -97,24 +97,6 @@ struct ts_event {
     u8  touch_point;
 };
 
-struct goodix_ts_data {
-	int retry;
-	int panel_type;
-	char phys[32];		
-	struct i2c_client *client;
-	struct input_dev *input_dev;
-	uint8_t use_irq;
-	uint8_t use_shutdown;
-	uint32_t gpio_shutdown;
-	uint32_t gpio_irq;
-	uint32_t screen_width;
-	uint32_t screen_height;
-	struct ts_event		event;
-	struct hrtimer timer;
-	struct work_struct  work;
-	int (*power)(struct goodix_ts_data * ts, int on);
-};
-
 /* Notice: This definition used by platform_data.
  * It should be move this struct info to platform head file such as plat/ts.h.
  * If not used in client, it will be NULL in function of goodix_ts_probe. 

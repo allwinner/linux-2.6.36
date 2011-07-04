@@ -23,15 +23,15 @@
 #define SCREEN_MAX_Y    480
 #define PRESS_MAX       255
 
-#define FT5X0X_NAME	"ft5x0x_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
+#define FT5X0X_NAME	"byd0x7e_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
 #define AW_GPIO_API_ENABLE
 #undef CONFIG_HAS_EARLYSUSPEND
 //#define CONFIG_HAS_EARLYSUSPEND
-struct ft5x0x_ts_platform_data{
+struct byd0x7e_ts_platform_data{
 	u16	intr;		/* irq number	*/
 };
 
-enum ft5x0x_ts_regs {
+enum byd0x7e_ts_regs {
 	FT5X0X_REG_PMODE	= 0xA5,	/* Power Consume Mode		*/	
 };
 

@@ -23,9 +23,6 @@
 #include <linux/i2c.h>
 #include <linux/input.h>
 #include "goodix_touch.h"
-#ifdef CONFIG_HAS_EARLYSUSPEND
-    #include <linux/pm.h>
-#endif
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
@@ -41,18 +38,80 @@
 #include <mach/gpio_v2.h>
 #include <mach/irqs.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
+
+
+#undef CONFIG_HAS_EARLYSUSPEND
+
 #ifndef GUITAR_GT80X
 #error The code does not match the hardware version.
 #endif
 
-#define FOR_TSLIB_TEST
+struct goodix_ts_data {
+	int retry;
+	int panel_type;
+	char phys[32];		
+	struct i2c_client *client;
+	struct input_dev *input_dev;
+	uint8_t use_irq;
+	uint8_t use_shutdown;
+	uint32_t gpio_shutdown;
+	uint32_t gpio_irq;
+	uint32_t screen_width;
+	uint32_t screen_height;
+	struct ts_event		event;
+	struct hrtimer timer;
+	struct work_struct  work;
+	int (*power)(struct goodix_ts_data * ts, int on);
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    struct early_suspend early_suspend;
+#endif
+};
 
-//#define PRINT_INT_INFO
+
 const char *f3x_ts_name = "Goodix TouchScreen of GT80X";
 static struct workqueue_struct *goodix_wq;
 static void* __iomem gpio_addr = NULL;
 static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
+#define X_DIFF (800)
+
+#define FOR_TSLIB_TEST
+//#define PRINT_INT_INFO
+//#define PRINT_DEBUG_INFO
+#define PRINT_POINT_INFO
+#define TEST_I2C_TRANSFER
+
+#ifdef PRINT_DEBUG_INFO  
+#define print_debug(fmt, args...)        \
+        do{                              \
+               printk(fmt, ##args);      \
+        }while(0)                        
+#else        
+#define print_debug(fmt, args...)    //        
+#endif     
+
+#ifdef PRINT_POINT_INFO 
+#define print_point_info(fmt, args...)   \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_point_info(fmt, args...)   //
+#endif
+
+#ifdef PRINT_INT_INFO 
+#define print_int_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_int_info(fmt, args...)   //
+#endif
+        
 /*used by GT80X-IAP module */
 struct i2c_client * i2c_connect_client = NULL;
 EXPORT_SYMBOL(i2c_connect_client);
@@ -298,9 +357,9 @@ BIT_NO_CHANGE:
 		// 将触摸屏的坐标映射到LCD坐标上. 触摸屏短边为X轴，LCD坐标一般长边为X轴，可能需要调整原点位置
 		x = (TOUCH_MAX_WIDTH - x)*SCREEN_MAX_WIDTH/TOUCH_MAX_WIDTH;//y
 		y =  y*SCREEN_MAX_HEIGHT/TOUCH_MAX_HEIGHT ;					//x
-		//printk("RAW X = %d,Y = %d\n",800-y,x);
+		//print_point_info("RAW X = %d,Y = %d\n",800-y,x);
 		swap(x, y); 
-		p->x = 800-x;
+		p->x = x;
 		p->y = y;
 	}
 #ifndef GOODIX_MULTI_TOUCH	
@@ -326,7 +385,7 @@ BIT_NO_CHANGE:
 			input_report_abs(ts->input_dev, ABS_MT_POSITION_Y, p->y);
 			//dev_dbg(&(ts->client->dev), "Id:%d, x:%d, y:%d\n", p->id, p->x, p->y);
 			
-			printk("Id:%d, x:%d, y:%d\n", p->id, p->x, p->y);
+			print_point_info("Id:%d, x:%d, y:%d\n", p->id, p->x, p->y);
 		} 
 		input_report_abs(ts->input_dev, ABS_MT_TRACKING_ID, p->id);
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, p->pressure);
@@ -353,27 +412,21 @@ NO_ACTION:
 static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 {
 	struct goodix_ts_data *ts = dev_id;	
-	int reg_val;
-#ifdef PRINT_INT_INFO		
-	printk("==========------TS Interrupt-----============\n"); 
-#endif
+	int reg_val;	
+	print_int_info("==========------TS Interrupt-----============\n"); 
+
 	//clear the IRQ_EINT21 interrupt pending
 	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
      
 	if(reg_val&(1<<(IRQ_EINT21)))
 	{	
-		#ifdef PRINT_INT_INFO
-		    printk("==IRQ_EINT21=\n");
-		#endif
-		writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
+		print_int_info("==IRQ_EINT21=\n");
+		writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
 		queue_work(goodix_wq, &ts->work);
 	}
 	else
 	{
-	    #ifdef PRINT_INT_INFO
-	        printk("Other Interrupt\n");
-	    #endif
-
+	    print_int_info("Other Interrupt\n");
 	}
 	return IRQ_HANDLED;
 }
@@ -442,7 +495,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	//struct goodix_i2c_platform_data *pdata;
 	//dev_dbg(&client->dev,"Install touchscreen driver for guitar.\n");
-	printk("===============================GT801 Probe===========================\n");
+	print_debug("===============================GT801 Probe===========================\n");
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) 
 	{
@@ -463,7 +516,8 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	    goto exit_ioremap_failed;	
 	}
 		
-	ts->gpio_irq = INT_PORT;	
+	ts->gpio_irq = INT_PORT;
+	
 #ifdef AW_GPIO_INT_API_ENABLE
 
 #else
@@ -478,16 +532,18 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
         reg_val |=(1<<IRQ_EINT21);
         writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
 #endif
+
 	//config gpio:
 	gpio_int_hdle = gpio_request_ex("tp_para", "tp_int_port");
 	if(!gpio_int_hdle) {
 		pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
-		return -1;
+	    goto exit_gpio_int_request_failed;
 	}
+	
 	gpio_wakeup_hdle = gpio_request_ex("tp_para", "tp_wakeup");
 	if(!gpio_wakeup_hdle) {
 		pr_warning("touch panel tp_wakeup request gpio fail!\n");
-		return -1;
+		goto exit_gpio_wakeup_request_failed;
 	}
 	
 	gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
@@ -495,15 +551,19 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");	
 	
 	i2c_connect_client = client;				//used by Guitar Updating.
+
+#ifdef TEST_I2C_TRANSFER
 	//TODO: used to set speed of i2c transfer. Should be change as your paltform.
-        printk("Begin goodix i2c test\n");
+    print_debug("Begin goodix i2c test\n");
 	ret = goodix_i2c_test(client);
 	if(!ret)
 	{
-		printk("Warnning: I2C connection might be something wrong!\n");
+		print_debug("Warnning: I2C connection might be something wrong!\n");
 		goto err_i2c_failed;
 	}
-	printk("===== goodix i2c test ok=======\n");
+	print_debug("===== goodix i2c test ok=======\n");
+#endif
+	
 	INIT_WORK(&ts->work, goodix_ts_work_func);
 	ts->client = client;
 	i2c_set_clientdata(client, ts);
@@ -536,9 +596,9 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, MAX_FINGER_NUM, 0, 0);	
 #endif	
 
-	#ifdef FOR_TSLIB_TEST
-	    set_bit(BTN_TOUCH, ts->input_dev->keybit);
-    #endif
+#ifdef FOR_TSLIB_TEST
+	set_bit(BTN_TOUCH, ts->input_dev->keybit);
+#endif
 
 	sprintf(ts->phys, "input/goodix-ts");
 	ts->input_dev->name = f3x_ts_name;
@@ -554,15 +614,6 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 		goto err_input_register_device_failed;
 	}
 
-        
-	err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING,client->name, ts);
-	disable_irq(ts->gpio_irq);
-	if (err < 0) {
-		printk( "goodix_probe: request irq failed\n");
-		goto exit_irq_request_failed;
-	}
-	
-
 	flush_workqueue(goodix_wq);	
 	ts->power = goodix_ts_power;
 	msleep(30);	
@@ -571,28 +622,50 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	if(!ret) 
 		goto err_init_godix_ts;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    printk("==register_early_suspend =\n");	
+    goodix_ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    goodix_ts_data->early_suspend.suspend = goodix_ts_suspend;	
+    goodix_ts_data->early_suspend.resume	= goodix_ts_resume;	
+    register_early_suspend(&goodix_ts_data->early_suspend);
+#endif
+
+#ifdef SHUT_OFF_IRQ
+ 	disable_irq(ts->gpio_irq);       
+#endif
+	err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING,client->name, ts);
+
+	if (err < 0) {
+		print_debug( "goodix_probe: request irq failed\n");
+		goto exit_irq_request_failed;
+	}
+#ifdef SHUT_OFF_IRQ
 	enable_irq(ts->gpio_irq);
+#endif
 	
-	printk("Read Goodix version\n");
+	print_debug("Read Goodix version\n");
 	goodix_read_version(ts);
-	//msleep(260);
-	
+	//msleep(260);	
 
 	dev_dbg(&client->dev,"Start  %s in %s mode\n", 
 		ts->input_dev->name, ts->use_irq ? "Interrupt" : "Polling");
-        printk("========Probe Ok================\n");
+		
+    print_debug("========Probe Ok================\n");
 	return 0;
+
+	
 err_init_godix_ts:	
-	return -1;
-
-
+exit_irq_request_failed:
+#ifdef SHUT_OFF_IRQ
+    enable_irq(ts->gpio_irq);
+#endif
 err_input_register_device_failed:
 	input_free_device(ts->input_dev);
-
 err_input_dev_alloc_failed:
-	i2c_set_clientdata(client, NULL);
+    i2c_set_clientdata(client, NULL);
 err_i2c_failed:
-exit_irq_request_failed:
+exit_gpio_wakeup_request_failed:
+exit_gpio_int_request_failed:
 exit_ioremap_failed:
     if(gpio_addr){
         iounmap(gpio_addr);
@@ -616,6 +689,9 @@ static int goodix_ts_remove(struct i2c_client *client)
 {
 	struct goodix_ts_data *ts = i2c_get_clientdata(client);
 	dev_notice(&client->dev,"The driver is removing...\n");
+	#ifdef CONFIG_HAS_EARLYSUSPEND	
+	    unregister_early_suspend(&ts->early_suspend);	
+	#endif
 	i2c_set_clientdata(client, NULL);
 	input_unregister_device(ts->input_dev);
 	if(ts->input_dev)
@@ -625,10 +701,11 @@ static int goodix_ts_remove(struct i2c_client *client)
 }
 
 //停用设备
-static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static int goodix_ts_suspend(struct early_suspend *handler)
 {
 	int ret;
-	struct goodix_ts_data *ts = i2c_get_clientdata(client);
+	struct goodix_ts_data *ts = i2c_get_clientdata(handler);
         
         //disable_irq(ts->gpio_irq);
 	ret = cancel_work_sync(&ts->work);	
@@ -653,10 +730,10 @@ static int goodix_ts_resume(struct i2c_client *client)
 			dev_warn(&client->dev, "%s power on failed\n", f3x_ts_name);
 	}
 
-        //enable_irq(ts->gpio_irq);
+    //enable_irq(ts->gpio_irq);
 	return 0;
 }
-
+#endif
 
 
 //可用于该驱动的 设备名—设备ID 列表
@@ -670,8 +747,8 @@ static const struct i2c_device_id goodix_ts_id[] = {
 static struct i2c_driver goodix_ts_driver = {
 	.probe		= goodix_ts_probe,
 	.remove		= goodix_ts_remove,
-	.suspend	= goodix_ts_suspend,
-	.resume		= goodix_ts_resume,
+	//.suspend	= goodix_ts_suspend,
+	//.resume		= goodix_ts_resume,
 	.id_table	= goodix_ts_id,
 	.driver = {
 		.name	= GOODIX_I2C_NAME,
@@ -684,7 +761,7 @@ static struct i2c_driver goodix_ts_driver = {
 static int __devinit goodix_ts_init(void)
 {
 	int ret;
-	printk("goodix_ts_init\n");
+	print_debug("goodix_ts_init\n");
 	goodix_wq = create_singlethread_workqueue("goodix_wq");
 	if (!goodix_wq) {
 		printk(KERN_ALERT "Creat %s workqueue failed.\n", f3x_ts_name);
