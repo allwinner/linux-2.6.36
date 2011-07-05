@@ -101,7 +101,7 @@ __u32 mixer_reg_init(void){
 	__u32 i;
 	
     for(i=0;i<=0x120;i+=4)
-    	put_wvalue(base_addr+i, 0);
+    	write_wvalue(i, 0);
     
     /* initial the color space converter parameter */
     csc_coeff_set();
@@ -786,8 +786,8 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		sinw |= ((para->src_rect.w%para->dst_rect.w)<<10)/para->dst_rect.w;
 		scaler_inx = para->src_rect.x;
 		scaler_outx = para->dst_rect.x;
-		if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
-			 scaler_outy = para->dst_rect.y + para->dst_rect.w - 0x400;
+		if((para->flag1 == G2D_ROTATE90))
+			 scaler_outy = para->dst_rect.y + para->dst_rect.w - 0x401;
 		else scaler_outy = para->dst_rect.y;
 		for(i = 0; i<cnt; i++)
 		{
@@ -797,31 +797,19 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 			write_wvalue(G2D_DMA_HADDR_REG, reg_val);
 			reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
 			write_wvalue(G2D_DMA0_LADDR_REG, reg_val);
+			if(sinw<1)sinw = 1;
 			write_wvalue(G2D_DMA0_SIZE_REG, (sinw -1) | ((para->src_rect.h -1)<<16));
 			
 			write_wvalue(G2D_SCALER_SIZE_REG,(0x400 - 1) | ((para->dst_rect.h - 1)<<16));
-			if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
-			{
-				reg_val = (para->src_rect.h/0x400)<<16;
-				reg_tmp = (para->src_rect.h%0x400);
-				reg_val |= (reg_tmp<<16)/0x400;
-				write_wvalue(G2D_SCALER_HFACTOR_REG,reg_val);
-				reg_val = (sinw/para->dst_rect.h)<<16;
-				reg_tmp = (sinw%para->dst_rect.h);
-				reg_val |= (reg_tmp<<16)/para->dst_rect.h;
-				write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
-			}
-			else
-			{
-				reg_val = (sinw/0x400)<<16;
-				reg_tmp = (sinw%0x400);
-				reg_val |= (reg_tmp<<16)/0x400;
-				write_wvalue(G2D_SCALER_HFACTOR_REG,reg_val);
-				reg_val = (para->src_rect.h/para->dst_rect.h)<<16;
-				reg_tmp = (para->src_rect.h%para->dst_rect.h);
-				reg_val |= (reg_tmp<<16)/para->dst_rect.h;
-				write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
-			}
+			reg_val = (sinw/0x400)<<16;
+			reg_tmp = (sinw%0x400);
+			reg_val |= (reg_tmp<<16)/0x400;
+			write_wvalue(G2D_SCALER_HFACTOR_REG,reg_val);
+			
+			reg_val = (para->src_rect.h/para->dst_rect.h)<<16;
+			reg_tmp = (para->src_rect.h%para->dst_rect.h);
+			reg_val |= (reg_tmp<<16)/para->dst_rect.h;
+			write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
 
 			/* DMA3 */
 			addr_val = mixer_get_addr(para->dst_image.addr,para->dst_image.format,para->dst_image.w,scaler_outx,para->dst_rect.y);
@@ -843,9 +831,14 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 			reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
 			write_wvalue(G2D_OUTPUT0_LADDR_REG, reg_val);
 			scaler_inx +=sinw;
-			if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
+			if((para->flag1 == G2D_ROTATE90))
 			{
 				scaler_outy -=0x400;
+				scaler_outx = para->dst_rect.x;
+			}
+			else if((para->flag1 == G2D_ROTATE270))
+			{
+				scaler_outy +=0x400;
 				scaler_outx = para->dst_rect.x;
 			}
 			else
@@ -870,33 +863,18 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
 		write_wvalue(G2D_DMA0_LADDR_REG, reg_val);	
 		write_wvalue(G2D_DMA0_SIZE_REG, (sinw -1) | ((para->src_rect.h -1)<<16));
-		reg_val = (soutw- 1);
-		if(reg_val<0)reg_val = 0;
-		write_wvalue(G2D_SCALER_SIZE_REG,reg_val | ((para->dst_rect.h - 1)<<16));
-		if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
-		{
-			reg_val = (para->src_rect.h/soutw)<<16;
-			reg_tmp = (para->src_rect.h%soutw);
-			reg_val |= (reg_tmp<<16)/soutw;
-			write_wvalue(G2D_SCALER_HFACTOR_REG,reg_val);
-			
-			reg_val = (sinw/para->dst_rect.h)<<16;
-			reg_tmp = (sinw%para->dst_rect.h);
-			reg_val |= (reg_tmp<<16)/para->dst_rect.h;
-			write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
-		}
-		else
-		{
-			reg_val = (sinw/soutw)<<16;
-			reg_tmp = (sinw%soutw);
-			reg_val |= (reg_tmp<<16)/soutw;
-			write_wvalue(G2D_SCALER_HFACTOR_REG,reg_val);
-			
-			reg_val = (para->src_rect.h/para->dst_rect.h)<<16;
-			reg_tmp = (para->src_rect.h%para->dst_rect.h);
-			reg_val |= (reg_tmp<<16)/para->dst_rect.h;
-			write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
-		}
+		
+		if(soutw<1)soutw = 1;
+		write_wvalue(G2D_SCALER_SIZE_REG,(soutw- 1) | ((para->dst_rect.h - 1)<<16));
+		reg_val = (sinw/soutw)<<16;
+		reg_tmp = (sinw%soutw);
+		reg_val |= (reg_tmp<<16)/soutw;
+		write_wvalue(G2D_SCALER_HFACTOR_REG,reg_val);
+		
+		reg_val = (para->src_rect.h/para->dst_rect.h)<<16;
+		reg_tmp = (para->src_rect.h%para->dst_rect.h);
+		reg_val |= (reg_tmp<<16)/para->dst_rect.h;
+		write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
 
 		/* DMA3 */
 		addr_val = mixer_get_addr(para->dst_image.addr,para->dst_image.format,para->dst_image.w,scaler_outx,para->dst_rect.y);
@@ -906,16 +884,15 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		write_wvalue(G2D_DMA_HADDR_REG, reg_val);
 		reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
 		write_wvalue(G2D_DMA3_LADDR_REG, reg_val);
-		reg_val = soutw - 1;
-		if(reg_val<0)reg_val = 0;
-		write_wvalue(G2D_DMA3_SIZE_REG, reg_val | ((para->dst_rect.h -1)<<16));
+		write_wvalue(G2D_DMA3_SIZE_REG, (soutw - 1) | ((para->dst_rect.h -1)<<16));
 		
 		/* OUT */
 		if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
-			 write_wvalue(G2D_OUTPUT_SIZE_REG, (para->dst_rect.h -1) | (reg_val<<16));
-		else write_wvalue(G2D_OUTPUT_SIZE_REG, reg_val | ((para->dst_rect.h -1)<<16));
-		write_wvalue(G2D_OUTPUT_SIZE_REG, reg_val | ((para->dst_rect.h -1)<<16));
-		addr_val = mixer_get_addr(para->dst_image.addr,para->dst_image.format,para->dst_image.w,scaler_outx,para->dst_rect.y);
+			 write_wvalue(G2D_OUTPUT_SIZE_REG, (para->dst_rect.h -1) | ((soutw - 1)<<16));
+		else write_wvalue(G2D_OUTPUT_SIZE_REG, (soutw - 1) | ((para->dst_rect.h -1)<<16));
+		if((para->flag1 == G2D_ROTATE270))
+			 addr_val = mixer_get_addr(para->dst_image.addr,para->dst_image.format,para->dst_image.w,scaler_outx,scaler_outy);
+		else addr_val = mixer_get_addr(para->dst_image.addr,para->dst_image.format,para->dst_image.w,scaler_outx,para->dst_rect.y);
 		reg_val = (addr_val>>32)&0xF;/* high addr in bits */
 		write_wvalue(G2D_OUTPUT_HADDR_REG, reg_val);
 		reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
