@@ -144,7 +144,7 @@ int mali_driver_init(void)
 	if(clk_reset(h_mali_clk,0)){
 		MALI_PRINT(("try to reset release failed!\n"));
 	}
-	MALI_PRINT(("mali clock set completed, clock is  %d Mhz--\n", rate/2));
+	MALI_PRINT(("mali clock set completed, clock is  %d Mhz--\n", rate));
 	
 #if USING_MALI_PMM
 #if MALI_LICENSE_IS_GPL
