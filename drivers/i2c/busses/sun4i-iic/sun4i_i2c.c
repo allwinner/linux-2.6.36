@@ -1161,6 +1161,13 @@ static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
 	},//for GT80X of goodix
 };
 
+#if defined CONFIG_SENSORS_MXC622X
+static struct i2c_board_info gsensor_i2c_board_info[] __initdata = {
+	{ I2C_BOARD_INFO("mxc622x", 0x15), },
+};
+#endif
+
+
 /*
 *    0  not used or error
 *    1 used
@@ -1194,6 +1201,10 @@ static int __init i2c_adap_awxx_init(void)
 	status = i2c_register_board_info(2, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));
 	printk("=========================tp, status = %d ==================\n",status);
 
+    //bus-1
+    #if defined CONFIG_SENSORS_MXC622X
+        i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
+    #endif	
 
 
 	if(i2c_awxx_get_cfg(0)){

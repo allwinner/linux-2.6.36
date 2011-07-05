@@ -1,0 +1,195 @@
+#
+# Miscellaneous I2C chip drivers configuration
+#
+# *** DEPRECATED! Do not add new entries! See Makefile ***
+#
+
+menuconfig GSENSOR 
+	bool "gsensor support"
+
+if GSENSOR
+
+config DS1682
+	tristate "Dallas DS1682 Total Elapsed Time Recorder with Alarm"
+	depends on EXPERIMENTAL
+	help
+	  If you say yes here you get support for Dallas Semiconductor
+	  DS1682 Total Elapsed Time Recorder.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called ds1682.
+
+config SENSORS_PCF8574
+	tristate "Philips PCF8574 and PCF8574A (DEPRECATED)"
+	depends on EXPERIMENTAL && GPIO_PCF857X = "n"
+	default n
+	help
+	  If you say yes here you get support for Philips PCF8574 and 
+	  PCF8574A chips. These chips are 8-bit I/O expanders for the I2C bus.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called pcf8574.
+
+	  This driver is deprecated and will be dropped soon. Use
+	  drivers/gpio/pcf857x.c instead.
+
+	  These devices are hard to detect and rarely found on mainstream
+	  hardware.  If unsure, say N.
+
+config PCF8575
+	tristate "Philips PCF8575 (DEPRECATED)"
+	default n
+	depends on GPIO_PCF857X = "n"
+	help
+	  If you say yes here you get support for Philips PCF8575 chip.
+	  This chip is a 16-bit I/O expander for the I2C bus.  Several other
+	  chip manufacturers sell equivalent chips, e.g. Texas Instruments.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called pcf8575.
+
+	  This driver is deprecated and will be dropped soon. Use
+	  drivers/gpio/pcf857x.c instead.
+
+	  This device is hard to detect and is rarely found on mainstream
+	  hardware.  If unsure, say N.
+
+config SENSORS_PCA9539
+	tristate "Philips PCA9539 16-bit I/O port (DEPRECATED)"
+	depends on EXPERIMENTAL && GPIO_PCA953X = "n"
+	help
+	  If you say yes here you get support for the Philips PCA9539
+	  16-bit I/O port.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called pca9539.
+
+	  This driver is deprecated and will be dropped soon. Use
+	  drivers/gpio/pca953x.c instead.
+
+config SENSORS_PCF8591
+	tristate "Philips PCF8591"
+	depends on EXPERIMENTAL
+	default n
+	help
+	  If you say yes here you get support for Philips PCF8591 chips.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called pcf8591.
+
+	  These devices are hard to detect and rarely found on mainstream
+	  hardware.  If unsure, say N.
+
+config TWL4030_MADC
+	tristate "TWL4030 MADC Driver"
+	depends on TWL4030_CORE
+	help
+	  The TWL4030 Monitoring ADC driver enables the host
+	  processor to monitor analog signals using analog-to-digital
+	  conversions on the input source. TWL4030 MADC provides the
+	  following features:
+	   - Single 10-bit ADC with successive approximation register (SAR) conversion;
+	   - Analog multiplexer for 16 inputs;
+	   - Seven (of the 16) inputs are freely available;
+	   - Battery voltage monitoring;
+	   - Concurrent conversion request management;
+	   - Interrupt signal to Primary Interrupt Handler;
+	   - Averaging feature;
+	   - Selective enable/disable of the averaging feature.
+
+	  Say 'y' here to statically link this module into the kernel or 'm'
+	  to build it as a dinamically loadable module. The module will be
+	  called twl4030-madc.ko
+
+config TWL4030_POWEROFF
+	tristate "TWL4030 device poweroff"
+	depends on TWL4030_CORE
+
+config SENSORS_MAX6875
+	tristate "Maxim MAX6875 Power supply supervisor"
+	depends on EXPERIMENTAL
+	help
+	  If you say yes here you get support for the Maxim MAX6875
+	  EEPROM-programmable, quad power-supply sequencer/supervisor.
+
+	  This provides an interface to program the EEPROM and reset the chip.
+
+	  This driver also supports the Maxim MAX6874 hex power-supply
+	  sequencer/supervisor if found at a compatible address.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called max6875.
+
+config SENSORS_TSL2550
+	tristate "Taos TSL2550 ambient light sensor"
+	depends on EXPERIMENTAL
+	help
+	  If you say yes here you get support for the Taos TSL2550
+	  ambient light sensor.
+
+	  This driver can also be built as a module.  If so, the module
+	  will be called tsl2550.
+
+config SENSORS_TSL2563
+       tristate "Taos TSL2563 ambient light sensor"
+       depends on I2C && HWMON
+       help
+         If you say yes here you get support for the Taos TSL2563
+         ambient light sensor.
+
+         This driver can also be built as a module.  If so, the module
+         will be called tsl2563.
+
+config MENELAUS
+	bool "TWL92330/Menelaus PM chip"
+	depends on I2C=y && ARCH_OMAP24XX
+	help
+	  If you say yes here you get support for the Texas Instruments
+	  TWL92330/Menelaus Power Management chip. This include voltage
+	  regulators, Dual slot memory card tranceivers, real-time clock
+	  and other features that are often used in portable devices like
+	  cell phones and PDAs.
+
+
+config SENSORS_PCA963X
+	tristate "Philips PCA963X 4-bit I2C-bus LED"
+	depends on I2C && EXPERIMENTAL
+	help
+	 If you say yes here you get support for the Philips PCA963X
+	 4-bit I2C-bus LED.
+
+	 This driver can also be built as a module.  If so, the module
+	 will be called pca963X.
+
+config SENSORS_MEMSIC
+	tristate "MEMSIC's G&Mag Sensor Core Driver Support"
+	depends on I2C
+	help
+	  If you say yes here you get support for the MEMSIC accelerator &
+	  magnateic sensor driver.
+
+config SENSORS_MXC6202X
+	tristate "MEMSIC Accelerometer Sensor MXC6202X Driver Support"
+	depends on I2C
+	help
+	  If you say yes here you get support for the MEMSIC accelerometer sensor
+
+config SENSORS_MXC622X
+	tristate "MEMSIC Accelerometer Sensor MXC622X Driver Support"
+	depends on I2C
+	help
+	  If you say yes here you get support for the MEMSIC accelerometer sensor
+
+config SENSORS_MMC31XX
+	tristate "MEMSIC Magnetic Sensor MMC31XX Driver Support"
+	depends on I2C
+	help
+	  If you say yes here you get support for the MEMSIC magnateic sensor
+
+config ECOMPASS
+	tristate "MEMSIC eCompass Driver Support"
+	depends on I2C
+	help
+	  If you say yes here you get support for the MEMSIC eCompass
+
+endif
