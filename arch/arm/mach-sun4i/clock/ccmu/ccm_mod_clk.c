@@ -571,7 +571,7 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
                 case 1:
                     return AW_SYS_CLK_PLL4;
                 case 2:
-                    return AW_SYS_CLK_PLL5;
+                    return AW_SYS_CLK_PLL5P;
                 default:
                     return AW_SYS_CLK_PLL7;
             }
@@ -1434,7 +1434,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
                 case AW_SYS_CLK_PLL4:
                     aw_ccu_reg->MaliClk.ClkSrc = 1;
                     return 0;
-                case AW_SYS_CLK_PLL5:
+                case AW_SYS_CLK_PLL5P:
                     aw_ccu_reg->MaliClk.ClkSrc = 2;
                     return 0;
                 case AW_SYS_CLK_PLL7:

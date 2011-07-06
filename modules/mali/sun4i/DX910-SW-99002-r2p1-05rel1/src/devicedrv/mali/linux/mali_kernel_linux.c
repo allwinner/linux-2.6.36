@@ -119,10 +119,17 @@ int mali_driver_init(void)
 		MALI_PRINT(("try to get mali clock failed!\n"));
 	}
 	//get video pll1 clock
+#if 0
 	h_video_pll1 = clk_get(NULL, "video_pll1");
 	if(!h_video_pll1){
 		MALI_PRINT(("try to get video pll1 clock failed!\n"));
-	}	
+	}
+#endif
+	h_video_pll1 = clk_get(NULL, "ve_pll");
+	if(!h_video_pll1){
+		MALI_PRINT(("try to get dram pll clock failed!\n"));
+	}
+
 	//set mali parent clock
 	if(clk_set_parent(h_mali_clk, h_video_pll1)){
 		MALI_PRINT(("try to get video pll1 clock failed!\n"));
