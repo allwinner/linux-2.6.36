@@ -46,7 +46,7 @@ static int flag_id = 0;
 
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
-static unsigned long suspend_codecreate = 0;
+//static unsigned long suspend_codecreate = 0;
 
 #define codec_RATES SNDRV_PCM_RATE_8000_192000
 #define codec_FORMATS (SNDRV_PCM_FMTBIT_S16_BE | SNDRV_PCM_FMTBIT_S16_LE |\
@@ -1283,9 +1283,9 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	 mdelay(100);
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
 	 mdelay(100);
-	 suspend_codecreate =clk_get_rate(codec_moduleclk);
+	// suspend_codecreate =clk_get_rate(codec_moduleclk);
 	clk_disable(codec_moduleclk);
-	clk_disable(codec_apbclk);
+//	clk_disable(codec_apbclk);
 	pr_debug("[codec suspend reg]\n");
 	pr_debug("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
 	pr_debug("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
@@ -1306,10 +1306,10 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
-	if (-1 == clk_enable(codec_apbclk)){
-		printk("open codec_moduleclk failed; \n");
-	}
-	clk_set_rate(codec_moduleclk, suspend_codecreate);	
+//	if (-1 == clk_enable(codec_apbclk)){
+//		printk("open codec_moduleclk failed; \n");
+//	}
+	//clk_set_rate(codec_moduleclk, suspend_codecreate);	
 		//pa unmute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
 	mdelay(400);
