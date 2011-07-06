@@ -923,12 +923,14 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int awsmc_suspend(struct device *dev)
 {
-    struct mmc_host *mmc = platform_get_drvdata(to_platform_device(dev));
-	struct awsmc_host *smc_host = mmc_priv(mmc);
+    struct platform_device *pdev = to_platform_device(dev);
+    struct mmc_host *mmc = platform_get_drvdata(pdev);
     int ret = 0;
 
     if (mmc)
     {
+        struct awsmc_host *smc_host = mmc_priv(mmc);
+
         ret = mmc_suspend_host(mmc);
         
         /* backup registers */
@@ -941,18 +943,20 @@ static int awsmc_suspend(struct device *dev)
     	clk_disable(smc_host->hclk);
     }
 
-    awsmc_msg("smc %d suspend\n", smc_host->pdev->id);
+    awsmc_msg("smc %d suspend\n", pdev->id);
     return ret;
 }
 
 static int awsmc_resume(struct device *dev)
 {
-    struct mmc_host *mmc = platform_get_drvdata(to_platform_device(dev));
-	struct awsmc_host *smc_host = mmc_priv(mmc);
+    struct platform_device *pdev = to_platform_device(dev);
+    struct mmc_host *mmc = platform_get_drvdata(pdev);
     int ret = 0;
 
     if (mmc)
     {
+        struct awsmc_host *smc_host = mmc_priv(mmc);
+
     	/* enable mmc hclk */
     	clk_enable(smc_host->hclk);
 
@@ -966,7 +970,7 @@ static int awsmc_resume(struct device *dev)
         ret = mmc_resume_host(mmc);
     }
 
-    awsmc_msg("smc %d resume\n", smc_host->pdev->id);
+    awsmc_msg("smc %d resume\n", pdev->id);
     return ret;
 }
 
