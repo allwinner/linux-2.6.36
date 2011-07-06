@@ -26,14 +26,16 @@
 //---------------------------------------------------------------
 //  宏 定义
 //---------------------------------------------------------------
-//modify by dengkexi for android
-//#define  is_hcd_support_dma()	1
-#define  is_hcd_support_dma()	0
+#if 0
+#define  is_hcd_support_dma(usbc_no)    0
+#else
+#define  is_hcd_support_dma(usbc_no)    (usbc_no == 0)
+#endif
 
 /* 使用DMA的条件: 1、大于整包  2、DMA空闲 3、非ep0 */
-#define  is_sw_hcd_dma_capable(len, maxpacket, epnum)	(is_hcd_support_dma() \
-	                                             		 && (len > maxpacket) \
-	                                             		 && epnum)
+#define  is_sw_hcd_dma_capable(usbc_no, len, maxpacket, epnum)	(is_hcd_support_dma(usbc_no) \
+        	                                             		 && (len > maxpacket) \
+        	                                             		 && epnum)
 
 //---------------------------------------------------------------
 //  数据结构 定义

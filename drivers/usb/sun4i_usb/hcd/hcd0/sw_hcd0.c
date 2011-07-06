@@ -1129,7 +1129,8 @@ static const struct hc_driver sw_hcd_hc_driver = {
 	.description		= "sw_hcd-hcd",
 	.product_desc		= "sw_hcd host driver",
 	.hcd_priv_size		= sizeof(struct sw_hcd),
-	.flags              = HCD_USB2 | HCD_MEMORY,
+//	.flags              = HCD_USB2 | HCD_MEMORY,
+	.flags				= HCD_USB11 | HCD_MEMORY,
 
 	/* not using irq handler or reset hooks from usbcore, since
 	 * those must be shared with peripheral code for OTG configs
@@ -1258,7 +1259,7 @@ static void sw_hcd_free(struct sw_hcd *sw_hcd)
 		free_irq(sw_hcd->nIrq, sw_hcd);
 	}
 
-	if (is_hcd_support_dma()) {
+	if (is_hcd_support_dma(sw_hcd->usbc_no)) {
 		sw_hcd_dma_remove(sw_hcd);
 	}
 
@@ -1370,7 +1371,7 @@ static int sw_hcd_init_controller(struct device *dev, int nIrq, void __iomem *ct
 		goto fail2;
 	}
 
-    if (is_hcd_support_dma()) {
+    if (is_hcd_support_dma(sw_hcd->usbc_no)) {
 		status = sw_hcd_dma_probe(sw_hcd);
 		if (status < 0){
 		    DMSG_PANIC("ERR: sw_hcd_dma_probe failed\n");
@@ -1413,7 +1414,7 @@ static int sw_hcd_init_controller(struct device *dev, int nIrq, void __iomem *ct
         			sw_hcd_driver_name,
         			"Host",
         			ctrl,
-        			is_hcd_support_dma() ? "DMA" : "PIO",
+        			is_hcd_support_dma(sw_hcd->usbc_no) ? "DMA" : "PIO",
         			sw_hcd->nIrq);
 
 	/* host side needs more setup, except for no-host modes */

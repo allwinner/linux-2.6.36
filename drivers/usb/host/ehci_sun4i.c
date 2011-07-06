@@ -750,8 +750,13 @@ static int sw_release_io_resource(struct platform_device *pdev, struct sw_hci_hc
 static void sw_start_ehci(struct sw_hci_hcd *sw_ehci)
 {
 	unsigned long reg_value = 0;
+	spinlock_t lock = SPIN_LOCK_UNLOCKED;
+	unsigned long flags = 0;
 
   	open_ehci_clock(sw_ehci);
+
+	spin_lock_init(&lock);
+	spin_lock_irqsave(&lock, flags);
 
 	/*enable passby*/
 	reg_value = USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE); 
@@ -763,6 +768,8 @@ static void sw_start_ehci(struct sw_hci_hcd *sw_ehci)
 
 	/* ehci port configure */
 	sw_ehci_port_configure(sw_ehci, 1);
+
+	spin_unlock_irqrestore(&lock, flags);
 
 	sw_hcd_board_set_vbus(sw_ehci, 1);
 
