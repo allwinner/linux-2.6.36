@@ -46,7 +46,7 @@ static int flag_id = 0;
 
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
-static unsigned long suspend_codecrate = 0;
+static unsigned long suspend_codecreate = 0;
 
 #define codec_RATES SNDRV_PCM_RATE_8000_192000
 #define codec_FORMATS (SNDRV_PCM_FMTBIT_S16_BE | SNDRV_PCM_FMTBIT_S16_LE |\
@@ -1283,15 +1283,9 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	 mdelay(100);
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
 	 mdelay(100);
-	 suspend_codecrate =clk_get_rate(codec_moduleclk);
+	 suspend_codecreate =clk_get_rate(codec_moduleclk);
 	clk_disable(codec_moduleclk);
-	clk_put(codec_moduleclk);
-	// Õ∑≈codec_pll2clk ±÷”æ‰±˙
-	clk_put(codec_pll2clk);
-	// Õ∑≈codec_apbclk ±÷”æ‰±˙
 	clk_disable(codec_apbclk);
-	clk_put(codec_apbclk);
-	/*for clk test*/
 	pr_debug("[codec suspend reg]\n");
 	pr_debug("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
 	pr_debug("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
@@ -1309,26 +1303,13 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 {
 	pr_debug("enter snd_sw_codec_resume:%s,%d\n",__func__,__LINE__);
 
-	/* codec_apbclk */
-	codec_apbclk = clk_get(NULL,"apb_audio_codec");
-	if (-1 == clk_enable(codec_apbclk)) {
-		printk("codec_apbclk failed; \n");
-	}
-	/* codec_pll2clk */
-	codec_pll2clk = clk_get(NULL,"audio_pll");
-			 
-	/* codec_moduleclk */
-	codec_moduleclk = clk_get(NULL,"audio_codec");
-
-	if (clk_set_parent(codec_moduleclk, codec_pll2clk)) {
-		printk("try to set parent of codec_moduleclk to codec_pll2clk failed!\n");		
-	}
-	if (clk_set_rate(codec_moduleclk, suspend_codecrate)) {
-			printk("set codec_moduleclk clock freq 24576000 failed!\n");
-	}
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
+	if (-1 == clk_enable(codec_apbclk)){
+		printk("open codec_moduleclk failed; \n");
+	}
+	clk_set_rate(codec_moduleclk, suspend_codecreate);	
 		//pa unmute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
 	mdelay(400);
