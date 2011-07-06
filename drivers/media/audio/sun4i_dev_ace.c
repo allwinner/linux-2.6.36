@@ -230,6 +230,9 @@ static int snd_sw_ace_resume(struct platform_device *pdev)
 	if(clk_set_rate(ace_moduleclk, suspend_acerate)) {
 		printk("try to set ace_moduleclk rate failed!!!\n");
 	}
+	if(clk_reset(ace_moduleclk, 1)){
+		printk("try to reset ace_moduleclkfailed!!!\n");
+	}
 	if(clk_reset(ace_moduleclk, 0)){
 		printk("try to reset ace_moduleclkfailed!!!\n");
 	}
@@ -308,6 +311,9 @@ static int __init ace_dev_init(void)
 	rate = clk_get_rate(ace_pll5_pclk);
 	if(clk_set_rate(ace_moduleclk, rate/2)) {
 		printk("try to set ace_moduleclk rate failed!!!\n");
+	}
+	if(clk_reset(ace_moduleclk, 1)){
+		printk("try to reset ace_moduleclkfailed!!!\n");
 	}
 	if(clk_reset(ace_moduleclk, 0)){
 		printk("try to reset ace_moduleclkfailed!!!\n");

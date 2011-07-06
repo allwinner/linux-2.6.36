@@ -1308,25 +1308,7 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 static int snd_sw_codec_resume(struct platform_device *pdev)
 {
 	pr_debug("enter snd_sw_codec_resume:%s,%d\n",__func__,__LINE__);
-	//pa unmute
-	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
-	mdelay(400);
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
-	mdelay(20);
-    //enable dac analog
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
-	mdelay(20);
-	//enable PA
-	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
-	//enable headphone direct 
-	mdelay(20);
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 
-	//enable dac to pa
-	 mdelay(20);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
-	mdelay(30);
 	/* codec_apbclk */
 	codec_apbclk = clk_get(NULL,"apb_audio_codec");
 	if (-1 == clk_enable(codec_apbclk)) {
@@ -1347,6 +1329,25 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
+		//pa unmute
+	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
+	mdelay(400);
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
+	mdelay(20);
+    //enable dac analog
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
+	mdelay(20);
+	//enable PA
+	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
+	//enable headphone direct 
+	mdelay(20);
+	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
+
+	//enable dac to pa
+	 mdelay(20);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+	mdelay(30);
 	/*for clk test*/
 	pr_debug("[codec resume reg]\n");
 	pr_debug("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);

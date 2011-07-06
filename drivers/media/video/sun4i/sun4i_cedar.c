@@ -367,10 +367,12 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			if (-1 == clk_enable(ve_moduleclk)) {
 				pr_debug("ve_moduleclk failed; \n");
 			}	
-			if(clk_reset(ve_moduleclk, 1)){
+			if(clk_reset(ve_moduleclk, 1)){//先处于复位状态（不工作状态）
 				pr_debug("reset ve_moduleclk failed!!!\n");
 			}
-				
+			if(clk_reset(ve_moduleclk, 0)){//再设置处于非复位状态（工作状态）
+				pr_debug("reset ve_moduleclk failed!!!\n");
+			}				
 			/*geting dram clk for ve!*/
 			dram_veclk = clk_get(NULL, "sdram_ve");
 		
@@ -501,10 +503,11 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v = readl(CCMU_SDRAM_PLL_REG);
 			v |= (0x1 << 24);            
 			writel(v, CCMU_SDRAM_PLL_REG);
-#else		
-            clk_reset(dram_veclk, 0);
+#else		            
+            clk_disable(dram_veclk);
+            clk_reset(ve_moduleclk, 1);
             clk_reset(ve_moduleclk, 0);
-
+            clk_enable(dram_veclk);
 #endif		
 		break;
 		
@@ -766,7 +769,9 @@ static int snd_sw_cedar_resume(struct platform_device *pdev)
 		if(clk_reset(ve_moduleclk, 1)){
 			pr_debug("reset ve_moduleclk failed!!!\n");
 		}
-			
+		if(clk_reset(ve_moduleclk, 0)){
+			pr_debug("reset ve_moduleclk failed!!!\n");
+		}
 		/*geting dram clk for ve!*/
 		dram_veclk = clk_get(NULL, "sdram_ve");
 	

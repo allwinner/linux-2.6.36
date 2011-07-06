@@ -742,7 +742,9 @@ int disp_resume(struct platform_device *pdev)
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
             DRV_lcd_open(i);
+            #ifdef CONFIG_HAS_EARLYSUSPEND
             LCD_PWM_EN(i, 0);
+            #endif
         }
         else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
         {
