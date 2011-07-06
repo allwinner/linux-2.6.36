@@ -777,8 +777,17 @@ static void mmc_blk_remove(struct mmc_card *card)
 		/* Stop new requests from getting into the queue */
 		del_gendisk(md->disk);
 
+        /*
+            modify by kevin, 2011-7-6 17:05
+            release host for queue thread to process request
+        */
+		mmc_release_host(card->host);
 		/* Then flush out any already in there */
 		mmc_cleanup_queue(&md->queue);
+        /*
+            modify by kevin, 2011-7-6 17:05, see above
+        */
+		mmc_claim_host(card->host);
 
 		mmc_blk_put(md);
 	}
