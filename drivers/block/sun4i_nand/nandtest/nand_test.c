@@ -1204,8 +1204,7 @@ static int __init nand_test_init(void)
     /* init nand resource */
     printk("[nand_test]:init nand resource \n");
     //set nand clk
-    cmu_clk = get_cmu_clk();
-    set_nand_clock(20, cmu_clk);
+    set_nand_clock(20);
    
    //set nand pio
     set_nand_pio();
