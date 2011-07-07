@@ -36,6 +36,13 @@
 #include <linux/mm.h> 
 #include <linux/slab.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
+
+//#undef CONFIG_HAS_EARLYSUSPEND
+
 static int tp_flag = 0;
 
 //tp status value
@@ -51,6 +58,7 @@ static int tp_flag = 0;
 //#define CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_INT_INFO
 //#define CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
 //#define CONFIG_TOUCHSCREEN_SUN4I_DEBUG
+#define PRINT_SUSPEND_INFO
 
 #define IRQ_TP                 (29)
 #define TP_BASSADDRESS         (0xf1c25000)
@@ -132,6 +140,9 @@ struct sun4i_ts_data {
 	int count;
 	int touchflag;
 	char phys[32];
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    struct early_suspend early_suspend;
+#endif
 };
 
 struct sun4i_ts_data * mtTsData =NULL;	
@@ -149,6 +160,58 @@ static int tansfer_y2 = 0;
 
 void tp_do_tasklet(unsigned long data);
 DECLARE_TASKLET(tp_tasklet,tp_do_tasklet,0);
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void sun4i_ts_suspend(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_ts_data *ts = container_of(h, struct sun4i_ts_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: sun4i_ts_suspend. \n");
+    #endif
+    writel(0,TP_BASSADDRESS + TP_CTRL1);
+	return ;
+}
+
+//重新唤醒
+static void sun4i_ts_resume(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_ts_data *ts = container_of(h, struct sun4i_ts_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: sun4i_ts_resume. \n");
+    #endif    
+    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	return ;
+}
+#else
+//停用设备
+#ifdef CONFIG_PM
+static int sun4i_ts_suspend(struct platform_device *pdev, pm_message_t state)
+{
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter: sun4i_ts_suspend. \n");
+    #endif
+
+    writel(0,TP_BASSADDRESS + TP_CTRL1);
+	return 0;
+}
+
+static int sun4i_ts_resume(struct platform_device *pdev)
+{
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter: sun4i_ts_resume. \n");
+    #endif 
+
+    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	return 0;
+}
+#endif
+
+#endif
+
 	
 static int  tp_init(void)
 {
@@ -565,6 +628,7 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
     ts_data->base_addr = (void __iomem *)TP_BASSADDRESS;
 
 	ts_data->irq = irq;
+	//tp_irq = irq;
     
 	err = request_irq(irq, sun4i_isr_tp,
 		IRQF_DISABLED, pdev->name, pdev);
@@ -591,7 +655,15 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
     #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 	    printk( "sun4i-ts.c: sun4i_ts_probe: end\n");
     #endif
-    
+
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    printk("==register_early_suspend =\n");	
+    ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    ts_data->early_suspend.suspend = sun4i_ts_suspend;
+    ts_data->early_suspend.resume	= sun4i_ts_resume;	
+    register_early_suspend(&ts_data->early_suspend);
+#endif
+
 	return 0;
 
  err_out3:
@@ -615,7 +687,9 @@ static int __devexit sun4i_ts_remove(struct platform_device *pdev)
 {
 	
 	struct sun4i_ts_data *ts_data = platform_get_drvdata(pdev);	
-
+	#ifdef CONFIG_HAS_EARLYSUSPEND	
+	    unregister_early_suspend(&ts_data->early_suspend);	
+	#endif
 	input_unregister_device(ts_data->input);
 	free_irq(ts_data->irq, pdev);	
 	sun4i_ts_data_free(ts_data);
@@ -624,29 +698,18 @@ static int __devexit sun4i_ts_remove(struct platform_device *pdev)
 	return 0;	
 }
 	
-	
-
-#ifdef CONFIG_PM
-static int sun4i_ts_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	return 0;
-}
-
-static int sun4i_ts_resume(struct platform_device *pdev)
-{
-	return 0;
-}
-#endif
 
 static struct platform_driver sun4i_ts_driver = {
 	.probe		= sun4i_ts_probe,
 	.remove		= __devexit_p(sun4i_ts_remove),
+#ifdef CONFIG_HAS_EARLYSUSPEND
 
+#else
 #ifdef CONFIG_PM
 	.suspend	= sun4i_ts_suspend,
 	.resume		= sun4i_ts_resume,
 #endif
-
+#endif
 	.driver		= {
 		.name	= "sun4i-ts",
 	},

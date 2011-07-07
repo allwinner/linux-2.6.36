@@ -44,7 +44,7 @@
 #endif
 
 
-#undef CONFIG_HAS_EARLYSUSPEND
+//#undef CONFIG_HAS_EARLYSUSPEND
 
 #ifndef GUITAR_GT80X
 #error The code does not match the hardware version.
@@ -82,7 +82,8 @@ static int gpio_wakeup_hdle = 0;
 #define FOR_TSLIB_TEST
 //#define PRINT_INT_INFO
 //#define PRINT_DEBUG_INFO
-#define PRINT_POINT_INFO
+//#define PRINT_POINT_INFO
+#define PRINT_SUSPEND_INFO
 #define TEST_I2C_TRANSFER
 
 #ifdef PRINT_DEBUG_INFO  
@@ -111,7 +112,93 @@ static int gpio_wakeup_hdle = 0;
 #else
 #define print_int_info(fmt, args...)   //
 #endif
-        
+
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void goodix_ts_suspend(struct early_suspend *h)
+{
+	int ret;
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+    struct i2c_client * client = ts->client;
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: goodix_ts_suspend. \n");
+    #endif    
+   
+    //disable_irq(ts->gpio_irq);
+	ret = cancel_work_sync(&ts->work);	
+		
+	if (ts->power) {
+		ret = ts->power(ts,0);
+		if (ret < 0)
+			dev_warn(&client->dev, "%s power off failed\n", f3x_ts_name);
+	}
+	return ;
+}
+
+//重新唤醒
+static void goodix_ts_resume(struct early_suspend *h)
+{
+	int ret;
+	struct goodix_ts_data *ts = container_of(h, struct goodix_ts_data, early_suspend);
+    struct i2c_client * client = ts->client;
+    
+#ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: goodix_ts_resume. \n");
+#endif 
+
+	if (ts->power) {
+		ret = ts->power(ts, 1);
+		if (ret < 0)
+			dev_warn(&client->dev, "%s power on failed\n", f3x_ts_name);
+	}
+
+    //enable_irq(ts->gpio_irq);
+	return ;
+}
+#else
+
+//停用设备
+static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
+{
+	int ret;
+	struct goodix_ts_data *ts = i2c_get_clientdata(client);
+	
+#ifdef PRINT_SUSPEND_INFO
+        printk("enter: goodix_ts_suspend. \n");
+#endif         
+        //disable_irq(ts->gpio_irq);
+	ret = cancel_work_sync(&ts->work);	
+		
+	if (ts->power) {
+		ret = ts->power(ts,0);
+		if (ret < 0)
+			dev_warn(&client->dev, "%s power off failed\n", f3x_ts_name);
+	}
+	return 0;
+}
+
+//重新唤醒
+static int goodix_ts_resume(struct i2c_client *client)
+{
+	int ret;
+	struct goodix_ts_data *ts = i2c_get_clientdata(client);
+	
+#ifdef PRINT_SUSPEND_INFO
+        printk("enter: goodix_ts_resume. \n");
+#endif 
+
+	if (ts->power) {
+		ret = ts->power(ts, 1);
+		if (ret < 0)
+			dev_warn(&client->dev, "%s power on failed\n", f3x_ts_name);
+	}
+
+        //enable_irq(ts->gpio_irq);
+	return 0;
+}
+#endif
+
+
 /*used by GT80X-IAP module */
 struct i2c_client * i2c_connect_client = NULL;
 EXPORT_SYMBOL(i2c_connect_client);
@@ -624,10 +711,10 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 #ifdef CONFIG_HAS_EARLYSUSPEND	
     printk("==register_early_suspend =\n");	
-    goodix_ts_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
-    goodix_ts_data->early_suspend.suspend = goodix_ts_suspend;	
-    goodix_ts_data->early_suspend.resume	= goodix_ts_resume;	
-    register_early_suspend(&goodix_ts_data->early_suspend);
+    ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    ts->early_suspend.suspend = goodix_ts_suspend;
+    ts->early_suspend.resume	= goodix_ts_resume;	
+    register_early_suspend(&ts->early_suspend);
 #endif
 
 #ifdef SHUT_OFF_IRQ
@@ -700,42 +787,6 @@ static int goodix_ts_remove(struct i2c_client *client)
 	return 0;
 }
 
-//停用设备
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static int goodix_ts_suspend(struct early_suspend *handler)
-{
-	int ret;
-	struct goodix_ts_data *ts = i2c_get_clientdata(handler);
-        
-        //disable_irq(ts->gpio_irq);
-	ret = cancel_work_sync(&ts->work);	
-		
-	if (ts->power) {
-		ret = ts->power(ts,0);
-		if (ret < 0)
-			dev_warn(&client->dev, "%s power off failed\n", f3x_ts_name);
-	}
-	return 0;
-}
-
-//重新唤醒
-static int goodix_ts_resume(struct i2c_client *client)
-{
-	int ret;
-	struct goodix_ts_data *ts = i2c_get_clientdata(client);
-	
-	if (ts->power) {
-		ret = ts->power(ts, 1);
-		if (ret < 0)
-			dev_warn(&client->dev, "%s power on failed\n", f3x_ts_name);
-	}
-
-    //enable_irq(ts->gpio_irq);
-	return 0;
-}
-#endif
-
-
 //可用于该驱动的 设备名—设备ID 列表
 //only one client
 static const struct i2c_device_id goodix_ts_id[] = {
@@ -747,8 +798,11 @@ static const struct i2c_device_id goodix_ts_id[] = {
 static struct i2c_driver goodix_ts_driver = {
 	.probe		= goodix_ts_probe,
 	.remove		= goodix_ts_remove,
-	//.suspend	= goodix_ts_suspend,
-	//.resume		= goodix_ts_resume,
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#else
+	.suspend	= goodix_ts_suspend,
+	.resume		= goodix_ts_resume,
+#endif
 	.id_table	= goodix_ts_id,
 	.driver = {
 		.name	= GOODIX_I2C_NAME,

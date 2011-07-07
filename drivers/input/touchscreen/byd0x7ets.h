@@ -23,7 +23,7 @@
 #define SCREEN_MAX_Y    480
 #define PRESS_MAX       255
 
-#define FT5X0X_NAME	"byd0x7e_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
+#define BYD0X7E_NAME	"byd0x7e_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
 #define AW_GPIO_API_ENABLE
 #undef CONFIG_HAS_EARLYSUSPEND
 //#define CONFIG_HAS_EARLYSUSPEND

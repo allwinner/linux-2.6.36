@@ -14,12 +14,14 @@
 #include <asm/io.h>
 #include <linux/slab.h>
 #include <linux/timer.h> 
-
 #include <mach/clock.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
-
 #include <linux/clk.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
 
 #include "ir-keymap.h"
 
@@ -30,7 +32,8 @@ static u32 ir_gpio_hdle;
 
 #define SYS_GPIO_CFG_EN
 #define SYS_CLK_CFG_EN
-//#define DEBUG_IR
+#define DEBUG_IR
+#define PRINT_SUSPEND_INFO
 
 #ifdef DEBUG_IR
 #define DEBUG_IR_LEVEL0
@@ -41,10 +44,6 @@ static u32 ir_gpio_hdle;
 #undef DEBUG_IR_LEVEL2
 #undef DEBUG_IR_LEVEL1
 #endif
-
-//#define DEBUG_IR_LEVEL0
-//#define DEBUG_IR_LEVEL2
-//#define DEBUG_IR_LEVEL1
 
 //Registers
 #define IR_REG(x) 	                (x)
@@ -88,9 +87,6 @@ static u32 ir_gpio_hdle;
 #define IR_REPEAT_CODE		        (0x00000000)
 #define DRV_VERSION	                "1.00"
 
-static int debug = 8;   
-static unsigned int ir_cnt = 0;
-
 #define dprintk(level, fmt, arg...)	if (debug >= level) \
 	printk(KERN_DEBUG fmt , ## arg)
 
@@ -98,10 +94,11 @@ static unsigned int ir_cnt = 0;
 #define dprintk(level, fmt, arg...)	if (debug >= level) \
         printk(fmt , ## arg)*/
 
-static struct input_dev *ir_dev;
-static struct timer_list *s_timer; 
-static unsigned long ir_code=0;
-static int timer_used=0;
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+struct sun4i_ir_data {
+    struct early_suspend early_suspend;
+};
+#endif
 
 struct ir_raw_buffer	
 {
@@ -110,9 +107,52 @@ struct ir_raw_buffer
 	unsigned char buf[IR_RAW_BUF_SIZE];	
 };
 
-
+static int debug = 8;   
+static unsigned int ir_cnt = 0;
+static struct input_dev *ir_dev;
+static struct timer_list *s_timer; 
+static unsigned long ir_code=0;
+static int timer_used=0;
 static struct ir_raw_buffer	ir_rawbuf;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static struct sun4i_ir_data *ir_data;
+#endif
+
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void sun4i_ir_suspend(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
+      */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: sun4i_ir_suspend. \n");
+    #endif
+
+    writel(0, IR_BASE+IR_CTRL_REG);
+	return ;
+}
+
+//重新唤醒
+static void sun4i_ir_resume(struct early_suspend *h)
+{
+    unsigned long tmp = 0;
+	/*int ret;
+	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: sun4i_ir_resume. \n");
+    #endif
+    
+    /*Enable IR Module*/
+	tmp = readl(IR_BASE+IR_CTRL_REG);
+	tmp |= 0x3;
+	writel(tmp, IR_BASE+IR_CTRL_REG);
+	return ; 
+}
+#else
+#endif
 
 static inline void ir_reset_rawbuffer(void)
 {
@@ -598,8 +638,23 @@ static int __init ir_init(void)
 		goto fail4;
 	printk("IR Initial OK\n");
 
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    printk("==register_early_suspend =\n");
+    ir_data = kzalloc(sizeof(*ir_data), GFP_KERNEL);
+	if (ir_data == NULL) {
+		err = -ENOMEM;
+		goto err_alloc_data_failed;
+	}
+	
+    ir_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    ir_data->early_suspend.suspend = sun4i_ir_suspend;
+    ir_data->early_suspend.resume	= sun4i_ir_resume;	
+    register_early_suspend(&ir_data->early_suspend);
+#endif
+
 	return 0;
 
+ err_alloc_data_failed:
  fail4:	
  	kfree(s_timer);
  fail3:	
@@ -612,6 +667,10 @@ static int __init ir_init(void)
 
 static void __exit ir_exit(void)
 {
+	#ifdef CONFIG_HAS_EARLYSUSPEND	
+	    unregister_early_suspend(&ir_data->early_suspend);	
+	#endif
+
 	free_irq(IR_IRQNO, ir_dev);
 	input_unregister_device(ir_dev);
 	ir_sys_uncfg();

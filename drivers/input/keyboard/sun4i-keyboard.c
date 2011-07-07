@@ -22,6 +22,7 @@
 #include <linux/init.h>
 #include <linux/input.h>
 #include <linux/delay.h>
+#include <linux/slab.h>
 #include <linux/interrupt.h>
 #include <linux/keyboard.h>
 #include <linux/ioport.h>
@@ -29,8 +30,14 @@
 #include <asm/io.h>
 #include <linux/timer.h> 
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
 //#define  KEY_DEBUG
 //#define  KEY_DEBUG_LEVEL2
+#define  PRINT_SUSPEND_INFO
+
 #define  KEY_MAX_CNT  13
  
 #define  KEY_BASSADDRESS     (0xf1c22800)
@@ -74,25 +81,23 @@
 #define  LRADC_ADC0_DOWNPEND (1<<1)
 #define  LRADC_ADC0_DATAPEND (1<<0)
 
-
-MODULE_AUTHOR(" <@>");
-MODULE_DESCRIPTION("sun4i-keyboard driver");
-MODULE_LICENSE("GPL");
-
 #define EVB
 //#define CUSTUM
-
 #define ONE_CHANNEL
 #define MODE_0V2
 //#define MODE_0V15
-
-
 //#define TWO_CHANNEL
-
-
 #ifdef MODE_0V2
 //standard of key maping
 //0.2V mode	 
+
+#define REPORT_START_NUM           (5)
+#define REPORT_KEY_LOW_LIMIT_COUNT (3)
+#define MAX_CYCLE_COUNTER          (100)
+//#define REPORT_REPEAT_KEY_BY_INPUT_CORE
+//#define REPORT_REPEAT_KEY_FROM_HW
+#define INITIAL_VALUE              (0Xff)
+
 static unsigned char keypad_mapindex[64] =
 {
     0,0,0,0,0,0,0,0,               //key 1, 8个， 0-7
@@ -145,22 +150,56 @@ static unsigned int sun4i_scankeycodes[KEY_MAX_CNT]=
 };
 #endif
 
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+struct sun4i_keyboard_data {
+    struct early_suspend early_suspend;
+};
+#endif
 
 static volatile unsigned int key_val;
-
 static struct input_dev *sun4ikbd_dev;
 static unsigned char scancode;
-
-#define REPORT_START_NUM           (5)
-#define REPORT_KEY_LOW_LIMIT_COUNT (3)
-#define MAX_CYCLE_COUNTER          (100)
-//#define REPORT_REPEAT_KEY_BY_INPUT_CORE
-//#define REPORT_REPEAT_KEY_FROM_HW
-#define INITIAL_VALUE              (0Xff)
 
 static unsigned char key_cnt = 0;
 static unsigned char cycle_buffer[REPORT_START_NUM] = {0};
 static unsigned char transfer_code = INITIAL_VALUE;
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static struct sun4i_keyboard_data *keyboard_data;
+#endif
+
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void sun4i_keyboard_suspend(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_keyboard_data *ts = container_of(h, struct sun4i_keyboard_data, early_suspend);
+      */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: sun4i_keyboard_suspend. \n");
+    #endif
+    
+    writel(0,KEY_BASSADDRESS + LRADC_CTRL);
+	return ;
+}
+
+//重新唤醒
+static void sun4i_keyboard_resume(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_keyboard_data *ts = container_of(h, struct sun4i_keyboard_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: sun4i_keyboard_resume. \n");
+    #endif
+    
+    writel(FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN,KEY_BASSADDRESS + LRADC_CTRL);
+	return ; 
+}
+#else
+
+#endif
+
 
 static irqreturn_t sun4i_isr_key(int irq, void *dummy)
 {
@@ -358,8 +397,23 @@ static int __init sun4ikbd_init(void)
 	if (err)
 		goto fail3;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    printk("==register_early_suspend =\n");
+    keyboard_data = kzalloc(sizeof(*keyboard_data), GFP_KERNEL);
+	if (keyboard_data == NULL) {
+		err = -ENOMEM;
+		goto err_alloc_data_failed;
+	}
+	
+    keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    keyboard_data->early_suspend.suspend = sun4i_keyboard_suspend;
+    keyboard_data->early_suspend.resume	= sun4i_keyboard_resume;	
+    register_early_suspend(&keyboard_data->early_suspend);
+#endif
+
 	return 0;
 
+ err_alloc_data_failed:
  fail3:	
      free_irq(SW_INT_IRQNO_LRADC, sun4i_isr_key);
  fail2:	
@@ -375,9 +429,19 @@ static int __init sun4ikbd_init(void)
 
 static void __exit sun4ikbd_exit(void)
 {
+	#ifdef CONFIG_HAS_EARLYSUSPEND	
+	    unregister_early_suspend(&keyboard_data->early_suspend);	
+	#endif
+	
 	free_irq(SW_INT_IRQNO_LRADC, sun4i_isr_key);
 	input_unregister_device(sun4ikbd_dev);
 }
 
 module_init(sun4ikbd_init);
 module_exit(sun4ikbd_exit);
+
+
+MODULE_AUTHOR(" <@>");
+MODULE_DESCRIPTION("sun4i-keyboard driver");
+MODULE_LICENSE("GPL");
+
