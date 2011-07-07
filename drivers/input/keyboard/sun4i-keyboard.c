@@ -412,8 +412,9 @@ static int __init sun4ikbd_init(void)
 #endif
 
 	return 0;
-
+#ifdef CONFIG_HAS_EARLYSUSPEND
  err_alloc_data_failed:
+#endif
  fail3:	
      free_irq(SW_INT_IRQNO_LRADC, sun4i_isr_key);
  fail2:	

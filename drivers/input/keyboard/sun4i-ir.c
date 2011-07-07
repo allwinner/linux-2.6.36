@@ -654,7 +654,9 @@ static int __init ir_init(void)
 
 	return 0;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
  err_alloc_data_failed:
+#endif
  fail4:	
  	kfree(s_timer);
  fail3:	
