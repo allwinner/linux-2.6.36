@@ -76,3 +76,11 @@ GTAGS
 *.orig
 *~
 \#*#
+arch/arm/boot/compressed/lib1funcs.S
+arch/arm/boot/compressed/piggy.gzip
+arch/arm/boot/compressed/vmlinux
+modules/example/Module.symvers
+modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali/Module.symvers
+modules/wifi/Nanoradio-c047-7/kernel/ic/Module.symvers
+modules/wifi/Nanoradio-c047-7/kernel/ksdio/Module.symvers
+output/*
