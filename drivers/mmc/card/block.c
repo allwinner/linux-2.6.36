@@ -772,6 +772,7 @@ static int mmc_blk_probe(struct mmc_card *card)
 static void mmc_blk_remove(struct mmc_card *card)
 {
 	struct mmc_blk_data *md = mmc_get_drvdata(card);
+    int                 claim_flag = 0;
 
 	if (md) {
 		/* Stop new requests from getting into the queue */
@@ -781,13 +782,20 @@ static void mmc_blk_remove(struct mmc_card *card)
             modify by kevin, 2011-7-6 17:05
             release host for queue thread to process request
         */
-		mmc_release_host(card->host);
+        if(card->host->claimed)
+        {
+    		mmc_release_host(card->host);
+    		claim_flag = 1;
+    	}
 		/* Then flush out any already in there */
 		mmc_cleanup_queue(&md->queue);
         /*
             modify by kevin, 2011-7-6 17:05, see above
         */
-		mmc_claim_host(card->host);
+        if(claim_flag)
+        {
+    		mmc_claim_host(card->host);
+    	}
 
 		mmc_blk_put(md);
 	}
