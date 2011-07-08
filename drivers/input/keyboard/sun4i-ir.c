@@ -257,19 +257,9 @@ static void ir_sys_uncfg(void)
 	return;	
 }
 
-static void ir_setup(void)
+static void ir_reg_cfg(void)
 {
-	unsigned long tmp = 0;
-	
-	dprintk(2, "ir_setup: ir setup start!!\n");
-
-	ir_code = 0;
-	timer_used = 0;
-	
-	ir_reset_rawbuffer();
-	
-	ir_sys_cfg();
-	
+    unsigned long tmp = 0;
 	/*Enable IR Mode*/
 	tmp = 0x3<<4;
 	writel(tmp, IR_BASE+IR_CTRL_REG);
@@ -295,8 +285,23 @@ static void ir_setup(void)
 	tmp = readl(IR_BASE+IR_CTRL_REG);
 	tmp |= 0x3;
 	writel(tmp, IR_BASE+IR_CTRL_REG);
+
+    return;
+}
+
+static void ir_setup(void)
+{	
+	dprintk(2, "ir_setup: ir setup start!!\n");
+
+	ir_code = 0;
+	timer_used = 0;
+	ir_reset_rawbuffer();	
+	ir_sys_cfg();	
+    ir_reg_cfg();
 	
 	dprintk(2, "ir_setup: ir setup end!!\n");
+
+    return;
 }
 
 static inline unsigned char ir_get_data(void)
@@ -574,19 +579,20 @@ static void ir_timer_handle(unsigned long arg)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void sun4i_ir_suspend(struct early_suspend *h)
 {
-    unsigned long tmp = 0;
+//    unsigned long tmp = 0;
 	/*int ret;
 	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
       */
     #ifdef PRINT_SUSPEND_INFO
         printk("enter earlysuspend: sun4i_ir_suspend. \n");
     #endif
-
+/*
 	tmp = readl(IR_BASE+IR_CTRL_REG);
 	tmp &= 0xfffffffc;
     writel(tmp, IR_BASE+IR_CTRL_REG);
-
-    ir_clk_uncfg();
+*/
+    clk_disable(ir_clk);
+    clk_disable(apb_ir_clk);
 
 	return ;
 }
@@ -594,7 +600,7 @@ static void sun4i_ir_suspend(struct early_suspend *h)
 //ÖØÐÂ»½ÐÑ
 static void sun4i_ir_resume(struct early_suspend *h)
 {
-    unsigned long tmp = 0;
+    //unsigned long tmp = 0;
 	/*int ret;
 	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
     */
@@ -602,12 +608,11 @@ static void sun4i_ir_resume(struct early_suspend *h)
         printk("enter laterresume: sun4i_ir_resume. \n");
     #endif
 
-    ir_clk_cfg();
-
-	/*Enable IR Module*/
-	tmp = readl(IR_BASE+IR_CTRL_REG);
-	tmp |= 0x3;
-	writel(tmp, IR_BASE+IR_CTRL_REG);
+    ir_code = 0;
+	timer_used = 0;	
+	ir_reset_rawbuffer();	
+	ir_clk_cfg();	
+    ir_reg_cfg();
 
 	return ; 
 }
