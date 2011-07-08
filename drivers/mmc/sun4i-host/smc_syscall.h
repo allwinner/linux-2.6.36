@@ -155,6 +155,17 @@ static inline void aw_gpio_trigger_single1(void)
 	sdc_write(PI_DAT_REG, rval);
 }
 
+static __inline void smc_io_pwr_en(void)    //ph12
+{
+    u32 rval = sdc_read(PH_CFG1_REG);
+    
+    rval &= ~(0x7 << 16);
+    rval |= 1 << 16;
+    sdc_write(PH_CFG1_REG, rval);
+    
+//    sdc_write(PH_DAT_REG, ((1 << 12)) | sdc_read(PH_DAT_REG));
+    sdc_write(PH_DAT_REG, (~(1 << 12)) & sdc_read(PH_DAT_REG));
+}
 static __inline void smc_syscall_ioremap(void)
 {
     gpio_base = (void __iomem*)SW_VA_PORTC_IO_BASE;
@@ -165,6 +176,7 @@ static __inline void smc_syscall_ioremap(void)
     sdc_write(PC_CFG3_REG, 0x33333333);
     #endif
 //    aw_gpio_set_trigger_pio();
+    //smc_io_pwr_en();
 }
 
 static __inline void smc_syscall_iounremap(void)

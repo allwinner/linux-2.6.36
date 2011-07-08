@@ -900,8 +900,10 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
     struct awsmc_host	*smc_host = mmc_priv(mmc);
 
     awsmc_msg("%s: Remove.\n", dev_name(&pdev->dev));
+	
+	sdxc_exit(smc_host);
 
-    awsmc_shutdown(pdev);
+	awsmc_shutdown(pdev);
 
     //dma
     tasklet_disable(&smc_host->tasklet);

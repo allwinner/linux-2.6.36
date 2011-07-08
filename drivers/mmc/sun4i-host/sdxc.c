@@ -365,7 +365,7 @@ s32 sdxc_program_clk(struct awsmc_host* smc_host)
 	do {
 	    rval = sdc_read(SDXC_REG_CMDR);
 	    time--;
-	} while(rval & SDXC_Start);
+	} while(time && (rval & SDXC_Start));
 	
 	if (time <= 0)
 	{
@@ -595,21 +595,13 @@ static void sdxc_trans_by_ahb(struct awsmc_host* smc_host, struct mmc_data* data
 * Returns    :  
 * Note       :
 *********************************************************************/
-static struct smc_idma_des* sdxc_alloc_idma_des(struct mmc_data* data)
+static void  sdxc_init_idma_des(struct awsmc_host* smc_host, struct mmc_data* data)
 {
-    struct smc_idma_des* pdes = NULL;
+    struct smc_idma_des* pdes = smc_host->pdes;
     u32 des_idx = 0;
     u32 buff_frag_num = 0;
     u32 remain;
     u32 i, j;
-    
-    pdes = (struct smc_idma_des*)kmalloc(sizeof(struct smc_idma_des) * SDXC_MAX_DES_NUM, GFP_DMA | GFP_KERNEL);
-    if (pdes == NULL)
-    {
-	    awsmc_dbg_err("alloc dma des failed\n");
-        return NULL;
-    }
-    memset((void*)pdes, 0, sizeof(struct smc_idma_des) * SDXC_MAX_DES_NUM);
     
     /* ³õÊ¼»¯IDMA Descriptor */
     #if SDXC_DES_MODE == 0      //chain mode
@@ -629,6 +621,7 @@ static struct smc_idma_des* sdxc_alloc_idma_des(struct mmc_data* data)
         eLIBs_CleanFlushDCacheRegion(sg_virt(&data->sg[i]), data->sg[i].length);
         for (j=0; j < buff_frag_num; j++, des_idx++)
         {
+			memset((void*)&pdes[des_idx], 0, sizeof(struct smc_idma_des));
             pdes[des_idx].des_chain = 1;
             pdes[des_idx].own = 1;
             pdes[des_idx].dic = 1;
@@ -670,7 +663,7 @@ static struct smc_idma_des* sdxc_alloc_idma_des(struct mmc_data* data)
     
     eLIBs_CleanFlushDCacheRegion(pdes, sizeof(struct smc_idma_des) * (des_idx+1));
     
-    return pdes;
+    return;
 }
 
 /*********************************************************************
@@ -683,10 +676,14 @@ static struct smc_idma_des* sdxc_alloc_idma_des(struct mmc_data* data)
 *********************************************************************/
 static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
 {
-    struct smc_idma_des *pdes = NULL;
     u32 dma_len;
     u32 i;
-    
+   
+	if (smc_host->pdes == NULL)
+	{
+		return -ENOMEM;
+	}
+
 	dma_len = dma_map_sg(mmc_dev(smc_host->mmc), data->sg, data->sg_len, (data->flags & MMC_DATA_WRITE) ? DMA_TO_DEVICE : DMA_FROM_DEVICE);
 	if (dma_len == 0)
 	{
@@ -702,14 +699,9 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
 			return -EINVAL;
         }
     }
-    
-    pdes = sdxc_alloc_idma_des(data);
-    if (pdes == NULL)
-    {
-        awsmc_dbg_err("Alloc IDMA Descriptor failed\n");
-        return -ENOMEM;
-    }
-    sdxc_dma_enable(smc_host);
+
+    sdxc_init_idma_des(smc_host, data);
+	sdxc_dma_enable(smc_host);
     sdxc_dma_reset(smc_host);
     sdxc_idma_reset(smc_host);
     sdxc_idma_on(smc_host);
@@ -724,11 +716,10 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
     }
     
     //write descriptor address to register
-    sdc_write(SDXC_REG_DLBA, __pa(pdes));
+    sdc_write(SDXC_REG_DLBA, __pa(smc_host->pdes));
 
     //write water level
     sdc_write(SDXC_REG_FTRGL, (2U<<28)|(7<<16)|8);
-    smc_host->pdes = pdes;
     
     return 0;
 }
@@ -969,16 +960,13 @@ _out_:
             sdc_write(SDXC_REG_IDIE, 0);
             sdxc_idma_off(smc_host);
             sdxc_dma_disable(smc_host);
-            
-            kfree((void*)smc_host->pdes);
-            smc_host->pdes = NULL;
         }
         
         sdxc_fifo_reset(smc_host);
     }
     
     temp = sdc_read(SDXC_REG_STAS);
-    if ((temp & SDXC_DataFSMBusy) || (smc_host->int_sum & SDXC_HardWLocked))
+    if ((temp & SDXC_DataFSMBusy) || (smc_host->int_sum & (SDXC_RespErr | SDXC_HardWLocked)))
     {
         awsmc_dbg_err("smc %d data FSM busy or SDXC_HardWLocked\n", smc_host->pdev->id);
         sdxc_reset(smc_host);
@@ -1065,6 +1053,8 @@ void sdxc_regs_restore(struct awsmc_host* smc_host)
 *********************************************************************/
 s32 sdxc_init(struct awsmc_host* smc_host)
 {
+	struct smc_idma_des* pdes = NULL;
+	
     /* reset controller */
     if (-1 == sdxc_reset(smc_host))
     {
@@ -1086,7 +1076,16 @@ s32 sdxc_init(struct awsmc_host* smc_host)
     sdc_write(SDXC_REG_FUNS, 0xceaa0000);
     
     sdxc_int_enable(smc_host);
-    
+
+   	/* alloc idma descriptor structure */ 
+	pdes = (struct smc_idma_des*)kmalloc(sizeof(struct smc_idma_des) * SDXC_MAX_DES_NUM, GFP_DMA | GFP_KERNEL);
+	if (pdes == NULL)
+	{
+	    awsmc_dbg_err("alloc dma des failed\n");
+	    return -1;
+	}
+	smc_host->pdes = pdes;
+	awsmc_msg("sdc %d idma des address %p\n", smc_host->pdev->id, pdes);
     return 0;
 }
 
@@ -1100,6 +1099,13 @@ s32 sdxc_init(struct awsmc_host* smc_host)
 *********************************************************************/
 s32 sdxc_exit(struct awsmc_host* smc_host)
 {
+	/* free idma descriptor structrue */
+	if (smc_host->pdes)
+	{
+    	kfree((void*)smc_host->pdes);
+		smc_host->pdes = NULL;
+	}
+
     /* reset controller */
     if (-1 == sdxc_reset(smc_host))
     {
