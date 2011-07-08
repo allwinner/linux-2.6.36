@@ -32,7 +32,7 @@ static u32 ir_gpio_hdle;
 
 #define SYS_GPIO_CFG_EN
 #define SYS_CLK_CFG_EN
-#define DEBUG_IR
+//#define DEBUG_IR
 #define PRINT_SUSPEND_INFO
 
 #ifdef DEBUG_IR
@@ -119,40 +119,6 @@ static struct ir_raw_buffer	ir_rawbuf;
 static struct sun4i_ir_data *ir_data;
 #endif
 
-//停用设备
-#ifdef CONFIG_HAS_EARLYSUSPEND
-static void sun4i_ir_suspend(struct early_suspend *h)
-{
-	/*int ret;
-	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
-      */
-    #ifdef PRINT_SUSPEND_INFO
-        printk("enter earlysuspend: sun4i_ir_suspend. \n");
-    #endif
-
-    writel(0, IR_BASE+IR_CTRL_REG);
-	return ;
-}
-
-//重新唤醒
-static void sun4i_ir_resume(struct early_suspend *h)
-{
-    unsigned long tmp = 0;
-	/*int ret;
-	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
-    */
-    #ifdef PRINT_SUSPEND_INFO
-        printk("enter laterresume: sun4i_ir_resume. \n");
-    #endif
-    
-    /*Enable IR Module*/
-	tmp = readl(IR_BASE+IR_CTRL_REG);
-	tmp |= 0x3;
-	writel(tmp, IR_BASE+IR_CTRL_REG);
-	return ; 
-}
-#else
-#endif
 
 static inline void ir_reset_rawbuffer(void)
 {
@@ -193,25 +159,14 @@ static inline int ir_rawbuffer_full(void)
 	return (ir_rawbuf.dcnt >= IR_RAW_BUF_SIZE);	
 }
 
-
-static void ir_sys_cfg(void)
+static void ir_clk_cfg(void)
 {
-	//unsigned long tmp;
-	unsigned long rate = 3000000; //3Mhz 
-
-	#ifdef SYS_GPIO_CFG_EN
-        if(0 == (ir_gpio_hdle = gpio_request_ex("ir_para", "ir0_rx"))){
-			printk("try to request ir_para gpio failed. \n");
-        }
-        
-	#else
-	    //config IO: PIOB4 to IR_Rx
-	    tmp = readl(PI_BASE + 0x24); //PIOB_CFG0_REG
-	    tmp &= ~(0xf<<16);
-	    tmp |= (0x2<<16);
-	    writel(tmp, PI_BASE + 0x24);
-	#endif
-
+    #ifdef SYS_CLK_CFG_EN
+        unsigned long rate = 3000000; //3Mhz     
+    #else
+        unsigned long tmp = 0;
+    #endif
+	
 	#ifdef SYS_CLK_CFG_EN
 		apb_ir_clk = clk_get(NULL, "apb_ir0");		
 		if(!apb_ir_clk) {
@@ -251,7 +206,40 @@ static void ir_sys_cfg(void)
 	    tmp |= (7<<0);	 	//Divisor = 8 
 	    writel(tmp, CCM_BASE + 0x34);	
 	#endif
-	
+
+    return;
+}
+
+static void ir_clk_uncfg(void)
+{
+	#ifdef SYS_CLK_CFG_EN
+	    clk_put(apb_ir_clk);
+	    clk_put(ir_clk);
+	#else	
+	#endif
+ 
+    return;
+}
+static void ir_sys_cfg(void)
+{
+	//unsigned long tmp;
+
+	#ifdef SYS_GPIO_CFG_EN
+        if(0 == (ir_gpio_hdle = gpio_request_ex("ir_para", "ir0_rx"))){
+			printk("try to request ir_para gpio failed. \n");
+        }
+        
+	#else
+	    //config IO: PIOB4 to IR_Rx
+	    tmp = readl(PI_BASE + 0x24); //PIOB_CFG0_REG
+	    tmp &= ~(0xf<<16);
+	    tmp |= (0x2<<16);
+	    writel(tmp, PI_BASE + 0x24);
+	#endif
+
+    ir_clk_cfg();
+
+    return;	
 }
 
 static void ir_sys_uncfg(void)
@@ -264,11 +252,7 @@ static void ir_sys_uncfg(void)
 	#else
 	#endif
 
-	#ifdef SYS_CLK_CFG_EN
-	    clk_put(apb_ir_clk);
-	    clk_put(ir_clk);
-	#else	
-	#endif
+    ir_clk_uncfg();
 
 	return;	
 }
@@ -585,6 +569,50 @@ static void ir_timer_handle(unsigned long arg)
 	
 	dprintk(2, "ir_timer_handle: timeout \n");	
 }
+
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void sun4i_ir_suspend(struct early_suspend *h)
+{
+    unsigned long tmp = 0;
+	/*int ret;
+	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
+      */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: sun4i_ir_suspend. \n");
+    #endif
+
+	tmp = readl(IR_BASE+IR_CTRL_REG);
+	tmp &= 0xfffffffc;
+    writel(tmp, IR_BASE+IR_CTRL_REG);
+
+    ir_clk_uncfg();
+
+	return ;
+}
+
+//重新唤醒
+static void sun4i_ir_resume(struct early_suspend *h)
+{
+    unsigned long tmp = 0;
+	/*int ret;
+	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: sun4i_ir_resume. \n");
+    #endif
+
+    ir_clk_cfg();
+
+	/*Enable IR Module*/
+	tmp = readl(IR_BASE+IR_CTRL_REG);
+	tmp |= 0x3;
+	writel(tmp, IR_BASE+IR_CTRL_REG);
+
+	return ; 
+}
+#else
+#endif
 
 static int __init ir_init(void)
 {
