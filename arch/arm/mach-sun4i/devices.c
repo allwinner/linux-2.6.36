@@ -49,7 +49,7 @@ static struct android_pmem_platform_data android_pmem_pdata = {
 	.buffered = 0,
 };
 
-
+#if 0
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.name = "pmem_adsp",
 	//.start = CONFIG_ANDROID_PMEM_ADSP_BASE,
@@ -58,6 +58,7 @@ static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.cached = 0,
 	.buffered = 0,
 };
+#endif
 
 
 static struct platform_device android_pmem_device0 = {
@@ -66,27 +67,25 @@ static struct platform_device android_pmem_device0 = {
 	.dev = {.platform_data = &android_pmem_pdata },
 };
 
+#if 0
 static struct platform_device android_pmem_device1 = {
 	.name = "android_pmem",
 	.id = 1,
 	.dev = {.platform_data = &android_pmem_adsp_pdata },
 };
+#endif
 
 static int __init init_pmem_devs(void)
 {
 	void *pmem_base = NULL;
-	unsigned long size = CONFIG_ANDROID_PMEM_SIZE * 1024 * 1024  - 4 * 1024 * 1024;
+	unsigned long size = CONFIG_ANDROID_PMEM_SIZE * 1024 * 1024;
 
 	pmem_base = (void *)CONFIG_ANDROID_PMEM_BASE;
 	android_pmem_pdata.start = (unsigned long)pmem_base;
 	android_pmem_pdata.size = size;
-	android_pmem_adsp_pdata.start = (unsigned long)(((char *)pmem_base) + size);
-	android_pmem_adsp_pdata.size = 4*1024*1024; /* 4MB for ADSP */
 
 	pr_info("pmem: base=0x%x, size=0x%x\n", (unsigned int)android_pmem_pdata.start,
 		(unsigned int)android_pmem_pdata.size);
-	pr_info("pmem_adsp: base=0x%x, size=0x%x\n", (unsigned int)android_pmem_adsp_pdata.start,
-		(unsigned int)android_pmem_adsp_pdata.size);
 
 	return 0;
 }
@@ -99,7 +98,6 @@ static int __init init_pmem_devs(void)
 static struct platform_device *aw_pdevs[] __initdata = {
 #ifdef CONFIG_ANDROID_PMEM
 	&android_pmem_device0,
-	&android_pmem_device1,
 #endif /* CONFIG_ANDROID_PMEM */
 };
 
