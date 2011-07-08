@@ -44,6 +44,7 @@
 #include "sun4i_wemac.h"
 
 #include <mach/dma.h>
+#include <asm/cacheflush.h>
 
 /* Board/System/Debug information/definition ---------------- */
 
@@ -208,11 +209,10 @@ int  emactx_dma_opfn(struct sw_dma_chan * ch,   enum sw_chan_op op_code){
 //	return ch;
 //}
 
-extern void _eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes);
 
 void eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes)
 {
-    _eLIBs_CleanFlushDCacheRegion(adr, bytes + (1 << 5) * 2 - 2);
+	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
 }
 
 int seq_rx=0;

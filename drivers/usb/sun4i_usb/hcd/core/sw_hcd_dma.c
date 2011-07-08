@@ -23,14 +23,13 @@
 
 #include  "../include/sw_hcd_core.h"
 #include  "../include/sw_hcd_dma.h"
+#include <asm/cacheflush.h>
 
 extern void sw_hcd_dma_completion(struct sw_hcd *sw_hcd, u8 epnum, u8 transmit);
 
-extern void _eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes);
-
 static void hcd_CleanFlushDCacheRegion(void *adr, __u32 bytes)
 {
-	_eLIBs_CleanFlushDCacheRegion(adr, bytes + (1 << 5) * 2 - 2);
+	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
 }
 
 /*

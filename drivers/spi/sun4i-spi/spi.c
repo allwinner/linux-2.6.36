@@ -18,6 +18,7 @@
 #include <mach/irqs.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include <asm/cacheflush.h>
 
 #include "spi_private.h"
 
@@ -118,10 +119,9 @@ static int aw16xx_get_cfg_csbitmap(int bus_num);
 
 
 // flush d-cache
-extern void _eLIBs_CleanFlushDCacheRegion(void *addr, __u32 len);
 static void aw16xx_spi_cleanflush_dcache_region(void *addr, __u32 len)
 {
-	_eLIBs_CleanFlushDCacheRegion(addr, len + (1 << 5) * 2 - 2);
+	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
 }
 
 //------------------------------- dma operation start-----------------------------

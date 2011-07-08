@@ -42,6 +42,7 @@
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/core.h>
 
+#include <asm/cacheflush.h>
 #include <mach/dma.h>
 //#include <mach/clock.h>
 //#include <mach/gpio.h>
@@ -218,11 +219,9 @@ struct awsmc_host {
 };
 
 
-extern void _eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes);
-
 static __inline void eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes)
 {
-    _eLIBs_CleanFlushDCacheRegion(adr, bytes + (1 << 5) * 2 - 2);
+	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
 }
 
 #define MEM_ADDR_IN_SDRAM(addr) ((addr) >= 0x80000000)
