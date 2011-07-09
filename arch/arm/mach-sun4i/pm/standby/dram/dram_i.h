@@ -80,5 +80,11 @@ extern void 	DRAMC_set_autorefresh_cycle(__u32 clk);
 extern int  	DRAMC_scan_readpipe(void);
 extern unsigned DRAMC_get_dram_size(void);
 
+extern void mctl_itm_disable(void);
+extern void mctl_itm_enable(void);
+extern void mctl_enable_dll0(void);
+extern void mctl_enable_dllx(void);
+extern void mctl_disable_dll(void);
+
 #endif  //__DRAM_REG_H__
 

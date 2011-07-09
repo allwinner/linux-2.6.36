@@ -161,7 +161,7 @@ __s32 standby_clk_plldisable(void)
     CmuReg->Pll2Ctl.PLLEn = 0;
     CmuReg->Pll3Ctl.PLLEn = 0;
     CmuReg->Pll4Ctl.PLLEn = 0;
-    #if 0
+    #if 1
     CmuReg->Pll5Ctl.PLLEn = 0;
     #endif
     CmuReg->Pll6Ctl.PLLEn = 0;
@@ -188,7 +188,7 @@ __s32 standby_clk_pllenable(void)
     CmuReg->Pll2Ctl.PLLEn = 1;
     CmuReg->Pll3Ctl.PLLEn = 1;
     CmuReg->Pll4Ctl.PLLEn = 1;
-    #if 0
+    #if 1
     CmuReg->Pll5Ctl.PLLEn = 1;
     #endif
     CmuReg->Pll6Ctl.PLLEn = 1;
@@ -247,12 +247,10 @@ __s32 standby_clk_hoscenable(void)
 */
 __s32 standby_clk_ldodisable(void)
 {
-    __u32   tmpReg;
-
-    tmpReg = *(volatile __u32 *)&CmuReg->HoscCtl;
-    tmpReg &= ~(1<<16);
-    *(volatile __u32 *)&CmuReg->HoscCtl = tmpReg | (0xa7<<24) ;
-
+    CmuReg->HoscCtl.KeyField = 0x538;
+    CmuReg->HoscCtl.LDOEn = 0;
+    CmuReg->Pll5Ctl.LDO2En = 0;
+    CmuReg->HoscCtl.KeyField = 0x00;
     return 0;
 }
 
@@ -270,12 +268,10 @@ __s32 standby_clk_ldodisable(void)
 */
 __s32 standby_clk_ldoenable(void)
 {
-    __u32   tmpReg;
-
-    tmpReg = *(volatile __u32 *)&CmuReg->HoscCtl;
-    tmpReg |= (1<<16);
-    *(volatile __u32 *)&CmuReg->HoscCtl = tmpReg | (0xa7<<24) ;
-
+    CmuReg->HoscCtl.KeyField = 0x538;
+    CmuReg->HoscCtl.LDOEn = 1;
+    CmuReg->Pll5Ctl.LDO2En = 1;
+    CmuReg->HoscCtl.KeyField = 0x00;
     return 0;
 }
 

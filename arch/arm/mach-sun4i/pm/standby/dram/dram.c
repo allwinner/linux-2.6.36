@@ -36,7 +36,7 @@ void DRAMC_enter_selfrefresh(void)
 
 	//check whether command has been executed
 	while( mctl_read_w(SDR_DCR)& (0x1U<<31) );
-	for(i=0; i<0x100; i++){};
+	standby_delay(0x100);
 }
 void mctl_mode_exit(void)
 {
@@ -50,7 +50,7 @@ void mctl_mode_exit(void)
 
 	//check whether command has been executed
 	while( mctl_read_w(SDR_DCR)& (0x1U<<31) );
-	for(i=0; i<0x100; i++){};
+	standby_delay(0x100);
 }
 
 void DRAMC_exit_selfrefresh(void)
@@ -83,7 +83,7 @@ void DRAMC_enter_power_down(void)
 
 	//check whether command has been executed
 	while( mctl_read_w(SDR_DCR)& (0x1U<<31) );
-	for(i=0; i<0x100; i++){};
+	standby_delay(0x100);
 }
 
 void DRAMC_exit_power_down(void)
@@ -173,11 +173,56 @@ void DRAMC_hostport_setup(__u32 port_idx, __u32 port_pri_level, __u32 port_wait_
 	    reg_val &= ~(0x3<<2);
 	    reg_val |= (port_pri_level&0x3)<<2;
 	    reg_val &= ~(0xf<<4);
-	    reg_val |= (port_pri_level&0xf)<<4;
+	    reg_val |= (port_wait_cycle&0xf)<<4;
 	    reg_val &= ~(0xff<<8);
-	    reg_val |= (port_pri_level&0x3)<<8;
+	    reg_val |= (cmd_num&0x3)<<8;
 	    mctl_write_w(SDR_HPCR + (port_idx<<2), reg_val);
 	}
+}
+/*
+*********************************************************************************************************
+*                 DRAM power save process
+*
+* Description: We can save power by disable DRAM PLL.
+*			   After putting external SDRAM into self-refresh state,the function
+*			   DRAMC_power_save_process() is called to disable DRAMC ITM and DLL, then disable PLL to save power;
+*			   Before exit SDRAM self-refresh state, we should enable DRAM PLL and make sure that it is stable clock.
+*			   Then call function DRAMC_exit_selfrefresh() to exit self-refresh state. Before access external SDRAM,
+*              the function DRAMC_power_up_process() should be called to enable DLL and re-training DRAM controller.
+*
+* Arguments  : none
+*
+* Returns    : none
+*
+* Note       :
+*********************************************************************************************************
+*/
+
+void dram_power_save_process(void)
+{
+	__u32 reg_val;
+
+	mctl_itm_disable();
+	mctl_disable_dll();
+}
+__u32 dram_power_up_process(void)
+{
+	__u32 i;
+	__u32 ret_val;
+
+	mctl_itm_disable();
+
+	mctl_enable_dll0();
+	standby_delay(0x10);
+
+	mctl_enable_dllx();
+	standby_delay(0x10);
+
+	//scan read pipe value
+	mctl_itm_enable();
+	ret_val = DRAMC_scan_readpipe();
+
+	return (ret_val);
 }
 
 

@@ -102,10 +102,12 @@ int main(struct aw_pm_info *arg)
     sp_backup = save_sp();
     /* enable dram enter into self-refresh */
     dram_enter_selfrefresh();
+    dram_power_save_process();
     /* process standby */
     standby();
     /* restore dram */
     dram_exit_selfrefresh();
+    dram_power_up_process();
     /* restore stack pointer register, switch stack back to dram */
     restore_sp(sp_backup);
 
@@ -185,6 +187,8 @@ static void standby(void)
     #if(ALLOW_DISABLE_HOSC)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
+    /* delay 1ms for power be stable */
+    standby_delay(10);
     standby_clk_hoscenable();
     #endif
     /* switch clock to LOSC */

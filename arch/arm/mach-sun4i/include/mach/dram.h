@@ -59,6 +59,8 @@ void dram_exit_power_down(void);
 void dram_hostport_on_off(unsigned int port_idx, unsigned int on);
 unsigned int dram_hostport_check_ahb_fifo_status(unsigned int port_idx);
 void dram_hostport_setup(unsigned int port, unsigned int prio, unsigned int wait_cycle, unsigned int cmd_num);
+void dram_power_save_process(void);
+unsigned int dram_power_up_process(void);
 
 #endif  /* __AW_DRAM_H__ */
 

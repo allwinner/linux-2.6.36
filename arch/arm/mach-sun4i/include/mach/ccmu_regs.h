@@ -199,12 +199,12 @@ typedef struct __CCMU_OSC24M_REG0050
 {
     __u32   OSC24MEn:1;         //bit0,  OSC24M enable
     __u32   OSC24MGsm:1;        //bit1,  OSC24M GSM
-    __u32   reserved0:13;       //bit2,  reserved for verify
+    __u32   reserved0:13;       //bit2,  reserved
     __u32   PLLBiasEn:1;        //bit15, PLL bias enable
     __u32   LDOEn:1;            //bit16, LDO enable
     __u32   PLLInPower:1;       //bit17, PLL intput power select, 0-2.5v, 1-3.3v
     __u32   LDOOutput:3;        //bit18, LDO output control, 100-1.25v for ex.
-    __u32   KeyField:8;         //bit24, key field for LDO enable, 0xA7
+    __u32   KeyField:11;        //bit21, key field for LDO enable, 0x538, bit24~bit31 is valid, but "strb" will do nothing
 } __ccmu_osc24m_reg0050_t;
 
 
