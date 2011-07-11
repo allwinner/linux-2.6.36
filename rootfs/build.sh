@@ -3,7 +3,7 @@
 generate_rootfs()
 {
 if [ -d skel ]; then
-	(cd skel;find . |cpio -o -Hnewc |gzip > ../"$1")
+	(cd skel;find . |fakeroot cpio -o -Hnewc |gzip > ../"$1")
 else
 	echo "skel not there run buil.sh e sun4i_rootf.gz first"
 	exit 1
