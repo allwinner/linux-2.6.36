@@ -80,20 +80,11 @@ static int gpio_wakeup_hdle = 0;
 #define X_DIFF (800)
 
 #define FOR_TSLIB_TEST
-//#define PRINT_INT_INFO
-//#define PRINT_DEBUG_INFO
-//#define PRINT_POINT_INFO
+#define PRINT_INT_INFO
+#define PRINT_POINT_INFO
 #define PRINT_SUSPEND_INFO
 #define TEST_I2C_TRANSFER
 
-#ifdef PRINT_DEBUG_INFO  
-#define print_debug(fmt, args...)        \
-        do{                              \
-               printk(fmt, ##args);      \
-        }while(0)                        
-#else        
-#define print_debug(fmt, args...)    //        
-#endif     
 
 #ifdef PRINT_POINT_INFO 
 #define print_point_info(fmt, args...)   \
@@ -582,7 +573,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 	//struct goodix_i2c_platform_data *pdata;
 	//dev_dbg(&client->dev,"Install touchscreen driver for guitar.\n");
-	print_debug("===============================GT801 Probe===========================\n");
+	pr_info("===============================GT801 Probe===========================\n");
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) 
 	{
@@ -641,14 +632,14 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 
 #ifdef TEST_I2C_TRANSFER
 	//TODO: used to set speed of i2c transfer. Should be change as your paltform.
-    print_debug("Begin goodix i2c test\n");
+    pr_info("Begin goodix i2c test\n");
 	ret = goodix_i2c_test(client);
 	if(!ret)
 	{
-		print_debug("Warnning: I2C connection might be something wrong!\n");
+		pr_info("Warnning: I2C connection might be something wrong!\n");
 		goto err_i2c_failed;
 	}
-	print_debug("===== goodix i2c test ok=======\n");
+	pr_info("===== goodix i2c test ok=======\n");
 #endif
 	
 	INIT_WORK(&ts->work, goodix_ts_work_func);
@@ -723,21 +714,21 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING,client->name, ts);
 
 	if (err < 0) {
-		print_debug( "goodix_probe: request irq failed\n");
+		pr_info( "goodix_probe: request irq failed\n");
 		goto exit_irq_request_failed;
 	}
 #ifdef SHUT_OFF_IRQ
 	enable_irq(ts->gpio_irq);
 #endif
 	
-	print_debug("Read Goodix version\n");
+	pr_info("Read Goodix version\n");
 	goodix_read_version(ts);
 	//msleep(260);	
 
 	dev_dbg(&client->dev,"Start  %s in %s mode\n", 
 		ts->input_dev->name, ts->use_irq ? "Interrupt" : "Polling");
 		
-    print_debug("========Probe Ok================\n");
+    pr_info("========Probe Ok================\n");
 	return 0;
 
 	
@@ -815,7 +806,7 @@ static struct i2c_driver goodix_ts_driver = {
 static int __devinit goodix_ts_init(void)
 {
 	int ret;
-	print_debug("goodix_ts_init\n");
+	pr_info("goodix_ts_init\n");
 	goodix_wq = create_singlethread_workqueue("goodix_wq");
 	if (!goodix_wq) {
 		printk(KERN_ALERT "Creat %s workqueue failed.\n", f3x_ts_name);

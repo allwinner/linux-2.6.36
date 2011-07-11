@@ -1147,7 +1147,8 @@ static struct i2c_board_info __initdata i2c_info_power[] =  {
 	},
 };
 
-#ifdef CONFIG_TOUCHSCREEN_FT
+/*
+#if defined(CONFIG_TOUCHSCREEN_FT) || defined(CONFIG_TOUCHSCREEN_FT_MODULE)
 static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 	{
 		I2C_BOARD_INFO("ft5x0x_ts", 0x7e),
@@ -1155,9 +1156,10 @@ static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 	},
 };
 #endif
+*/
 
-#ifdef CONFIG_TOUCHSCREEN_BYD_0X7E_TS
-static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
+#if defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS) || defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS_MODULE)
+static struct i2c_board_info __initdata i2c_info_byd0x7e_ts[] =  {
 	{
 		I2C_BOARD_INFO("byd0x7e_ts", 0x7e),
 		.platform_data	= NULL,
@@ -1166,7 +1168,7 @@ static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 #endif
 
 
-#ifdef CONFIG_TOUCHSCREEN_GT801
+#if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)
 static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
 	{
 		I2C_BOARD_INFO("Goodix-TS", 0x55),
@@ -1175,7 +1177,7 @@ static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
 };
 #endif
 
-#if defined CONFIG_SENSORS_MXC622X
+#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)
 static struct i2c_board_info gsensor_i2c_board_info[] __initdata = {
 	{ I2C_BOARD_INFO("mxc622x", 0x15), },
 };
@@ -1209,19 +1211,19 @@ static int __init i2c_adap_awxx_init(void)
 	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
 	printk("================power===================, status = %d \n",status);
 	
-    #ifdef CONFIG_TOUCHSCREEN_GT801    // bus-0
+    #if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)    // bus-0
 	    status = i2c_register_board_info(1, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
 	    printk("================goodix==============, status = %d \n",status);
     #endif
 
-    #ifdef CONFIG_TOUCHSCREEN_FT       // bus-2
-	    status = i2c_register_board_info(2, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));
-	    printk("===============tp===================, status = %d ===\n",status);
+    #if defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS) || defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS_MODULE)  // bus-2
+	    status = i2c_register_board_info(2, i2c_info_byd0x7e_ts, ARRAY_SIZE(i2c_info_byd0x7e_ts));
+	    printk("===============byd0x7e_ts=============, status = %d ===\n",status);
     #endif
         
-    #if defined CONFIG_SENSORS_MXC622X   //bus-1
+    #if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)   //bus-1
         status = i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
-        printk("===============gsensor==============, status = %d ===\n",status);
+        printk("===============gsensor===============, status = %d ===\n",status);
     #endif	
 
 	if(i2c_awxx_get_cfg(0)){

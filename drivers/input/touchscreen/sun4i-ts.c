@@ -401,6 +401,283 @@ void tp_do_tasklet(unsigned long data)
 
   			break;
   		}
+=======
+	int irq;
+	unsigned int x1;
+	unsigned int y1;
+	unsigned int x;
+	unsigned int y;
+	unsigned int dx;
+	unsigned int dy;
+	unsigned int z1;
+	unsigned int z2;
+	int status;
+	int count;
+	int touchflag;
+	char phys[32];
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    struct early_suspend early_suspend;
+#endif
+};
+
+struct sun4i_ts_data * mtTsData =NULL;	
+static int single_touch_cnt = 0;
+static int touch_mode = SINGLE_TOUCH_MODE;
+static int change_mode = TRUE;
+	
+static int tansfer_x1 = 0; 
+static int tansfer_x2 = 0;
+static int tansfer_y1 = 0;
+static int tansfer_y2 = 0;
+
+//for test
+//static int tp_irq = 0;
+
+void tp_do_tasklet(unsigned long data);
+DECLARE_TASKLET(tp_tasklet,tp_do_tasklet,0);
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void sun4i_ts_suspend(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_ts_data *ts = container_of(h, struct sun4i_ts_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: sun4i_ts_suspend. \n");
+    #endif
+    writel(0,TP_BASSADDRESS + TP_CTRL1);
+	return ;
+}
+
+//重新唤醒
+static void sun4i_ts_resume(struct early_suspend *h)
+{
+	/*int ret;
+	struct sun4i_ts_data *ts = container_of(h, struct sun4i_ts_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: sun4i_ts_resume. \n");
+    #endif    
+    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	return ;
+}
+#else
+//停用设备
+#ifdef CONFIG_PM
+static int sun4i_ts_suspend(struct platform_device *pdev, pm_message_t state)
+{
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter: sun4i_ts_suspend. \n");
+    #endif
+
+    writel(0,TP_BASSADDRESS + TP_CTRL1);
+	return 0;
+}
+
+static int sun4i_ts_resume(struct platform_device *pdev)
+{
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter: sun4i_ts_resume. \n");
+    #endif 
+
+    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+	return 0;
+}
+#endif
+
+#endif
+
+	
+static int  tp_init(void)
+{
+    //struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
+    struct sun4i_ts_data *ts_data = mtTsData;	
+    //TP_CTRL0: 0x0027003f
+    writel(ADC_CLK_DIVIDER|FS_DIV|T_ACQ, TP_BASSADDRESS + TP_CTRL0);	   
+    //TP_CTRL2: 0xc4000000
+    writel(TP_SENSITIVE_ADJUST|TP_MODE_SELECT,TP_BASSADDRESS + TP_CTRL2);
+    //TP_CTRL3: 0x05
+    writel(FILTER_EN|FILTER_TYPE,TP_BASSADDRESS + TP_CTRL3);
+    //TP_INT_FIFOC: 0x00010313
+    writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr + TP_INT_FIFOC);
+    //TP_CTRL1: 0x00000070 -> 0x00000030
+    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+    
+
+  /*
+       //put_wvalue(TP_CTRL0 ,0x02a6007f);  //512us TACQ  4ms FS 60 point
+      //put_wvalue(TP_CTRL0 ,0x0aa7003f); 
+      put_wvalue(TP_CTRL0 ,0x00a7003f);   //100 point
+      put_wvalue(TP_CTRL1 ,0x00000030);
+      //put_wvalue(TP_INT_FIFOC,0x12f13);
+      put_wvalue(TP_INT_FIFOC,0x10313);
+      //put_wvalue(TP_CTRL2,0x90003e8); 
+      //put_wvalue(TP_CTRL2,0x9002710); 
+      put_wvalue(TP_CTRL2,0xc4002710);
+      put_wvalue(TP_CTRL3,0x00000005);
+   */
+   
+   /*
+    writel(0x00b70100,TP_BASSADDRESS + TP_CTRL0);
+    writel(0xfd000000,TP_BASSADDRESS + TP_CTRL2);
+    writel(0x4,TP_BASSADDRESS + TP_CTRL3);
+    writel(0x10513,TP_BASSADDRESS +TP_INT_FIFOC);
+    writel(0x00005230,TP_BASSADDRESS + TP_CTRL1);*/
+    return (0);
+}
+
+static void report_single_point(struct sun4i_ts_data *ts_data)
+{
+    input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+    input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
+    input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);   
+#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
+    printk("report single point: x = %d, y = %d\n                  \
+            ts_data->dx = %d, ts_data->dy = %d. \n",      \
+            ts_data->x, ts_data->y, ts_data->dx, ts_data->dy);
+#endif
+        
+    input_mt_sync(ts_data->input);                 
+    input_sync(ts_data->input);
+   
+    return;
+}
+
+static void report_double_point(struct sun4i_ts_data *ts_data)
+{
+	int x1,x2,y1,y2;
+
+	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+	x1 = 2048 - (ts_data->dx<<2);
+	y1 = 2048 - (ts_data->dy<<2);
+
+	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
+	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
+	input_mt_sync(ts_data->input);
+	
+	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+	x2 = 2048 + (ts_data->dx<<2);
+	y2 = 2048 + (ts_data->dy<<2);
+	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x2);
+	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y2);
+	input_mt_sync(ts_data->input);
+	input_sync(ts_data->input);
+	#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
+        printk("report two point: x1 = %d, y1 = %d; x2 = %d, y2 = %d. \n",x1, y1, x2, y2);
+        printk("ts_data->dx = %d, ts_data->dy = %d. \n", ts_data->dx, ts_data->dy);
+    #endif
+
+    return;
+}
+
+static void report_data(struct sun4i_ts_data *ts_data)
+{
+    if(TRUE == change_mode){
+        //remain in double touch mode    
+        single_touch_cnt++;        
+        if(single_touch_cnt > SINGLE_CNT_LIMIT){ 
+            //change to single touch mode
+            input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+            input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
+            input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);   
+            #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
+                printk("report single point: x = %d, y = %d\n                  \
+                         ts_data->dx = %d, ts_data->dy = %d. \n",      \
+                         ts_data->x, ts_data->y, ts_data->dx, ts_data->dy);
+            #endif
+            input_mt_sync(ts_data->input);                 
+            input_sync(ts_data->input);
+            touch_mode = SINGLE_TOUCH_MODE; 
+        }
+    }else if(FALSE == change_mode){
+          //keep in double touch mode
+          //igore single point                                                                                
+    }  
+
+    return;
+}
+
+void tp_do_tasklet(unsigned long data)
+{
+    //struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
+
+	struct sun4i_ts_data *ts_data = mtTsData;	
+	int x1,x2,y1,y2;
+
+  	switch(ts_data->status)
+  	{
+  		case TP_DOWN:
+  		{
+			ts_data->touchflag = 0; 
+			ts_data->count     = 0;
+  			break;
+  		}
+  		case TP_UP :
+    	{
+    	    if(1 == ts_data->touchflag || 2 == ts_data->touchflag)
+    	    {
+                ts_data->touchflag = 0; 
+                ts_data->count     = 0;
+                //touch_mode = SINGLE_TOUCH_MODE;
+                change_mode = TRUE;
+                input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,0);
+                input_sync(ts_data->input);
+    	    }
+		    break;
+  		}
+
+  		case TP_DATA_VA:
+  		{
+  		    if(ts_data->count > FILTER_NOISE_LOWER_LIMIT)
+  		    {
+      		    ts_data->touchflag = 1;
+  			    if(((ts_data->dx) > DUAL_TOUCH)&&((ts_data->dy) > DUAL_TOUCH)){
+  			    	ts_data->touchflag = 2;
+  			    	ts_data->count = 0;  
+                    touch_mode = DOUBLE_TOUCH_MODE;
+                    change_mode = FALSE;
+  			    	single_touch_cnt = 0; //according this counter, change to single touch mode
+                    report_double_point(ts_data);
+
+		        }else  if(1 == ts_data->touchflag){
+		               if(DOUBLE_TOUCH_MODE == touch_mode ){
+                                
+                               {
+                                     //just for debug
+                                     //input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+                                     x1 = 2048 - (ts_data->dx<<2);
+                                     y1 = 2048 - (ts_data->dy<<2);
+                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
+                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
+                                     //input_mt_sync(ts_data->input);
+                                     
+                                     //input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+                                     x2 = 2048 + (ts_data->dx<<2);
+                                     y2 = 2048 + (ts_data->dy<<2);
+                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_X, x2);
+                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y2);
+                                     //input_mt_sync(ts_data->input);
+                                     //input_sync(ts_data->input);
+                                 
+#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
+                                     printk("do not report two point: x1 = %d, y1 = %d; x2 = %d, y2 = %d. \n",x1, y1, x2, y2);
+                                     printk("ts_data->dx = %d, ts_data->dy = %d. \n", ts_data->dx, ts_data->dy);
+#endif
+                                 }
+                                 report_data(ts_data);
+    
+		               }else if(SINGLE_TOUCH_MODE == touch_mode ){//remain in single touch mode
+                             report_single_point(ts_data);
+        		             }
+
+		            	
+		        }
+              
+            }
+
+  			break;
+  		}
+>>>>>>> bug fix for goodix ts to support module loading
   		
 		default:	
   			break;
