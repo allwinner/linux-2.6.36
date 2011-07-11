@@ -194,19 +194,20 @@ static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	pr_debug("enter snd_sw_ace_suspend:%s,%d\n",__func__,__LINE__);
 	suspend_acerate = clk_get_rate(ace_moduleclk);
-	clk_disable(ace_moduleclk);
-	//释放ace_moduleclk时钟句柄
-	clk_put(ace_moduleclk);
-	//释放ace_pll5_pclk时钟句柄
-	clk_put(ace_pll5_pclk);
-
 	clk_disable(dram_aceclk);
 	//释放dram_aceclk时钟句柄
 	clk_put(dram_aceclk);	
-
+	
+	clk_disable(ace_moduleclk);
+	//释放ace_moduleclk时钟句柄
+	clk_put(ace_moduleclk);
 	clk_disable(ahb_aceclk);
 	//释放ahb_aceclk时钟句柄
 	clk_put(ahb_aceclk);
+	//释放ace_pll5_pclk时钟句柄
+	clk_put(ace_pll5_pclk);
+	
+
 	/*for clk test*/
 	pr_debug("[ace_suspend reg]\n");
 	pr_debug("ace_module CLK:0xf1c20148 is:%x\n", *(volatile int *)0xf1c20148);

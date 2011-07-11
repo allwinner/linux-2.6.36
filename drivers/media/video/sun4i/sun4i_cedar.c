@@ -420,13 +420,14 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}		
 		ret = cedardev_del_task(karg);//karg是传递过来的id号
 		#endif
-		if(cedar_count==1){			
-			clk_disable(ve_moduleclk);	
-			clk_put(ve_moduleclk);	
-			
+		if(cedar_count==1){		
+						
 			clk_disable(dram_veclk);
 			clk_put(dram_veclk);
-			
+				
+			clk_disable(ve_moduleclk);	
+			clk_put(ve_moduleclk);	
+
 			clk_disable(ahb_veclk);
 			clk_put(ahb_veclk);
 			
@@ -723,13 +724,15 @@ static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 	pr_debug("enter snd_sw_cedar_suspend:%s,%d\n",__func__,__LINE__);
 	if(cedar_count){
 	suspend_pll4clk = clk_get_rate(ve_pll4clk);
+	clk_put(dram_veclk);
+	
 	clk_disable(ve_moduleclk);	
 	clk_put(ve_moduleclk);	
-	clk_put(dram_veclk);
-	clk_put(ahb_veclk);
-	clk_put(ve_pll4clk);
+	
 	clk_disable(avs_moduleclk);	
 	clk_put(avs_moduleclk);	
+	clk_put(ahb_veclk);
+	clk_put(ve_pll4clk);
 	}
 		/*for clk test*/
 	pr_debug("[cedar suspend reg]\n");
