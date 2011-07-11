@@ -614,7 +614,7 @@ static int awsmc_proc_read_hostinfo(char *page, char **start, off_t off, int cou
     struct awsmc_host *smc_host = (struct awsmc_host *)data;
     struct device* dev = &smc_host->pdev->dev;
     char* clksrc[] = {"hosc", "satapll", "sdrampll_p", "hosc"};
-    char* cd_mode[] = {"none", "gpio mode", "data3 mode", "always in"};
+    char* cd_mode[] = {"none", "gpio mode", "data3 mode", "always in", "manual"};
 
     p += sprintf(p, "%s controller information:\n", dev_name(dev));
     p += sprintf(p, "reg base \t : %p\n", smc_host->smc_base);
@@ -664,6 +664,38 @@ static int awsmc_proc_write_dbglevel(struct file *file, const char __user *buffe
     return sizeof(smc_debug);
 }
 
+static int awsmc_proc_read_insert_status(char *page, char **start, off_t off, int coutn, int *eof, void *data)
+{
+	char *p = page; 
+    struct awsmc_host *smc_host = (struct awsmc_host *)data;
+
+	p += sprintf(p, "Usage: \"echo 1 > insert\" to scan card and \"echo 0 > insert\" to remove card\n");
+	if (smc_host->cd_mode != CARD_DETECT_BY_FS)
+	{
+		p += sprintf(p, "Sorry, this node if only for manual attach mode(cd mode 4)\n");
+	}
+
+	p += sprintf(p, "card attach status: %s\n", smc_host->present ? "inserted" : "removed");
+
+
+	return p - page;
+}
+
+static int awsmc_proc_card_insert_ctrl(struct file *file, const char __user *buffer, unsigned long count, void *data)
+{
+	u32 insert = simple_strtoul(buffer, NULL, sizeof(unsigned));
+    struct awsmc_host *smc_host = (struct awsmc_host *)data;
+	u32 present = insert ? 1 : 0;
+
+	if (smc_host->present ^ present)
+	{
+		smc_host->present = present;
+		mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
+	}
+
+	return sizeof(insert);
+}
+
 static inline void awsmc_procfs_attach(struct awsmc_host *smc_host)
 {
     struct device *dev = &smc_host->pdev->dev;
@@ -703,6 +735,16 @@ static inline void awsmc_procfs_attach(struct awsmc_host *smc_host)
     smc_host->proc_dbglevel->data = smc_host;
     smc_host->proc_dbglevel->read_proc = awsmc_proc_read_dbglevel;
     smc_host->proc_dbglevel->write_proc = awsmc_proc_write_dbglevel;
+
+	smc_host->proc_insert = create_proc_entry("insert", 0644, smc_host->proc_root);
+	if (IS_ERR(smc_host->proc_insert))
+	{
+		awsmc_msg("%s: failed to create procfs \"insert\".\n", dev_name(dev));
+	}
+	smc_host->proc_insert->data = smc_host;
+	smc_host->proc_insert->read_proc = awsmc_proc_read_insert_status;
+	smc_host->proc_insert->write_proc = awsmc_proc_card_insert_ctrl;
+
 }
 
 static inline void awsmc_procfs_remove(struct awsmc_host *smc_host)
@@ -711,6 +753,7 @@ static inline void awsmc_procfs_remove(struct awsmc_host *smc_host)
     char awsmc_proc_rootname[16] = {0};
     sprintf(awsmc_proc_rootname, "driver/%s", dev_name(dev));
 
+    remove_proc_entry("insert", smc_host->proc_root);
     remove_proc_entry("debug-level", smc_host->proc_root);
     remove_proc_entry("register", smc_host->proc_root);
     remove_proc_entry("hostinfo", smc_host->proc_root);
