@@ -171,6 +171,7 @@ typedef enum
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
     DISP_TV_MOD_PAL_NC_CVBS_SVIDEO  = 0x16,
+    DISP_TV_MODE_NUM               = 0x17,
 }__disp_tv_mode_t;
 
 typedef enum
@@ -198,6 +199,7 @@ typedef enum
     DISP_VGA_H1920_V1080_RB = 9,
     DISP_VGA_H1920_V1080    = 0xa,
     DISP_VGA_H1280_V720     = 0xb,
+    DISP_VGA_MODE_NUM       = 0xc,
 }__disp_vga_mode_t;
 
 
@@ -459,8 +461,8 @@ typedef enum
 {
     FB_MODE_SCREEN0 = 0,
     FB_MODE_SCREEN1 = 1,
-    FB_MODE_TWO_SAME_SCREEN_TB = 2,//two screen, top buffer for screen0, bottom buffer for screen1
-    FB_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS = 3,//two screen, they have same contents; screen0 is normal layer, screen1 is scaler layer.
+    FB_MODE_DUAL_SAME_SCREEN_TB = 2,//two screen, top buffer for screen0, bottom buffer for screen1
+    FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS = 3,//two screen, they have same contents;
 }__fb_mode_t;
 
 typedef struct
@@ -470,6 +472,8 @@ typedef struct
 	__u32                       b_double_buffer;
 	__u32                       width;
 	__u32                       height;
+	__u32                       primary_screen_id;//used when FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS
+	
 	__u32                       line_length;//in byte unit
 	__u32                       smem_len;
 	__u32                       ch1_offset;//use when PLANAR or UV_COMBINED mode
@@ -559,10 +563,10 @@ typedef enum tag_DISP_CMD
     DISP_CMD_LAYER_GET_LUMA_SHARP_LEVEL = 0x6b,
     DISP_CMD_LAYER_SET_CHROMA_SHARP_LEVEL = 0x6c,
     DISP_CMD_LAYER_GET_CHROMA_SHARP_LEVEL = 0x6d,
-    DISP_CMD_LAYER_SET_WHITE_EXTERN_LEVEL = 0x6e,
-    DISP_CMD_LAYER_GET_WHITE_EXTERN_LEVEL = 0x6f,
-    DISP_CMD_LAYER_SET_BLACK_EXTERN_LEVEL = 0x70,
-    DISP_CMD_LAYER_GET_BLACK_EXTERN_LEVEL = 0x71,
+    DISP_CMD_LAYER_SET_WHITE_EXTEN_LEVEL = 0x6e,
+    DISP_CMD_LAYER_GET_WHITE_EXTEN_LEVEL = 0x6f,
+    DISP_CMD_LAYER_SET_BLACK_EXTEN_LEVEL = 0x70,
+    DISP_CMD_LAYER_GET_BLACK_EXTEN_LEVEL = 0x71,
 
 //----scaler----
     DISP_CMD_SCALER_REQUEST = 0x80,
