@@ -782,17 +782,11 @@ static const struct i2c_algorithm i2c_awxx_algorithm = {
 	.functionality	  = i2c_awxx_functionality,
 };
 
-static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
+static int i2c_awxx_clk_init(struct awxx_i2c *i2c)
 {
-    unsigned int apb_clk = 0;
     int ret = 0;
 
-    // enable GPIO pin
-    ret = aw_twi_request_gpio(i2c);
-    if(ret == -1){
-    	printk("request i2c gpio failed!\n");
-    	return -1;
-    }
+    unsigned int apb_clk = 0;
 
     // enable APB clk
     ret = aw_twi_enable_sys_clk(i2c);
@@ -812,6 +806,41 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
     }
     printk("twi%d, apb clock = %d \n",i2c->bus_num, apb_clk);
     aw_twi_set_clock(apb_clk, i2c->bus_freq, i2c->base_addr);
+
+    return 0;
+
+}
+
+static int i2c_awxx_clk_exit(struct awxx_i2c *i2c)
+{
+     void *base_addr = i2c->base_addr;
+
+    // aw_twi_disable_irq(base_addr);
+     // disable twi bus
+     aw_twi_disable_bus(base_addr);
+     // disable APB clk
+     aw_twi_disable_sys_clk(i2c);
+
+     return 0;
+
+}
+
+static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
+{
+    int ret = 0;
+
+    // enable GPIO pin
+    ret = aw_twi_request_gpio(i2c);
+    if(ret == -1){
+    	printk("request i2c gpio failed!\n");
+    	return -1;
+    }
+
+    if(i2c_awxx_clk_init(i2c))
+    {
+        return -1;
+    }
+    
     // soft reset
     aw_twi_soft_reset(i2c->base_addr);
 
@@ -820,14 +849,14 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
 
 static void i2c_awxx_hw_exit(struct awxx_i2c *i2c)
 {
-    void *base_addr = i2c->base_addr;
-   // aw_twi_disable_irq(base_addr);
-    // disable twi bus
-    aw_twi_disable_bus(base_addr);
-    // disable APB clk
-    aw_twi_disable_sys_clk(i2c);
-    // disable GPIO pin
+    if(i2c_awxx_clk_exit(i2c))
+    {
+        return;
+    }
+
+    // disable GPIO pin   
     aw_twi_release_gpio(i2c);
+    
 }
 
 static int i2c_awxx_probe(struct platform_device *dev)
@@ -998,11 +1027,20 @@ static int i2c_awxx_suspend(struct device *dev)
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
 
 	printk("[i2c%d] suspend okay.. \n", i2c->bus_num);
+	
+    if(0 == i2c->bus_num){
+        printk("err: when power ic is working ,suspend twi0 is prohibit. jump over\n");
+        return 0;
+    }
 
-	//i2c_awxx_hw_exit(i2c);
+    if(i2c_awxx_clk_exit(i2c))
+    {
+        return -1;
+    }
 
 	return 0;
 }
+
 
 static int i2c_awxx_resume(struct device *dev)
 {
@@ -1010,9 +1048,21 @@ static int i2c_awxx_resume(struct device *dev)
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
 
     printk("[i2c%d] resume okay.. \n", i2c->bus_num);
+    
+    if(0 == i2c->bus_num){
+        printk("err: twi0 is working, do not need to resum. just jump over\n");
+        return 0;
+    }
 
-	//i2c_awxx_hw_init(i2c);
+    if(i2c_awxx_clk_init(i2c))
+    {
+        return -1;
+    }
+    
+    // soft reset
+    aw_twi_soft_reset(i2c->base_addr);
 
+	
 	return 0;
 }
 
