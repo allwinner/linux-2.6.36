@@ -7,7 +7,7 @@
 static struct semaphore *run_sem = NULL;
 static struct task_struct * HDMI_task;
 
-void delay_ms(__u32 t)
+void hdmi_delay_ms(__u32 t)
 {
     __u32 timeout = t*HZ/1000;
     
@@ -178,6 +178,13 @@ __s32 Hdmi_get_HPD_status(void)
 	return Hdmi_hal_get_HPD();
 }
 
+
+__s32 Hdmi_set_pll(__u32 pll, __u32 clk)
+{
+    Hdmi_hal_set_pll(pll, clk);
+    return 0;
+}
+
 int Hdmi_run_thread(void *parg)
 {
 	while (1)
@@ -191,11 +198,11 @@ int Hdmi_run_thread(void *parg)
 
 		if(Hdmi_hal_get_state() == HDMI_STATE_PLAY_BACK)
 		{		    
-			delay_ms(100);
+			hdmi_delay_ms(100);
 		}
 		else
 		{
-			delay_ms(30);   
+			hdmi_delay_ms(30);   
 		}
 	}
 
@@ -251,4 +258,5 @@ EXPORT_SYMBOL(Hdmi_open);
 EXPORT_SYMBOL(Hdmi_close);
 EXPORT_SYMBOL(Hdmi_Audio_Enable);
 EXPORT_SYMBOL(Hdmi_Set_Audio_Para);
+EXPORT_SYMBOL(Hdmi_set_pll);
 

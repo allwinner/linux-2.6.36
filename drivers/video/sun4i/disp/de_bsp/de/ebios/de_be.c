@@ -635,6 +635,13 @@ __s32 DE_BE_output_csc_enable(__u32 sel, __bool enable)
     return 0;
 }
 
+__s32 DE_BE_Set_Outitl_enable(__u32 sel, __bool enable)
+{
+	DE_BE_WUINT32(sel, DE_BE_MODE_CTL_OFF,(DE_BE_RUINT32(sel, DE_BE_MODE_CTL_OFF)&(~(1<<28))) | (enable<<28));
+	
+    return 0;
+}
+
 __s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __bool bout_yuv)
 {
 	if(bout_yuv)

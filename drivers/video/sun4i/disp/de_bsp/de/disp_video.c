@@ -3,6 +3,7 @@
 #include "disp_display.h"
 #include "disp_event.h"
 #include "disp_scaler.h"
+#include "disp_de.h"
 
 frame_para_t g_video[2];
 
@@ -39,7 +40,6 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
 	{
 	    g_video[scaler_index].fetch_field = FALSE;
 	    g_video[scaler_index].fetch_bot = FALSE;
-	    g_video[scaler_index].dit_enable = FALSE;
 	    g_video[scaler_index].dit_mode = DIT_MODE_WEAVE;
 	    g_video[scaler_index].tempdiff_en = FALSE;
 	    g_video[scaler_index].diagintp_en = FALSE;
@@ -89,7 +89,7 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
 	in_scan.field = g_video[scaler_index].fetch_field;
 	in_scan.bottom = g_video[scaler_index].fetch_bot;
 
-	out_scan.field = gdisp.screen[sel].b_out_interlace;
+	out_scan.field = (gdisp.screen[sel].de_flicker_status == DE_FLICKER_USED)?0: gdisp.screen[sel].b_out_interlace;
     
 	if(scaler->out_fb.cs_mode > DISP_VXYCC)
 	{
@@ -109,12 +109,17 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
-        DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+        DE_SCAL_Set_3D_Ctrl(scaler_index, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Config_3D_Src(scaler_index, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else
     {
-	    DE_SCAL_Config_Src(sel,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+	    DE_SCAL_Config_Src(scaler_index,&scal_addr,&in_size,&in_type,FALSE,FALSE);
+	}
+
+	if(g_video[scaler_index].dit_enable == TRUE && gdisp.screen[sel].de_flicker_status == DE_FLICKER_USED)
+	{	
+		Disp_de_flicker_enable(sel, FALSE);
 	}
 	DE_SCAL_Set_Init_Phase(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
 	DE_SCAL_Set_Scaling_Factor(scaler_index, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
@@ -295,8 +300,10 @@ __s32 BSP_disp_video_stop(__u32 sel, __u32 hid)
     if(gdisp.screen[sel].layer_manage[hid].status & LAYER_USED && 
         gdisp.screen[sel].layer_manage[hid].para.mode == DISP_LAYER_WORK_MODE_SCALER)
     {
-        g_video[sel].enable = FALSE;
-        memset(&g_video[sel], 0, sizeof(frame_para_t));
+        __u32 scaler_index = 0;
+        
+        scaler_index = gdisp.screen[sel].layer_manage[hid].scaler_index;
+        memset(&g_video[scaler_index], 0, sizeof(frame_para_t));
 
     	return DIS_SUCCESS;
     }

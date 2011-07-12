@@ -38,7 +38,7 @@ typedef enum
     HDMI_STATE_UNKNOWN = 0x0b,
 }__hdmi_state_t;
 
-extern void delay_ms(__u32 t);
+extern void hdmi_delay_ms(__u32 t);
 
 extern void  Hdmi_set_reg_base(__u32 base);
 extern __s32 Hdmi_hal_init(void);
@@ -51,6 +51,7 @@ extern __s32 Hdmi_hal_mode_support(__u8 mode);
 extern __s32 Hdmi_hal_get_HPD(void);
 extern __s32 Hdmi_hal_get_state(void);
 extern __s32 Hdmi_hal_main_task(void);
+extern __s32 Hdmi_hal_set_pll(__u32 pll, __u32 clk);
 
 
 #endif

@@ -57,10 +57,10 @@
 
 #define DE_BE_REG_ADDR_OFF                      0x0
 
-#define DE_BE_HWC_PALETTE_TABLE_ADDR_OFF        0x4800	/*back-end hardware cursor palette table address*/
+#define DE_BE_HWC_PALETTE_TABLE_ADDR_OFF        0x4c00	/*back-end hardware cursor palette table address*/
 #define DE_BE_INTER_PALETTE_TABLE_ADDR_OFF      0x5000	/*back-end internal framebuffer or direct lcd pipe palette table*/
 #define DE_BE_SPRITE_PALETTE_TABLE_ADDR_OFF		0x4000	/*back-end sprite palette table address*/
-#define DE_BE_HWC_PATTERN_ADDR_OFF              0x4c00	/*back-end hwc pattern memory block address*/
+#define DE_BE_HWC_MEMORY_ADDR_OFF               0x4800	/*back-end hwc pattern memory block address*/
 #define DE_BE_INTERNAL_FB_ADDR_OFF              0x4000	/*back-end internal frame bufffer address definition*/
 #define DE_BE_GAMMA_TABLE_ADDR_OFF              0x4400	/*back-end gamma table address*/
 #define DE_BE_PALETTE_TABLE_ADDR_OFF            0x5000	/*back-end palette table address*/

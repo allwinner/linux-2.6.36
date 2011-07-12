@@ -412,9 +412,11 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
 	__scal_scan_mod_t in_scan;
 	__scal_scan_mod_t out_scan;
     __disp_scaler_t * scaler;
+    __u32 screen_index;
     __u32 cpu_sr;
 
     scaler = &(gdisp.scaler[sel]);
+    screen_index = gdisp.scaler[sel].screen_index;
     
 	OSAL_IrqLock(&cpu_sr);
 	memcpy(&scaler->in_fb, pfb, sizeof(__disp_fb_t)); 
@@ -444,7 +446,8 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
 	in_scan.field = FALSE;
 	in_scan.bottom = FALSE;
 
-	out_scan.field = gdisp.screen[sel].b_out_interlace;
+	out_scan.field = (gdisp.screen[screen_index].de_flicker_status & DE_FLICKER_USED)?FALSE: gdisp.screen[screen_index].b_out_interlace;
+	
 	if(scaler->in_fb.cs_mode > DISP_VXYCC)
 	{
 		scaler->in_fb.cs_mode = DISP_BT601;
@@ -457,13 +460,13 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
         __scal_buf_addr_t scal_addr_right;
 
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
 
     	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[screen_index].b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else
@@ -477,7 +480,7 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
     }
     else
     {
-	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB);
+	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap);
 	}
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 	return DIS_SUCCESS;
@@ -516,8 +519,10 @@ __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *size)
 	__scal_out_type_t out_type;
 	__scal_scan_mod_t in_scan;
 	__scal_scan_mod_t out_scan;
+	__u32 screen_index;
 
     scaler = &(gdisp.scaler[sel]);
+    screen_index = gdisp.scaler[sel].screen_index;
     
 	scaler->out_size.height = size->height;
 	scaler->out_size.width = size->width;
@@ -542,7 +547,7 @@ __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *size)
 	in_scan.field = FALSE;
 	in_scan.bottom = FALSE;
 
-	out_scan.field = gdisp.screen[sel].b_out_interlace;
+	out_scan.field = (gdisp.screen[screen_index].de_flicker_status == DE_FLICKER_USED)?FALSE: gdisp.screen[screen_index].b_out_interlace;
     
 	DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
 	if(scaler->enhance_en == TRUE)
@@ -551,7 +556,7 @@ __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *size)
     }
     else
     {
-	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB);
+	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap);
 	}	
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 	DE_SCAL_Set_Out_Size(sel, &out_scan, &out_type, &out_size);
@@ -569,8 +574,10 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
 	__scal_out_type_t out_type;
 	__scal_scan_mod_t in_scan;
 	__scal_scan_mod_t out_scan;
+	__u32 screen_index;
 
     scaler = &(gdisp.scaler[sel]);
+    screen_index = gdisp.scaler[sel].screen_index;
     
 	scaler->src_win.x         = scl_rect->x;
 	scaler->src_win.y         = scl_rect->y;
@@ -601,7 +608,7 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
 	in_scan.field = FALSE;
 	in_scan.bottom = FALSE;
 
-	out_scan.field = gdisp.screen[sel].b_out_interlace;
+	out_scan.field = (gdisp.screen[screen_index].de_flicker_status == DE_FLICKER_USED)?FALSE: gdisp.screen[screen_index].b_out_interlace;
 
 	if(scaler->in_fb.cs_mode > DISP_VXYCC)
 	{
@@ -615,13 +622,13 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
         __scal_buf_addr_t scal_addr_right;
 
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
 
     	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[screen_index].b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else
@@ -670,8 +677,10 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 	__scal_out_type_t out_type;
 	__scal_scan_mod_t in_scan;
 	__scal_scan_mod_t out_scan;
+    __u32 screen_index;
 
     scaler = &(gdisp.scaler[sel]);
+    screen_index = gdisp.scaler[sel].screen_index;
 
 	memcpy(&(scaler->in_fb), &(scl->in_fb), sizeof(__disp_fb_t)); 
 	memcpy(&(scaler->src_win), &(scl->src_win), sizeof(__disp_rect_t)); 
@@ -701,7 +710,7 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 	in_scan.field = FALSE;
 	in_scan.bottom = FALSE;
 
-	out_scan.field = gdisp.screen[sel].b_out_interlace;
+	out_scan.field = (gdisp.screen[screen_index].de_flicker_status & DE_FLICKER_USED)?FALSE: gdisp.screen[screen_index].b_out_interlace;
 	
 	if(scaler->in_fb.cs_mode > DISP_VXYCC)
 	{
@@ -715,13 +724,13 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
         __scal_buf_addr_t scal_addr_right;
 
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[sel].trd_out_mode,gdisp.screen[sel].b_out_interlace);
+        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
 
     	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[sel].b_trd_out, inmode, outmode);
+        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[screen_index].b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else
@@ -736,13 +745,55 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
     }
     else
     {
-	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB);
+	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap);
 	}	
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 	DE_SCAL_Set_Out_Format(sel, &out_type);
 	DE_SCAL_Set_Out_Size(sel, &out_scan,&out_type, &out_size);
     
 	return DIS_NULL;
+}
+
+__s32 Scaler_Set_Outitl(__u32 sel,  __bool enable)
+{
+	__scal_src_size_t in_size;
+	__scal_out_size_t out_size;
+	__scal_src_type_t in_type;
+	__scal_out_type_t out_type;
+	__scal_scan_mod_t in_scan;
+	__scal_scan_mod_t out_scan;
+	__disp_scaler_t * scaler;
+
+	scaler = &(gdisp.scaler[sel]);
+
+	in_type.fmt= Scaler_sw_para_to_reg(0,scaler->in_fb.format);
+	in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
+	in_type.ps= Scaler_sw_para_to_reg(2,scaler->in_fb.seq);
+	in_type.byte_seq = 0;
+
+	in_size.src_width = scaler->in_fb.size.width;
+	in_size.x_off =  scaler->src_win.x;
+	in_size.y_off =  scaler->src_win.y;
+	in_size.scal_height=  scaler->src_win.height;
+	in_size.scal_width=  scaler->src_win.width;
+
+	out_type.byte_seq =  scaler->out_fb.seq;
+	out_type.fmt =  scaler->out_fb.format;
+
+	out_size.width =  scaler->out_size.width;
+	out_size.height =  scaler->out_size.height;
+
+	in_scan.field = FALSE;
+	in_scan.bottom = FALSE;
+
+	out_scan.field = enable;
+
+	DE_SCAL_Set_Init_Phase(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
+	DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
+	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type,  scaler->smooth_mode);
+	DE_SCAL_Set_Out_Size(sel, &out_scan,&out_type, &out_size);
+
+	return DIS_SUCCESS;
 }
 
 __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode)
@@ -754,8 +805,10 @@ __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode)
 	__scal_out_type_t out_type;
 	__scal_scan_mod_t in_scan;
 	__scal_scan_mod_t out_scan;
+	__u32 screen_index;
 
     scaler = &(gdisp.scaler[sel]);
+    screen_index = gdisp.scaler[sel].screen_index;
 	scaler->smooth_mode = mode;
 
 	in_type.mod = Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
@@ -778,9 +831,9 @@ __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode)
 	in_scan.field = FALSE;
 	in_scan.bottom = FALSE;
 
-	out_scan.field = gdisp.screen[sel].b_out_interlace;
+	out_scan.field = (gdisp.screen[screen_index].de_flicker_status == DE_FLICKER_USED)?FALSE: gdisp.screen[screen_index].b_out_interlace;
 
-	DE_SCAL_Set_Scaling_Coef(0, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
+	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
     scaler->b_reg_change = TRUE;
     
 	return DIS_SUCCESS;
@@ -901,7 +954,7 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
     DE_SCAL_Config_Src(sel,&in_addr,&in_size,&in_type,FALSE,FALSE);
     DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
     DE_SCAL_Set_Init_Phase(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
-    DE_SCAL_Set_CSC_Coef(sel, para->input_fb.cs_mode, para->output_fb.cs_mode, get_fb_type(para->input_fb.format), get_fb_type(para->output_fb.format));
+    DE_SCAL_Set_CSC_Coef(sel, para->input_fb.cs_mode, para->output_fb.cs_mode, get_fb_type(para->input_fb.format), get_fb_type(para->output_fb.format),  para->input_fb.br_swap);
     DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, DISP_VIDEO_NATUAL);
     DE_SCAL_Set_Out_Format(sel, &out_type);
     DE_SCAL_Set_Out_Size(sel, &out_scan,&out_type, &out_size);
@@ -1051,7 +1104,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     DE_SCAL_Config_Src(scaler_idx,&in_addr,&in_size,&in_type,FALSE,FALSE);
     DE_SCAL_Set_Scaling_Factor(scaler_idx, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
     DE_SCAL_Set_Init_Phase(scaler_idx, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
-    DE_SCAL_Set_CSC_Coef(scaler_idx, DISP_BT601, para->output_fb.cs_mode, DISP_FB_TYPE_RGB, get_fb_type(para->output_fb.format));
+    DE_SCAL_Set_CSC_Coef(scaler_idx, DISP_BT601, para->output_fb.cs_mode, DISP_FB_TYPE_RGB, get_fb_type(para->output_fb.format), 0);
     DE_SCAL_Set_Scaling_Coef(scaler_idx, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, DISP_VIDEO_NATUAL);
     DE_SCAL_Set_Out_Format(scaler_idx, &out_type);
     DE_SCAL_Set_Out_Size(scaler_idx, &out_scan,&out_type, &out_size);

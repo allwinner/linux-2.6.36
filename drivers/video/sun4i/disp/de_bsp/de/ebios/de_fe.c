@@ -736,12 +736,12 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
 // return           : 
 //               success
 //*********************************************************************************************** 
-__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs)                                                                
+__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u8 br_swap)                                                                
 {
     __u8  csc_pass;
     __u32 csc_coef_addr;
     __u32 i;
-
+    
     //compute csc bypass enable
     if(incs == 0x0)  //rgb 
     {
@@ -769,15 +769,35 @@ __s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 i
             csc_coef_addr = (((in_csc_mode&0x3)<<7) + ((in_csc_mode&0x3)<<6)) + 0x30;
         }
     }
-
-    if(!csc_pass)
+    if(br_swap)
     {
-      for(i=0; i<12; i++)
-        {
-        	scal_dev[sel]->csc_coef[i].dwval = csc_tab[(csc_coef_addr>>2) + i];
-        }
+        scal_dev[sel]->csc_coef[0].dwval = csc_tab[(csc_coef_addr>>2) + 0];
+        scal_dev[sel]->csc_coef[1].dwval = csc_tab[(csc_coef_addr>>2) + 2];
+        scal_dev[sel]->csc_coef[2].dwval = csc_tab[(csc_coef_addr>>2) + 1];
+        scal_dev[sel]->csc_coef[3].dwval = csc_tab[(csc_coef_addr>>2) + 3];
+        scal_dev[sel]->csc_coef[4].dwval = csc_tab[(csc_coef_addr>>2) + 4];
+        scal_dev[sel]->csc_coef[5].dwval = csc_tab[(csc_coef_addr>>2) + 6];
+        scal_dev[sel]->csc_coef[6].dwval = csc_tab[(csc_coef_addr>>2) + 5];
+        scal_dev[sel]->csc_coef[7].dwval = csc_tab[(csc_coef_addr>>2) + 7];
+        scal_dev[sel]->csc_coef[8].dwval = csc_tab[(csc_coef_addr>>2) + 8];
+        scal_dev[sel]->csc_coef[9].dwval = csc_tab[(csc_coef_addr>>2) + 10];
+        scal_dev[sel]->csc_coef[10].dwval = csc_tab[(csc_coef_addr>>2) + 9];
+        scal_dev[sel]->csc_coef[11].dwval = csc_tab[(csc_coef_addr>>2) + 11];
+
+        scal_dev[sel]->bypass.bits.csc_bypass_en = 0;
     }
-    scal_dev[sel]->bypass.bits.csc_bypass_en = csc_pass;
+    else 
+    {
+        if(!csc_pass)
+        {
+            for(i=0; i<12; i++)
+            {
+                scal_dev[sel]->csc_coef[i].dwval = csc_tab[(csc_coef_addr>>2) + i];
+            }
+        }
+        scal_dev[sel]->bypass.bits.csc_bypass_en = csc_pass;
+    }
+    
     return 0;
 }
 

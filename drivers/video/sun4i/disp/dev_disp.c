@@ -219,8 +219,8 @@ __s32 DRV_scaler_begin(__u32 sel)
 {
     long timeout = 5000;//5000ms
 
-    timeout = wait_event_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 1, msecs_to_jiffies(timeout));
     g_disp_drv.b_scaler_finished[sel] = 0;
+    timeout = wait_event_interruptible_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 1, msecs_to_jiffies(timeout));
     if(timeout == 0)
     {
         __wrn("wait scaler finished timeout\n");
@@ -232,36 +232,95 @@ __s32 DRV_scaler_begin(__u32 sel)
 void DRV_scaler_finish(__u32 sel)
 {
     g_disp_drv.b_scaler_finished[sel] = 1;
-    wake_up(&g_disp_drv.scaler_queue[sel]);
+    wake_up_interruptible(&g_disp_drv.scaler_queue[sel]);
 }
+
+static __u32 cmd_index = 0;
 
 void DRV_disp_wait_cmd_finish(__u32 sel)
 {
-    if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
+#if 0
+    sys_put_wvalue((__u32)g_fbi.io[DISP_IO_SCALER0] + 0x04, 0x00010001);
+    while(1)
     {
-		long timeout = 50;//50ms
-
-        g_disp_drv.b_cmd_finished[sel] = 0;
-		timeout = wait_event_timeout(g_disp_drv.my_queue[sel], g_disp_drv.b_cmd_finished[sel] == 1, msecs_to_jiffies(timeout));
+        __u32 value = sys_get_wvalue((__u32)g_fbi.io[DISP_IO_SCALER0] + 0x64);
+        if((value & (0x1 << 10)) != 0)
         {
-            __inf("wait cmd finished timeout\n");
+            sys_put_wvalue((__u32)g_fbi.io[DISP_IO_SCALER0] + 0x64, (0x1 << 10));
+
+            //value = sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc);
+
+            //__inf("%d\n", (value & 0x03ff0000)>>16);
+            break;
         }
     }
+#endif
+
+#if 0
+    __inf("1:%d\n", (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
+    sys_put_wvalue((__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x870, 3);
+    while(1)
+    {
+        __u32 value = sys_get_wvalue((__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x870);
+        if((value & 1) == 0)
+        {
+            break;
+        }
+    }
+    __inf("2:%d\n", (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
+#endif
+
+#if 1
+	long timeout = 20 * HZ;//50ms
+	__u32 i;
+	spinlock_t mr_lock;
+
+    if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
+    {
+        spin_lock(&mr_lock);
+        if(cmd_index >= 20)
+        {
+            cmd_index = 0;
+        }
+        i = cmd_index++;
+        spin_unlock(&mr_lock);
+
+        __inf("1:%d,%d\n", i, (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
+
+        g_disp_drv.b_cmd_finished[sel][i] = 1;
+    	timeout = wait_event_interruptible_timeout(g_disp_drv.my_queue[sel][i], g_disp_drv.b_cmd_finished[sel][i] == 2, timeout);
+    	g_disp_drv.b_cmd_finished[sel][i] = 0;
+    	if(timeout == 0)
+        {
+            __inf("t:%d\n", i);
+        }
+    }
+#endif
 }
 
 __s32 DRV_disp_int_process(__u32 sel)
 {
-    if(g_disp_drv.b_cmd_finished[sel] == 0)
+#if 1
+    __u32 i = 0;
+
+    for(i=0; i<20; i++)
     {
-        g_disp_drv.b_cmd_finished[sel] = 1;
-        wake_up(&g_disp_drv.my_queue[sel]);
+        if(g_disp_drv.b_cmd_finished[sel][i] == 1)
+        {
+            g_disp_drv.b_cmd_finished[sel][i] = 2;
+            __inf("2:%d,%d\n", i, (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
+            wake_up_interruptible(&g_disp_drv.my_queue[sel][i]);
+            break;
+        }
     }
+#endif
     return 0;
 }
 
 __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
+    __u32 i = 0;
 
     para.base_image0    = (__u32)g_fbi.io[DISP_IO_IMAGE0];
     para.base_image1    = (__u32)g_fbi.io[DISP_IO_IMAGE1];
@@ -285,27 +344,32 @@ __s32 DRV_DISP_Init(void)
 	para.hdmi_set_mode  		= Hdmi_set_display_mode;
 	para.hdmi_mode_support		= Hdmi_mode_support;
 	para.hdmi_get_HPD_status	= Hdmi_get_HPD_status;
+	para.hdmi_set_pll	        = Hdmi_set_pll;
 #else
 	para.Hdmi_open  			= NULL;
 	para.Hdmi_close  			= NULL;
 	para.hdmi_set_mode  		= NULL;
 	para.hdmi_mode_support		= NULL;
 	para.hdmi_get_HPD_status	= NULL;
+	para.hdmi_set_pll	        = NULL;
 
 #endif
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
 
-    init_waitqueue_head(&g_disp_drv.my_queue[0]);
-    init_waitqueue_head(&g_disp_drv.my_queue[1]);
+    for(i=0; i<20; i++)
+    {
+        init_waitqueue_head(&g_disp_drv.my_queue[0][i]);
+        init_waitqueue_head(&g_disp_drv.my_queue[1][i]);
+    }
     init_waitqueue_head(&g_disp_drv.scaler_queue[0]);
     init_waitqueue_head(&g_disp_drv.scaler_queue[1]);
 
     BSP_disp_init(&para);
     BSP_disp_open();
     Fb_Init();
-
+    
     return 0;        
 }
 
@@ -790,7 +854,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         }
     }
 
-	__inf("disp_ioctl,cmd:%x\n",cmd);
+	//__inf("disp_ioctl,cmd:%x\n",cmd);
     switch(cmd)
     {
     //----disp global----
@@ -1199,20 +1263,20 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             ret = BSP_disp_layer_get_chroma_sharp_level(ubuffer[0], ubuffer[1]);
     		break;
 
-        case DISP_CMD_LAYER_SET_WHITE_EXTERN_LEVEL:
-            ret = BSP_disp_layer_set_white_extern_level(ubuffer[0], ubuffer[1], ubuffer[2]);
+        case DISP_CMD_LAYER_SET_WHITE_EXTEN_LEVEL:
+            ret = BSP_disp_layer_set_white_exten_level(ubuffer[0], ubuffer[1], ubuffer[2]);
     		break;
 
-        case DISP_CMD_LAYER_GET_WHITE_EXTERN_LEVEL:
-            ret = BSP_disp_layer_get_white_extern_level(ubuffer[0], ubuffer[1]);
+        case DISP_CMD_LAYER_GET_WHITE_EXTEN_LEVEL:
+            ret = BSP_disp_layer_get_white_exten_level(ubuffer[0], ubuffer[1]);
     		break;
 
-        case DISP_CMD_LAYER_SET_BLACK_EXTERN_LEVEL:
-            ret = BSP_disp_layer_set_black_extern_level(ubuffer[0], ubuffer[1], ubuffer[2]);
+        case DISP_CMD_LAYER_SET_BLACK_EXTEN_LEVEL:
+            ret = BSP_disp_layer_set_black_exten_level(ubuffer[0], ubuffer[1], ubuffer[2]);
     		break;
     		
-        case DISP_CMD_LAYER_GET_BLACK_EXTERN_LEVEL:
-            ret = BSP_disp_layer_get_black_extern_level(ubuffer[0], ubuffer[1]);
+        case DISP_CMD_LAYER_GET_BLACK_EXTEN_LEVEL:
+            ret = BSP_disp_layer_get_black_exten_level(ubuffer[0], ubuffer[1]);
     		break;
 
     //----scaler----
@@ -1676,12 +1740,12 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     	{
     	    __disp_fb_create_para_t para;
     	    
-    		if(copy_from_user(&para, (void __user *)ubuffer[0],sizeof(__disp_fb_create_para_t)))
+    		if(copy_from_user(&para, (void __user *)ubuffer[1],sizeof(__disp_fb_create_para_t)))
     		{
     		    __wrn("copy_from_user fail\n");
     			return  -EFAULT;
     		}
-			ret = Display_Fb_Request(&para);
+			ret = Display_Fb_Request(ubuffer[0], &para);
 			break;
         }
         

@@ -199,13 +199,13 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 
     vblank_len = info->lcd_vt/2 - info->lcd_y;
     
-	if(vblank_len > 30)
+	if(vblank_len >= 32)
 	{
 		info->start_delay	= 30;
 	}
 	else
 	{
-		info->start_delay	= vblank_len - 1;
+		info->start_delay	= vblank_len - 2;
 	}
 	
 	switch(info->lcd_if)
@@ -303,7 +303,7 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	LCDC_WUINT32(sel, LCDC_IOCTL0_OFF,info->lcd_io_cfg0);
     LCDC_WUINT32(sel, LCDC_IOCTL1_OFF,info->lcd_io_cfg1);
 
-    LCDC_set_int_line(sel, 0,vblank_len+2);    
+    LCDC_set_int_line(sel, 0,info->start_delay + 2);    
 }
 
 
@@ -386,9 +386,9 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     __u32 reg_val;
 
     vblank_len = cfg->vt/2 - cfg->src_y - 2;
-	if(vblank_len > 30)
+	if(vblank_len >= 32)
 	{
-		cfg->start_delay	= 29;
+		cfg->start_delay	= 30;
 	}
 	else
 	{
@@ -426,7 +426,7 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     LCDC_WUINT32(sel, LCDC_IOCTL3_OFF,cfg->io_out);//add
 
 	
-	LCDC_set_int_line(sel,1, vblank_len+2);
+	LCDC_set_int_line(sel,1, cfg->start_delay + 2);
 
 	
     return 0;

@@ -5,6 +5,9 @@ __s32           video_en    =   0;
 __s32 			video_mode  = 	HDMI720P_60;
 HDMI_AUDIO_INFO audio_info;
 
+__u32 hdmi_pll = 0;//0:video pll 0; 1:video pll 1
+__u32 hdmi_clk = 297000000;
+
 
 HDMI_VIDE_INFO video_timing[] = 
 {
@@ -80,26 +83,19 @@ __s32 hdmi_main_task_loop(void)
 
 __s32 Hpd_Check(void)
 {
-	static __s32 times    = 0;
-	static __s32 hpd_prev = 0;
-	static __s32 hpd_new  = 0;
+	__s32 i;
+	__s32 hpd_new;
 
-	hpd_new = HDMI_RUINT32(0x00c)&0x01;
-	if(hpd_new && hpd_prev)
-	{
-		if(times < 10)
-	   		times ++;
+    for(i=0; i<5; i++)
+    {
+	    hpd_new = HDMI_RUINT32(0x00c)&0x01;
+	    if(hpd_new == 0)
+	    {
+	        return 0;
+	    }
+	    hdmi_delay_ms(1);
 	}
-	else
-	{
-		times = 0;
-		hpd_prev = hpd_new;
-	}
-	
-	if(times >= 5)      
-	   return 1;
-	else
-	   return 0;
+	return 1;
 }
 
 __s32 get_video_info(__s32 vic)
@@ -327,11 +323,11 @@ __s32 video_config(__s32 vic)
     if( (vic == HDMI1440_480I) || (vic == HDMI1440_576I) || 
         (vic == HDMI480P)      || (vic == HDMI576P)       )
     {
-        clk_div = 270000000/video_timing[i].PCLK;
+        clk_div = hdmi_clk/video_timing[i].PCLK;
     }
     else
     {
-        clk_div = 297000000/video_timing[i].PCLK;
+        clk_div = hdmi_clk/video_timing[i].PCLK;
     }
 	clk_div &= 0x0f;
 	HDMI_WUINT32(0x208,(1<<31)+ (1<<30)+ (1<<29)+ (3<<27)+ (0<<26)+ 
@@ -341,6 +337,8 @@ __s32 video_config(__s32 vic)
  	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
 	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
 
+    HDMI_WUINT32(0x20c, hdmi_pll << 21);
+    
     return 0;
 }
 

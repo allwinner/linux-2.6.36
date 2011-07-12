@@ -238,7 +238,7 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
 __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_size_t *in_size,
                                __scal_src_type_t *in_type, __scal_scan_mod_t *out_scan, 
                                __scal_out_size_t *out_size, __scal_out_type_t *out_type, __u8 smth_mode);  
-__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs);
+__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u8 br_swap);
 __s32 DE_SCAL_Set_Out_Format(__u8 sel, __scal_out_type_t *out_type);
 __s32 DE_SCAL_Set_Out_Size(__u8 sel, __scal_scan_mod_t *out_scan, __scal_out_type_t *out_type, __scal_out_size_t *out_size);
 __s32 DE_SCAL_Set_Trig_Line(__u8 sel, __u32 line);
@@ -302,6 +302,7 @@ __s32 DE_BE_Layer_Set_Format(__u32 sel, __u8 layidx,__u8 format,__bool br_swap,_
 __s32 DE_BE_Layer_Set_Framebuffer(__u32 sel, __u8 layidx,layer_src_t *layer_fb);
 __s32 DE_BE_Layer_Set_Screen_Win(__u32 sel, __u8 layidx, __disp_rect_t * win);
 __s32 DE_BE_Layer_Video_Enable(__u32 sel, __u8 layidx,__bool video_en);
+__s32 DE_BE_Layer_Video_Ch_Sel(__u32 sel, __u8 layidx,__bool scaler_index);
 __s32 DE_BE_Layer_Yuv_Ch_Enable(__u32 sel, __u8 layidx,__bool yuv_en);
 __s32 DE_BE_Layer_Set_Prio(__u32 sel, __u8 layidx,__u8 prio);
 __s32 DE_BE_Layer_Set_Pipe(__u32 sel, __u8 layidx,__u8 pipe);
@@ -336,6 +337,7 @@ __s32 DE_BE_get_display_width(__u32 sel);
 __s32 DE_BE_get_display_height(__u32 sel);
 __s32 DE_BE_deflicker_enable(__u32 sel, __bool enable);
 __s32 DE_BE_output_csc_enable(__u32 sel, __bool enable);
+__s32 DE_BE_Set_Outitl_enable(__u32 sel, __bool enable);
 __s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __bool bout_yuv);
 //__s32 DE_BE_Output_Cfg_Csc_Coeff(__u32 sel, __u8 cs_mode);
 __s32 DE_BE_Format_To_Bpp(__u32 sel, __u8 format);

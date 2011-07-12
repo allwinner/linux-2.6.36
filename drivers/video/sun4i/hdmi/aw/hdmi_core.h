@@ -89,8 +89,8 @@ __s32 get_audio_info(__s32 sample_rate);
 __s32 video_config(__s32 vic);
 __s32 audio_config(void);
 
-
-
+extern __u32 hdmi_pll;//0:video pll 0; 1:video pll 1
+extern __u32 hdmi_clk;
 
 
 void DDC_Init(void);

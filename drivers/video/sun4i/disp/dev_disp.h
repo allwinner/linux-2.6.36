@@ -28,8 +28,7 @@ typedef struct
 
     __fb_mode_t fb_mode[FB_MAX];
     __u32       layer_hdl[FB_MAX][2];//[fb_id][0]:screen0 layer handle;[fb_id][1]:screen1 layer handle 
-    void *      fbinfo[FB_MAX];
-    __u32        fb_num;
+    struct fb_info * fbinfo[FB_MAX];
 }fb_info_t;
 
 typedef struct
@@ -40,8 +39,8 @@ typedef struct
     __u32    		    exit_mode;//0:clean all  1:disable interrupt
     __bool              b_cache[2];
 	__bool			    b_lcd_open[2];
-	wait_queue_head_t   my_queue[2];
-	__bool              b_cmd_finished[2];
+	wait_queue_head_t   my_queue[2][20];
+	__bool              b_cmd_finished[2][20];
     wait_queue_head_t   scaler_queue[2];
     __bool              b_scaler_finished[2];
 }__disp_drv_t;
@@ -92,8 +91,8 @@ void *disp_malloc(__u32 num_bytes);
 void  disp_free(void *p);
 
 
-extern __s32 Display_Fb_Request(__disp_fb_create_para_t *fb_para);
-extern __s32 Display_Fb_Release(__s32 hdl);
+extern __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para);
+extern __s32 Display_Fb_Release(__u32 fb_id);
 
 extern __s32 DRV_disp_int_process(__u32 sel);
 extern void DRV_disp_wait_cmd_finish(__u32 sel);
@@ -116,5 +115,6 @@ extern __s32 Hdmi_close(void);
 extern __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode);
 extern __s32 Hdmi_mode_support(__u8 mode);
 extern __s32 Hdmi_get_HPD_status(void);
+extern __s32 Hdmi_set_pll(__u32 pll, __u32 clk);
 
 #endif

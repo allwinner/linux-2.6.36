@@ -81,6 +81,13 @@ __s32 Hdmi_hal_get_state(void)
     return HDMI_State_Playback;
 }
 
+__s32 Hdmi_hal_set_pll(__u32 pll, __u32 clk)
+{
+    hdmi_pll = pll;
+    hdmi_clk = clk;
+    return 0;
+}
+
 __s32 Hdmi_hal_main_task(void)
 {
     hdmi_main_task_loop();

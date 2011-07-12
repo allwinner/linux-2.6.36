@@ -43,8 +43,8 @@ typedef struct
     __bool                  vpp_en;
     __u32                   luma_sharpe_level;
     __u32                   chroma_sharpe_level;
-    __u32                   while_extern_level;
-    __u32                   black_extern_level;
+    __u32                   while_exten_level;
+    __u32                   black_exten_level;
 }__disp_scaler_t;
 
 extern __disp_scaler_t    gscl;
@@ -61,6 +61,7 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect);
 __s32 Scaler_Get_SclRegn(__u32 sel, __disp_rect_t *scl_rect);
 __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *out_size);
 __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl);
+__s32 Scaler_Set_Outitl(__u32 sel,  __bool enable);
 __s32 Scaler_sw_para_to_reg(__u8 type, __u8 value);
 __s32 Scaler_Set_Enhance(__u32 sel, __u32 bright, __u32 contrast, __u32 saturation, __u32 hue);
 __s32 Scaler_3d_sw_para_to_reg(__u32 type, __u32 mode, __bool b_out_interlace);

@@ -42,6 +42,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
         BSP_disp_set_yuv_output(sel, FALSE);
     	DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
     	DE_BE_Output_Select(sel, sel);
+    	DE_BE_Set_Outitl_enable(sel, Disp_get_screen_scan_mode(tv_mod));
     	TCON1_set_hdmi_mode(sel,tv_mod);		 	 
     	TCON1_open(sel);
     	if(gdisp.init_para.Hdmi_open)
@@ -84,6 +85,7 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	image_clk_off(sel);
     	lcdc_clk_off(sel);
     	hdmi_clk_off();
+    	DE_BE_Set_Outitl_enable(sel, FALSE);
     	
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;
     	gdisp.screen[sel].status &= HDMI_OFF;
@@ -100,7 +102,7 @@ __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t  mode)
 { 	
     if(mode > DISP_TV_MOD_1080P_60HZ)
     {
-        DE_WRN("unsupported hdmi mode in BSP_disp_hdmi_set_mode\n");
+        DE_WRN("unsupported hdmi mode:%d in BSP_disp_hdmi_set_mode\n", mode);
         return DIS_FAIL;
     }
 

@@ -223,6 +223,7 @@ typedef enum
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
     DISP_TV_MOD_PAL_NC_CVBS_SVIDEO  = 0x16,
+    DISP_TV_MODE_NUM               = 0x17,
 }__disp_tv_mode_t;
 
 typedef enum
@@ -250,6 +251,7 @@ typedef enum
     DISP_VGA_H1920_V1080_RB = 9,
     DISP_VGA_H1920_V1080    = 0xa,
     DISP_VGA_H1280_V720     = 0xb,
+    DISP_VGA_MODE_NUM       = 0xc,
 }__disp_vga_mode_t;
 
 
@@ -545,6 +547,7 @@ typedef struct
 	__s32 (*Hdmi_close)(void);
 	__s32 (*hdmi_mode_support)(__u8 mode);
 	__s32 (*hdmi_get_HPD_status)(void);
+	__s32 (*hdmi_set_pll)(__u32 pll, __u32 clk);
 	__s32 (*disp_int_process)(__u32 sel);
 }__disp_bsp_init_para;
 
@@ -573,6 +576,7 @@ extern __s32 BSP_disp_get_palette_table(__u32 sel, __u32 * pbuffer, __u32 offset
 extern __s32 BSP_disp_get_screen_height(__u32 sel);
 extern __s32 BSP_disp_get_screen_width(__u32 sel);
 extern __s32 BSP_disp_get_output_type(__u32 sel);
+extern __s32 BSP_disp_get_frame_rate(__u32 sel);
 extern __s32 BSP_disp_gamma_correction_enable(__u32 sel);
 extern __s32 BSP_disp_gamma_correction_disable(__u32 sel);
 extern __s32 BSP_disp_set_bright(__u32 sel, __u32 bright);
@@ -630,10 +634,10 @@ extern __s32 BSP_disp_layer_set_luma_sharp_level(__u32 sel, __u32 hid, __u32 lev
 extern __s32 BSP_disp_layer_get_luma_sharp_level(__u32 sel, __u32 hid);
 extern __s32 BSP_disp_layer_set_chroma_sharp_level(__u32 sel, __u32 hid, __u32 level);
 extern __s32 BSP_disp_layer_get_chroma_sharp_level(__u32 sel, __u32 hid);
-extern __s32 BSP_disp_layer_set_white_extern_level(__u32 sel, __u32 hid, __u32 level);
-extern __s32 BSP_disp_layer_get_white_extern_level(__u32 sel, __u32 hid);
-extern __s32 BSP_disp_layer_set_black_extern_level(__u32 sel, __u32 hid, __u32 level);
-extern __s32 BSP_disp_layer_get_black_extern_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_white_exten_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_layer_get_white_exten_level(__u32 sel, __u32 hid);
+extern __s32 BSP_disp_layer_set_black_exten_level(__u32 sel, __u32 hid, __u32 level);
+extern __s32 BSP_disp_layer_get_black_exten_level(__u32 sel, __u32 hid);
 
 extern __s32 BSP_disp_scaler_get_smooth(__u32 sel);
 extern __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode);

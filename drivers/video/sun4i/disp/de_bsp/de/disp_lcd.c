@@ -382,7 +382,6 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
             switch(out_type)
             {
                 case DISP_OUTPUT_TYPE_LCD:
-                case DISP_OUTPUT_TYPE_HDMI:
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x22222222);
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x22222222);
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x22222222);
@@ -390,8 +389,8 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
                     sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00002222);
                     break;
                 case DISP_OUTPUT_TYPE_VGA:
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x6c) & 0xffff00ff;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,tmp | 0x00002200);
+                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff00ff;
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00002200);
                     break;
                 default:
                     break;
@@ -402,7 +401,6 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
             switch(out_type)
             {
             case DISP_OUTPUT_TYPE_LCD:
-            case DISP_OUTPUT_TYPE_HDMI:
                 sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
                 sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
                 sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
@@ -410,8 +408,8 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
                 sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002222);
                 break;
             case DISP_OUTPUT_TYPE_VGA:
-                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0xfc) & 0xffff00ff;
-                sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,tmp | 0x00002200);
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff00ff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002200);
                 break;
             default:
                 break;
@@ -423,17 +421,41 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
     {
         if(sel == 0)
         {
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x78,0x00000000);
+            switch(out_type)
+            {
+                case DISP_OUTPUT_TYPE_LCD:
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x00000000);
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x00000000);
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x00000000);
+                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff0000;
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp);
+                    break;
+                case DISP_OUTPUT_TYPE_VGA:
+                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff00ff;
+                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp);
+                    break;
+                default:
+                    break;
+            }
         }
         else
         {
-            sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x00000000);
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x108,0x00000000);
+            switch(out_type)
+            {
+            case DISP_OUTPUT_TYPE_LCD:
+                sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff0000;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp);
+                break;
+            case DISP_OUTPUT_TYPE_VGA:
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff00ff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp);
+                break;
+            default:
+                break;
+            }
         }
     }
 
@@ -450,7 +472,7 @@ __s32 Disp_lcdc_event_proc(int irq, void *parg)
     __u32  lcdc_flags;
     __u32 sel = (__u32)parg;
 
-    lcdc_flags=LCDC_query_int(sel);   
+    lcdc_flags=LCDC_query_int(sel);  
 
     if(lcdc_flags & LCDC_VBI_LCD)
     {
@@ -745,7 +767,7 @@ __u32 Disp_get_screen_scan_mode(__disp_tv_mode_t tv_mode)
 __s32 BSP_disp_get_screen_width(__u32 sel)
 {    
 	__u32 width = 0;
-	
+
     width = DE_BE_get_display_width(sel);
 
     return width;
@@ -783,6 +805,83 @@ __s32 BSP_disp_get_output_type(__u32 sel)
 	}
 
 	return (__s32)DISP_OUTPUT_TYPE_NONE;
+}
+
+
+__s32 BSP_disp_get_frame_rate(__u32 sel)
+{
+    __s32 frame_rate = -1;
+
+    if(gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_LCD)
+    {
+        frame_rate = (gpanel_info[sel].lcd_dclk_freq * 1000000) / (gpanel_info[sel].lcd_ht * (gpanel_info[sel].lcd_vt / 2)) ;
+    }
+    else if(gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_TV)
+    {
+        switch(gdisp.screen[sel].tv_mode)
+        {
+            case DISP_TV_MOD_480I:
+            case DISP_TV_MOD_480P:
+            case DISP_TV_MOD_NTSC:
+            case DISP_TV_MOD_NTSC_SVIDEO:
+            case DISP_TV_MOD_NTSC_CVBS_SVIDEO:
+            case DISP_TV_MOD_PAL_M:
+            case DISP_TV_MOD_PAL_M_SVIDEO:
+            case DISP_TV_MOD_PAL_M_CVBS_SVIDEO:
+            case DISP_TV_MOD_720P_60HZ:
+            case DISP_TV_MOD_1080I_60HZ:
+            case DISP_TV_MOD_1080P_60HZ:
+                frame_rate = 60;
+                break;
+            case DISP_TV_MOD_576I:
+            case DISP_TV_MOD_576P:
+            case DISP_TV_MOD_PAL:
+            case DISP_TV_MOD_PAL_SVIDEO:
+            case DISP_TV_MOD_PAL_CVBS_SVIDEO:
+            case DISP_TV_MOD_PAL_NC:
+            case DISP_TV_MOD_PAL_NC_SVIDEO:
+            case DISP_TV_MOD_PAL_NC_CVBS_SVIDEO:
+            case DISP_TV_MOD_720P_50HZ:
+            case DISP_TV_MOD_1080I_50HZ:
+            case DISP_TV_MOD_1080P_50HZ:
+                frame_rate = 50;
+                break;
+            default:
+                break;
+        }
+    }
+    else if(gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_HDMI)
+    {
+        switch(gdisp.screen[sel].hdmi_mode)
+        {
+            case DISP_TV_MOD_480I:
+            case DISP_TV_MOD_480P:
+            case DISP_TV_MOD_720P_60HZ:
+            case DISP_TV_MOD_1080I_60HZ:
+            case DISP_TV_MOD_1080P_60HZ:
+                frame_rate = 60;
+                break;
+            case DISP_TV_MOD_576I:
+            case DISP_TV_MOD_576P:
+            case DISP_TV_MOD_720P_50HZ:
+            case DISP_TV_MOD_1080I_50HZ:
+            case DISP_TV_MOD_1080P_50HZ:
+                frame_rate = 50;
+                break;
+            case DISP_TV_MOD_1080P_24HZ:
+                frame_rate = 24;
+                break;
+            default:
+                break;
+        }
+    }
+    else if(gdisp.screen[sel].output_type & DISP_OUTPUT_TYPE_VGA)
+    {
+        frame_rate = 60;
+    }
+
+
+    return frame_rate;
 }
 
 __s32 BSP_disp_lcd_open_before(__u32 sel)
