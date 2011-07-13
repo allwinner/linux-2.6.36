@@ -270,6 +270,8 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         }
         case AW_SYS_CLK_PLL3:
         {
+            __s64   tmp_rate;
+            
             if(!aw_ccu_reg->Pll3Ctl.ModeSel)
             {
                 if(aw_ccu_reg->Pll3Ctl.FracSet)
@@ -283,7 +285,18 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
             }
             else
             {
-                return 3000000*aw_ccu_reg->Pll3Ctl.FactorM;
+                tmp_rate = 3000000*aw_ccu_reg->Pll3Ctl.FactorM;
+                /* skip 270M and 297M */
+                if(tmp_rate == 270000000)
+                {
+                    return 273000000;
+                }
+                else if(tmp_rate == 297000000)
+                {
+                    return 300000000;
+                }
+
+                return tmp_rate;
             }
         }
         case AW_SYS_CLK_PLL3X2:

@@ -359,6 +359,9 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 
     spin_lock_irqsave(&clockfw_lock, flags);
     old_parent = clk->parent;
+    
+    clk->clk->rate = clk_get_rate(parent) / (clk_get_rate(old_parent) / clk_get_rate(clk));
+    
     clk->clk->parent = parent->clk->id;
     ret = clk->set_clk(clk->clk);
     if(ret){
