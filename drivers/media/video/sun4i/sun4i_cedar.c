@@ -554,7 +554,9 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             save_context();
             v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        
             temp = v & 0xffff0000;		
-            temp =temp + temp*arg_s/100;                
+            temp =temp + temp*arg_s/100; 
+			temp = temp > (244<<16) ? (244<<16) : temp;
+			temp = temp < (234<<16) ? (234<<16) : temp;
             v = (temp & 0xffff0000) | (v&0x0000ffff);   
             pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
             writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
