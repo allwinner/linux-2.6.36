@@ -46,20 +46,20 @@ static _mali_osk_resource_t arch_configuration [] =
 	},
 #endif
 //#if USING_ZBT
-//	{
-//		.type = MEMORY,
-//		.description = "Mali ZBT",
-//		.alloc_order = 0, /* Medium preference for this memory */
-//		.base = 0x54000000,
-//		.size = 64 * 1024 * 1024, /*64M*/
-//		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
-//	},
+    {
+    	.type = MEMORY,
+    	.description = "Mali Sdram",
+    	.alloc_order = 0, /* Medium preference for this memory */
+    	.base = 0x5A000000,
+    	.size = 96 * 1024 * 1024, /*64M*/
+    	.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
+    },
 //#endif
 	{
 		.type = MEM_VALIDATION,
 		.description = "Framebuffer",
 		.base = 0x58000000,
-		.size = 128 * 1024 * 1024,  /*16M*/
+		.size = 32 * 1024 * 1024,  /*16M*/
 		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
 	},
 	{
