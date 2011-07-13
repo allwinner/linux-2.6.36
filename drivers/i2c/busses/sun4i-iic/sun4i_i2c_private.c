@@ -24,7 +24,7 @@
 #include <asm/dma.h>
 
 #include "sun4i_i2c_private.h"
-
+//#define CONFIG_FPGA_SIM
 /*
 ****************************************************************************************************
 *
@@ -452,11 +452,14 @@ void aw_twi_set_clock(unsigned int clk_in, unsigned int sclk_req, void *base_add
     unsigned int sclk_real    = 0;      // the real clock frequency
 
     //added by young, for testing
+#ifdef CONFIG_FPGA_SIM
    {
         clk_m = 2;
         clk_n = 3;
         goto set_clk;
     }
+#endif
+
     if (clk_in < 24000000)
     {
         clk_m = 2;
