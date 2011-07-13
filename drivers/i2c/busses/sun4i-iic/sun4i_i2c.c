@@ -43,6 +43,10 @@ static unsigned int i2c_debug = 0;
 #define AWXX_I2C_TFAIL  -4  /* stop  fail */
 
 //#define SYS_FPGA_SIM
+#define I2C0_TRANSFER_SPEED     (400000)
+#define I2C1_TRANSFER_SPEED     (200000)
+#define I2C2_TRANSFER_SPEED     (200000)
+
 
 /*aw_i2c_adapter: transfer status */
 enum
@@ -1102,8 +1106,7 @@ void __init aw_register_device(struct platform_device *dev, void *data)
 
 static struct aw_i2c_platform_data aw_twi0_pdata = {
 	.bus_num   = 0,
-	//.frequency = 400000,
-	.frequency = 200000,
+	.frequency = I2C0_TRANSFER_SPEED,
 };
 
 static struct resource aw_twi0_resources[] = {
@@ -1128,9 +1131,7 @@ struct platform_device aw_twi0_device = {
 //twi1 resource
 static struct aw_i2c_platform_data aw_twi1_pdata = {
 	.bus_num   = 1,
-    //.frequency = 400000,
-    .frequency = 200000,
-
+    .frequency = I2C1_TRANSFER_SPEED,
 };
 
 static struct resource aw_twi1_resources[] = {
@@ -1155,9 +1156,7 @@ struct platform_device aw_twi1_device = {
 // twi2 resource
 static struct aw_i2c_platform_data aw_twi2_pdata = {
 	.bus_num   = 2,
-    //.frequency = 400000,
-    .frequency = 200000,
-
+    .frequency = I2C2_TRANSFER_SPEED,
 };
 
 static struct resource aw_twi2_resources[] = {
