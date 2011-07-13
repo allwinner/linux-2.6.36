@@ -1102,7 +1102,8 @@ void __init aw_register_device(struct platform_device *dev, void *data)
 
 static struct aw_i2c_platform_data aw_twi0_pdata = {
 	.bus_num   = 0,
-	.frequency = 400000,
+	//.frequency = 400000,
+	.frequency = 200000,
 };
 
 static struct resource aw_twi0_resources[] = {
@@ -1127,7 +1128,9 @@ struct platform_device aw_twi0_device = {
 //twi1 resource
 static struct aw_i2c_platform_data aw_twi1_pdata = {
 	.bus_num   = 1,
-	.frequency = 400000,
+    //.frequency = 400000,
+    .frequency = 200000,
+
 };
 
 static struct resource aw_twi1_resources[] = {
@@ -1152,7 +1155,9 @@ struct platform_device aw_twi1_device = {
 // twi2 resource
 static struct aw_i2c_platform_data aw_twi2_pdata = {
 	.bus_num   = 2,
-	.frequency = 400000,
+    //.frequency = 400000,
+    .frequency = 200000,
+
 };
 
 static struct resource aw_twi2_resources[] = {
