@@ -147,7 +147,7 @@ static void goodix_ts_resume(struct early_suspend *h)
 	return ;
 }
 #else
-
+#ifdef CONFIG_PM
 //Í£ÓÃÉè±¸
 static int goodix_ts_suspend(struct i2c_client *client, pm_message_t mesg)
 {
@@ -187,6 +187,8 @@ static int goodix_ts_resume(struct i2c_client *client)
         //enable_irq(ts->gpio_irq);
 	return 0;
 }
+#endif
+
 #endif
 
 
