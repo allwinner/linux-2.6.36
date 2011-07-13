@@ -47,6 +47,7 @@ static struct cpufreq_dvfs dvfs_table[] = {
     {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.4v if cpu frequency is (912Mhz, 1008Mhz]   */
     {.freq = 912000000,  .volt = 1300}, /* core vdd is 1.3v if cpu frequency is (816Mhz, 912Mhz]    */
     {.freq = 816000000,  .volt = 1250}, /* core vdd is 1.25v if cpu frequency is (600Mhz, 816Mhz]   */
+    {.freq = 720000000,  .volt = 1200}, /* core vdd is 1.2v if cpu frequency is (600Mhz, 720Mhz]    */
     {.freq = 600000000,  .volt = 1100}, /* core vdd is 1.1v if cpu frequency is (480Mhz, 600Mhz]    */
     {.freq = 480000000,  .volt = 1000}, /* core vdd is 1.0v if cpu frequency is (0, 480Mhz]         */
     {.freq = 0,          .volt = 1000}, /* end of cpu dvfs table                                    */
