@@ -197,7 +197,8 @@ struct sw_hci_hcd{
 
 	struct clk	*sie_clk;				/* SIE clock handle 	*/
 	struct clk	*phy_gate;				/* PHY clock handle 	*/
-	struct clk	*phy_reset;				/* PHY0 clock handle 	*/
+	struct clk	*phy_reset;				/* PHY reset handle 	*/
+	struct clk	*ohci_gate;			    /* ohci clock handle 	*/
 	__u32 clk_is_open;					/* is usb clock open 	*/
 
 	__u32 irq_no;						/* interrupt number 	*/

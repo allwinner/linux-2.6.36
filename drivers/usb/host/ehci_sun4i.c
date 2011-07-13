@@ -31,11 +31,11 @@
 
 #include "sw_hci_sun4i.h"
 
-//#define  SW_USB_EHCI_DEBUG
-
 /*.......................................................................................*/
 //                               全局信息定义
 /*.......................................................................................*/
+
+//#define  SW_USB_EHCI_DEBUG
 
 #define  SW_EHCI_NAME				"sw-ehci"
 static const char ehci_name[] 		= SW_EHCI_NAME;
@@ -82,7 +82,7 @@ static __u32 USBC_Phy_GetCsr(__u32 usbc_no)
 			val = SW_VA_USB0_IO_BASE + 0x404;
 		break;
 
-		case 1: 
+		case 1:
 			val = SW_VA_USB0_IO_BASE + 0x404;
 		break;
 
@@ -119,7 +119,7 @@ static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
 {
 	__u32 temp = 0, ret = 0;
 	__u32 i=0;
-	__u32 j=0;	
+	__u32 j=0;
 
 	for(j = len; j > 0; j--)
 	{
@@ -133,7 +133,7 @@ static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
 
 		temp = USBC_Readl(USBC_Phy_GetCsr(usbc_no));
 		ret <<= 1;
-		ret |= ((temp >> (16 + usbc_no)) & 0x1); 
+		ret |= ((temp >> (16 + usbc_no)) & 0x1);
 	}
 
 	return ret;
@@ -211,7 +211,7 @@ static __u32 USBC_Phy_TpWrite(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 */
 static __u32 USBC_Phy_Read(__u32 usbc_no, __u32 addr, __u32 len)
 {
-	return USBC_Phy_TpRead(usbc_no, addr, len);	
+	return USBC_Phy_TpRead(usbc_no, addr, len);
 }
 
 /*
@@ -552,14 +552,14 @@ static int open_ehci_clock(struct sw_hci_hcd *sw_ehci)
 	}else{
 		DMSG_INFO("[%s%d]: ERR: open ehci clock failed, (0x%p, 0x%p, 0x%p, %d)\n",
 			      SW_EHCI_NAME, sw_ehci->usbc_no,
-			      sw_ehci->sie_clk, sw_ehci->phy_gate, 
+			      sw_ehci->sie_clk, sw_ehci->phy_gate,
 			      sw_ehci->phy_reset, sw_ehci->clk_is_open);
 	}
 
 	UsbPhyInit(sw_ehci->usbc_no);
 
 #ifdef  SW_USB_EHCI_DEBUG
-	DMSG_INFO("[%s%d]: open_ehci_clock, 0x60(0x%x), 0xcc(0x%x)\n", 
+	DMSG_INFO("[%s%d]: open_ehci_clock, 0x60(0x%x), 0xcc(0x%x)\n",
 		      SW_EHCI_NAME, sw_ehci->usbc_no,
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
@@ -597,14 +597,14 @@ static int close_ehci_clock(struct sw_hci_hcd *sw_ehci)
 	    clk_disable(sw_ehci->sie_clk);
 		sw_ehci->clk_is_open = 0;
 	}else{
-		DMSG_INFO("[%s%d]: ERR: close ehci clock failed, (0x%p, 0x%p, 0x%p, %d)\n", 
+		DMSG_INFO("[%s%d]: ERR: close ehci clock failed, (0x%p, 0x%p, 0x%p, %d)\n",
 				  SW_EHCI_NAME, sw_ehci->usbc_no,
 			      sw_ehci->sie_clk, sw_ehci->phy_gate,
 			      sw_ehci->phy_reset, sw_ehci->clk_is_open);
 	}
 
 #ifdef  SW_USB_EHCI_DEBUG
-	DMSG_INFO("[%s%d]: close_ehci_clock, 0x60(0x%x), 0xcc(0x%x)\n", 
+	DMSG_INFO("[%s%d]: close_ehci_clock, 0x60(0x%x), 0xcc(0x%x)\n",
 		      SW_EHCI_NAME, sw_ehci->usbc_no,
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
 		      (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
@@ -658,7 +658,7 @@ static void sw_ehci_port_configure(struct sw_hci_hcd *sw_ehci, u32 enable)
 
 /*
 *******************************************************************************
-*                     sw_start_ehci
+*                     sw_get_io_resource
 *
 * Description:
 *    void
@@ -685,7 +685,7 @@ static int sw_get_io_resource(struct platform_device *pdev, struct sw_hci_hcd *s
 	sw_ehci->sdram_vbase	= (void __iomem	*)SW_VA_DRAM_IO_BASE;
 
 #ifdef  SW_USB_EHCI_DEBUG
-	DMSG_INFO("[%s%d]: usb_vbase = 0x%p, sram_vbase = 0x%p, clock_vbase = 0x%p, gpio_vbase = 0x%p, sdram_vbase = 0x%p,get_io_resource_finish\n", 
+	DMSG_INFO("[%s%d]: usb_vbase = 0x%p, sram_vbase = 0x%p, clock_vbase = 0x%p, gpio_vbase = 0x%p, sdram_vbase = 0x%p,get_io_resource_finish\n",
 		   ehci_name, sw_ehci->usbc_no,
 		   sw_ehci->usb_vbase,
 		   sw_ehci->sram_vbase,
@@ -699,7 +699,7 @@ static int sw_get_io_resource(struct platform_device *pdev, struct sw_hci_hcd *s
 
 /*
 *******************************************************************************
-*                     sw_start_ehci
+*                     sw_release_io_resource
 *
 * Description:
 *    void
@@ -759,12 +759,12 @@ static void sw_start_ehci(struct sw_hci_hcd *sw_ehci)
 	spin_lock_irqsave(&lock, flags);
 
 	/*enable passby*/
-	reg_value = USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE); 
+	reg_value = USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
 	reg_value |= (1 << 10);		/* AHB Master interface INCR8 enable */
 	reg_value |= (1 << 9);     	/* AHB Master interface burst type INCR4 enable */
 	reg_value |= (1 << 8);     	/* AHB Master interface INCRX align enable */
 	reg_value |= (1 << 0);     	/* ULPI bypass enable */
-	USBC_Writel(reg_value, (sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE)); 
+	USBC_Writel(reg_value, (sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
 
 	/* ehci port configure */
 	sw_ehci_port_configure(sw_ehci, 1);
@@ -797,19 +797,26 @@ static void sw_start_ehci(struct sw_hci_hcd *sw_ehci)
 static void sw_stop_ehci(struct sw_hci_hcd *sw_ehci)
 {
 	unsigned long reg_value = 0;
+	spinlock_t lock = SPIN_LOCK_UNLOCKED;
+	unsigned long flags = 0;
 
 	sw_hcd_board_set_vbus(sw_ehci, 0);
+
+	spin_lock_init(&lock);
+	spin_lock_irqsave(&lock, flags);
 
 	/* ehci port configure */
 	sw_ehci_port_configure(sw_ehci, 0);
 
 	/*disable passby*/
-	reg_value = USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE); 
+	reg_value = USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE);
 	reg_value &= ~(1 << 10);	/* AHB Master interface INCR8 disable */
 	reg_value &= ~(1 << 9);     /* AHB Master interface burst type INCR4 disable */
 	reg_value &= ~(1 << 8);     /* AHB Master interface INCRX align disable */
 	reg_value &= ~(1 << 0);     /* ULPI bypass disable */
-	USBC_Writel(reg_value, (sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE)); 
+	USBC_Writel(reg_value, (sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+
+	spin_unlock_irqrestore(&lock, flags);
 
 	close_ehci_clock(sw_ehci);
 
@@ -888,7 +895,7 @@ static const struct hc_driver sw_ehci_hc_driver = {
 	.bus_resume				= ehci_bus_resume,
 	.relinquish_port		= ehci_relinquish_port,
 	.port_handed_over		= ehci_port_handed_over,
- 
+
 	.clear_tt_buffer_complete	= ehci_clear_tt_buffer_complete,
 };
 
@@ -932,7 +939,7 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	if(!sw_ehci){
 		DMSG_PANIC("ERR: sw_ehci is null\n");
 		ret = -ENOMEM;
-		goto ERR2;
+		goto ERR1;
 	}
 
 	memset(sw_ehci, 0, sizeof(struct sw_hci_hcd *));
@@ -947,8 +954,8 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	if(ret != 0){
 		DMSG_PANIC("ERR: pin_init failed\n");
 		ret = -ENODEV;
-		goto ERR3;
-	}	
+		goto ERR2;
+	}
 
 	ret = pin_init(sw_ehci);
 	if(ret != 0){
@@ -974,7 +981,7 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	if (!hcd){
 		DMSG_PANIC("ERR: usb_create_hcd failed\n");
 		ret = -ENOMEM;
-		goto ERR1;
+		goto ERR5;
 	}
 
   	hcd->rsrc_start = (u32)sw_ehci->ehci_base;
@@ -988,7 +995,7 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	ehci = hcd_to_ehci(hcd);
 	ehci->caps = hcd->regs;
 	ehci->regs = hcd->regs + HC_LENGTH(readl(&ehci->caps->hc_capbase));
-  
+
 	/* cache this readonly data, minimize chip reads */
 	ehci->hcs_params = readl(&ehci->caps->hcs_params);
 
@@ -996,13 +1003,13 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	if (ret != 0) {
 		DMSG_PANIC("ERR: usb_add_hcd failed\n");
 		ret = -ENOMEM;
-		goto ERR5;
+		goto ERR6;
 	}
 
 	platform_set_drvdata(pdev, hcd);
 
 #ifdef  SW_USB_EHCI_DEBUG
-	DMSG_INFO("[%s%d]: probe, clock: 0x60(0x%x), 0xcc(0x%x); usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n", 
+	DMSG_INFO("[%s%d]: probe, clock: 0x60(0x%x), 0xcc(0x%x); usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n",
 		      SW_EHCI_NAME, sw_ehci->usbc_no,
 		      (u32)USBC_Readl(sw_ehci->clock_vbase + 0x60),
 		      (u32)USBC_Readl(sw_ehci->clock_vbase + 0xcc),
@@ -1013,15 +1020,19 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 
 	return 0;
 
+ERR6:
+	usb_put_hcd(hcd);
+
 ERR5:
 	ehci_clock_init(sw_ehci);
 
 ERR4:
 	pin_exit(sw_ehci);
-	
-ERR3:	
+
+ERR3:
 ERR2:
-	usb_put_hcd(hcd);
+	sw_ehci->hcd = NULL;
+	g_sw_ehci[sw_ehci->usbc_no] = NULL;
 
 ERR1:
 
@@ -1218,7 +1229,7 @@ static int sw_ehci_hcd_resume(struct device *dev)
 		if (!hcd->self.root_hub->do_remote_wakeup){
 			mask &= ~STS_PCD;
 		}
-		
+
 		ehci_writel(ehci, mask, &ehci->regs->intr_enable);
 		ehci_readl(ehci, &ehci->regs->intr_enable);
 

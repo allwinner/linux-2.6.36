@@ -10,8 +10,16 @@
 
 #include <linux/usb.h>
 
+/* by Cesc */
+//#include <linux/usbdevice_fs.h>
 #include <linux/fs.h>
+//#include <linux/mm.h>
+//#include <linux/slab.h>
 #include <linux/smp_lock.h>
+//#include <linux/signal.h>
+//#include <linux/poll.h>
+#include <linux/module.h>
+#include <linux/usb.h>
 #include <linux/usbdevice_fs.h>
 #include <linux/usb/hcd.h>	/* for usbcore internals */
 #include <linux/cdev.h>
@@ -19,6 +27,9 @@
 #include <linux/security.h>
 #include <asm/uaccess.h>
 #include <asm/byteorder.h>
+//#include <linux/moduleparam.h>
+
+
 
 
 /* Get a minor range for your devices from the usb maintainer */
@@ -27,6 +38,16 @@
 /* Define these values to match your devices */
 #define USB_USBTEST_VENDOR_ID	0x090c /* 0xfff0, 0x08ec, by Cesc */
 #define USB_USBTEST_PRODUCT_ID	0x1000 /* 0xfff0, 0x0015, by Cesc */
+
+/* This should follow usbtest_ioctl. */
+/* Bulk-only class specific requests */
+#define USB_BULK_RESET_REQUEST_ME		0xff
+#define USB_BULK_GET_MAX_LUN_REQUEST_ME	0xfe
+#define USB_MASS_bmEQUESTYPTE           0xa1  /*bmRequestType for Get Max Lun request.  */
+
+/* Default USB timeout (in milliseconds) */
+#define USBFOO_TIMEOUT		5000
+
 
 /*-------------------------------------------------------------------------*/
 
@@ -85,10 +106,10 @@ struct usbtest_dev {
 	struct mutex		lock;
 
 	struct kref		kref;
-	struct mutex	io_mutex;		/* synchronize I/O with disconnect */	
+	struct mutex	io_mutex;		/* synchronize I/O with disconnect */
 	int			    open_count;		/* count the number of openers */
 	struct usb_device	*udev;			/* the usb device for this device */
-	
+
 	size_t			bulk_in_size;		/* the size of the receive buffer */
 	size_t			bulk_in_filled;		/* number of bytes in the buffer */
 	size_t			bulk_in_copied;		/* already copied to user space */
@@ -1210,10 +1231,12 @@ static int test_halt(struct usbtest_dev *tdev, int ep, struct urb *urb)
 {
 	int	retval;
 
+#if 0
 	/* shouldn't look or act halted now */
 	retval = verify_not_halted(tdev, ep, urb);
 	if (retval < 0)
 		return retval;
+#endif
 
 	/* set halt (protocol test only), verify it worked */
 	retval = usb_control_msg (urb->dev, usb_sndctrlpipe (urb->dev, 0),
@@ -1224,9 +1247,12 @@ static int test_halt(struct usbtest_dev *tdev, int ep, struct urb *urb)
 		ERROR(tdev, "ep %02x couldn't set halt, %d\n", ep, retval);
 		return retval;
 	}
+
+#if 0
 	retval = verify_halted(tdev, ep, urb);
 	if (retval < 0)
 		return retval;
+#endif
 
 	/* clear halt (tests API + protocol), verify it worked */
 	retval = usb_clear_halt (urb->dev, urb->pipe);
@@ -1234,9 +1260,12 @@ static int test_halt(struct usbtest_dev *tdev, int ep, struct urb *urb)
 		ERROR(tdev, "ep %02x couldn't clear halt, %d\n", ep, retval);
 		return retval;
 	}
+
+#if 0
 	retval = verify_not_halted(tdev, ep, urb);
 	if (retval < 0)
 		return retval;
+#endif
 
 	/* NOTE:  could also verify SET_INTERFACE clear halts ... */
 
@@ -1794,7 +1823,7 @@ usbtest_ioctl (struct usb_interface *intf, unsigned int code, void *buf)
 	/* non-queued sanity tests for control (chapter 9 subset) */
 	case 9:
 		retval = 0;
-		printk("TEST-9\n"); 
+		printk("TEST-9\n");
 		dev_info(&intf->dev,
 			"TEST 9:  ch9 (subset) control tests, %d times\n",
 				param->iterations);
@@ -1930,29 +1959,29 @@ MODULE_PARM_DESC (product, "product code (from vendor)");
 #endif
 
 
-/* 
+/*
 ** add functions for file_operations.
 */
-#define to_usbtest_dev(d) container_of(d, struct usbtest_dev, kref)  
+#define to_usbtest_dev(d) container_of(d, struct usbtest_dev, kref)
 
-static void usbtest_delete (struct kref *kref)
+static void usbtest_delete(struct kref *kref)
 {
 	struct usbtest_dev *dev = to_usbtest_dev(kref);
 
-	usb_put_dev (dev->udev);
-	kfree (dev);
+	usb_put_dev(dev->udev);
+	kfree(dev);
 }
 
-static int usbtest_open (struct inode *inode, struct file *file)
+static int usbtest_open(struct inode *inode, struct file *file)
 {
 	struct usbtest_dev *dev;
 	struct usb_interface *interface;
 	int subminor;
 	int retval = 0;
 
-	subminor = iminor (inode);
+	subminor = iminor(inode);
 
-	interface = usb_find_interface (&usbtest_driver, subminor);
+	interface = usb_find_interface(&usbtest_driver, subminor);
 	if (!interface) {
 		err("%s - error, can't find device for minor %d",
 		     __func__, subminor);
@@ -1960,25 +1989,25 @@ static int usbtest_open (struct inode *inode, struct file *file)
 		goto exit;
 	}
 
-	dev = usb_get_intfdata (interface);
+	dev = usb_get_intfdata(interface);
 	if (!dev) {
 		retval = -ENODEV;
 		goto exit;
 	}
 
 	/* increment our usage count for the device */
-	kref_get (&dev->kref);
+	kref_get(&dev->kref);
 
 	/* lock the device to allow correctly handling errors
 	 * in resumption */
-	mutex_lock (&dev->io_mutex);
+	mutex_lock(&dev->io_mutex);
 
 	if (!dev->open_count++) {
-		retval = usb_autopm_get_interface (interface);
+		retval = usb_autopm_get_interface(interface);
 		if (retval) {
 			dev->open_count--;
-			mutex_unlock (&dev->io_mutex);
-			kref_put (&dev->kref, usbtest_delete);
+			mutex_unlock(&dev->io_mutex);
+			kref_put(&dev->kref, usbtest_delete);
 			goto exit;
 		}
 	} /* else { //uncomment this block if you want exclusive open
@@ -1992,13 +2021,13 @@ static int usbtest_open (struct inode *inode, struct file *file)
 
 	/* save our object in the file's private structure */
 	file->private_data = dev;
-	mutex_unlock (&dev->io_mutex);
+	mutex_unlock(&dev->io_mutex);
 
 exit:
 	return retval;
 }
 
-static int usbtest_release (struct inode *inode, struct file *file)
+static int usbtest_release(struct inode *inode, struct file *file)
 {
 	struct usbtest_dev *dev;
 
@@ -2007,78 +2036,78 @@ static int usbtest_release (struct inode *inode, struct file *file)
 		return -ENODEV;
 
 	/* allow the device to be autosuspended */
-	mutex_lock (&dev->io_mutex);
+	mutex_lock(&dev->io_mutex);
 	if (!--dev->open_count && dev->intf) /* interface -> intf */
-		usb_autopm_put_interface (dev->intf); /* interface -> intf */
-	mutex_unlock (&dev->io_mutex);
+		usb_autopm_put_interface(dev->intf); /* interface -> intf */
+	mutex_unlock(&dev->io_mutex);
 
 	/* decrement the count on our device */
-	kref_put (&dev->kref, usbtest_delete);
+	kref_put(&dev->kref, usbtest_delete);
 	return 0;
 }
 
-static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long arg)
+static long usbtest_ioctl_me(struct file *fp, unsigned int cmd, unsigned long arg)
 {
-	struct usbtest_dev *dev = (struct usbtest_dev *)fp->private_data; 
-	struct usb_device *udev = dev->udev;
-	int test_num = 0;
-	int retval = 0;
+    struct usbtest_dev *dev = (struct usbtest_dev *)fp->private_data;
+    struct usb_device *udev = dev->udev;
+    int test_num = 0;
+    int retval = 0;
 
-	struct usbtest_param param_tmp;
-	struct usbtest_param *param;
-	unsigned i;
+    struct usbtest_param param_tmp;
+    struct usbtest_param *param;
+    unsigned i;
 
-	/* original variables */
+    /* original variables */
 	struct urb *urb;
 	struct scatterlist *sg;
-	struct usb_sg_request req;	
+	struct usb_sg_request req;
 
 
-	printk("[usb_test]:usbtest-enter\n");
-    
-	
-	switch (cmd){
-	case 1:
-        	printk("[usb_test]:usbtest_ioctl-1\n");
-		break;
-
-	case 2:	
-		printk("[usb_test]:usbtest_ioctl-2\n");
-		break;
-
-	default:
-		printk("[usb_test]:usbtest_ioctl-3\n");
-	}
+    printk("[usb_test]:usbtest-enter\n");
 
 
-	//param_tmp.duration = 0;
-	param_tmp.iterations = 100; 
-	param_tmp.length = 512;
-	param_tmp.sglen = 0;
-	param_tmp.test_num = 0;
-	param_tmp.vary = 0; 
-	
-	if (copy_from_user (&param_tmp, (void __user *)arg, sizeof(param_tmp)))
+    switch(cmd){
+    case 1:
+        printk("[usb_test]:usbtest_ioctl-1\n");
+        break;
+
+    case 2:
+        printk("[usb_test]:usbtest_ioctl-2\n");
+        break;
+
+    default:
+        printk("[usb_test]:usbtest_ioctl-3\n");
+    }
+
+
+    //param_tmp.duration = 0;
+    param_tmp.iterations = 100;
+    param_tmp.length = 512;
+    param_tmp.sglen = 0;
+    param_tmp.test_num = 0;
+    param_tmp.vary = 0;
+
+	if (copy_from_user(&param_tmp, (void __user *)arg, sizeof(param_tmp)))
 		return -EFAULT;
-	
+
 	param = &param_tmp;
 
 	test_num = param_tmp.test_num;
 	/*
-	printk("[usb_test]:test_num = %d\n", test_num);
-	printk("[usb_test]:iterations=%d,length=%d,sglen=%d,test_num=%d,vary=%d\n", 
-		    param->iterations, param->length, param->sglen, param->test_num, param->vary);   
-	*/
-	
-	switch (test_num) {
+       printk("[usb_test]:test_num = %d\n", test_num);
+	printk("[usb_test]:iterations=%d,length=%d,sglen=%d,test_num=%d,vary=%d\n",
+		    param->iterations, param->length, param->sglen, param->test_num, param->vary);
+      */
 
-	case 0:
-		printk("[usb_test]:TEST 0:  NOP\n");
-		retval = 0;
-		break;
-		
-	/* Simple non-queued bulk I/O tests */
-	case 1:	
+    switch (test_num) {
+
+    case 0:
+        printk("[usb_test]:TEST 0:  NOP\n");
+        retval = 0;
+        break;
+
+    /* Simple non-queued bulk I/O tests */
+    case 1:
 		if (dev->out_pipe == 0)
 			break;
 		printk("[usb_test]:TEST 1:  write %d bytes %u times\n",
@@ -2091,9 +2120,9 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		// FIRMWARE:  bulk sink (maybe accepts short writes)
 		retval = simple_io(dev, urb, param->iterations, 0, 0, "test1");
 		simple_free_urb (urb);
-		break;
-	
-	case 2:		
+        break;
+
+    case 2:
 		if (dev->in_pipe == 0)
 			break;
 		printk("[usb_test]:TEST 2:  read %d bytes %u times\n",
@@ -2105,10 +2134,10 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		}
 		// FIRMWARE:  bulk source (maybe generates short writes)
 		retval = simple_io(dev, urb, param->iterations, 0, 0, "test2");
-		simple_free_urb (urb);	
-		break;
-		
-	case 3:
+		simple_free_urb (urb);
+        break;
+
+    case 3:
 		if (dev->out_pipe == 0 || param->vary == 0)
 			break;
 		printk("[usb_test]:TEST 3:  write/%d 0..%d bytes %u times\n",
@@ -2123,8 +2152,8 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 					0, "test3");
 		simple_free_urb (urb);
 		break;
-		
-	case 4:
+
+    case 4:
 		/* This is not supported on the firmware side. */
 		if (dev->in_pipe == 0 || param->vary == 0)
 			break;
@@ -2141,7 +2170,7 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		simple_free_urb (urb);
 		break;
 
-	case 5:
+    case 5:
 		if (dev->out_pipe == 0 || param->sglen == 0)
 			break;
 		printk("[usb_test]:TEST 5:  write %d sglists %d entries of %d bytes\n",
@@ -2157,8 +2186,8 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 				&req, sg, param->sglen);
 		free_sglist (sg, param->sglen);
 		break;
-		
-	case 6:
+
+    case 6:
 		if (dev->in_pipe == 0 || param->sglen == 0)
 			break;
 		printk("[usb_test]:TEST 6:  read %d sglists %d entries of %d bytes\n",
@@ -2176,7 +2205,7 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		break;
 
 
-	case 7:
+    case 7:
 		if (dev->out_pipe == 0 || param->sglen == 0 || param->vary == 0)
 			break;
 		printk("[usb_test]:TEST 7:  write/%d %d sglists %d entries 0..%d bytes\n",
@@ -2193,7 +2222,7 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		free_sglist (sg, param->sglen);
 		break;
 
-	case 8:
+    case 8:
 		if (dev->in_pipe == 0 || param->sglen == 0 || param->vary == 0)
 			break;
 		printk("[usb_test]:TEST 8:  read/%d %d sglists %d entries 0..%d bytes\n",
@@ -2210,22 +2239,22 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		free_sglist (sg, param->sglen);
 		break;
 
-	/* non-queued sanity tests for control (chapter 9 subset) */
-	case 9:		
-		printk("[usb_test]:TEST 9:  ch9 (subset) control tests, %d times\n", param->iterations);
-		
-		retval = 0;
-		for (i = param->iterations; retval == 0 && i--; ){
-			retval = ch9_postconfig (dev);
-		}
-				
-		if (retval)
-			printk("[usb_test]:ch9 subset failed, iterations left %d\n", i);
-		 
-		break;
+    /* non-queued sanity tests for control (chapter 9 subset) */
+    case 9:
+        printk("[usb_test]:TEST 9:  ch9 (subset) control tests, %d times\n", param->iterations);
 
-		/* queued control messaging */
-	case 10:
+        retval = 0;
+        for (i = param->iterations; retval == 0 && i--; ){
+            retval = ch9_postconfig (dev);
+        }
+
+        if (retval)
+            printk("[usb_test]:ch9 subset failed, iterations left %d\n", i);
+
+        break;
+
+    /* queued control messaging */
+    case 10:
 		if (param->sglen == 0)
 			break;
 		retval = 0;
@@ -2235,8 +2264,8 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		retval = test_ctrl_queue (dev, param);
 		break;
 
-	/* simple non-queued unlinks (ring with one urb) */
-	case 11:
+    /* simple non-queued unlinks (ring with one urb) */
+    case 11:
 		if (dev->in_pipe == 0 || !param->length)
 			break;
 		retval = 0;
@@ -2251,7 +2280,7 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		break;
 
 
-	case 12:
+    case 12:
 		if (dev->out_pipe == 0 || !param->length)
 			break;
 		retval = 0;
@@ -2266,7 +2295,7 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 		break;
 
 	/* ep halt tests */
-	case 13:
+    case 13:
 		if (dev->out_pipe == 0 && dev->in_pipe == 0)
 			break;
 		retval = 0;
@@ -2318,15 +2347,15 @@ static long usbtest_ioctl_me (struct file *fp, unsigned int cmd, unsigned long a
 
 	// FIXME unlink from queue (ring with N urbs)
 
-	// FIXME scatterlist cancel (needs helper thread)	
+	// FIXME scatterlist cancel (needs helper thread)
 
 
     }
 
 
-	printk("[usb_test]:usbtest-exit\n");
+    printk("[usb_test]:usbtest-exit\n");
 
-	return retval;
+    return retval;
 
 }
 
@@ -2350,101 +2379,101 @@ static struct usb_class_driver usbtest_class = {
 	.minor_base =	USB_USBTEST_MINOR_BASE,
 };
 
-/* 
-** This function is changed from skel_probe() in file usb-skeleton.c 
+/*
+** This function is changed from skel_probe() in file usb-skeleton.c
 */
 static int
 usbtest_probe (struct usb_interface *intf, const struct usb_device_id *id)
 {
-	struct usbtest_dev	*dev;
-	struct usb_host_interface *iface_desc;
-	struct usb_endpoint_descriptor *endpoint;
-	size_t buffer_size;
-	int i;
-	int retval = -ENOMEM;
+    struct usbtest_dev	*dev;
+    struct usb_host_interface *iface_desc;
+    struct usb_endpoint_descriptor *endpoint;
+    size_t buffer_size;
+    int i;
+    int retval = -ENOMEM;
 
-	printk ("[usb_test]:usbtest_probe-enter\n");
+    printk("[usb_test]:usbtest_probe-enter\n");
 
-	/* allocate memory for our device state and initialize it */
-	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
-	if (!dev) {
-		err("[usb_test]:Out of memory");
-		goto error;
-	}
-	kref_init (&dev->kref);
-	mutex_init (&dev->io_mutex);
+    /* allocate memory for our device state and initialize it */
+    dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+    if (!dev) {
+        err("[usb_test]:Out of memory");
+        goto error;
+    }
+    kref_init(&dev->kref);
+    mutex_init(&dev->io_mutex);
 
 
-	dev->udev = usb_get_dev (interface_to_usbdev(intf));
- 	dev->intf = intf;
+    dev->udev = usb_get_dev(interface_to_usbdev(intf));
+    dev->intf = intf;
 
-	/* cacheline-aligned scratch for i/o */
-	if ((dev->buf = kmalloc (TBUF_SIZE, GFP_KERNEL)) == NULL) {
-		kfree (dev);
-		return -ENOMEM;
-	}
+    /* cacheline-aligned scratch for i/o */
+    if ((dev->buf = kmalloc (TBUF_SIZE, GFP_KERNEL)) == NULL) {
+        kfree (dev);
+        return -ENOMEM;
+    }
 
-	/* set up the endpoint information */
-	/* use only the first bulk-in and bulk-out endpoints */
-	iface_desc = intf->cur_altsetting;
-	for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i) {
-		endpoint = &iface_desc->endpoint[i].desc;
+    /* set up the endpoint information */
+    /* use only the first bulk-in and bulk-out endpoints */
+    iface_desc = intf->cur_altsetting;
+    for (i = 0; i < iface_desc->desc.bNumEndpoints; ++i) {
+        endpoint = &iface_desc->endpoint[i].desc;
 
-		if (!dev->bulk_in_endpointAddr &&
-			usb_endpoint_is_bulk_in(endpoint)) {
-			/* we found a bulk in endpoint */
-			buffer_size = le16_to_cpu(endpoint->wMaxPacketSize);
-			dev->bulk_in_size = buffer_size;
-			dev->bulk_in_endpointAddr = endpoint->bEndpointAddress;
-		}
+        if (!dev->bulk_in_endpointAddr &&
+	    usb_endpoint_is_bulk_in(endpoint)) {
+             /* we found a bulk in endpoint */
+             buffer_size = le16_to_cpu(endpoint->wMaxPacketSize);
+             dev->bulk_in_size = buffer_size;
+             dev->bulk_in_endpointAddr = endpoint->bEndpointAddress;
+        }
 
-		if (!dev->bulk_out_endpointAddr &&
-			usb_endpoint_is_bulk_out(endpoint)) {
-			/* we found a bulk out endpoint */
-			dev->bulk_out_endpointAddr = endpoint->bEndpointAddress;
-		}
-	}
-	if (!(dev->bulk_in_endpointAddr && dev->bulk_out_endpointAddr)) {
-		err("[usb_test]:Could not find both bulk-in and bulk-out endpoints");
-		goto error;
-	}
+        if (!dev->bulk_out_endpointAddr &&
+	    usb_endpoint_is_bulk_out(endpoint)) {
+            /* we found a bulk out endpoint */
+            dev->bulk_out_endpointAddr = endpoint->bEndpointAddress;
+        }
+    }
+    if (!(dev->bulk_in_endpointAddr && dev->bulk_out_endpointAddr)) {
+        err("[usb_test]:Could not find both bulk-in and bulk-out endpoints");
+        goto error;
+    }
 
-	/* get pipe information. */
-	dev->in_pipe = usb_rcvbulkpipe (dev->udev, dev->bulk_in_endpointAddr & 0x7F); /* bulk-in pipe */
-	dev->out_pipe = usb_sndbulkpipe (dev->udev, dev->bulk_out_endpointAddr & 0x7F); /* bulk-out pipe */
-	
-	/* iso pipes are not supported at the moment. */
-	dev->in_iso_pipe = 0;
-	dev->out_iso_pipe = 0;
-	dev->iso_in = NULL;
-	dev->iso_out = NULL;
-	
-	/* save our data pointer in this interface device */
-	usb_set_intfdata (intf, dev);
+    /* get pipe information. */
+    dev->in_pipe = usb_rcvbulkpipe (dev->udev, dev->bulk_in_endpointAddr & 0x7F); /* bulk-in pipe */
+    dev->out_pipe = usb_sndbulkpipe (dev->udev, dev->bulk_out_endpointAddr & 0x7F); /* bulk-out pipe */
 
-	/* we can register the device now, as it is ready */
-	retval = usb_register_dev (intf, &usbtest_class);
-	if (retval) {
-		 /* something prevented us from registering this driver */
-		err("[usb_test]:Not able to get a minor for this device.");
-		usb_set_intfdata(intf, NULL);
-		goto error;
-	}
+    /* iso pipes are not supported at the moment. */
+    dev->in_iso_pipe = 0;
+    dev->out_iso_pipe = 0;
+    dev->iso_in = NULL;
+    dev->iso_out = NULL;
 
-	/* let the user know what node this device is now attached to */
-	dev_info (&intf->dev,
-		"[usb_test]:usbtest device now attached to USBtest-%d\n",
-		intf->minor);
+    /* save our data pointer in this interface device */
+    usb_set_intfdata(intf, dev);
 
-	printk ("[usb_test]:usbtest_probe-exit\n");
-	
-	return 0;
+    /* we can register the device now, as it is ready */
+    retval = usb_register_dev(intf, &usbtest_class);
+    if (retval) {
+         /* something prevented us from registering this driver */
+        err("[usb_test]:Not able to get a minor for this device.");
+        usb_set_intfdata(intf, NULL);
+        goto error;
+    }
+
+    /* let the user know what node this device is now attached to */
+    dev_info(&intf->dev,
+         "[usb_test]:usbtest device now attached to USBtest-%d\n",
+         intf->minor);
+
+    printk("[usb_test]:usbtest_probe-exit\n");
+
+    return 0;
 
 error:
-	if (dev)
-		/* this frees allocated memory */
-		kref_put(&dev->kref, usbtest_delete);
-	return retval;	
+    if (dev)
+    /* this frees allocated memory */
+        kref_put(&dev->kref, usbtest_delete);
+    return retval;
 }
 
 static int usbtest_suspend (struct usb_interface *intf, pm_message_t message)
@@ -2466,7 +2495,7 @@ static void usbtest_disconnect (struct usb_interface *intf)
 
 	/* give back our minor */
 	usb_deregister_dev(intf, &usbtest_class);
-	
+
 	dev_dbg (&intf->dev, "disconnect\n");
 	kfree (dev);
 }
@@ -2562,6 +2591,14 @@ static struct usbtest_info sw_dell_info = {
 	.alt		= -1,
 };
 
+static struct usbtest_info sw_sangsing_info = {
+	.name		= "Softwinner sangsing USB device",
+	.ep_in		= 2,
+	.ep_out		= 3,
+	.alt		= -1,
+};
+
+
 static const struct usb_device_id id_table[] = {
 
 	/*-------------------------------------------------------------*/
@@ -2636,19 +2673,25 @@ static const struct usb_device_id id_table[] = {
 		.driver_info = (unsigned long) &sw_dell_info,
 		},
 
+    /* sangsing */
+    { USB_DEVICE (0x058F, 0x6387),
+        .driver_info = (unsigned long) &sw_sangsing_info,
+        },
+
 	{ }
 };
 
 /* MODULE_DEVICE_TABLE (usb, id_table); */
 
 
-/* 
+/*
 ** table of devices that work with this driver
 */
 static const struct usb_device_id usbtest_table[] = {
 	{ USB_DEVICE(USB_USBTEST_VENDOR_ID, USB_USBTEST_PRODUCT_ID) },
 	{ USB_DEVICE(0x0525, 0xa4a0) }, /* zero.c */
 	{ USB_DEVICE(0x0471, 0x0188) }, /* philips */
+    { USB_DEVICE(0x058F, 0x6387) }, /* sangsing */
 	{ }					/* Terminating entry */
 };
 
@@ -2673,7 +2716,7 @@ static struct usb_driver usbtest_driver = {
 /*-------------------------------------------------------------------------*/
 
 static int __init usbtest_init (void)
-{	
+{
 	printk("[usb_test]:usbtest_init\n");
 
 #ifdef GENERIC
