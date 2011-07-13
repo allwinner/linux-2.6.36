@@ -676,8 +676,7 @@ void tp_do_tasklet(unsigned long data)
 
   			break;
   		}
->>>>>>> bug fix for goodix ts to support module loading
-=======
+
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/ioport.h>
@@ -1076,8 +1075,7 @@ void tp_do_tasklet(unsigned long data)
 
   			break;
   		}
->>>>>>> bugfix for ts: avoid minus coordinate
-  		
+
 		default:	
   			break;
   	
