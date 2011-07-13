@@ -3,7 +3,7 @@
  *
  *  Copyright (C) 2001 Russell King
  *            (C) 2002 - 2003 Dominik Brodowski <linux@brodo.de>
- *            
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -56,9 +56,9 @@ static inline int cpufreq_unregister_notifier(struct notifier_block *nb,
 #define CPUFREQ_POLICY_POWERSAVE	(1)
 #define CPUFREQ_POLICY_PERFORMANCE	(2)
 
-/* Frequency values here are CPU kHz so that hardware which doesn't run 
- * with some frequencies can complain without having to guess what per 
- * cent / per mille means. 
+/* Frequency values here are CPU kHz so that hardware which doesn't run
+ * with some frequencies can complain without having to guess what per
+ * cent / per mille means.
  * Maximum transition latency is in nanoseconds - if it's unknown,
  * CPUFREQ_ETERNAL shall be used.
  */
@@ -164,6 +164,9 @@ static inline unsigned long cpufreq_scale(unsigned long old, u_int div, u_int mu
 #define CPUFREQ_GOV_START  1
 #define CPUFREQ_GOV_STOP   2
 #define CPUFREQ_GOV_LIMITS 3
+#if CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+#define CPUFREQ_GOV_USRENET 4
+#endif
 
 struct cpufreq_governor {
 	char	name[CPUFREQ_NAME_LEN];
@@ -180,7 +183,7 @@ struct cpufreq_governor {
 	struct module		*owner;
 };
 
-/* pass a target to the cpufreq driver 
+/* pass a target to the cpufreq driver
  */
 extern int cpufreq_driver_target(struct cpufreq_policy *policy,
 				 unsigned int target_freq,
@@ -237,7 +240,7 @@ struct cpufreq_driver {
 
 /* flags */
 
-#define CPUFREQ_STICKY		0x01	/* the driver isn't removed even if 
+#define CPUFREQ_STICKY		0x01	/* the driver isn't removed even if
 					 * all ->init() calls failed */
 #define CPUFREQ_CONST_LOOPS 	0x02	/* loops_per_jiffy or other kernel
 					 * "constants" aren't affected by
@@ -250,9 +253,12 @@ int cpufreq_unregister_driver(struct cpufreq_driver *driver_data);
 
 
 void cpufreq_notify_transition(struct cpufreq_freqs *freqs, unsigned int state);
+#if CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+/* user event notification */
+void cpufreq_user_event_notify(void);
+#endif
 
-
-static inline void cpufreq_verify_within_limits(struct cpufreq_policy *policy, unsigned int min, unsigned int max) 
+static inline void cpufreq_verify_within_limits(struct cpufreq_policy *policy, unsigned int min, unsigned int max)
 {
 	if (policy->min < min)
 		policy->min = min;
@@ -367,6 +373,9 @@ extern struct cpufreq_governor cpufreq_gov_conservative;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE)
 extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_FANTACY)
+extern struct cpufreq_governor cpufreq_gov_fantacy;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_fantacy)
 #endif
 
 
@@ -403,7 +412,7 @@ void   cpufreq_cpu_put (struct cpufreq_policy *data);
 /* the following are really really optional */
 extern struct freq_attr cpufreq_freq_attr_scaling_available_freqs;
 
-void cpufreq_frequency_table_get_attr(struct cpufreq_frequency_table *table, 
+void cpufreq_frequency_table_get_attr(struct cpufreq_frequency_table *table,
 				      unsigned int cpu);
 
 void cpufreq_frequency_table_put_attr(unsigned int cpu);
@@ -419,7 +428,7 @@ void cpufreq_frequency_table_put_attr(unsigned int cpu);
 
 #ifdef CONFIG_CPU_FREQ_DEBUG
 
-extern void cpufreq_debug_printk(unsigned int type, const char *prefix, 
+extern void cpufreq_debug_printk(unsigned int type, const char *prefix,
 				 const char *fmt, ...);
 
 #else

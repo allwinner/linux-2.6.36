@@ -25,6 +25,11 @@
 #include <linux/mutex.h>
 #include <linux/rcupdate.h>
 #include <linux/smp_lock.h>
+
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+#include <linux/cpufreq.h>
+#endif
+
 #include "input-compat.h"
 
 MODULE_AUTHOR("Vojtech Pavlik <vojtech@suse.cz>");
@@ -43,6 +48,17 @@ static LIST_HEAD(input_handler_list);
  * input handlers.
  */
 static DEFINE_MUTEX(input_mutex);
+
+
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+static struct workqueue_struct	*cpufreq_usrevent;
+static void cpufreq_notify(struct work_struct *work)
+{
+    cpufreq_user_event_notify();
+}
+static DECLARE_WORK(request_cpufreq_notify, cpufreq_notify);
+#endif
+
 
 static struct input_handler *input_table[8];
 
@@ -78,6 +94,11 @@ static void input_pass_event(struct input_dev *dev,
 {
 	struct input_handler *handler;
 	struct input_handle *handle;
+
+    #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+    /* notify cpu-freq sub-system that some user event happend */
+    queue_work(cpufreq_usrevent, &request_cpufreq_notify);
+    #endif
 
 	rcu_read_lock();
 
@@ -2069,7 +2090,19 @@ static int __init input_init(void)
 		goto fail2;
 	}
 
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+	cpufreq_usrevent = create_workqueue("cpufreq_uevent");
+	if (!cpufreq_usrevent) {
+		printk(KERN_ERR "Creation of cpufreq_usrevent failed\n");
+		goto fail3;
+	}
+#endif
+
 	return 0;
+
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+ fail3: unregister_chrdev(INPUT_MAJOR, "input");
+#endif
 
  fail2:	input_proc_exit();
  fail1:	class_unregister(&input_class);
@@ -2078,6 +2111,10 @@ static int __init input_init(void)
 
 static void __exit input_exit(void)
 {
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+    destroy_workqueue(cpufreq_usrevent);
+#endif
+
 	input_proc_exit();
 	unregister_chrdev(INPUT_MAJOR, "input");
 	class_unregister(&input_class);

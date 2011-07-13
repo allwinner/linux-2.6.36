@@ -1986,6 +1986,18 @@ int cpufreq_unregister_driver(struct cpufreq_driver *driver)
 }
 EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 
+
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+/* user event notification */
+void cpufreq_user_event_notify(void)
+{
+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+    policy->governor->governor(policy, CPUFREQ_GOV_USRENET);
+}
+EXPORT_SYMBOL_GPL(cpufreq_user_event_notify);
+#endif
+
+
 static int __init cpufreq_core_init(void)
 {
 	int cpu;

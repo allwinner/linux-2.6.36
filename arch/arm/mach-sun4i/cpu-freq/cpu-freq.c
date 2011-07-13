@@ -23,7 +23,9 @@
 #include <linux/cpu.h>
 #include <linux/clk.h>
 #include <linux/err.h>
+#include <linux/regulator/consumer.h>
 #include "cpu-freq.h"
+
 
 static struct sun4i_cpu_freq_t  cpu_cur;    /* current cpu frequency configuration  */
 static unsigned int last_target = ~0;       /* backup last target frequency         */
@@ -34,6 +36,24 @@ static struct clk *clk_axi; /* axi clock handler */
 static struct clk *clk_ahb; /* ahb clock handler */
 static struct clk *clk_apb; /* apb clock handler */
 
+
+#ifdef CONFIG_CPU_FREQ_DVFS
+struct cpufreq_dvfs {
+    unsigned int    freq;   /* cpu frequency    */
+    unsigned int    volt;   /* voltage for the frequency    */
+};
+static struct cpufreq_dvfs dvfs_table[] = {
+    {.freq = 1104000000, .volt = 1500}, /* core vdd is 1.5v if cpu frequency is (1008Mhz, 1104Mhz]  */
+    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.4v if cpu frequency is (912Mhz, 1008Mhz]   */
+    {.freq = 912000000,  .volt = 1300}, /* core vdd is 1.3v if cpu frequency is (816Mhz, 912Mhz]    */
+    {.freq = 816000000,  .volt = 1250}, /* core vdd is 1.25v if cpu frequency is (600Mhz, 816Mhz]   */
+    {.freq = 600000000,  .volt = 1100}, /* core vdd is 1.1v if cpu frequency is (480Mhz, 600Mhz]    */
+    {.freq = 480000000,  .volt = 1000}, /* core vdd is 1.0v if cpu frequency is (0, 480Mhz]         */
+    {.freq = 0,          .volt = 1000}, /* end of cpu dvfs table                                    */
+};
+static struct regulator *corevdd;
+static unsigned int last_vdd    = 1400;     /* backup last target voltage, default is 1.4v  */
+#endif
 
 /*
 *********************************************************************************************************
@@ -80,6 +100,30 @@ static void sun4i_cpufreq_show(const char *pfx, struct sun4i_cpu_freq_t *cfg)
 }
 
 
+#ifdef CONFIG_CPU_FREQ_DVFS
+/*
+*********************************************************************************************************
+*                           __get_vdd_value
+*
+*Description: get vdd with cpu frequency.
+*
+*Arguments  : freq  cpu frequency;
+*
+*Return     : vdd value;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static inline unsigned int __get_vdd_value(unsigned int freq)
+{
+    struct cpufreq_dvfs *dvfs_inf = &dvfs_table[0];
+    while((dvfs_inf+1)->freq > freq) dvfs_inf++;
+
+    return dvfs_inf->volt;
+}
+#endif
+
 /*
 *********************************************************************************************************
 *                           sun4i_cpufreq_settarget
@@ -102,6 +146,10 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
     struct cpufreq_freqs    freqs;
     struct sun4i_cpu_freq_t cpu_new;
 
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    unsigned int    new_vdd;
+    #endif
+
     /* show current cpu frequency configuration, just for debug */
 	sun4i_cpufreq_show("cur", &cpu_cur);
 
@@ -116,6 +164,16 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
 	    freqs.new = cpu_new.pll / 1000;
 		cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 	}
+
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    /* get vdd value for new frequency */
+    new_vdd = __get_vdd_value(cpu_new.pll);
+
+    if(corevdd && (new_vdd > last_vdd)) {
+        CPUFREQ_DBG("set core vdd to %d\n", new_vdd);
+        regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
+    }
+    #endif
 
     /* try to set div for axi/ahb/apb/first */
     frequency = cpu_cur.pll / cpu_cur.div.cpu_div;
@@ -154,6 +212,13 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
         clk_set_rate(clk_apb, frequency);
         sun4i_cpufreq_show("cur", &cpu_cur);
 
+        #ifdef CONFIG_CPU_FREQ_DVFS
+        if(corevdd && (new_vdd > last_vdd)) {
+            CPUFREQ_DBG("set core vdd to %d\n", new_vdd);
+            regulator_set_voltage(corevdd, last_vdd*1000, last_vdd*1000);
+        }
+        #endif
+
         /* notify everyone that clock transition finish */
     	if (policy) {
 	        freqs.cpu = 0;
@@ -164,6 +229,14 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
         CPUFREQ_ERR(KERN_ERR "no compatible settings cpu freq for %d\n", cpu_cur.pll);
         return -EINVAL;
     }
+
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    if(corevdd && (new_vdd < last_vdd)) {
+        CPUFREQ_DBG("set core vdd to %d\n", new_vdd);
+        regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
+    }
+    last_vdd = new_vdd;
+    #endif
 
 	/* update our current settings */
 	cpu_cur = cpu_new;
@@ -206,9 +279,6 @@ static int sun4i_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
 	if (freq == last_target) {
 		return 0;
 	}
-	last_target = freq;
-
-    CPUFREQ_DBG("%s: policy %p, target %u, relation %u\n", __func__, policy, freq, relation);
 
     /* try to look for a valid frequency value from cpu frequency table */
     if (cpufreq_frequency_table_target(policy, sun4i_freq_tbl, freq, relation, &index)) {
@@ -216,10 +286,17 @@ static int sun4i_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
 		return -EINVAL;
 	}
 
+	if (sun4i_freq_tbl[index].frequency == last_target) {
+        /* frequency is same as the value last set, need not adjust */
+		return 0;
+	}
+	last_target = sun4i_freq_tbl[index].frequency;
+
     /* update the target frequency */
     freq_cfg.pll = sun4i_freq_tbl[index].frequency * 1000;
     freq_cfg.div = *(struct sun4i_clk_div_t *)&sun4i_freq_tbl[index].index;
     CPUFREQ_DBG("%s: target frequency find is %u, entry %u\n", __func__, freq_cfg.pll, index);
+
 
     /* try to set target frequency */
     return sun4i_cpufreq_settarget(policy, &freq_cfg);
@@ -441,6 +518,14 @@ static __init int sun4i_cpufreq_initclks(void)
 	printk(KERN_INFO "%s: clocks pll=%lu,cpu=%lu,axi=%lu,ahp=%lu,apb=%lu\n", __func__,
 	       clk_get_rate(clk_pll), clk_get_rate(clk_cpu), clk_get_rate(clk_axi),
 	       clk_get_rate(clk_ahb), clk_get_rate(clk_apb));
+
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    corevdd = regulator_get(NULL, "axp20_core");
+    if(!corevdd) {
+        printk("try to get regulator failed, core vdd will not changed!\n");
+    }
+    last_vdd = regulator_get_voltage(corevdd) / 1000;
+    #endif
 
 	return 0;
 }
