@@ -401,7 +401,6 @@ void tp_do_tasklet(unsigned long data)
 
   			break;
   		}
-=======
 	int irq;
 	unsigned int x1;
 	unsigned int y1;
