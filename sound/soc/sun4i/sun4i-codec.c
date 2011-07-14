@@ -1146,6 +1146,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 {
 	int err;
 	int ret;
+	u32 reg_val;
 	struct snd_card *card;
 	struct sw_codec *chip;
 	struct codec_board_info  *db;
@@ -1243,7 +1244,15 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 
 	 kfree(db);
 	 codec_init(); 
-
+	 /* tv bias electrical current emend:0xf1c22c38*/
+	reg_val = readl( 0xf1c22c38);
+	reg_val |=(1<<23);
+	writel(reg_val,  0xf1c22c38);
+	reg_val = readl( 0xf1c22c38);
+	reg_val |=(0x1B<<17);
+	writel(reg_val,  0xf1c22c38);
+	printk("the value of 0xf1c22c38 is:%x\n", *(volatile int *)0xf1c22c38);
+	
 	 printk("sun4i Audio codec successfully loaded..\n"); 
 	 #ifdef Debug_Level0
 	 pr_debug("sun4i Intenal Codec Initial Ok\n");
