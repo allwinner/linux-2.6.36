@@ -77,7 +77,7 @@ module_param(g_dev_minor, int, S_IRUGO);
 #ifdef CHIP_VERSION_F23
 struct clk *ve_moduleclk, *ve_pll4clk, *ahb_veclk, *dram_veclk, *avs_moduleclk, *hosc_clk;
 static unsigned long suspend_pll4clk = 0;
-static unsigned long gpu_pll4clk = 0;
+static unsigned long gpu_pll4clk = 360000000;
 static unsigned int cedar_count = 0;
 #else
 #define CCMU_VE_PLL_REG      (0xf1c20000)
@@ -320,9 +320,9 @@ short VEPLLTable[][6] =
  */ 
 long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    long   ret = 0;
-    unsigned int v; 
-    unsigned long karg;	
+	long   ret = 0;
+	unsigned int v; 
+	unsigned long karg;	
 	spinlock_t *lock;
 	struct cedar_dev *devp;
 	struct cedarv_engine_task *task_ptr;
@@ -330,9 +330,9 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	devp = filp->private_data;
 	lock = &devp->lock;
 	
-    switch (cmd)
-    {
-    	case IOCTL_ENGINE_REQ:
+	switch (cmd)
+	{
+   	case IOCTL_ENGINE_REQ:
 		task_ptr = kmalloc(sizeof(struct cedarv_engine_task), GFP_KERNEL);
 		if(!task_ptr){
 			pr_debug("get mem for IOCTL_ENGINE_REQ\n");
@@ -344,14 +344,14 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		}
 		#endif
-		gpu_pll4clk = clk_get_rate(ve_pll4clk);
 		if(cedar_count == 0){			
 			cedar_count++;
 			ve_pll4clk = clk_get(NULL,"ve_pll");
 			if (-1 == clk_enable(ve_pll4clk)) {
 				pr_debug("ve_pll4clk failed; \n");
 			}
-			clk_set_rate(ve_pll4clk, 240000000);	
+			gpu_pll4clk = clk_get_rate(ve_pll4clk);
+			clk_set_rate(ve_pll4clk, 240000000);
 			
 			/* getting ahb clk for ve!(macc) */
 			ahb_veclk = clk_get(NULL,"ahb_ve");		
@@ -382,8 +382,8 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				pr_debug("dram_veclk failed; \n");
 			}
 			
-		    hosc_clk = clk_get(NULL,"hosc");	
-		    avs_moduleclk = clk_get(NULL,"avs");	
+			hosc_clk = clk_get(NULL,"hosc");	
+			avs_moduleclk = clk_get(NULL,"avs");	
 			if (clk_set_parent(avs_moduleclk, hosc_clk)) {
 				pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
 			}
