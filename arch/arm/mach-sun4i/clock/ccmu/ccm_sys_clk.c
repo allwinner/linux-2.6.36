@@ -271,7 +271,7 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
         case AW_SYS_CLK_PLL3:
         {
             __s64   tmp_rate;
-            
+
             if(!aw_ccu_reg->Pll3Ctl.ModeSel)
             {
                 if(aw_ccu_reg->Pll3Ctl.FracSet)
@@ -678,31 +678,19 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
         case AW_SYS_CLK_PLL1:
         {
             struct core_pll_factor_t    factor;
-            __s32   tmpStep = 3, tmpDly;
+            __ccmu_pll1_core_reg0000_t  tmp_pll;
 
+            /* the setting of pll1 must be called by cpu-freq driver, and adjust pll step by step */
             ccm_clk_get_pll_para(&factor, rate);
-            tmpDly = ccu_clk_uldiv(24 * factor.FactorN * (factor.FactorK + 1), factor.FactorM + 1);
-            tmpDly = ccu_clk_uldiv((__u64)tmpDly*500, (1<<tmpStep));
-
-            /* set a high division to set on pll */
-            aw_ccu_reg->Pll1Ctl.PLLDivP = tmpStep;
-            __delay(10000);
-            /* set the correct parameter for PLL */
-            aw_ccu_reg->Pll1Ctl.FactorN = factor.FactorN;
-            aw_ccu_reg->Pll1Ctl.FactorK = factor.FactorK;
-            aw_ccu_reg->Pll1Ctl.FactorM = factor.FactorM;
+            /* set factor */
+            tmp_pll = aw_ccu_reg->Pll1Ctl;
+            tmp_pll.FactorN = factor.FactorN;
+            tmp_pll.FactorK = factor.FactorK;
+            tmp_pll.FactorM = factor.FactorM;
+            tmp_pll.PLLDivP = factor.FactorP;
+            aw_ccu_reg->Pll1Ctl = tmp_pll;
             /* delay 500us for pll be stably */
-            __delay(tmpDly);
-
-            /* adjust divider P step by step, and delay 500us for every step */
-            while(tmpStep > factor.FactorP)
-            {
-                tmpStep--;
-                tmpDly <<= 1;
-                aw_ccu_reg->Pll1Ctl.PLLDivP = tmpStep;
-                /* delay 500us for pll be stably */
-                __delay(tmpDly);
-            }
+            __delay((rate >> 20) * 500);
 
             return 0;
         }
