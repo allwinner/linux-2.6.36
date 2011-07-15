@@ -203,7 +203,7 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
     new_freq = *new;
 
     if(new_freq.pll > old_freq.pll) {
-        if((old_freq.pll < 204000000) && (new_freq.pll >= 204000000)) {
+        if((old_freq.pll <= 204000000) && (new_freq.pll >= 204000000)) {
             /* set to 204Mhz (1:1:1:2) */
             old_freq.pll = 204000000;
             old_freq.div.cpu_div = 1;
@@ -215,7 +215,7 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
             old_freq.div.ahb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll < 432000000) && (new_freq.pll >= 432000000)) {
+        if((old_freq.pll <= 432000000) && (new_freq.pll >= 432000000)) {
             /* set to 432Mhz (1:1:2:2) */
             old_freq.pll = 432000000;
             old_freq.div.cpu_div = 1;
@@ -227,7 +227,7 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
             old_freq.div.axi_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll < 864000000) && (new_freq.pll >= 864000000)) {
+        if((old_freq.pll <= 864000000) && (new_freq.pll >= 864000000)) {
             /* set to 864Mhz (1:2:2:2) */
             old_freq.pll = 864000000;
             old_freq.div.cpu_div = 1;
@@ -239,9 +239,9 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
             old_freq.div.axi_div = 3;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll < 1200000000) && (new_freq.pll >= 1200000000)) {
+        if((old_freq.pll <= 1200000000) && (new_freq.pll >= 1200000000)) {
             /* set to 1200Mhz (1:3:2:2) */
-            old_freq.pll = 1200000000;
+           old_freq.pll = 1200000000;
             old_freq.div.cpu_div = 1;
             old_freq.div.axi_div = 3;
             old_freq.div.ahb_div = 2;
