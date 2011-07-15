@@ -76,8 +76,8 @@ module_param(g_dev_minor, int, S_IRUGO);
 #endif
 #ifdef CHIP_VERSION_F23
 struct clk *ve_moduleclk, *ve_pll4clk, *ahb_veclk, *dram_veclk, *avs_moduleclk, *hosc_clk;
-static unsigned long suspend_pll4clk = 0;
-static unsigned long gpu_pll4clk = 360000000;
+static unsigned long suspend_veclk_rate = 0;
+static unsigned long pll4clk_rate = 240000000;
 static unsigned int cedar_count = 0;
 #else
 #define CCMU_VE_PLL_REG      (0xf1c20000)
@@ -325,70 +325,75 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	unsigned long karg;	
 	spinlock_t *lock;
 	struct cedar_dev *devp;
+	#ifdef USE_TASK
 	struct cedarv_engine_task *task_ptr;
-	ret = 0;
+	#endif
 	devp = filp->private_data;
 	lock = &devp->lock;
 	
 	switch (cmd)
 	{
    	case IOCTL_ENGINE_REQ:
+   		#ifdef USE_TASK
 		task_ptr = kmalloc(sizeof(struct cedarv_engine_task), GFP_KERNEL);
 		if(!task_ptr){
-			pr_debug("get mem for IOCTL_ENGINE_REQ\n");
+			printk("get mem for IOCTL_ENGINE_REQ\n");
 			return PTR_ERR(task_ptr);
-		}
-		#ifdef USE_TASK
+		}		
 		if(copy_from_user((void*)task_ptr,(void __user*)arg, sizeof(struct __cedarv_task))){
-			pr_debug("IOCTL_ENGINE_REQ copy_from_user fail\n");
+			printk("IOCTL_ENGINE_REQ copy_from_user fail\n");
 			return -EFAULT;
 		}
 		#endif
 		if(cedar_count == 0){			
 			cedar_count++;
 			ve_pll4clk = clk_get(NULL,"ve_pll");
-			if (-1 == clk_enable(ve_pll4clk)) {
-				pr_debug("ve_pll4clk failed; \n");
-			}
-			gpu_pll4clk = clk_get_rate(ve_pll4clk);
-			clk_set_rate(ve_pll4clk, 240000000);
 			
+			pll4clk_rate = clk_get_rate(ve_pll4clk);
 			/* getting ahb clk for ve!(macc) */
 			ahb_veclk = clk_get(NULL,"ahb_ve");		
 			if (-1 == clk_enable(ahb_veclk)) {
-				pr_debug("ahb_veclk failed; \n");
+				printk("ahb_veclk failed; \n");
+				return -EFAULT;
 			}
 		
 			ve_moduleclk = clk_get(NULL,"ve");	
 			if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-				pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+				printk("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+				return -EFAULT;
 			}
-			if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-				pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
-			}
+			clk_set_rate(ve_moduleclk, pll4clk_rate/3);
 			if (-1 == clk_enable(ve_moduleclk)) {
-				pr_debug("ve_moduleclk failed; \n");
-			}	
+				printk("ve_moduleclk failed; \n");
+				return -EFAULT;
+			}							
+			
+
 			if(clk_reset(ve_moduleclk, 1)){//先处于复位状态（不工作状态）
-				pr_debug("reset ve_moduleclk failed!!!\n");
+				printk("reset ve_moduleclk failed!!!\n");
+				return -EFAULT;
 			}
 			if(clk_reset(ve_moduleclk, 0)){//再设置处于非复位状态（工作状态）
-				pr_debug("reset ve_moduleclk failed!!!\n");
+				printk("reset ve_moduleclk failed!!!\n");
+				return -EFAULT;
 			}				
 			/*geting dram clk for ve!*/
 			dram_veclk = clk_get(NULL, "sdram_ve");
 		
 			if (-1 == clk_enable(dram_veclk)) {
-				pr_debug("dram_veclk failed; \n");
+				printk("dram_veclk failed; \n");
+				return -EFAULT;
 			}
 			
 			hosc_clk = clk_get(NULL,"hosc");	
 			avs_moduleclk = clk_get(NULL,"avs");	
 			if (clk_set_parent(avs_moduleclk, hosc_clk)) {
-				pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
+				printk("set parent of avs_moduleclk to hosc_clk failed!\n");		
+				return -EFAULT;
 			}
 			if (-1 == clk_enable(avs_moduleclk)) {
-				pr_debug("ve_moduleclk failed; \n");
+				printk("ve_moduleclk failed; \n");
+				return -EFAULT;
 			}
 			/*for clk test*/
 			pr_debug("[cedar request reg]\n");
@@ -447,9 +452,8 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		}else if(cedar_count > 1){
 			cedar_count--;
 		}
-		clk_set_rate(ve_pll4clk,gpu_pll4clk);
-		return ret;
-		break;
+		//clk_set_rate(ve_pll4clk,gpu_pll4clk);
+		return ret;		
 		
 		case IOCTL_ENGINE_CHECK_DELAY:
 		if(copy_from_user(&karg,(void *)arg, sizeof(unsigned long))){
@@ -457,8 +461,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		}
 		ret = cedardev_check_delay(karg);//karg是传递过来的优先级
-		return ret;
-		break;
+		return ret;		
 		
         case IOCTL_WAIT_VE: 
             wait_event_interruptible(wait_ve, cedar_devp->irq_flag);
@@ -472,9 +475,6 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			writel(v, CCMU_VE_CLK_REG);	
 #else
             clk_enable(ve_moduleclk);
-//			v = readl(0xf1c2013c);
-//			v |= (1<<31 | 1<<0);
-//			writel(v,0xf1c2013c);
 #endif			
 			break;
 			
@@ -484,9 +484,6 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v &= ~(0x1 << 7);             // Gate the speccial clock for DE
 			writel(v, CCMU_VE_CLK_REG);	
 #else
-//			v = readl(0xf1c2013c);
-//			v &= ~(1<<31 | 1<<0);
-//			writel(v,0xf1c2013c);
 			clk_disable(ve_moduleclk);
 #endif			
 			break;
@@ -522,6 +519,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			v |= (arg - 30) / 6;                
 			writel(v, CCMU_VE_PLL_REG);
 #else
+#if 0
 			{
 				int freq = (int)arg;
 				int fq;
@@ -539,7 +537,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
                 ret = clk_get_rate(ve_pll4clk);           
                 pr_debug("After set rate, the ve_pll4clk rate is:%d\n", ret);
 			}
-
+#endif
 #endif			
 			break;
 		
@@ -725,7 +723,7 @@ static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 {	
 	pr_debug("enter snd_sw_cedar_suspend:%s,%d\n",__func__,__LINE__);
 	if(cedar_count){
-	suspend_pll4clk = clk_get_rate(ve_pll4clk);
+	suspend_veclk_rate = clk_get_rate(ve_moduleclk);
 	clk_put(dram_veclk);
 	
 	clk_disable(ve_moduleclk);	
@@ -734,7 +732,7 @@ static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 	clk_disable(avs_moduleclk);	
 	clk_put(avs_moduleclk);	
 	clk_put(ahb_veclk);
-	clk_put(ve_pll4clk);
+	
 	}
 		/*for clk test*/
 	pr_debug("[cedar suspend reg]\n");
@@ -752,56 +750,61 @@ static int snd_sw_cedar_resume(struct platform_device *pdev)
 	pr_debug("enter snd_sw_cedar_resume:%s,%d\n",__func__,__LINE__);
 	if(cedar_count){
 		ve_pll4clk = clk_get(NULL,"ve_pll");
-		if (-1 == clk_enable(ve_pll4clk)) {
-			pr_debug("ve_pll4clk failed; \n");
-		}
-		clk_set_rate(ve_pll4clk, suspend_pll4clk);	
-		
+	
 		/* getting ahb clk for ve!(macc) */
 		ahb_veclk = clk_get(NULL,"ahb_ve");		
 		if (-1 == clk_enable(ahb_veclk)) {
-			pr_debug("ahb_veclk failed; \n");
+			printk("ahb_veclk failed; \n");
+			return -EFAULT; 
 		}
 	
 		ve_moduleclk = clk_get(NULL,"ve");	
 		if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-			pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+			printk("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
+			return -EFAULT; 
 		}
-		if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-			pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
-		}
+		clk_set_rate(ve_moduleclk, suspend_veclk_rate);	
+		
 		if (-1 == clk_enable(ve_moduleclk)) {
-			pr_debug("ve_moduleclk failed; \n");
+			printk("ve_moduleclk failed; \n");
+			return -EFAULT; 
 		}	
 		if(clk_reset(ve_moduleclk, 1)){
-			pr_debug("reset ve_moduleclk failed!!!\n");
+			printk("reset ve_moduleclk failed!!!\n");
+			return -EFAULT; 
 		}
 		if(clk_reset(ve_moduleclk, 0)){
-			pr_debug("reset ve_moduleclk failed!!!\n");
+			printk("reset ve_moduleclk failed!!!\n");
+			return -EFAULT; 
 		}
 		/*geting dram clk for ve!*/
 		dram_veclk = clk_get(NULL, "sdram_ve");
 	
 		if (-1 == clk_enable(dram_veclk)) {
-			pr_debug("dram_veclk failed; \n");
+			printk("dram_veclk failed; \n");
+			return -EFAULT; 
 		}
 		
 	    hosc_clk = clk_get(NULL,"hosc");	
 	    avs_moduleclk = clk_get(NULL,"avs");	
 		if (clk_set_parent(avs_moduleclk, hosc_clk)) {
-			pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
+			printk("set parent of avs_moduleclk to hosc_clk failed!\n");		
+			return -EFAULT; 
 		}
 		if (-1 == clk_enable(avs_moduleclk)) {
-			pr_debug("ve_moduleclk failed; \n");
+			printk("ve_moduleclk failed; \n");
+			return -EFAULT; 
 		}		
 	}
-		/*for clk test*/
+	/*for clk test*/
+	pr_debug("[cedar_resume reg]\n");
 	pr_debug("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
 	pr_debug("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
 	pr_debug("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
 	pr_debug("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
 	pr_debug("SRAM:0xf1c00000 is:%x\n", *(volatile int *)0xf1c00000);
 	pr_debug("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
+	pr_debug("[cedar_resume reg]\n");
 	return 0;
 }
 
@@ -933,52 +936,6 @@ static int __init cedardev_init(void)
 
 #else
     cedar_devp->iomap_addrs.regs_avs = ioremap(AVS_REGS_BASE, 1024);	
-    #if 0
-	ve_pll4clk = clk_get(NULL,"ve_pll");
-	if (-1 == clk_enable(ve_pll4clk)) {
-		pr_debug("ve_pll4clk failed; \n");
-	}
-	clk_set_rate(ve_pll4clk, 288000000);	
-	
-	/*clk_get_rate used to testing the freq!!!*/
-	ret = clk_get_rate(ve_pll4clk);      
-	printk("After set rate, the ve_pll4clk rate is:%d\n", ret);
-	/* getting ahb clk for ve!(macc) */
-	ahb_veclk = clk_get(NULL,"ahb_ve");		
-	if (-1 == clk_enable(ahb_veclk)) {
-		pr_debug("ahb_veclk failed; \n");
-	}
-
-	ve_moduleclk = clk_get(NULL,"ve");	
-	if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-		pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
-	}
-	if (clk_set_parent(ve_moduleclk, ve_pll4clk)) {
-		pr_debug("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
-	}
-	if (-1 == clk_enable(ve_moduleclk)) {
-		pr_debug("ve_moduleclk failed; \n");
-	}	
-	if(clk_reset(ve_moduleclk, 1)){
-		pr_debug("reset ve_moduleclk failed!!!\n");
-	}
-		
-	/*geting dram clk for ve!*/
-	dram_veclk = clk_get(NULL, "sdram_ve");
-
-	if (-1 == clk_enable(dram_veclk)) {
-		pr_debug("dram_veclk failed; \n");
-	}
-	
-    hosc_clk = clk_get(NULL,"hosc");	
-    avs_moduleclk = clk_get(NULL,"avs");	
-	if (clk_set_parent(avs_moduleclk, hosc_clk)) {
-		pr_debug("set parent of avs_moduleclk to hosc_clk failed!\n");		
-	}
-	if (-1 == clk_enable(avs_moduleclk)) {
-		pr_debug("ve_moduleclk failed; \n");
-	}
-	#endif
 	//VE_SRAM mapping to AC320
 	val = readl(0xf1c00000);
 	val &= 0x80000000;
@@ -1031,15 +988,6 @@ static void __exit cedardev_exit(void)
 	iounmap(cedar_devp->iomap_addrs.regs_ccmu);
 	#else
 	iounmap(cedar_devp->iomap_addrs.regs_avs);
-	#if 0
-	clk_disable(ve_moduleclk);	
-	clk_put(ve_moduleclk);	
-	clk_put(dram_veclk);
-	clk_put(ahb_veclk);
-	clk_put(ve_pll4clk);
-	clk_disable(avs_moduleclk);	
-	clk_put(avs_moduleclk);
-	#endif
 	#endif
 	/* Destroy char device */
 	if (cedar_devp) {
