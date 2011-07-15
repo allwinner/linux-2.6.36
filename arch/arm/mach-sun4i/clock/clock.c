@@ -158,7 +158,7 @@ int clk_init(void)
     tmpSclk->set_clk(tmpSclk->clk);
 
     tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL4];
-    tmpSclk->clk->rate  = 360000000;
+    tmpSclk->clk->rate  = 720000000;
     tmpSclk->set_clk(tmpSclk->clk);
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);

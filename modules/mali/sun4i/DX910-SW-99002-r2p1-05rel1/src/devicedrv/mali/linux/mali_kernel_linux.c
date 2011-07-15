@@ -138,7 +138,7 @@ int mali_driver_init(void)
 	
 	//set mali clock
 	rate = clk_get_rate(h_ve_pll);
-	rate /= 1;
+	rate /= 2;
 	if(clk_set_rate(h_mali_clk, rate)){
 		MALI_PRINT(("try to get video pll1 clock failed!\n"));
 	}
