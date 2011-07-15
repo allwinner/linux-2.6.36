@@ -2152,7 +2152,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
             {
                 return -1;
             }
-            aw_ccu_reg->Csi1Clk.ClkDiv = rate-1;
+            aw_ccu_reg->VeClk.ClkDiv = rate-1;
             return 0;
         }
         case AW_MOD_CLK_ACE:
