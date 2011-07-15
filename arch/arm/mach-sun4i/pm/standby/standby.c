@@ -20,6 +20,8 @@
 
 extern unsigned int save_sp(void);
 extern void restore_sp(unsigned int sp);
+extern void standby_flush_tlb(void);
+extern void standby_preload_tlb(void);
 extern char *__bss_start;
 extern char *__bss_end;
 extern char *__standby_start;
@@ -56,6 +58,13 @@ int main(struct aw_pm_info *arg)
         /* standby parameter is invalid */
         return -1;
     }
+
+    /* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
+       The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
+    standby_flush_tlb();
+    /* preload tlb for standby */
+    standby_preload_tlb();
+
     /* clear bss segment */
     do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
 
@@ -146,6 +155,9 @@ int main(struct aw_pm_info *arg)
 */
 static void standby(void)
 {
+    /* gating off dram clock */
+    standby_clk_dramgating(0);
+
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
     standby_clk_plldisable();
@@ -188,8 +200,9 @@ static void standby(void)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
     /* delay 1ms for power be stable */
-    standby_delay(10);
+    standby_delay(20);
     standby_clk_hoscenable();
+    standby_delay(50);
     #endif
     /* switch clock to LOSC */
     standby_clk_core2hosc();
@@ -211,13 +224,17 @@ static void standby(void)
     standby_set_voltage(POWER_VOL_LDO2, ldo2);
     standby_set_voltage(POWER_VOL_LDO3, ldo3);
     standby_set_voltage(POWER_VOL_LDO4, ldo4);
-    standby_mdelay(30);
+    standby_mdelay(10);
 
     /* enable pll */
     standby_clk_pllenable();
-    standby_mdelay(30);
+    standby_mdelay(10);
     /* switch cpu clock to core pll */
     standby_clk_core2pll();
+    standby_mdelay(10);
+
+    /* gating on dram clock */
+    standby_clk_dramgating(1);
 
     return;
 }

@@ -326,3 +326,29 @@ __s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div)
 
     return 0;
 }
+
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_dramgating
+*
+* Description: gating dram clock.
+*
+* Arguments  : onoff    dram clock gating on or off;
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+void standby_clk_dramgating(int onoff)
+{
+    if(onoff) {
+        CmuReg->DramGate.ClkOutputEn = 1;
+    }
+    else {
+        CmuReg->DramGate.ClkOutputEn = 0;
+    }
+}
+
+
+
+
