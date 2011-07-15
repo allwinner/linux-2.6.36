@@ -101,7 +101,7 @@ struct file_operations mali_fops =
 };
 
 
-struct clk *h_ahb_mali, *h_mali_clk, *h_video_pll1;
+struct clk *h_ahb_mali, *h_mali_clk, *h_ve_pll;
 
 int mali_driver_init(void)
 {
@@ -118,27 +118,26 @@ int mali_driver_init(void)
 	if(!h_mali_clk){
 		MALI_PRINT(("try to get mali clock failed!\n"));
 	}
-	//get video pll1 clock
-#if 1
-	h_video_pll1 = clk_get(NULL, "video_pll1");
-	if(!h_video_pll1){
-		MALI_PRINT(("try to get video pll1 clock failed!\n"));
-	}
-#endif
-#if 0
-	h_video_pll1 = clk_get(NULL, "ve_pll");
-	if(!h_video_pll1){
+
+	h_ve_pll = clk_get(NULL, "ve_pll");
+	if(!h_ve_pll){
 		MALI_PRINT(("try to get dram pll clock failed!\n"));
+	}
+
+#if 0
+	rate = 360000000;
+	if (clk_set_rate(h_ve_pll, rate)) {
+		MALI_PRINT(("try to set ve_pll = %d failed\n", rate));
 	}
 #endif
 
 	//set mali parent clock
-	if(clk_set_parent(h_mali_clk, h_video_pll1)){
+	if(clk_set_parent(h_mali_clk, h_ve_pll)){
 		MALI_PRINT(("try to get video pll1 clock failed!\n"));
 	}
 	
 	//set mali clock
-	rate = clk_get_rate(h_video_pll1);
+	rate = clk_get_rate(h_ve_pll);
 	rate /= 1;
 	if(clk_set_rate(h_mali_clk, rate)){
 		MALI_PRINT(("try to get video pll1 clock failed!\n"));
