@@ -38,6 +38,8 @@ struct videobuf_dma_contig_memory {
 		BUG();							    \
 	}
 
+// #define USE_DMA_CONTIG	
+
 static void
 videobuf_vm_open(struct vm_area_struct *vma)
 {
@@ -92,8 +94,10 @@ static void videobuf_vm_close(struct vm_area_struct *vma)
 				dev_dbg(q->dev, "buf[%d] freeing %p\n",
 					i, mem->vaddr);
 
+#ifdef USE_DMA_CONTIG
 				dma_free_coherent(q->dev, mem->size,
 						  mem->vaddr, mem->dma_handle);
+#endif // USE_DMA_CONTIG
 				mem->vaddr = NULL;
 			}
 
@@ -289,8 +293,15 @@ static int __videobuf_mmap_mapper(struct videobuf_queue *q,
 	MAGIC_CHECK(mem->magic, MAGIC_DC_MEM);
 
 	mem->size = PAGE_ALIGN(buf->bsize);
+	
+#ifdef USE_DMA_CONTIG
 	mem->vaddr = dma_alloc_coherent(q->dev, mem->size,
 					&mem->dma_handle, GFP_KERNEL);
+#else
+	mem->dma_handle = CONFIG_SW_SYSMEM_RESERVED_BASE + CONFIG_SW_SYSMEM_RESERVED_SIZE - 32*1024*1024 + buf->i * mem->size;
+	mem->vaddr = mem->dma_handle + 0x80000000;	// not used
+#endif
+
 	if (!mem->vaddr) {
 		dev_err(q->dev, "dma_alloc_coherent size %ld failed\n",
 			mem->size);

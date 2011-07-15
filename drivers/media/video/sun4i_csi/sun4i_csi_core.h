@@ -16,11 +16,11 @@
 //for internel driver debug
 #define DBG_EN   		0 	
 //debug level 0~3
-#define DBG_LEVEL 	3
+#define DBG_LEVEL 	0
 
 //for internel driver debug
 #if(DBG_EN==1)		
-#define csi_dbg(l,x,arg...) if(l >= DBG_LEVEL) printk("[CSI_DEBUG]"x,##arg)
+#define csi_dbg(l,x,arg...) if(l <= DBG_LEVEL) printk("[CSI_DEBUG]"x,##arg)
 #else
 #define csi_dbg(l,x,arg...) 
 #endif
