@@ -724,6 +724,42 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
     return 0;
 }
 
+int sdxc_send_manual_stop(struct awsmc_host* smc_host, struct mmc_request* request)
+{
+	struct mmc_data* data = request->data;
+	u32 cmd_val = SDXC_Start | SDXC_RspExp | SDXC_CheckRspCRC | MMC_STOP_TRANSMISSION;
+	u32 iflags = 0;
+	int ret = 0;
+	
+	if (!data || !data->stop)
+	{
+		awsmc_dbg_err("no stop cmd request\n");
+		return -1;
+	}
+
+	sdxc_int_disable(smc_host);
+	
+	sdc_write(SDXC_REG_CARG, 0);
+	sdc_write(SDXC_REG_CMDR, cmd_val);
+	do {
+		iflags = sdc_read(SDXC_REG_RINTR);
+	} while(!(iflags & (SDXC_CmdDone | SDXC_IntErrBit)));
+	
+	if (iflags & SDXC_IntErrBit)
+	{
+		awsmc_dbg_err("sdc %d send stop command failed\n", smc_host->pdev->id);
+		data->stop->error = ETIMEDOUT;
+		ret = -1;
+	}
+
+	sdc_write(SDXC_REG_RINTR, iflags);
+    data->stop->resp[0] = sdc_read(SDXC_REG_RESP0);
+	
+	sdxc_int_enable(smc_host);
+
+	return ret;
+}
+
 /*********************************************************************
 * Method	 :  
 * Description:  
@@ -983,6 +1019,12 @@ _out_:
 
     awsmc_dbg("smc %d done, resp %08x %08x %08x %08x\n", smc_host->pdev->id, req->cmd->resp[0], req->cmd->resp[1], req->cmd->resp[2], req->cmd->resp[3]);
     
+	if (req->data && req->data->stop && (smc_host->int_sum & SDXC_IntErrBit))
+	{
+		awsmc_msg("found data error, need to send stop command !!\n");
+		sdxc_send_manual_stop(smc_host, req);
+	}
+
     return ret;
 }
 
