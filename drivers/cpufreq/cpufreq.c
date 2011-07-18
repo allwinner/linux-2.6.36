@@ -1992,7 +1992,9 @@ EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 void cpufreq_user_event_notify(void)
 {
 	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-    policy->governor->governor(policy, CPUFREQ_GOV_USRENET);
+	if(policy && policy->governor) {
+        policy->governor->governor(policy, CPUFREQ_GOV_USRENET);
+    }
 }
 EXPORT_SYMBOL_GPL(cpufreq_user_event_notify);
 #endif
