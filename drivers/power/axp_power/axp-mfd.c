@@ -39,6 +39,7 @@ static void axp_mfd_irq_work(struct work_struct *work)
 	enable_irq(chip->client->irq);
 }
 
+#if 0
 static int axp_mfd_irq_handler(int irq, void *data)
 {
 	struct axp_mfd_chip *chip = data;
@@ -48,6 +49,7 @@ static int axp_mfd_irq_handler(int irq, void *data)
 
 	return IRQ_HANDLED;
 }
+#endif
 
 static struct axp_mfd_chip_ops axp_mfd_ops[] = {
 	[0] = {

@@ -270,12 +270,12 @@ int cedardev_check_delay(int check_prio)
 
 #ifdef CHIP_VERSION_F23
 static unsigned int g_ctx_reg0;
-static void save_context()
+static void save_context(void)
 {
 	g_ctx_reg0 = readl(0xf1c20e00);
 }
 
-static void restore_context()
+static void restore_context(void)
 {
 	writel(g_ctx_reg0, 0xf1c20e00);
 }

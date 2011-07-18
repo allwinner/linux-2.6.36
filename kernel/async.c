@@ -121,6 +121,7 @@ static void async_run_entry_fn(struct work_struct *work)
 	unsigned long flags;
 	ktime_t calltime, delta, rettime;
 
+	calltime.tv64 = 0;
 	/* 1) move self to the running queue */
 	spin_lock_irqsave(&async_lock, flags);
 	list_move_tail(&entry->list, entry->running);
@@ -268,6 +269,8 @@ void async_synchronize_cookie_domain(async_cookie_t cookie,
 				     struct list_head *running)
 {
 	ktime_t starttime, delta, endtime;
+
+	starttime.tv64 = 0;
 
 	if (initcall_debug && system_state == SYSTEM_BOOTING) {
 		printk("async_waiting @ %i\n", task_pid_nr(current));

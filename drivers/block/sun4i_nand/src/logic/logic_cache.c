@@ -112,7 +112,7 @@ __s32 _flush_w_cache(void)
 
 __s32 NAND_CacheFlush(void)
 {
-	__u32	i;
+	//__u32	i;
 
 	_flush_w_cache();
 

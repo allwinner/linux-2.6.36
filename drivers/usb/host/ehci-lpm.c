@@ -17,6 +17,7 @@
 */
 
 /* this file is part of ehci-hcd.c */
+#if 0
 static int ehci_lpm_set_da(struct ehci_hcd *ehci, int dev_addr, int port_num)
 {
 	u32 __iomem portsc;
@@ -81,3 +82,4 @@ static int ehci_lpm_check(struct ehci_hcd *ehci, int port)
 
 	return retval;
 }
+#endif

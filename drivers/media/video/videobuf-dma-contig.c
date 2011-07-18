@@ -299,7 +299,7 @@ static int __videobuf_mmap_mapper(struct videobuf_queue *q,
 					&mem->dma_handle, GFP_KERNEL);
 #else
 	mem->dma_handle = CONFIG_SW_SYSMEM_RESERVED_BASE + CONFIG_SW_SYSMEM_RESERVED_SIZE - 32*1024*1024 + buf->i * mem->size;
-	mem->vaddr = mem->dma_handle + 0x80000000;	// not used
+	mem->vaddr = (void *)(mem->dma_handle + 0x80000000);	// not used
 #endif
 
 	if (!mem->vaddr) {
