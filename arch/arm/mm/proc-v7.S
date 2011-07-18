@@ -263,8 +263,8 @@ __v7_setup:
 #endif
 
 3:
-#ifdef CONFIG_ARCH_SUN4I			@ config L2 Cache Auxiliary Control Register, data ram latency to 3 cycles
-	mrc	p15, 1, r10, c9, c0, 2
+#ifdef CONFIG_ARCH_SUN4I
+	mrc	p15, 1, r10, c9, c0, 2 @ config L2 Cache Auxiliary Control Register, data ram latency to 3 cycles
 	bic	r10, r10, #0x000f
 	orr	r10, r10, #0x0002
 	mcr	p15, 1, r10, c9, c0, 2
