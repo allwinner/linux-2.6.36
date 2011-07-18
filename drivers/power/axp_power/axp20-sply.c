@@ -33,7 +33,8 @@
 
 static DEFINE_MUTEX(twi_mutex);
 
-#define DBG_AXP_PSY	 1
+//#define DBG_AXP_PSY	 1
+
 #if  DBG_AXP_PSY
 #define DBG_PSY_MSG(format,args...)   printk("[AXP]"format,##args)
 #else
