@@ -36,7 +36,7 @@ all:
 	$(CROSS_COMPILE)objdump -D $(OUPUTFILE).elf > $(OUPUTFILE).lst
 	$(CROSS_COMPILE)objcopy -O binary $(OUPUTFILE).elf $(OUPUTFILE).bin
 
-	rm -rf *.o ../standby/*.o
+	rm -rf *.o ../*.o
 
 	cp standby.bin standby.code
 
