@@ -120,14 +120,14 @@ config CPU_FREQ_DEFAULT_GOV_INTERACTIVE
 	  loading your cpufreq low-level hardware driver, using the
 	  'interactive' governor for latency-sensitive workloads.
 
-config CPU_FREQ_DEFAULT_GOV_FANTACY
-	bool "fantacy"
-	select CPU_FREQ_GOV_FANTACY
+config CPU_FREQ_DEFAULT_GOV_FANTASY
+	bool "fantasy"
+	select CPU_FREQ_GOV_FANTASY
 	help
-	  Use the CPUFreq governor 'fantacy' as default. This allows
+	  Use the CPUFreq governor 'fantasy' as default. This allows
 	  you to get a full dynamic cpu frequency capable system by simply
 	  loading your cpufreq low-level hardware driver, using the
-	  'fantacy' governor for latency-sensitive workloads.
+	  'fantasy' governor for latency-sensitive workloads.
 
 endchoice
 
@@ -215,11 +215,11 @@ config CPU_FREQ_GOV_CONSERVATIVE
 
 	  If in doubt, say N.
 
-config CPU_FREQ_GOV_FANTACY
-	tristate "'fantacy' cpufreq policy governor"
+config CPU_FREQ_GOV_FANTASY
+	tristate "'fantasy' cpufreq policy governor"
 	select CPU_FREQ_TABLE
 	help
-	  'fantacy' - This driver adds a dynamic cpufreq policy governor.
+	  'fantasy' - This driver adds a dynamic cpufreq policy governor.
 	  The governor does a periodic polling and
 	  changes frequency based on the CPU utilization.
 	  The support for this governor depends on CPU capability to
@@ -227,7 +227,7 @@ config CPU_FREQ_GOV_FANTACY
 	  transitions).
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called cpufreq_fantacy.
+	  module will be called cpufreq_fantasy.
 
 	  For details, take a look at linux/Documentation/cpu-freq.
 

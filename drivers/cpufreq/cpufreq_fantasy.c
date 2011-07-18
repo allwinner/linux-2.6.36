@@ -7,7 +7,7 @@
 *                                    (c) Copyright 2006-2011, kevin.z China
 *                                             All Rights Reserved
 *
-* File    : cpufreq_fantacy.c
+* File    : cpufreq_fantasy.c
 * By      : kevin.z
 * Version : v1.0
 * Date    : 2011-7-9 11:07
@@ -29,8 +29,8 @@
 #include <linux/sched.h>
 
 
-#define FANTACY_CPUFREQ_IDLE_MAX_RATE       (30)    /* idle rate coarse adjust for cpu frequency down   */
-#define FANTACY_CPUFREQ_IDLE_MIN_RATE       (5)     /* minimum rate for idle task, if idle rate is less
+#define FANTASY_CPUFREQ_IDLE_MAX_RATE       (30)    /* idle rate coarse adjust for cpu frequency down   */
+#define FANTASY_CPUFREQ_IDLE_MIN_RATE       (5)     /* minimum rate for idle task, if idle rate is less
                                                        than this value, should adjust cpu frequency to
                                                        the mauximum value */
 #define LATENCY_MULTIPLIER                  (1000)  /* latency multiplier                               */
@@ -39,13 +39,13 @@
 #define IOWAIT_IS_BUSY                      (1)     /* io wait time should be counted in idle time      */
 
 
-enum cpufreq_fantacy_step {
-    CPUFREQ_FANTACY_STEP1,      /* step1 for fantacy policy, adjust cpu frequency to the maximum value      */
-    CPUFREQ_FANTACY_STEP2,      /* step2 for fantacy policy, adjust cpu frequency to the 2nd maximum value  */
-    CPUFREQ_FANTACY_STEP3,      /* step3 for fantacy policy, adjust cpu frequency to the value which keep
-                                   CPU idle rate upto FANTACY_CPUFREQ_IDLE_MAX_RATE  */
-    CPUFREQ_FANTACY_STEP4,      /* step4 for fantacy policy, adjust cpu frequency down, step by step, the
-                                   idle rate will be closed to FANTACY_CPUFREQ_IDLE_MIN_RATE    */
+enum cpufreq_fantasy_step {
+    CPUFREQ_FANTASY_STEP1,      /* step1 for fantasy policy, adjust cpu frequency to the maximum value      */
+    CPUFREQ_FANTASY_STEP2,      /* step2 for fantasy policy, adjust cpu frequency to the 2nd maximum value  */
+    CPUFREQ_FANTASY_STEP3,      /* step3 for fantasy policy, adjust cpu frequency to the value which keep
+                                   CPU idle rate upto FANTASY_CPUFREQ_IDLE_MAX_RATE  */
+    CPUFREQ_FANTASY_STEP4,      /* step4 for fantasy policy, adjust cpu frequency down, step by step, the
+                                   idle rate will be closed to FANTASY_CPUFREQ_IDLE_MIN_RATE    */
 };
 /*
 state machine for the 4 step is following:
@@ -63,11 +63,11 @@ state machine for the 4 step is following:
 static void do_dbs_timer(struct work_struct *work);
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int event);
 
-#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_FANTACY
+#ifndef CONFIG_CPU_FREQ_DEFAULT_GOV_FANTASY
 static
 #endif
-struct cpufreq_governor cpufreq_gov_fantacy = {
-       .name                   = "fantacy",
+struct cpufreq_governor cpufreq_gov_fantasy = {
+       .name                   = "fantasy",
        .governor               = cpufreq_governor_dbs,
        .max_transition_latency = TRANSITION_LATENCY_LIMIT,
        .owner                  = THIS_MODULE,
@@ -81,9 +81,9 @@ static struct cpu_dbs_info_s {
     struct cpufreq_policy *cur_policy;  /* current policy                       */
     struct cpufreq_frequency_table *freq_table; /* cpu frequency table          */
     struct mutex timer_mutex;   /* mutex for timer operation                    */
-    enum cpufreq_fantacy_step step;     /* policy state machine                 */
+    enum cpufreq_fantasy_step step;     /* policy state machine                 */
     struct delayed_work work;   /* timer proc for workqueue                     */
-} fantacy_dbs_info;
+} fantasy_dbs_info;
 
 
 static struct dbs_tuners {
@@ -93,18 +93,18 @@ static struct dbs_tuners {
     .sampling_rate = TRANSITION_LATENCY_LIMIT,      /* default sample rate is                       */
 };
 
-static struct workqueue_struct    *kfantacy_wq;     /* work queue for process cpu dynamic frequency */
+static struct workqueue_struct    *kfantasy_wq;     /* work queue for process cpu dynamic frequency */
 
 static DEFINE_MUTEX(dbs_mutex); /* mutex for protect dbs start/stop                                 */
 
-#undef FANTACY_DBG
-#undef FANTACY_ERR
+#undef FANTASY_DBG
+#undef FANTASY_ERR
 #if (0)
-    #define FANTACY_DBG(format,args...)   printk("[fantacy]"format,##args)
-    #define FANTACY_ERR(format,args...)   printk("[fantacy]"format,##args)
+    #define FANTASY_DBG(format,args...)   printk("[fantasy]"format,##args)
+    #define FANTASY_ERR(format,args...)   printk("[fantasy]"format,##args)
 #else
-    #define FANTACY_DBG(format,args...)   do{}while(0)
-    #define FANTACY_ERR(format,args...)   do{}while(0)
+    #define FANTASY_DBG(format,args...)   do{}while(0)
+    #define FANTASY_ERR(format,args...)   do{}while(0)
 #endif
 
 
@@ -215,10 +215,10 @@ static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu, cputime64_t 
 */
 static inline cputime64_t get_cpu_idle_time(cputime64_t *wall)
 {
-    u64 idle_time = get_cpu_idle_time_us(fantacy_dbs_info.cur_policy->cpu, wall);
+    u64 idle_time = get_cpu_idle_time_us(fantasy_dbs_info.cur_policy->cpu, wall);
 
     if (idle_time == -1ULL)
-        return get_cpu_idle_time_jiffy(fantacy_dbs_info.cur_policy->cpu, wall);
+        return get_cpu_idle_time_jiffy(fantasy_dbs_info.cur_policy->cpu, wall);
 
     return idle_time;
 }
@@ -240,7 +240,7 @@ static inline cputime64_t get_cpu_idle_time(cputime64_t *wall)
 */
 static inline cputime64_t get_cpu_iowait_time(cputime64_t *wall)
 {
-    u64 iowait_time = get_cpu_iowait_time_us(fantacy_dbs_info.cur_policy->cpu, wall);
+    u64 iowait_time = get_cpu_iowait_time_us(fantasy_dbs_info.cur_policy->cpu, wall);
 
     if (iowait_time == -1ULL)
         return 0;
@@ -269,88 +269,88 @@ static void do_dbs_timer(struct work_struct *work)
     int delay = usecs_to_jiffies(dbs_tuners_ins.sampling_rate);
     unsigned int freq_cur;
 
-    mutex_lock(&fantacy_dbs_info.timer_mutex);
+    mutex_lock(&fantasy_dbs_info.timer_mutex);
 
     /* get current frequency */
-    freq_cur = cpufreq_quick_get(fantacy_dbs_info.cur_policy->cpu);
-    FANTACY_DBG("current cpu frequency is:%d\n", freq_cur);
+    freq_cur = cpufreq_quick_get(fantasy_dbs_info.cur_policy->cpu);
+    FANTASY_DBG("current cpu frequency is:%d\n", freq_cur);
 
-    switch (fantacy_dbs_info.step) {
+    switch (fantasy_dbs_info.step) {
 
-        case CPUFREQ_FANTACY_STEP1: {
-            FANTACY_DBG("step1 : set cpu frequency to max value (%d)\n", fantacy_dbs_info.cur_policy->max);
-            if(freq_cur != fantacy_dbs_info.cur_policy->max) {
+        case CPUFREQ_FANTASY_STEP1: {
+            FANTASY_DBG("step1 : set cpu frequency to max value (%d)\n", fantasy_dbs_info.cur_policy->max);
+            if(freq_cur != fantasy_dbs_info.cur_policy->max) {
                 /* adjust cpu frequncy to the maximum value */
-                __cpufreq_driver_target(fantacy_dbs_info.cur_policy, fantacy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
+                __cpufreq_driver_target(fantasy_dbs_info.cur_policy, fantasy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
             }
-            fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP2;
+            fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP2;
             break;
         }
 
-        case CPUFREQ_FANTACY_STEP2: {
+        case CPUFREQ_FANTASY_STEP2: {
             /* adjust cpu frequncy to the maximum value */
-            FANTACY_DBG("step2 : set cpu frequency to second max value\n");
-            __cpufreq_driver_target(fantacy_dbs_info.cur_policy, freq_cur-1000, CPUFREQ_RELATION_L);
-            fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP3;
+            FANTASY_DBG("step2 : set cpu frequency to second max value\n");
+            __cpufreq_driver_target(fantasy_dbs_info.cur_policy, freq_cur-1000, CPUFREQ_RELATION_L);
+            fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP3;
             break;
         }
 
-        case CPUFREQ_FANTACY_STEP3: {
+        case CPUFREQ_FANTASY_STEP3: {
             cputime64_t cur_wall_time, cur_idle_time, cur_iowait_time;
             unsigned int idle_time, wall_time, iowait_time;
             unsigned int freq_target;
 
-            FANTACY_DBG("step3 : set cpu frequency\n");
+            FANTASY_DBG("step3 : set cpu frequency\n");
 
             /* get idle time, io-wait time, and cpu run total time */
             cur_idle_time = get_cpu_idle_time(&cur_wall_time);
             cur_iowait_time = get_cpu_iowait_time(&cur_wall_time);
             /* calculate idle/io-wait/total run time in last statistic cycle */
-            wall_time = (unsigned int) cputime64_sub(cur_wall_time, fantacy_dbs_info.prev_cpu_wall);
-            idle_time = (unsigned int) cputime64_sub(cur_idle_time, fantacy_dbs_info.prev_cpu_idle);
-            iowait_time = (unsigned int) cputime64_sub(cur_iowait_time, fantacy_dbs_info.prev_cpu_iowait);
+            wall_time = (unsigned int) cputime64_sub(cur_wall_time, fantasy_dbs_info.prev_cpu_wall);
+            idle_time = (unsigned int) cputime64_sub(cur_idle_time, fantasy_dbs_info.prev_cpu_idle);
+            iowait_time = (unsigned int) cputime64_sub(cur_iowait_time, fantasy_dbs_info.prev_cpu_iowait);
             if(dbs_tuners_ins.io_is_busy) {
                 idle_time += iowait_time;
             }
             /* update parameters */
-            fantacy_dbs_info.prev_cpu_wall = cur_wall_time;
-            fantacy_dbs_info.prev_cpu_idle = cur_idle_time;
-            fantacy_dbs_info.prev_cpu_iowait = cur_iowait_time;
+            fantasy_dbs_info.prev_cpu_wall = cur_wall_time;
+            fantasy_dbs_info.prev_cpu_idle = cur_idle_time;
+            fantasy_dbs_info.prev_cpu_iowait = cur_iowait_time;
 
-            FANTACY_DBG("wall_time = %d, idle_time = %d, idle rate is:%d\n", wall_time, idle_time, idle_time*100/wall_time);
+            FANTASY_DBG("wall_time = %d, idle_time = %d, idle rate is:%d\n", wall_time, idle_time, idle_time*100/wall_time);
 
             /* check idle rate */
-            if(idle_time*100 > wall_time*FANTACY_CPUFREQ_IDLE_MAX_RATE) {
+            if(idle_time*100 > wall_time*FANTASY_CPUFREQ_IDLE_MAX_RATE) {
                 /* idle rate is higher than the max idle rate, so, try to decrase the cpu frequency */
-               freq_target = __ulldiv((u64)freq_cur*(wall_time-idle_time)*100, wall_time*(100-FANTACY_CPUFREQ_IDLE_MAX_RATE));
+               freq_target = __ulldiv((u64)freq_cur*(wall_time-idle_time)*100, wall_time*(100-FANTASY_CPUFREQ_IDLE_MAX_RATE));
                 /* set target frequency */
-                __cpufreq_driver_target(fantacy_dbs_info.cur_policy, freq_target, CPUFREQ_RELATION_L);
-                FANTACY_DBG("set cpu frequency to %d\n", freq_target);
-                fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP3;
+                __cpufreq_driver_target(fantasy_dbs_info.cur_policy, freq_target, CPUFREQ_RELATION_L);
+                FANTASY_DBG("set cpu frequency to %d\n", freq_target);
+                fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP3;
             }
-            else if(idle_time*100 < wall_time*FANTACY_CPUFREQ_IDLE_MIN_RATE) {
+            else if(idle_time*100 < wall_time*FANTASY_CPUFREQ_IDLE_MIN_RATE) {
                 /* adjust cpu frequncy to the maximum value */
-                __cpufreq_driver_target(fantacy_dbs_info.cur_policy, fantacy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
-                FANTACY_DBG("set cpu frequency to %d\n", fantacy_dbs_info.cur_policy->max);
-                fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP2;
+                __cpufreq_driver_target(fantasy_dbs_info.cur_policy, fantasy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
+                FANTASY_DBG("set cpu frequency to %d\n", fantasy_dbs_info.cur_policy->max);
+                fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP2;
             }
             else {
                 /* cpu frequency is in the valid threshold, do nothing */
-                FANTACY_DBG("do nothing for cpu frequency change\n");
+                FANTASY_DBG("do nothing for cpu frequency change\n");
             }
 
-            fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP3;
+            fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP3;
             break;
         }
 
-        case CPUFREQ_FANTACY_STEP4: {
+        case CPUFREQ_FANTASY_STEP4: {
             /* don't process cpu frequency nice ajust now */
             break;
         }
     }
 
-    queue_delayed_work(kfantacy_wq, &fantacy_dbs_info.work, delay);
-    mutex_unlock(&fantacy_dbs_info.timer_mutex);
+    queue_delayed_work(kfantasy_wq, &fantasy_dbs_info.work, delay);
+    mutex_unlock(&fantasy_dbs_info.timer_mutex);
 }
 
 
@@ -374,7 +374,7 @@ static void dbs_timer_init(struct cpu_dbs_info_s *dbs_info)
     int delay = usecs_to_jiffies(dbs_tuners_ins.sampling_rate);
     /* init workqueue for process cpu frequency */
     INIT_DELAYED_WORK_DEFERRABLE(&dbs_info->work, do_dbs_timer);
-    queue_delayed_work(kfantacy_wq, &dbs_info->work, delay);
+    queue_delayed_work(kfantasy_wq, &dbs_info->work, delay);
 }
 
 
@@ -416,7 +416,7 @@ static void dbs_timer_exit(struct cpu_dbs_info_s *dbs_info)
 static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int event)
 {
     unsigned int    cpu = policy->cpu;
-    struct cpu_dbs_info_s *this_dbs_info = &fantacy_dbs_info;
+    struct cpu_dbs_info_s *this_dbs_info = &fantasy_dbs_info;
     unsigned int    latency;
 
     switch (event){
@@ -438,7 +438,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             /* init mutex for protecting timer process */
             mutex_init(&this_dbs_info->timer_mutex);
             /* init tuners state machine */
-            fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP1;
+            fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP1;
             /* init timer for prccess cpu-frequencyh */
             dbs_timer_init(this_dbs_info);
             break;
@@ -458,9 +458,9 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
             /* cpu frequency limitation has changed, adjust current frequency */
             mutex_lock(&this_dbs_info->timer_mutex);
             /* set cpu frequenc to the max value, and reset state machine */
-            __cpufreq_driver_target(fantacy_dbs_info.cur_policy, fantacy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
+            __cpufreq_driver_target(fantasy_dbs_info.cur_policy, fantasy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
             /* reset tuners state machine */
-            fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP1;
+            fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP1;
             mutex_unlock(&this_dbs_info->timer_mutex);
             break;
         }
@@ -469,15 +469,15 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
         case CPUFREQ_GOV_USRENET: {
             /* cpu frequency limitation has changed, adjust current frequency */
             if(!mutex_trylock(&this_dbs_info->timer_mutex)) {
-                FANTACY_DBG("CPUFREQ_GOV_USRENET try to lock mutex failed!\n");
+                FANTASY_DBG("CPUFREQ_GOV_USRENET try to lock mutex failed!\n");
                 /* reset tuners state machine */
-                fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP1;
+                fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP1;
                 break;
             }
             /* set cpu frequenc to the max value, and reset state machine */
-            __cpufreq_driver_target(fantacy_dbs_info.cur_policy, fantacy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
+            __cpufreq_driver_target(fantasy_dbs_info.cur_policy, fantasy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
             /* reset tuners state machine */
-            fantacy_dbs_info.step = CPUFREQ_FANTACY_STEP1;
+            fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP1;
             mutex_unlock(&this_dbs_info->timer_mutex);
             break;
         }
@@ -491,7 +491,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy, unsigned int even
 *********************************************************************************************************
 *                           cpufreq_gov_dbs_init
 *
-*Description: fantacy cpu-freq governor initialise.
+*Description: fantasy cpu-freq governor initialise.
 *
 *Arguments  : none
 *
@@ -506,15 +506,15 @@ static int __init cpufreq_gov_dbs_init(void)
     int     err;
 
     /* create work queue for process cpu frequency policy */
-    kfantacy_wq = create_workqueue("kfantacy");
-    if (!kfantacy_wq) {
-        printk(KERN_ERR "Creation of kfantacy failed\n");
+    kfantasy_wq = create_workqueue("kfantasy");
+    if (!kfantasy_wq) {
+        printk(KERN_ERR "Creation of kfantasy failed\n");
         return -EFAULT;
     }
     /* register cpu frequency governor into cpu-freq core */
-    err = cpufreq_register_governor(&cpufreq_gov_fantacy);
+    err = cpufreq_register_governor(&cpufreq_gov_fantasy);
     if (err) {
-        destroy_workqueue(kfantacy_wq);
+        destroy_workqueue(kfantasy_wq);
     }
 
     return err;
@@ -525,7 +525,7 @@ static int __init cpufreq_gov_dbs_init(void)
 *********************************************************************************************************
 *                           cpufreq_gov_dbs_exit
 *
-*Description: fantacy cpu-freq governor exit.
+*Description: fantasy cpu-freq governor exit.
 *
 *Arguments  : none
 *
@@ -538,18 +538,18 @@ static int __init cpufreq_gov_dbs_init(void)
 static void __exit cpufreq_gov_dbs_exit(void)
 {
     /* unregister cpu frequency governor */
-    cpufreq_unregister_governor(&cpufreq_gov_fantacy);
+    cpufreq_unregister_governor(&cpufreq_gov_fantasy);
     /* destroy work queue */
-    destroy_workqueue(kfantacy_wq);
+    destroy_workqueue(kfantasy_wq);
 }
 
 
 
 MODULE_AUTHOR("kevin.z.m <kevin@allwinnertech.com>");
-MODULE_DESCRIPTION("'cpufreq_fantacy' - A good cpu frequency policy");
+MODULE_DESCRIPTION("'cpufreq_fantasy' - A good cpu frequency policy");
 MODULE_LICENSE("GPL");
 
-#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_FANTACY
+#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_FANTASY
 fs_initcall(cpufreq_gov_dbs_init);
 #else
 module_init(cpufreq_gov_dbs_init);
