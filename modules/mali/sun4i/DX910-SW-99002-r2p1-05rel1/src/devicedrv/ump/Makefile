@@ -21,7 +21,7 @@ endif
 
 ARCH ?= arm
 ## @note Should allow overriding of building UMP for non-debug:
-EXTRA_CFLAGS += -DDEBUG
+# EXTRA_CFLAGS += -DDEBUG
 
 # linux build system integration
 
