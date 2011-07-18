@@ -27,7 +27,7 @@ symver: ic
 	$(Q)cp kernel/ic/Module.symvers kernel/$(TRANSPORT)
 
 ic: obj
-	sh $(HOSTDRIVER_DIR)/update-release-tag.sh $(HOSTDRIVER_DIR)
+#	sh $(HOSTDRIVER_DIR)/update-release-tag.sh $(HOSTDRIVER_DIR)
 	make -C kernel/ic -f $(MAKEFILE) PLATFORM=$(PLATFORM) V=$(V) all strip
 	$(Q)for f in kernel/ic/nano_if.mod kernel/ic/nano_if.ko; do \
 		if test -f $$f; then \
