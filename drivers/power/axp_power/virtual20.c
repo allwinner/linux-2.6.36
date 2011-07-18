@@ -327,37 +327,37 @@ static struct platform_driver regulator_virtual_consumer_driver[] = {
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-virt-cs-ldo2",
+			.name		= "reg-20-cs-ldo2",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-virt-cs-ldo3",
+			.name		= "reg-20-cs-ldo3",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-virt-cs-ldo4",
+			.name		= "reg-20-cs-ldo4",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-virt-cs-buck2",
+			.name		= "reg-20-cs-buck2",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-virt-cs-buck3",
+			.name		= "reg-20-cs-buck3",
 		},
 	},{
 		.probe		= regulator_virtual_consumer_probe,
 		.remove		= regulator_virtual_consumer_remove,
 		.driver		= {
-			.name		= "reg-virt-cs-ldoio0",
+			.name		= "reg-20-cs-ldoio0",
 		},
 	},
 };

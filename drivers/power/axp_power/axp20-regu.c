@@ -115,7 +115,7 @@ static int axp_list_voltage(struct regulator_dev *rdev, unsigned selector)
 	int ret;
 
 	if(info->desc.id == AXP20_ID_LDO4)
-		return axp20_ldo4_data[selector];
+		return axp20_ldo4_data[selector] * 1000;
 	
 	ret = info->min_uV + info->step_uV * selector;
 	if (ret > info->max_uV)
@@ -272,7 +272,7 @@ static struct axp_regulator_info axp_regulator_info[] = {
 	AXP20_LDO(	1,	AXP20LDO1,	AXP20LDO1,	0,		LDO1,	0,	0,	LDO1EN,	0),//ldo1 for rtc
 	AXP20_LDO(	2,	1800,		3300,		100,	LDO2,	4,	4,	LDO2EN,	2),//ldo2 for analog1 
 	AXP20_LDO(	3,	700,		3500,		25,		LDO3,	0,	7,	LDO3EN,	6),//ldo3 for digital
-	AXP20_LDO(	4,	1250,		3300,		100,	LDO4,	0,	4,	LDO4EN,	3),//ldo4 for analog2
+	AXP20_LDO(	4,	1250,		3300,		130,	LDO4,	0,	4,	LDO4EN,	3),//ldo4 for analog2
 	AXP20_BUCK(	2,	700,		2275,		25,		BUCK2,	0,	6,	BUCK2EN,4),//buck2 for core
 	AXP20_BUCK(	3,	700,		3500,		25,		BUCK3,	0,	7,	BUCK3EN,1),//buck3 for memery
 	AXP20_LDO(	IO0,1800,		3300,		100,	LDOIO0,	4,	4,	LDOIOEN,0),//ldoio0 for mic

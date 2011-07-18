@@ -29,7 +29,7 @@ endchoice
 
 config AXP_CHARGEINIT
 	bool "AXP init charger set"
-	default y
+	default n
 
 
 endif # !AW_AXP

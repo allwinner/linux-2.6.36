@@ -380,6 +380,7 @@ struct axp_charger {
 };
 
 static struct task_struct *main_task;
-uint8_t coulomb_flag;
+static uint8_t coulomb_flag;
+static int counter = 0;
 
 #endif

@@ -11,37 +11,37 @@
 
 static struct platform_device virt[]={
 	{
-			.name = "reg-virt-cs-ldo2",
+			.name = "reg-20-cs-ldo2",
 			.id = -1,
 			.dev		= {
 				.platform_data = "axp20_analog/fm",
 			}
  	},{
-			.name = "reg-virt-cs-ldo3",
+			.name = "reg-20-cs-ldo3",
 			.id = -1,
 			.dev		= {
 				.platform_data = "axp20_pll",
 			}
  	},{
-			.name = "reg-virt-cs-ldo4",
+			.name = "reg-20-cs-ldo4",
 			.id = -1,
 			.dev		= {
 				.platform_data = "axp20_hdmi",
 			}
  	},{
-			.name = "reg-virt-cs-buck2",
+			.name = "reg-20-cs-buck2",
 			.id = -1,
 			.dev		= {
 				.platform_data = "axp20_core",
 			}
  	},{
-			.name = "reg-virt-cs-buck3",
+			.name = "reg-20-cs-buck3",
 			.id = -1,
 			.dev		= {
 				.platform_data = "axp20_ddr",
 			}
 	},{
-			.name = "reg-virt-cs-ldoio0",
+			.name = "reg-20-cs-ldoio0",
 			.id = -1,
 			.dev		= {
 				.platform_data = "axp20_mic",
