@@ -1,9 +1,23 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: anx7150.h   author:chenpailin  
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
 #ifndef ANX7150_H
 #define ANX7150_H
 
 typedef struct hdmi_audio
 {
-	__u8    hw_intf;        /* 0:iis  1:spdif 2:pcm */
+	__u8    hw_intf;        /* 0:i2s  1:spdif 2:pcm */
 	__u16	fs_between;     /* fs */
 	__u32   sample_rate;    /*sample rate*/  
 	__u8    clk_edge;       /* 0:*/
@@ -26,12 +40,7 @@ typedef struct
 }__audio_hdmi_func;
 
 
-/*
-************************************************************
-* display driver ioctl cmd definition
-*
-************************************************************
-*/
+// display driver ioctl cmd definition
 
 /*define display driver command*/
 typedef enum tag_HDMI_CMD
@@ -42,7 +51,7 @@ typedef enum tag_HDMI_CMD
 		HDMI_CMD_SET_AUDIO_PARA,
 		HDMI_CMD_AUDIO_RESET_NOTIFY,            /*iis reset finish notify    */
 		HDMI_CMD_CLOSE,                         /*iis reset finish notify    */
-		HDMI_CMD_MOD_SUPPORT,                   /*判断某一种hdmi模式是否支持*/
+		HDMI_CMD_MOD_SUPPORT,                   /*which mode HDMI support*/
 		HDMI_CMD_AUDIO_ENABLE,
 		HDMI_CMD_GET_HPD_STATUS,
 }__hdmi_cmd_t;

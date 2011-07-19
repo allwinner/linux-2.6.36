@@ -1,3 +1,18 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: sun4i-anx7150sp.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
 #include <linux/module.h>
 #include <linux/clk.h>
 #include <linux/mutex.h>
@@ -142,7 +157,6 @@ static int sun4i_anx7150sp_hw_params(struct snd_pcm_substream *substream,
 	unsigned long rate = params_rate(params);
 	u32 mclk_div=0, mpll=0, bclk_div=0, mult_fs=0;
 
-//	printk("[SPDIF]%s\n", __func__);
 	get_clock_divder(rate, 32, &mclk_div, &mpll, &bclk_div, &mult_fs);
 	
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |

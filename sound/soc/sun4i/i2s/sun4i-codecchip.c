@@ -1,3 +1,18 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: sun4i-codecchip.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
 #include <linux/module.h>
 #include <linux/clk.h>
 #include <linux/mutex.h>
@@ -166,7 +181,6 @@ static s32 get_clock_divder(u32 sample_rate, u32 sample_width, u32 * mclk_div, u
 					if((BCLK_INF[j].bitpersamp == sample_width) && (BCLK_INF[j].mult_fs == MCLK_INF[i].mult_fs))
 					{
 						 //set mclk and bclk division
-	//					 printk("[IIS]MCLK_INF[i].mult_fs: %d\n", MCLK_INF[i].mult_fs);
 						 *mclk_div = MCLK_INF[i].clk_div;
 						 *mpll = MCLK_INF[i].mpll;
 						 *bclk_div = BCLK_INF[j].clk_div;
@@ -180,7 +194,6 @@ static s32 get_clock_divder(u32 sample_rate, u32 sample_width, u32 * mclk_div, u
 		 	break;
 	}
 
-//	printk("[IIS]sample_rate: %d, sample_width: %d, mclk_div: %d, mpll: %d, bclk_div: %d\n", sample_rate, sample_width, *mclk_div, *mpll, *bclk_div);
 	return ret;
 }
 
@@ -194,10 +207,7 @@ static int sun4i_codecchip_hw_params(struct snd_pcm_substream *substream,
 	unsigned long rate = params_rate(params);
 	u32 mclk_div=0, mpll=0, bclk_div=0, mult_fs=0;
 
-//	printk("[IIS]Entered %s, line = %d\n", __func__, __LINE__);
-	
 	get_clock_divder(rate, 32, &mclk_div, &mpll, &bclk_div, &mult_fs);
-//	printk("[IIS]in get_clock_divider, rate = %d, mclk_div = %d, mpll = %d, bclk_div = %d, mclk_fs = %d\n", rate, mclk_div, mpll, bclk_div, mult_fs);
 	
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_I2S |
 			SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS);
@@ -262,22 +272,18 @@ static int sun4i_codecchip_probe(struct platform_device *pdev)
 {
 	int ret;
 	
-//	printk("[IIS]%s, %d\n", __FILE__, __LINE__);	
 	sun4i_codecchip_snd_device = platform_device_alloc("soc-audio", 2);
 	if (!sun4i_codecchip_snd_device) {
 		return -ENOMEM;
 	}
 
-//	printk("[IIS]%s, %d\n", __FILE__, __LINE__);	
 	platform_set_drvdata(sun4i_codecchip_snd_device,
 			     &sun4i_codecchip_snd_devdata);
 	sun4i_codecchip_snd_devdata.dev = &sun4i_codecchip_snd_device->dev;
 
-//	printk("[IIS]%s, %d\n", __FILE__, __LINE__);	
 	ret = platform_device_add(sun4i_codecchip_snd_device);
 
 	if (ret) {
-//		printk("[IIS]%s, %d\n", __FILE__, __LINE__);	
 		platform_device_put(sun4i_codecchip_snd_device);
 	}
 
@@ -306,13 +312,11 @@ struct platform_device sun4i_codecchip_device = {
 static int __init sun4i_codecchip_init(void)
 {
 	int ret;
-//	printk("[IIS]%s, %d\n", __FILE__, __LINE__);	
 	ret = platform_driver_register(&sun4i_codecchip_driver);
 	if (ret != 0){
 		goto err;
 	}
 
-//	printk("[IIS]%s, %d\n", __FILE__, __LINE__);	
 	ret = platform_device_register(&sun4i_codecchip_device);
 	if (ret != 0){
 		platform_driver_unregister(&sun4i_codecchip_driver);

@@ -1,3 +1,18 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: anx7150sp.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
@@ -116,7 +131,6 @@ static int anx7150sp_soc_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
-//	printk("[SPDIF]Entered %s, %s, %d\n", __func__, __FILE__, __LINE__);
 	snd_soc_free_pcms(socdev);
 
 	kfree(codec);
