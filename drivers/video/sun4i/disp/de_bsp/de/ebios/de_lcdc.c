@@ -1024,13 +1024,44 @@ __s32 TCON1_get_height(__u32 sel)
 }
 
 __s32 TCON1_set_gamma_table(__u32 sel, __u32 address,__u32 size)	//add next time
-{
-	return -1;	
+{	
+    __u32 tmp;
+
+	__s32 *pmem_align_dest;
+    __s32 *pmem_align_src;
+    __s32 *pmem_dest_cur;
+	
+    tmp = LCDC_RUINT32(sel, LCDC_GCTL_OFF);
+    LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp&(~(1<<30)));//disable gamma correction sel
+    
+	pmem_dest_cur = (__s32*)(LCDC_get_reg_base(sel)+LCDC_GAMMA_TABLE_OFF);
+	pmem_align_src = (__s32*)address;
+	pmem_align_dest = pmem_dest_cur + (size>>2);
+
+    while(pmem_dest_cur < pmem_align_dest)
+    {
+    	*(volatile __u32 *)pmem_dest_cur++ = *pmem_align_src++;
+    }
+
+    LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp);
+    
+    return 0;
 }
 
-__s32 TCON1_set_gamma_Enable(__u32 sel, __bool enable)	//add next time
+__s32 TCON1_set_gamma_Enable(__u32 sel, __bool enable)
 {
-	return -1;
+	__u32 tmp;
+
+	tmp = LCDC_RUINT32(sel, LCDC_GCTL_OFF);
+	if(enable)
+	{	
+		LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp| (1<<30));
+	}
+	else
+	{
+		LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp&(~(1<<30)));
+	}
+	return 0;
 }
 
 #define ____SEPARATOR_CPU____

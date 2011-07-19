@@ -6,8 +6,11 @@
 //  Description :  display engine scaler base functions implement for aw1623
 //     
 //  History       :
-//                 2011/05/03      zchmin       v0.1    Initial version
-//                 2011/05/13      vito            v0.2    added vpp function
+//                 2011/05/03      zchmin       v1.0    Initial version
+//                 2011/05/13      vito            v1.1    added vpp function
+//                 2011/05/25      zchmin       v1.2    redefine 3d inmode
+//                 2011/07/01      zchmin       v1.3    modify set scal coef error
+//                 2011/07/14      zchmin       v1.4    added input/output rg swap
 //******************************************************************************
 
 
@@ -721,7 +724,7 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
 
 
 //*********************************************************************************************
-// function         : DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs)
+// function         : DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u32  in_br_swap, __u32 out_br_swap)
 // description      : set scaler input/output color space convert coefficients
 // parameters       :
 //                 sel <scaler select>
@@ -733,10 +736,16 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
 //                 outcs <destination color space>
 //                 |    0  rgb
 //                 |    1  yuv
+//                 in_br_swap <swap b r component>
+//                 |    0  normal
+//                 |    1  swap enable, note: when input yuv, then u v swap
+//                 out_br_swap <swap output b r component>
+//                 |    0  normal
+//                 |    1  swap enable, note: when output yuv, then u v swap
 // return           : 
 //               success
 //*********************************************************************************************** 
-__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u8 br_swap)                                                                
+__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u32  in_br_swap, __u32 out_br_swap)                                                                
 {
     __u8  csc_pass;
     __u32 csc_coef_addr;
@@ -752,12 +761,14 @@ __s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 i
         }
         else
         {
+        	//out_br_swap = 0;
             csc_pass = 0x0;
             csc_coef_addr = (((in_csc_mode&0x3)<<7) + ((in_csc_mode&0x3)<<6)) + 0x60 + 0x30;
         }
     }
     else
     {
+    	//in_br_swap = 0;
         if(outcs == 0x0)
         {
             csc_pass = 0x00;
@@ -769,34 +780,23 @@ __s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 i
             csc_coef_addr = (((in_csc_mode&0x3)<<7) + ((in_csc_mode&0x3)<<6)) + 0x30;
         }
     }
-    if(br_swap)
+    
+    if(in_br_swap || out_br_swap)
+   	{
+   		csc_pass = 0;
+   	}
+   	if(!csc_pass)
     {
-        scal_dev[sel]->csc_coef[0].dwval = csc_tab[(csc_coef_addr>>2) + 0];
-        scal_dev[sel]->csc_coef[1].dwval = csc_tab[(csc_coef_addr>>2) + 2];
-        scal_dev[sel]->csc_coef[2].dwval = csc_tab[(csc_coef_addr>>2) + 1];
-        scal_dev[sel]->csc_coef[3].dwval = csc_tab[(csc_coef_addr>>2) + 3];
-        scal_dev[sel]->csc_coef[4].dwval = csc_tab[(csc_coef_addr>>2) + 4];
-        scal_dev[sel]->csc_coef[5].dwval = csc_tab[(csc_coef_addr>>2) + 6];
-        scal_dev[sel]->csc_coef[6].dwval = csc_tab[(csc_coef_addr>>2) + 5];
-        scal_dev[sel]->csc_coef[7].dwval = csc_tab[(csc_coef_addr>>2) + 7];
-        scal_dev[sel]->csc_coef[8].dwval = csc_tab[(csc_coef_addr>>2) + 8];
-        scal_dev[sel]->csc_coef[9].dwval = csc_tab[(csc_coef_addr>>2) + 10];
-        scal_dev[sel]->csc_coef[10].dwval = csc_tab[(csc_coef_addr>>2) + 9];
-        scal_dev[sel]->csc_coef[11].dwval = csc_tab[(csc_coef_addr>>2) + 11];
-
-        scal_dev[sel]->bypass.bits.csc_bypass_en = 0;
-    }
-    else 
-    {
-        if(!csc_pass)
+        for(i=0; i<4; i++)
         {
-            for(i=0; i<12; i++)
-            {
-                scal_dev[sel]->csc_coef[i].dwval = csc_tab[(csc_coef_addr>>2) + i];
-            }
+            scal_dev[sel]->csc_coef[i].dwval = csc_tab[(csc_coef_addr>>2) + i];
+			scal_dev[sel]->csc_coef[i+4 + out_br_swap * 4].dwval = csc_tab[(csc_coef_addr>>2) + i + 4 + in_br_swap * 4];
+			scal_dev[sel]->csc_coef[i+8 - out_br_swap * 4].dwval = csc_tab[(csc_coef_addr>>2) + i + 8 - in_br_swap * 4];
+			
         }
-        scal_dev[sel]->bypass.bits.csc_bypass_en = csc_pass;
     }
+    scal_dev[sel]->bypass.bits.csc_bypass_en = csc_pass;
+    
     
     return 0;
 }
@@ -1395,8 +1395,9 @@ __s32 iDE_SCAL_Csc_Lmt(__s32 *value, __s32 min, __s32 max, __s32 shift, __s32 va
 
 
 //*********************************************************************************************
-// function         : DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, 
-//                                                                __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue)
+// function         : DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs,
+//                                                   __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue,
+//                                                   __u32  in_br_swap, __u32 out_br_swap)
 // description      : set scaler input/output color space convert coefficients
 // parameters       :
 //                 sel <scaler select>
@@ -1412,11 +1413,18 @@ __s32 iDE_SCAL_Csc_Lmt(__s32 *value, __s32 min, __s32 max, __s32 shift, __s32 va
 //                 contrast <0 ~ 63> (0.0 ~ 2.0)*32, default 32
 //                 saturation<0~ 63> (0.0 ~ 2.0)*32, default 32
 //                 hue <0 ~ 63>  default 32
+//                 in_br_swap <swap b r component>
+//                 |    0  normal
+//                 |    1  swap enable, note: when input yuv, then u v swap
+//                 out_br_swap <swap output b r component>
+//                 |    0  normal
+//                 |    1  swap enable, note: when output yuv, then u v swap
 // return           : 
 //               success
 //*********************************************************************************************** 
 __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs,
-                                                   __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue)
+                                                   __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue,
+                                                   __u32  in_br_swap, __u32 out_br_swap)
 {
 	__scal_matrix4x4 matrixEn;
 	__scal_matrix4x4 matrixconv, *ptmatrix;
@@ -1509,11 +1517,14 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode
     iDE_SCAL_Csc_Lmt(&matrixresult.x23, -8191, 8191, 6, 16383);
 
     //write csc register
-    pt = &(matrixresult.x00);
-    for(i=0;i<12;i++)
+    pt = &(matrixresult.x00);	
+    for(i=0; i<4; i++)
     {
-        scal_dev[sel]->csc_coef[i].dwval= *(pt + i);
-    }
+        scal_dev[sel]->csc_coef[i].dwval = *(pt + i);
+		scal_dev[sel]->csc_coef[i+4 + out_br_swap * 4].dwval =  *(pt + i + 4 + in_br_swap * 4);
+		scal_dev[sel]->csc_coef[i+8 - out_br_swap * 4].dwval =  *(pt + i + 8 - in_br_swap * 4);
+	}
+    
     scal_dev[sel]->bypass.bits.csc_bypass_en = 0;
     
 	return 0;

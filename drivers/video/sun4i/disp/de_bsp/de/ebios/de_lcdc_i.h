@@ -78,6 +78,8 @@
 #define	LCDC_LVDS_ANA0			(0x220)
 #define	LCDC_LVDS_ANA1			(0x224)
 
+#define LCDC_GAMMA_TABLE_OFF    (0x400)
+
 #define LCDC_GET_REG_BASE(sel)    ((sel)==0?(lcdc_reg_base0):(lcdc_reg_base1))
 
 #define LCDC_WUINT32(sel,offset,value)          (*((volatile __u32 *)( LCDC_GET_REG_BASE(sel) + (offset) ))=(value))

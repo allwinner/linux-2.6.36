@@ -35,10 +35,11 @@
 #if 1
 #define __inf(msg...) do{}while(0)
 #define __msg(msg...) do{}while(0)
-
+#define __here__ do{}while(0)
 #else
 #define __inf(msg...) {printk("[HDMI] "); printk(msg);}
 #define __msg(msg...) {printk("[HDMI] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
+#define __here__      {printk("[HDMI] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
 
 

@@ -80,6 +80,7 @@ typedef struct
     __s32                   (*LCD_CPUIF_XY_Swap)(__s32 mode);
     void                    (*LCD_CPUIF_ISR)(void);
 	__u32	                pll_use_status;	//lcdc0/lcdc1 using which video pll(0 or 1)
+	__bool                  bl_not_open;
 }__disp_screen_t;
 
 typedef struct

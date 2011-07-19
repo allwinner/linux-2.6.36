@@ -467,13 +467,20 @@ typedef enum
 
 typedef struct
 {
-	__disp_layer_work_mode_t    mode;
 	__fb_mode_t                 fb_mode;
-	__u32                       b_double_buffer;
+	__disp_layer_work_mode_t    mode;
+	__u32                       buffer_num;
 	__u32                       width;
 	__u32                       height;
-	__u32                       primary_screen_id;//used when FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS
 	
+	__u32                       output_width;//used when scaler mode 
+	__u32                       output_height;//used when scaler mode
+	
+	__u32                       primary_screen_id;//used when FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS
+	__u32                       aux_output_width;//used when FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS
+	__u32                       aux_output_height;//used when FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS
+
+//maybe not used anymore
 	__u32                       line_length;//in byte unit
 	__u32                       smem_len;
 	__u32                       ch1_offset;//use when PLANAR or UV_COMBINED mode
@@ -593,8 +600,6 @@ typedef enum tag_DISP_CMD
     DISP_CMD_LCD_OFF = 0x141,
     DISP_CMD_LCD_SET_BRIGHTNESS = 0x142,
     DISP_CMD_LCD_GET_BRIGHTNESS = 0x143,
-    DISP_CMD_LCD_SET_COLOR = 0x144,
-    DISP_CMD_LCD_GET_COLOR = 0x145,
     DISP_CMD_LCD_CPUIF_XY_SWITCH = 0x146,
     DISP_CMD_LCD_CHECK_OPEN_FINISH = 0x14a,
     DISP_CMD_LCD_CHECK_CLOSE_FINISH = 0x14b,

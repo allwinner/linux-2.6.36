@@ -3,14 +3,14 @@
 #include "../hdmi_hal.h"
 #include "hdmi_interface.h"
 
-extern __u32 HDMI_BASE;
+extern volatile __u32 HDMI_BASE;
 
-#define HDMI_WUINT32(offset,value)  (*((volatile __u32 *)(HDMI_BASE + offset))=(value))
-#define HDMI_RUINT32(offset)        (*((volatile __u32 *)(HDMI_BASE + offset)))
-#define HDMI_WUINT16(offset,value)  (*((volatile __u16 *)(HDMI_BASE + offset))=(value))
-#define HDMI_RUINT16(offset)        (*((volatile __u16 *)(HDMI_BASE + offset)))
-#define HDMI_WUINT8(offset,value)  (*((volatile __u8 *)(HDMI_BASE + offset))=(value))
-#define HDMI_RUINT8(offset)        (*((volatile __u8 *)(HDMI_BASE + offset)))
+#define HDMI_WUINT32(offset,value)  writel(value, HDMI_BASE + offset)
+#define HDMI_RUINT32(offset)        readl(HDMI_BASE + offset)
+#define HDMI_WUINT16(offset,value)  writew(value, HDMI_BASE + offset)
+#define HDMI_RUINT16(offset)        readw(HDMI_BASE + offset)
+#define HDMI_WUINT8(offset,value)   writeb(value, HDMI_BASE + offset)
+#define HDMI_RUINT8(offset)         readb(HDMI_BASE + offset)
 
 #define HDMI_State_Idle 			0x00
 #define HDMI_State_Wait_Hpd			0x02
@@ -84,6 +84,7 @@ __s32 hdmi_core_open(void);
 __s32 hdmi_core_close(void);
 __s32 hdmi_main_task_loop(void);
 __s32 Hpd_Check(void);
+__s32 ParseEDID(void);
 __s32 get_video_info(__s32 vic);
 __s32 get_audio_info(__s32 sample_rate);
 __s32 video_config(__s32 vic);
@@ -96,5 +97,8 @@ extern __u32 hdmi_clk;
 void DDC_Init(void);
 void send_ini_sequence(void);
 void DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf);
+extern 	__u8		EDID_Buf[1024];
+extern 	__u8		Device_Support_VIC[256];
+
 #endif
 

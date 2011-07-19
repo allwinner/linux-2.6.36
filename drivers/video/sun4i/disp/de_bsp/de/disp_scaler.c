@@ -480,7 +480,7 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
     }
     else
     {
-	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap);
+	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap, 0);
 	}
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 	return DIS_SUCCESS;
@@ -556,7 +556,7 @@ __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *size)
     }
     else
     {
-	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap);
+	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap, 0);
 	}	
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 	DE_SCAL_Set_Out_Size(sel, &out_scan, &out_type, &out_size);
@@ -745,7 +745,7 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
     }
     else
     {
-	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap);
+	    DE_SCAL_Set_CSC_Coef(sel, scaler->in_fb.cs_mode, DISP_BT601, get_fb_type(scaler->in_fb.format), DISP_FB_TYPE_RGB, scaler->in_fb.br_swap, 0);
 	}	
 	DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, scaler->smooth_mode);
 	DE_SCAL_Set_Out_Format(sel, &out_type);
@@ -954,7 +954,7 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
     DE_SCAL_Config_Src(sel,&in_addr,&in_size,&in_type,FALSE,FALSE);
     DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
     DE_SCAL_Set_Init_Phase(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
-    DE_SCAL_Set_CSC_Coef(sel, para->input_fb.cs_mode, para->output_fb.cs_mode, get_fb_type(para->input_fb.format), get_fb_type(para->output_fb.format),  para->input_fb.br_swap);
+    DE_SCAL_Set_CSC_Coef(sel, para->input_fb.cs_mode, para->output_fb.cs_mode, get_fb_type(para->input_fb.format), get_fb_type(para->output_fb.format),  para->input_fb.br_swap, 0);
     DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, DISP_VIDEO_NATUAL);
     DE_SCAL_Set_Out_Format(sel, &out_type);
     DE_SCAL_Set_Out_Size(sel, &out_scan,&out_type, &out_size);
@@ -1104,7 +1104,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     DE_SCAL_Config_Src(scaler_idx,&in_addr,&in_size,&in_type,FALSE,FALSE);
     DE_SCAL_Set_Scaling_Factor(scaler_idx, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
     DE_SCAL_Set_Init_Phase(scaler_idx, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
-    DE_SCAL_Set_CSC_Coef(scaler_idx, DISP_BT601, para->output_fb.cs_mode, DISP_FB_TYPE_RGB, get_fb_type(para->output_fb.format), 0);
+    DE_SCAL_Set_CSC_Coef(scaler_idx, DISP_BT601, para->output_fb.cs_mode, DISP_FB_TYPE_RGB, get_fb_type(para->output_fb.format), 0, 0);
     DE_SCAL_Set_Scaling_Coef(scaler_idx, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, DISP_VIDEO_NATUAL);
     DE_SCAL_Set_Out_Format(scaler_idx, &out_type);
     DE_SCAL_Set_Out_Size(scaler_idx, &out_scan,&out_type, &out_size);
@@ -1169,7 +1169,7 @@ __s32 Scaler_Set_Enhance(__u32 sel, __u32 bright, __u32 contrast, __u32 saturati
     
     b_yuv_in = (get_fb_type(scaler->in_fb.format) == DISP_FB_TYPE_YUV)?1:0;
     b_yuv_out = (get_fb_type(scaler->out_fb.format) == DISP_FB_TYPE_YUV)?1:0;
-    DE_SCAL_Set_CSC_Coef_Enhance(sel, scaler->in_fb.cs_mode, scaler->out_fb.cs_mode, b_yuv_in, b_yuv_out, bright, contrast, saturation, hue);
+    DE_SCAL_Set_CSC_Coef_Enhance(sel, scaler->in_fb.cs_mode, scaler->out_fb.cs_mode, b_yuv_in, b_yuv_out, bright, contrast, saturation, hue, scaler->in_fb.br_swap, 0);
     scaler->b_reg_change = TRUE;
     
     return DIS_SUCCESS;

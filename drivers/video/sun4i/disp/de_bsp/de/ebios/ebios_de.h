@@ -238,7 +238,7 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
 __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_size_t *in_size,
                                __scal_src_type_t *in_type, __scal_scan_mod_t *out_scan, 
                                __scal_out_size_t *out_size, __scal_out_type_t *out_type, __u8 smth_mode);  
-__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u8 br_swap);
+__s32 DE_SCAL_Set_CSC_Coef(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs, __u32  in_br_swap, __u32 out_br_swap);
 __s32 DE_SCAL_Set_Out_Format(__u8 sel, __scal_out_type_t *out_type);
 __s32 DE_SCAL_Set_Out_Size(__u8 sel, __scal_scan_mod_t *out_scan, __scal_out_type_t *out_type, __scal_out_size_t *out_size);
 __s32 DE_SCAL_Set_Trig_Line(__u8 sel, __u32 line);
@@ -252,7 +252,8 @@ __s32 DE_SCAL_Writeback_Enable(__u8 sel);
 __s32 DE_SCAL_Writeback_Disable(__u8 sel);
 __s32 DE_SCAL_Set_Writeback_Addr(__u8 sel, __scal_buf_addr_t *addr);
 __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs,
-                                                   __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue);
+                                                   __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue,
+                                                   __u32  in_br_swap, __u32 out_br_swap);
 __s32 DE_SCAL_Get_3D_InSize(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
 									__scal_src_size_t *singlesize);
 __s32 DE_SCAL_Get_3D_OutSize(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,

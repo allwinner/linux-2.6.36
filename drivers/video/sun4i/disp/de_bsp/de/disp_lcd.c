@@ -91,6 +91,11 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);    
     }
 */
+    if(gdisp.screen[sel].bl_not_open)
+    {
+        return 0;
+    }
+    
     if(b_en)
     {
         __hdle hdl;
@@ -99,7 +104,7 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         gpio_set->port = 2;
         gpio_set->port_num = 2;
         gpio_set->mul_sel = 1;
-        gpio_set->pull = 1;
+        gpio_set->pull = 0;
         gpio_set->drv_level = 1;
         gpio_set->data = 1;
 
@@ -114,7 +119,7 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         gpio_set->port = 2;
         gpio_set->port_num = 2;
         gpio_set->mul_sel = 1;
-        gpio_set->pull = 1;
+        gpio_set->pull = 0;
         gpio_set->drv_level = 1;
         gpio_set->data = 0;
 
@@ -131,7 +136,10 @@ __s32 LCD_BL_EN(__u32 sel, __bool b_en)
     int  value;
     int  ret;
 
-    DE_INF("LCD_BL_EN, sel:%d,b_en:%d\n", sel, b_en);
+    if(gdisp.screen[sel].bl_not_open)
+    {
+        return 0;
+    }
     
     if(sel == 0)
     {
@@ -288,6 +296,12 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
     return 0;
 }
 
+__s32 BSP_disp_set_bl_not_open(__u32 sel, __bool b_not_open)
+{
+    gdisp.screen[sel].bl_not_open = b_not_open;
+
+    return 0;
+}
 
 //lcd_pwm_div = log2(24000/(16*pwm_freq));
 __s32 Disp_pwm_cfg(__u32 sel)
@@ -768,7 +782,14 @@ __s32 BSP_disp_get_screen_width(__u32 sel)
 {    
 	__u32 width = 0;
 
-    width = DE_BE_get_display_width(sel);
+    if((gdisp.screen[sel].status & LCD_ON) || (gdisp.screen[sel].status & TV_ON) || (gdisp.screen[sel].status & HDMI_ON) || (gdisp.screen[sel].status & VGA_ON))
+    {
+        width = DE_BE_get_display_width(sel);
+    }
+    else
+    {
+        width = gpanel_info[sel].lcd_x;
+    }
 
     return width;
 }
@@ -777,7 +798,14 @@ __s32 BSP_disp_get_screen_height(__u32 sel)
 {    
 	__u32 height = 0;
 	
-    height = DE_BE_get_display_height(sel);
+    if((gdisp.screen[sel].status & LCD_ON) || (gdisp.screen[sel].status & TV_ON) || (gdisp.screen[sel].status & HDMI_ON) || (gdisp.screen[sel].status & VGA_ON))
+    {
+        height = DE_BE_get_display_height(sel);
+    }
+    else
+    {
+        height = gpanel_info[sel].lcd_y;
+    }
 
     return height;
 }

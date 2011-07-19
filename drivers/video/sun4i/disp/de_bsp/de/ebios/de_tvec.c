@@ -352,12 +352,19 @@ __u8  TVE_clear_int(__u32 sel)
 }
 
 //0:unconnected; 1:connected; 3:short to ground
-__s32 TVE_get_dac_status(__u32 sel,__u32 index)
+__s32 TVE_get_dac_status(__u32 index)
 {
-    __u32   readval;
+    __u32 readval, val_00;
 
-    readval = TVE_RUINT32(sel,TVE_038);
+	TVE_SET_BIT(0,TVE_008,0x3<<16);	
+	TVE_WUINT32(0,TVE_024,0x1F1F1F1F);
+
+    val_00 = TVE_RUINT32(0,TVE_000);
+    TVE_WUINT32(0,TVE_000,(val_00 & 0xfff0000f) | (0x4321 << 4));
+
+    mdelay(500);
     
+    readval = TVE_RUINT32(0,TVE_038);
     if(index == 0)
     {
         readval = (readval & 0x00000003);
@@ -374,7 +381,8 @@ __s32 TVE_get_dac_status(__u32 sel,__u32 index)
     {
         readval = (readval & 0x03000000)>>24;
     }
-
+    TVE_WUINT32(0,TVE_000,val_00);
+    
     return readval;
 }
 
@@ -476,6 +484,33 @@ __s32 TVE_dac_set_source(__u32 sel,__u32 index,__u32 source)
     return 0;
 }
 
+
+__s32 TVE_dac_get_source(__u32 sel,__u32 index)
+{
+    __u32   readval = 0;
+
+    readval = TVE_RUINT32(sel,TVE_008);
+
+    if(index == 0)
+    {
+        readval = (readval >> 4) & 0x7;
+    }
+    else if(index == 1)
+    {
+        readval = (readval >> 7) & 0x7;
+    }
+    else if(index == 2)
+    {
+        readval = (readval >> 10) & 0x7;
+    }
+    else if(index == 3)
+    {
+        readval = (readval >> 13) & 0x7;
+    }
+
+    return readval;
+}
+
 __u8 TVE_dac_set_de_bounce(__u32 sel,__u8 index,__u32 times)
 {
     __u32   readval;
@@ -543,10 +578,10 @@ __u8 TVE_dac_get_de_bounce(__u32 sel,__u8 index)
 // 1:TV0_DOUT1
 // 2:TV0_DOUT2
 // 3:TV0_DOUT3
-// 4:TV0_DOUT0
-// 5:TV0_DOUT1
-// 6:TV0_DOUT2
-// 7:TV0_DOUT3
+// 4:TV1_DOUT0
+// 5:TV1_DOUT1
+// 6:TV1_DOUT2
+// 7:TV1_DOUT3
 __s32 TVE_dac_sel(__u32 sel,__u32 dac, __u32 index)
 {
 	__u32   readval;

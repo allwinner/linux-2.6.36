@@ -17,10 +17,11 @@ static __u32 output_type[2] = {0,0};
 static struct info_mm  g_disp_mm[2];
 static int g_disp_mm_sel = 0;
 
+static __u32 cmd_index = 0;
+
 static struct cdev *my_cdev;
 static dev_t devid ;
 static struct class *disp_class;
-
 
 static struct resource disp_resource[DISP_IO_NUM] = 
 {
@@ -235,7 +236,6 @@ void DRV_scaler_finish(__u32 sel)
     wake_up_interruptible(&g_disp_drv.scaler_queue[sel]);
 }
 
-static __u32 cmd_index = 0;
 
 void DRV_disp_wait_cmd_finish(__u32 sel)
 {
@@ -271,10 +271,12 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
 #endif
 
 #if 1
-	long timeout = 20 * HZ;//50ms
+	long timeout = 20 * HZ;//20ms
 	__u32 i;
 	spinlock_t mr_lock;
 
+    timeout = (1000 / BSP_disp_get_frame_rate(sel)) * 2 * HZ;//wait two frame
+    
     if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
     {
         spin_lock(&mr_lock);
@@ -285,14 +287,12 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
         i = cmd_index++;
         spin_unlock(&mr_lock);
 
-        __inf("1:%d,%d\n", i, (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
-
         g_disp_drv.b_cmd_finished[sel][i] = 1;
     	timeout = wait_event_interruptible_timeout(g_disp_drv.my_queue[sel][i], g_disp_drv.b_cmd_finished[sel][i] == 2, timeout);
     	g_disp_drv.b_cmd_finished[sel][i] = 0;
     	if(timeout == 0)
         {
-            __inf("t:%d\n", i);
+            __inf("timeout\n");
         }
     }
 #endif
@@ -308,7 +308,6 @@ __s32 DRV_disp_int_process(__u32 sel)
         if(g_disp_drv.b_cmd_finished[sel][i] == 1)
         {
             g_disp_drv.b_cmd_finished[sel][i] = 2;
-            __inf("2:%d,%d\n", i, (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
             wake_up_interruptible(&g_disp_drv.my_queue[sel][i]);
             break;
         }
@@ -736,6 +735,7 @@ void backlight_early_suspend(struct early_suspend *h)
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
             LCD_PWM_EN(i, 0);
+            LCD_BL_EN(i, 0);
         }
     }
 }
@@ -748,6 +748,7 @@ void backlight_late_resume(struct early_suspend *h)
     {
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
+            LCD_BL_EN(i, 1);
             LCD_PWM_EN(i, 1);
         }
     }
@@ -805,9 +806,12 @@ int disp_resume(struct platform_device *pdev)
     {
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
+            #ifdef CONFIG_HAS_EARLYSUSPEND
+            BSP_disp_set_bl_not_open(i, 1);
+            #endif
             DRV_lcd_open(i);
             #ifdef CONFIG_HAS_EARLYSUSPEND
-            LCD_PWM_EN(i, 0);
+            BSP_disp_set_bl_not_open(i, 0);
             #endif
         }
         else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
@@ -1462,7 +1466,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
         case DISP_CMD_TV_GET_DAC_STATUS:
-            ret =  BSP_disp_tv_get_dac_status(ubuffer[0], ubuffer[1]);
+            ret =  BSP_disp_tv_get_dac_status(ubuffer[1]);
             break;
 
         case DISP_CMD_TV_SET_DAC_SOURCE:

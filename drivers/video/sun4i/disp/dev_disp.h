@@ -63,7 +63,7 @@ typedef struct
     __disp_tv_mode_t        tv_mode[2];
     __disp_vga_mode_t       vga_mode[2];
 
-    __bool                  b_double_buffer[2];
+    __u32                   buffer_num[2];
     __u32                   fb_width[2];
     __u32                   fb_height[2];
     __disp_pixel_fmt_t      format[2];

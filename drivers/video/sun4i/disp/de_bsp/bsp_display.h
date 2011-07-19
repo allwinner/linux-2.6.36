@@ -43,9 +43,11 @@
 #if 1
 #define __inf(msg...) do{}while(0)
 #define __msg(msg...) do{}while(0)
+#define __here__      do{}while(0)
 #else
 #define __inf(msg...) {printk("[DISP] "); printk(msg);}
 #define __msg(msg...) {printk("[DISP] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
+#define __here__      {printk("[HDMI] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
 
 
@@ -668,7 +670,9 @@ extern __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl
 extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright);
 extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
 extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
+extern __s32 BSP_disp_set_bl_not_open(__u32 sel, __bool b_not_open);
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
+extern __s32 LCD_BL_EN(__u32 sel, __bool b_en);
 
 extern __s32 BSP_disp_tv_open(__u32 sel);
 extern __s32 BSP_disp_tv_close(__u32 sel);
@@ -678,7 +682,7 @@ extern __s32 BSP_disp_tv_get_interface(__u32 sel);
 extern __s32 BSP_disp_tv_auto_check_enable(__u32 sel);
 extern __s32 BSP_disp_tv_auto_check_disable(__u32 sel);
 extern __s32 BSP_disp_tv_set_src(__u32 sel, __disp_lcdc_src_t src);
-extern __s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index);
+extern __s32 BSP_disp_tv_get_dac_status(__u32 index);
 extern __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source source);
 extern __s32 BSP_disp_tv_get_dac_source(__u32 sel, __u32 index);
 
