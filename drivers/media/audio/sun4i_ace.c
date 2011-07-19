@@ -153,7 +153,6 @@ __s32 ACE_Init(void)
 __s32 ACE_Exit(void)
 {        
     iounmap((void *)ace_hsram);
-    printk("ACE_Exit() \n");  
     return ACE_OK;
 }
 
@@ -176,10 +175,8 @@ __s32 ACE_Exit(void)
 */
 s32 ACE_HwReq(__ace_module_type_e module, __ace_request_mode_e mode, __u32 timeout)
 {
-			printk("%s, %d\n", __FILE__, __LINE__);
     if(ACE_MODULE_CE == module || ACE_MODULE_PNG == module || ACE_MODULE_TSCC == module )
     {
-			printk("%s, %d\n", __FILE__, __LINE__);
         //request semphore
         if(ACE_REQUEST_MODE_NOWAIT == mode)
         {
@@ -201,18 +198,14 @@ s32 ACE_HwReq(__ace_module_type_e module, __ace_request_mode_e mode, __u32 timeo
     }
     else if(ACE_MODULE_AE == module)
     {			
-			printk("%s, %d\n", __FILE__, __LINE__);
         ACE_EnableModule(ACE_MODULE_AE, ACE_MODULE_ENABLE);
-			printk("%s, %d\n", __FILE__, __LINE__);
     }
     else
     {
-			printk("%s, %d\n", __FILE__, __LINE__);
-        return ACE_FAIL;
-			printk("%s, %d\n", __FILE__, __LINE__);
+		printk("%s, %d\n", __FILE__, __LINE__);
+        return ACE_FAIL;			
     }
 
-			printk("%s, %d\n", __FILE__, __LINE__);
     return ACE_OK;
 }
 
@@ -234,31 +227,14 @@ s32 ACE_HwReq(__ace_module_type_e module, __ace_request_mode_e mode, __u32 timeo
 */
 __s32 ACE_HwRel(__ace_module_type_e module)
 {
-			printk("%s, %d\n", __FILE__, __LINE__);
 	if (module == ACE_MODULE_CE) {
         //release semphore
-			printk("%s, %d\n", __FILE__, __LINE__);
-	    up(&pSemAceCe);
-			printk("%s, %d\n", __FILE__, __LINE__);
-        ACE_EnableModule(ACE_MODULE_CE, ACE_MODULE_DISABLE);
-			printk("%s, %d\n", __FILE__, __LINE__);
-        //if(ACE_OK != ACE_UnConfigACE())
-        //{
-            //printk("ace_unconfig ce failed. \n");
-            //return ACE_FAIL;
-        //}
-    } else if(module == ACE_MODULE_AE) {
-			printk("%s, %d\n", __FILE__, __LINE__);
+	    up(&pSemAceCe);			
+        ACE_EnableModule(ACE_MODULE_CE, ACE_MODULE_DISABLE);			
+    } else if(module == ACE_MODULE_AE) {			
         ACE_EnableModule(ACE_MODULE_AE, ACE_MODULE_DISABLE);
-			printk("%s, %d\n", __FILE__, __LINE__);
-        //if(ACE_OK != ACE_UnConfigACE())
-        //{
-            //printk("ace_unconfig ae failed. \n");
-            //return ACE_FAIL;
-        //}
     }
     
-	printk("%s, %d\n", __FILE__, __LINE__);
     return ACE_OK;
     
 }

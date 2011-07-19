@@ -39,16 +39,15 @@ void *       ccmu_hsram;
 #define ACE_IRQ_NO (60)
 
 static int ace_dev_open(struct inode *inode, struct file *filp){   
-    int  status = 0;
+    int status = 0;
     return status;
 }
 
 static int ace_dev_release(struct inode *inode, struct file *filp){
-    int         status = 0;
+    int status = 0;
     
     return status;
 }
-
 
 /*
  * Audio engine interrupt service routine
@@ -56,15 +55,12 @@ static int ace_dev_release(struct inode *inode, struct file *filp){
  */
 static irqreturn_t ace_interrupt(int irq, void *dev)
 {
-	 volatile int ae_out_mode_reg = 0;
-	 
-	 
-	 
+	volatile int ae_out_mode_reg = 0;
+	
 	//status 0x24
 	ae_out_mode_reg = readReg(AE_STATUS_REG);
 	ae_interrupt_value = ae_out_mode_reg;
-	if(ae_out_mode_reg &0x04)
-	{
+	if(ae_out_mode_reg & 0x04){
 	  writeReg(AE_INT_EN_REG,readReg(AE_INT_EN_REG)&(~0x0f));
 	}
 
@@ -74,7 +70,6 @@ static irqreturn_t ace_interrupt(int irq, void *dev)
 
 	ae_out_mode_reg = readReg(AE_STATUS_REG);//没用  测试是否可以del
 	wake_up_interruptible(&wait_ae);
-
 	
     return IRQ_HANDLED;
 }
@@ -82,32 +77,24 @@ static irqreturn_t ace_interrupt(int irq, void *dev)
 static long
 ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){	
 
-	int 		ret_val = 0;
-	unsigned long        test_arg;
-	__ace_req_e mpara;	
-	switch (cmd){
-		
+	int 				ret_val = 0;
+	unsigned long       test_arg;
+	__ace_req_e 		mpara;	
+	switch (cmd){		
 		case ACE_DEV_HWREQ:
-			printk("%s, %d\n", __FILE__, __LINE__);
 			copy_from_user(&mpara, (__ace_req_e *)arg,
-                       sizeof(__ace_req_e));
-			printk("%s, %d\n", __FILE__, __LINE__);
-			ret_val = ACE_HwReq(mpara.module, mpara.mode, mpara.timeout);
-			printk("%s, %d\n", __FILE__, __LINE__);
+                       sizeof(__ace_req_e));			
+			ret_val = ACE_HwReq(mpara.module, mpara.mode, mpara.timeout);			
 			break;
 			
-		case ACE_DEV_HWREL:
-			printk("%s, %d\n", __FILE__, __LINE__);
+		case ACE_DEV_HWREL:			
 			copy_from_user(&mpara, (__ace_req_e *)arg,
-                       sizeof(__ace_req_e));
-			printk("%s, %d\n", __FILE__, __LINE__);
-			ret_val = ACE_HwRel(mpara.module);
-			printk("%s, %d\n", __FILE__, __LINE__);
+                       sizeof(__ace_req_e));			
+			ret_val = ACE_HwRel(mpara.module);			
 			break;
 			
 		case ACE_DEV_GETCLKFREQ:
 			test_arg = ACE_GetClk();
-			//*(unsigned long *)arg = test_arg;
 			put_user(test_arg, (unsigned long *)arg);
 			ret_val = 1;
 			break;
@@ -115,27 +102,9 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 			put_user((int)ace_hsram, (int *)arg);
 			break;
 		case ACE_DEV_INS_ISR:
-#if 0
-			if(drv_is_open == 0){
-				/* request ACE irq */
-				ret_val = request_irq(ACE_IRQ_NO, ace_interrupt, 0, "ace_dev", NULL);
-				if (ret_val < 0) {
-				   printk("request ace irq err\n");
-				   return -EINVAL;
-				}
-				drv_is_open = 1;
-			}
-#endif
 			break;
 		
 		case ACE_DEV_UNINS_ISR:
-#if 0
-		   if(drv_is_open){
-			   printk("!!!!release irq");
-			   free_irq(ACE_IRQ_NO, NULL);
-			   drv_is_open = 0;
-		   }
-#endif
 		   break;
 
 		case ACE_DEV_WAIT_AE:
@@ -152,13 +121,11 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 }
 
 void acedev_vma_open(struct vm_area_struct *vma)
-{
-    //printk(KERN_NOTICE "cedardev VMA open, virt %lx, phys %lx\n", vma->vm_start, vma->vm_pgoff << PAGE_SHIFT);
+{    
 } 
 
 void acedev_vma_close(struct vm_area_struct *vma)
 {
-    //printk(KERN_NOTICE "cedardev VMA close.\n");
 }
 
 static struct vm_operations_struct acedev_remap_vm_ops = {
@@ -170,10 +137,7 @@ static struct vm_operations_struct acedev_remap_vm_ops = {
 static int acedev_mmap(struct file *filp, struct vm_area_struct *vma)
 {
     unsigned long temp_pfn;
-
     temp_pfn = ACE_REGS_pBASE >> 12;
-
-
     /* Set reserved and I/O flag for the area. */
     vma->vm_flags |= VM_RESERVED | VM_IO;
 	
@@ -206,7 +170,6 @@ static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 	clk_put(ahb_aceclk);
 	//释放ace_pll5_pclk时钟句柄
 	clk_put(ace_pll5_pclk);
-	
 
 	/*for clk test*/
 	pr_debug("[ace_suspend reg]\n");
