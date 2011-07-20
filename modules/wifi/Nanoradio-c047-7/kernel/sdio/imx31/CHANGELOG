@@ -1,3 +1,0 @@
--18/10/2007 Release 2.rc5 for Reigncom
-==> Clock Change : Use External Clock source / Divisor 0x1 (/2)
-==> Reduce Busy-wait timeout value to 10000.

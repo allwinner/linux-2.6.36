@@ -40,11 +40,10 @@
 */
 
 __hdle OSAL_GPIO_Request(user_gpio_set_t *gpio_list, __u32 group_count_max)
-{
+{    
     __inf("OSAL_GPIO_Request, port:%d, port_num:%d, data:%d\n", gpio_list->port, gpio_list->port_num, gpio_list->data);
-    gpio_request(gpio_list, group_count_max);
-    
-    return 0;
+
+    return gpio_request(gpio_list, group_count_max);
 }
 
 

@@ -107,7 +107,7 @@ __s32 DE_BE_HWC_Set_Src(__u32 sel, de_hwc_src_t *hwc_pat)
 			value |= (tmp<<16);
 			tmp = DE_RUINT8(hwc_pat->paddr + i + 3);
 			value |= (tmp<<24);
-			DE_BE_WUINT32(sel, DE_BE_HWC_PATTERN_ADDR_OFF + i, value);
+			DE_BE_WUINT32(sel, DE_BE_HWC_MEMORY_ADDR_OFF + i, value);
 		}
 	}
 	else
@@ -115,7 +115,7 @@ __s32 DE_BE_HWC_Set_Src(__u32 sel, de_hwc_src_t *hwc_pat)
 		for(i = 0; i < size; i+=4)
 		{
 			tmp = DE_RUINT32(hwc_pat->paddr + i );
-			DE_BE_WUINT32(sel, DE_BE_HWC_PATTERN_ADDR_OFF + i, tmp);
+			DE_BE_WUINT32(sel, DE_BE_HWC_MEMORY_ADDR_OFF + i, tmp);
 		}
 	}
 

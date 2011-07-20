@@ -761,6 +761,24 @@ static irqreturn_t ohci_irq (struct usb_hcd *hcd)
 	 */
 	ints = ohci_readl(ohci, &regs->intrstatus);
 
+#ifdef  CONFIG_USB_SW_SUN4I_HCI
+    if(1){
+        __u32 HcRhPortStatus = ohci_readl(ohci, &regs->roothub.portstatus[0]);
+
+        if((HcRhPortStatus & RH_PS_CSC) && (ints & OHCI_INTR_RHSC)){
+            printk("ohci_irq: connect status change\n");
+        }
+
+        /* clear all irq */
+        ohci_writel(ohci, ints, &regs->intrstatus);
+
+        /* clear port status */
+        ohci_writel(ohci, HcRhPortStatus, &regs->roothub.portstatus[0]);
+
+        return IRQ_HANDLED;
+    }
+#endif
+
 	/* Check for an all 1's result which is a typical consequence
 	 * of dead, unclocked, or unplugged (CardBus...) devices
 	 */
@@ -814,6 +832,7 @@ static irqreturn_t ohci_irq (struct usb_hcd *hcd)
 		ohci_writel(ohci, OHCI_INTR_RHSC, &regs->intrdisable);
 		usb_hcd_poll_rh_status(hcd);
 	}
+
 
 	/* For connect and disconnect events, we expect the controller
 	 * to turn on RHSC along with RD.  But for remote wakeup events
@@ -1100,9 +1119,9 @@ MODULE_LICENSE ("GPL");
 #define PLATFORM_DRIVER	ohci_hcd_jz4740_driver
 #endif
 
-#ifdef CONFIG_USB_SW_SUN4I_HCI0
-#include "ohci0_sun4i.c"
-#define	PLATFORM_DRIVER		sw_ohci0_hcd_driver
+#ifdef CONFIG_USB_SW_SUN4I_HCI
+#include "ohci_sun4i.c"
+#define	PLATFORM_DRIVER		sw_ohci_hcd_driver
 #endif
 
 #if	!defined(PCI_DRIVER) &&		\

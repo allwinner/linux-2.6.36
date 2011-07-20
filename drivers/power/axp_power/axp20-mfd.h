@@ -325,8 +325,33 @@ static ssize_t axp20_reg_store(struct device *dev,
 	else {
 		val = tmp & 0x00FF;
 		axp_reg_addr= (tmp >> 8) & 0x00FF;
-		if(val)
-			axp_write(dev,axp_reg_addr,val);
+		axp_write(dev,axp_reg_addr, val);
+	}
+	return count;
+}
+
+static ssize_t axp20_regs_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+  uint8_t val[2];
+	axp_reads(dev,axp_reg_addr,2,val);
+	return sprintf(buf,"REG[0x%x]=0x%x,REG[0x%x]=0x%x\n",axp_reg_addr,val[0],axp_reg_addr+1,val[1]);
+}
+
+static ssize_t axp20_regs_store(struct device *dev,
+				struct device_attribute *attr, const char *buf, size_t count)
+{
+	int tmp;
+	uint8_t val[3];
+	tmp = simple_strtoul(buf, NULL, 16);
+	if( tmp < 256 )
+		axp_reg_addr = tmp;
+	else {
+		axp_reg_addr= (tmp >> 16) & 0xFF;
+		val[0] = (tmp >> 8) & 0xFF;
+		val[1] = axp_reg_addr + 1;
+		val[2] = tmp & 0xFF;
+		axp_writes(dev,axp_reg_addr,3,val);
 	}
 	return count;
 }
@@ -341,4 +366,5 @@ static struct device_attribute axp20_mfd_attrs[] = {
 	AXP_MFD_ATTR(axp20_pekclose),
 	AXP_MFD_ATTR(axp20_ovtemclsen),
 	AXP_MFD_ATTR(axp20_reg),
+	AXP_MFD_ATTR(axp20_regs),
 };

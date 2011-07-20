@@ -32,7 +32,7 @@
 #include <linux/err.h>
 #include <linux/clk.h>
 #include <linux/platform_device.h>
-#include <linux/cpufreq.h>
+//#include <linux/cpufreq.h>
 #include <linux/spinlock.h>
 #include <linux/scatterlist.h>
 #include <linux/dma-mapping.h>
@@ -42,6 +42,7 @@
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/core.h>
 
+#include <asm/cacheflush.h>
 #include <mach/dma.h>
 //#include <mach/clock.h>
 //#include <mach/gpio.h>
@@ -51,10 +52,19 @@
 
 #define DRIVER_NAME "sw-smc"
 
+#define SMC_MAX_MOD_CLOCK		(45000000)
+#define SMC_MAX_IO_CLOCK		(45000000)
+enum mclk_src {
+	SMC_MCLK_SRC_HOSC,
+	SMC_MCLK_SRC_SATAPLL,
+	SMC_MCLK_SRC_DRAMPLL
+};
+
+
 #define CARD_DETECT_BY_GPIO     (1)
 #define CARD_DETECT_BY_DATA3    (2)        /* mmc detected by status of data3 */
 #define CARD_ALWAYS_PRESENT     (3)        /* mmc always present, without detect pin */
-
+#define CARD_DETECT_BY_FS		(4)		   /* mmc insert/remove by manual mode, from /proc/awsmc.x/insert node */
 /* SDMMC Control registers definition */
 #define  SMC0_BASE              0x01C0f000
 #define  SMC1_BASE              0x01C10000
@@ -212,17 +222,17 @@ struct awsmc_host {
 	struct proc_dir_entry		*proc_hostinfo;
 	struct proc_dir_entry		*proc_dbglevel;
 	struct proc_dir_entry		*proc_regs;
+	struct proc_dir_entry		*proc_insert;
 #endif
+
 	/* backup register structrue */
 	struct awsmc_ctrl_regs		bak_regs;
 };
 
 
-extern void _eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes);
-
 static __inline void eLIBs_CleanFlushDCacheRegion(void *adr, __u32 bytes)
 {
-    _eLIBs_CleanFlushDCacheRegion(adr, bytes + (1 << 5) * 2 - 2);
+	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
 }
 
 #define MEM_ADDR_IN_SDRAM(addr) ((addr) >= 0x80000000)

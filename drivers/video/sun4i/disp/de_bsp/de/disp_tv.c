@@ -193,10 +193,12 @@ __s32 BSP_disp_tv_open(__u32 sel)
         BSP_disp_set_yuv_output(sel, TRUE);
         DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
         DE_BE_Output_Select(sel, sel);
+		DE_BE_Set_Outitl_enable(sel, Disp_get_screen_scan_mode(tv_mod));
+        Disp_de_flicker_enable(sel, TRUE);
         TCON1_set_tv_mode(sel,tv_mod);
         TVE_set_tv_mode(sel, tv_mod);	
         Disp_TVEC_DacCfg(sel, tv_mod);
-
+		
         TCON1_open(sel);
         Disp_TVEC_Open(sel);
 
@@ -222,7 +224,9 @@ __s32 BSP_disp_tv_close(__u32 sel)
         tve_clk_off(sel);
         image_clk_off(sel);
         lcdc_clk_off(sel);
-
+		DE_BE_Set_Outitl_enable(sel, FALSE);
+        Disp_de_flicker_enable(sel, FALSE);
+		
         gdisp.screen[sel].status &= TV_OFF;
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;
         gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
@@ -233,9 +237,9 @@ __s32 BSP_disp_tv_close(__u32 sel)
 
 __s32 BSP_disp_tv_set_mode(__u32 sel, __disp_tv_mode_t tv_mod)
 {
-    if(tv_mod > DISP_TV_MOD_PAL_NC_CVBS_SVIDEO)
+    if(tv_mod >= DISP_TV_MODE_NUM)
     {
-        DE_WRN("unsupported tv mode in BSP_disp_tv_set_mode\n");
+        DE_WRN("unsupported tv mode:%d in BSP_disp_tv_set_mode\n", tv_mod);
         return DIS_FAIL;
     }
     
@@ -257,14 +261,9 @@ __s32 BSP_disp_tv_get_interface(__u32 sel)
     __s32 i = 0;
 	__u32  ret = DISP_TV_NONE;
 
-    if(!(gdisp.screen[sel].status & TV_ON))
-    {
-        tve_clk_on(sel);
-    }
-
     for(i=0; i<4; i++)
     {
-        dac[i] = TVE_get_dac_status(sel, i);
+        dac[i] = TVE_get_dac_status(i);
     }
 
     if(dac[0]>1 || dac[1]>1 || dac[2]>1 || dac[3]>1)
@@ -290,31 +289,16 @@ __s32 BSP_disp_tv_get_interface(__u32 sel)
         }
     }
 
-    if(!(gdisp.screen[sel].status & TV_ON))
-    {
-        tve_clk_off(sel);
-    }
-
     return  ret;
 }
       
       
 
-__s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index)
+__s32 BSP_disp_tv_get_dac_status( __u32 index)
 {
 	__u32  ret;
 
-    if(!(gdisp.screen[sel].status & TV_ON))
-    {
-        tve_clk_on(sel);
-    }
-
-	ret = TVE_get_dac_status(sel, index);
-
-    if(!(gdisp.screen[sel].status & TV_ON))
-    {
-        tve_clk_off(sel);
-    }
+	ret = TVE_get_dac_status(index);
 
     return  ret;
 }
@@ -323,17 +307,7 @@ __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source so
 {
 	__u32  ret;
 
-    if(!(gdisp.screen[sel].status & TV_ON))
-    {
-        tve_clk_on(sel);
-    }
-
 	ret = TVE_dac_set_source(sel, index, source);
-
-    if(!(gdisp.screen[sel].status & TV_ON))
-    {
-        tve_clk_off(sel);
-    }
 
     gdisp.screen[sel].dac_source[index] = source;
     

@@ -1,9 +1,17 @@
 /*
- * codecchip.c  --  codecchip ALSA SoC Codec driver
- *
- */
-
-
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: codecchip.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
@@ -13,26 +21,7 @@
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
 
-//#include <disp/drv_hdmi.h>
-
 #include "codecchip.h"
-
-//#define HDMI
-
-#ifdef HDMI
-static __audio_hdmi_func g_hdmi_func;
-
-int audio_set_hdmi_func(__audio_hdmi_func * func)
-{
-	g_hdmi_func.hdmi_audio_enable = func->hdmi_audio_enable;
-	g_hdmi_func.hdmi_set_audio_para = func->hdmi_set_audio_para;
-	
-	return 0;
-}
-
-EXPORT_SYMBOL(audio_set_hdmi_func);
-#endif
-
 
 #define codecchip_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
 #define codecchip_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
@@ -61,10 +50,7 @@ static int codecchip_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 	hdmi_parameter.sample_rate = params_rate(params);
-#ifdef HDMI
-	g_hdmi_func.hdmi_audio_enable(1, 1);
-	g_hdmi_func.hdmi_set_audio_para(&hdmi_parameter);
-#endif
+
 	return 0;
 }
 
@@ -134,16 +120,9 @@ static int codecchip_soc_probe(struct platform_device *pdev)
 
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-//		printk(KERN_ERR "codecchip: failed to register pcms\n");
 		goto pcm_err;
 	}
 
-#if 0 
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		goto card_err;
-	}
-#endif
 	return 0;
 
 
@@ -172,14 +151,12 @@ EXPORT_SYMBOL_GPL(soc_codec_dev_codecchip);
 
 static int __init codecchip_init(void)
 {
-//	printk("[IIS]Entered %s, %s, %d\n", __func__, __FILE__, __LINE__);
 	return snd_soc_register_dai(&codecchip_dai);
 }
 module_init(codecchip_init);
 
 static void __exit codecchip_exit(void)
 {
-//	printk("[IIS]Entered %s, %s, %d\n", __func__, __FILE__, __LINE__);
 	snd_soc_unregister_dai(&codecchip_dai);
 }
 module_exit(codecchip_exit);

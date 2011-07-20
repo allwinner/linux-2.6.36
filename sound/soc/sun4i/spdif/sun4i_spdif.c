@@ -1,3 +1,18 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: sun4i-spdif.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -5,7 +20,6 @@
 #include <linux/clk.h>
 #include <linux/jiffies.h>
 #include <linux/io.h>
-//#include <linux/gpio.h>
 
 #include <sound/core.h>
 #include <sound/pcm.h>
@@ -19,8 +33,6 @@
 
 
 #include <mach/hardware.h>
-//#include <mach/gpio.h>
-//#include <mach/clock.h>
 #include <asm/dma.h>
 #include <mach/dma.h>
 
@@ -237,34 +249,12 @@ static int sun4i_spdif_trigger(struct snd_pcm_substream *substream,
 static int sun4i_spdif_set_sysclk(struct snd_soc_dai *cpu_dai, int clk_id, 
                                  unsigned int freq, int dir)
 {
-//	u32 reg_val = 0;
-//	printk("[SPDIF]Entered %s\, the MCLK freq = %d\n", __func__, freq);
 	if (!freq)
 	{
-		/*
-		reg_val = readl(sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL);
-		reg_val &= ~(1<<27);
-		reg_val |= SUN4I_CCMBASE_AUDIOHOSCPLL_24576M;
-		reg_val &= ~(0x1f<<0);
-		reg_val |= 0x9<<0;
-		reg_val &= ~(0x7f<<8);
-		reg_val |= 0x53<<8;
-		writel(reg_val, sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL);
-		*/
 		clk_set_rate(spdif_pll2clk, 24576000);
 	}	
 	else
 	{
-		/*
-		reg_val = readl(sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL);
-		reg_val &= ~(1<<27);
-		reg_val |= SUN4I_CCMBASE_AUDIOHOSCPLL_225792M;
-		reg_val &= ~(0x1f<<0);
-		reg_val |= 0xA<<0;
-		reg_val &= ~(0x7F<<8);
-		reg_val |= 0x5E<<8;
-		writel(reg_val, sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL);
-		*/
 		clk_set_rate(spdif_pll2clk, 22579200);
 	}
 
@@ -281,7 +271,7 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 		
 	reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
 	reg_val &= ~(SUN4I_SPDIF_TXCHSTA1_ORISAMFREQ(0xf));
-  writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);	
+  	writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);	
 	
 			switch(div_id){
 		case SUN4I_DIV_MCLK:
@@ -291,17 +281,8 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 				reg_val |= SUN4I_SPDIF_TXCFG_TXRATIO(div-1);
 				writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCFG);
 				
-		//		printk("[SPDIF]div = %d\n", div);
-		//	if(readl(sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL) & SUN4I_CCMBASE_AUDIOHOSCPLL_24576M) //24.576MHz
 			if(clk_get_rate(spdif_pll2clk) == 24576000)
 			{
-	//			printk("[SPDIF]clk_get_rate = %ld, line = %d\n", clk_get_rate(spdif_pll2clk), __LINE__);
-	//			printk("[SPDIF]clk_get_rate = %ld, line = %d\n", clk_get_rate(spdif_pllx8), __LINE__);
-	//			printk("[SPDIF]0x08 register = %x, line = %d\n", readl(0xf1c20000 + 0x08), __LINE__);
-	//			printk("[SPDIF]0x68 register = %x, line = %d\n", readl(0xf1c20000 + 0x68), __LINE__);
-	//			printk("[SPDIF]0xc0 register = %x, line = %d\n", readl(0xf1c20000 + 0xc0), __LINE__);
-	//			printk("[SPDIF]PIO 0x24 register = %x, line = %d\n", readl(0xf1c20800 + 0x24), __LINE__);
-	//			printk("[SPDIF]PIO 0x28 register = %x, line = %d\n", readl(0xf1c20800 + 0x28), __LINE__);
 				switch(div)
 				{
 					//32KHZ
@@ -360,15 +341,6 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 				}
 			}else  //22.5792MHz
 			{
-		//		printk("[SPDIF]clk_get_rate = %ld, line = %d\n", clk_get_rate(spdif_pll2clk), __LINE__);
-		//		printk("[SPDIF]clk_get_rate = %ld, line = %d\n", clk_get_rate(spdif_pllx8), __LINE__);
-		//		printk("[SPDIF]0x08 register = %x, line = %d\n", readl(0xf1c20000 + 0x08), __LINE__);
-		//		printk("[SPDIF]0x68 register = %x, line = %d\n", readl(0xf1c20000 + 0x68), __LINE__);
-		//		printk("[SPDIF]0xc0 register = %x, line = %d\n", readl(0xf1c20000 + 0xc0), __LINE__);
-		//		printk("[SPDIF]PIO 0x24 register = %x, line = %d\n", readl(0xf1c20800 + 0x24), __LINE__);
-		//		printk("[SPDIF]PIO 0x28 register = %x, line = %d\n", readl(0xf1c20800 + 0x28), __LINE__);
-
-
 				switch(div)
 				{
 					//44.1KHZ
@@ -415,9 +387,6 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 			return -EINVAL;
 	}
 
-	
-	
-		
 	return 0;
 }
 
@@ -435,39 +404,7 @@ static int sun4i_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *d
 		if(sun4i_spdif.regs == NULL)
 			return -ENXIO;
 			
-	//	sun4i_spdif.ccmregs = ioremap(SUN4I_CCMBASE, 0x100);
-	//	if(sun4i_spdif.ccmregs == NULL)
-	//		return -ENXIO;
-			
-	//	sun4i_spdif.ioregs = ioremap(0x01c20800, 0x100);
-	//	if(sun4i_spdif.ioregs == NULL)
-	//		return -ENXIO;
-	/*		
-		//audio pll enalble
-		reg_val = readl(sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL);
-		reg_val |= SUN4I_CCMBASE_AUDIOHOSCPLL_EN;
-		writel(reg_val, sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOHOSCPLL);
-		
-		//spdif apb gating
-		reg_val = readl(sun4i_spdif.ccmregs + SUN4I_CCMBASE_APBGATE);
-		reg_val |= SUN4I_CCMBASE_APBGATE_SPDIFGATE;
-		writel(reg_val, sun4i_spdif.ccmregs + SUN4I_CCMBASE_APBGATE);
-		
-		//SPDIF SPECAIL GATING
-		reg_val = readl(sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOCLK);
-		reg_val |= SUN4I_CCMBASE_AUDIOCLK_SPDIFSPEGATE;
-		reg_val &= ~(SUN4I_CCMBASE_AUDIOCLK_DIV(3));
-		reg_val |= SUN4I_CCMBASE_AUDIOCLK_DIV(3);
-		writel(reg_val, sun4i_spdif.ccmregs + SUN4I_CCMBASE_AUDIOCLK);
-	*/
-	
-	//	printk("enter spdif gpio...%s, %d\n", __func__, __LINE__);
 		spdif_handle = gpio_request_ex("spdif_para", NULL);
-	//	printk("[SPDIF]PIO 0x24 register = %x, line = %d\n", readl(0xf1c20800 + 0x24), __LINE__);
-	//	printk("[SPDIF]PIO 0x28 register = %x, line = %d\n", readl(0xf1c20800 + 0x28), __LINE__);
-  	//	printk("enter spdif gpio...%s, %d, spdif_handle = %d\n", __func__, __LINE__, spdif_handle);
-
-		
 	
 		//spdif apbclk
 		spdif_apbclk = clk_get(NULL, "apb_spdif");
@@ -487,16 +424,10 @@ static int sun4i_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *d
 			printk("try to set parent of spdif_moduleclk to spdif_pll2ck failed! line = %d\n",__LINE__);
 		}
 
-	//	printk("spdif_pll2clk = %ld, line = %d\n", clk_get_rate(spdif_pll2clk), __LINE__);
-	//	printk("spdif_pllx8 = %ld, line = %d\n", clk_get_rate(spdif_pllx8), __LINE__);
-	//	printk("spdif_moduleclk = %ld, line = %d\n", clk_get_rate(spdif_moduleclk), __LINE__);
-	//	printk("spdif_apbclk = %ld, line = %d\n", clk_get_rate(spdif_apbclk), __LINE__);
 		
 		if(clk_set_rate(spdif_moduleclk, 24576000/8)){
 			printk("set spdif_moduleclk clock freq to 24576000 failed! line = %d\n", __LINE__);
 		}
-		
-	//	printk("spdif_moduleclk = %ld, line = %d\n", clk_get_rate(spdif_moduleclk), __LINE__);
 		
 
 		if(-1 == clk_enable(spdif_moduleclk)){
@@ -508,27 +439,6 @@ static int sun4i_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *d
 		reg_val |= SUN4I_SPDIF_CTL_GEN;
 		writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_CTL);
 		
-		//spdif gpio setting
-		//for IC
-		/*
-			reg_val = readl(sun4i_spdif.ioregs + 0x24);
-			reg_val &= ~0x0000F000;
-			reg_val |= 0x00004000;
-			writel(reg_val, sun4i_spdif.ioregs + 0x24); 
-			
-			reg_val = readl(sun4i_spdif.ioregs + 0x28);
-			reg_val &= ~0x00FF0000;
-			reg_val |= 0x00440000;
-			writel(reg_val, sun4i_spdif.ioregs + 0x28); 
-		*/
-
-			
-	
-		//FOR FPGA
-		//	reg_val = readl(sun4i_spdif.ioregs + 0x4C);
-		//	reg_val &= ~0x00000FFF;
-		//	reg_val |= 0x00000444;
-		//	writel(reg_val, sun4i_spdif.ioregs + 0x4C); 
 
 			sun4i_snd_txctrl(0);
 			sun4i_snd_rxctrl(0);
@@ -575,12 +485,6 @@ static int sun4i_spdif_suspend(struct snd_soc_dai *cpu_dai)
 		
 		clk_disable(spdif_apbclk);	
 
-		//disable the module clock
-		//clk_disable(spdif_pll2clk);
-
-		//disable the module clock
-		//clk_disable(spdif_pllx8);
-		
 		//printk("[SPDIF]PLL2 0x01c20008 = %#x\n", *(volatile int*)0xF1C20008);
 		printk("[SPDIF]SPECIAL CLK 0x01c20068 = %#x, line= %d\n", *(volatile int*)0xF1C20068, __LINE__);
 		printk("[SPDIF]SPECIAL CLK 0x01c200C0 = %#x, line= %d\n", *(volatile int*)0xF1C200C0, __LINE__);
@@ -593,12 +497,7 @@ static int sun4i_spdif_resume(struct snd_soc_dai *cpu_dai)
 		u32 reg_val;
 		printk("[SPDIF]Enter %s\n", __func__);
 	
-		
 		//disable the module clock
-		//clk_enable(spdif_pllx8);
-
-		//disable the module clock
-		//clk_enable(spdif_pll2clk);
 		clk_enable(spdif_apbclk);		
 
 		//enable the module clock
@@ -616,10 +515,6 @@ static int sun4i_spdif_resume(struct snd_soc_dai *cpu_dai)
 		
 		return 0;
 	}
-//#else
-//	#define sun4i_spdif_suspend NULL
-//	#define sun4i_spdif_resume  NULL
-//#endif
 
 #define SUN4I_SPDIF_RATES (SNDRV_PCM_RATE_8000_192000 | SNDRV_PCM_RATE_KNOT)
 static struct snd_soc_dai_ops sun4i_spdif_dai_ops = {

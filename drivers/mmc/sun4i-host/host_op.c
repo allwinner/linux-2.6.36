@@ -40,6 +40,18 @@ unsigned int smc_debug = 2;
 EXPORT_SYMBOL_GPL(smc_debug);
 module_param_named(awsmc_debug, smc_debug, int, 0);
 
+unsigned int smc_mclk_source = SMC_MCLK_SRC_SATAPLL;
+EXPORT_SYMBOL_GPL(smc_mclk_source);
+module_param_named(mclk_source, smc_mclk_source, int, 0);
+
+unsigned int smc_io_clock = SMC_MAX_IO_CLOCK;
+EXPORT_SYMBOL_GPL(smc_io_clock);
+module_param_named(io_clock, smc_io_clock, int, 0);
+
+unsigned int smc_mod_clock = SMC_MAX_MOD_CLOCK;
+EXPORT_SYMBOL_GPL(smc_mod_clock);
+module_param_named(mod_clock, smc_mod_clock, int, 0);
+
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
     __u32 i;
@@ -72,7 +84,7 @@ s32 awsmc_init_controller(struct awsmc_host* smc_host)
 static int awsmc_set_src_clk(struct awsmc_host* smc_host)
 {
     struct clk *source_clock = NULL;
-    char* name;
+    char* name = NULL;
     int ret;
 
     switch (smc_host->clk_source)
@@ -614,7 +626,7 @@ static int awsmc_proc_read_hostinfo(char *page, char **start, off_t off, int cou
     struct awsmc_host *smc_host = (struct awsmc_host *)data;
     struct device* dev = &smc_host->pdev->dev;
     char* clksrc[] = {"hosc", "satapll", "sdrampll_p", "hosc"};
-    char* cd_mode[] = {"none", "gpio mode", "data3 mode", "always in"};
+    char* cd_mode[] = {"none", "gpio mode", "data3 mode", "always in", "manual"};
 
     p += sprintf(p, "%s controller information:\n", dev_name(dev));
     p += sprintf(p, "reg base \t : %p\n", smc_host->smc_base);
@@ -645,6 +657,25 @@ static int awsmc_proc_read_regs(char *page, char **start, off_t off, int count, 
         p += sprintf(p, "%08x ", sdc_read(smc_host->smc_base + i));
     }
     p += sprintf(p, "\n");
+    
+    p += sprintf(p, "Dump ccmu regs:\n");
+    for (i=0; i<0x200; i+=4)
+    {
+        if (!(i&0xf))
+            p += sprintf(p, "\n0x%08x : ", i);
+        p += sprintf(p, "%08x ", sdc_read(SW_VA_CCM_IO_BASE + i)); 
+    }
+    p += sprintf(p, "\n");
+
+    p += sprintf(p, "Dump gpio regs:\n");
+    for (i=0; i<0x200; i+=4)
+    {
+        if (!(i&0xf))
+            p += sprintf(p, "\n0x%08x : ", i);
+        p += sprintf(p, "%08x ", sdc_read(SW_VA_PORTC_IO_BASE+ i));
+    }
+    p += sprintf(p, "\n");
+
 
     return p - page;
 }
@@ -662,6 +693,38 @@ static int awsmc_proc_write_dbglevel(struct file *file, const char __user *buffe
     smc_debug = simple_strtoul(buffer, NULL, sizeof(smc_debug));
 
     return sizeof(smc_debug);
+}
+
+static int awsmc_proc_read_insert_status(char *page, char **start, off_t off, int coutn, int *eof, void *data)
+{
+	char *p = page; 
+    struct awsmc_host *smc_host = (struct awsmc_host *)data;
+
+	p += sprintf(p, "Usage: \"echo 1 > insert\" to scan card and \"echo 0 > insert\" to remove card\n");
+	if (smc_host->cd_mode != CARD_DETECT_BY_FS)
+	{
+		p += sprintf(p, "Sorry, this node if only for manual attach mode(cd mode 4)\n");
+	}
+
+	p += sprintf(p, "card attach status: %s\n", smc_host->present ? "inserted" : "removed");
+
+
+	return p - page;
+}
+
+static int awsmc_proc_card_insert_ctrl(struct file *file, const char __user *buffer, unsigned long count, void *data)
+{
+	u32 insert = simple_strtoul(buffer, NULL, sizeof(unsigned));
+    struct awsmc_host *smc_host = (struct awsmc_host *)data;
+	u32 present = insert ? 1 : 0;
+
+	if (smc_host->present ^ present)
+	{
+		smc_host->present = present;
+		mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
+	}
+
+	return sizeof(insert);
 }
 
 static inline void awsmc_procfs_attach(struct awsmc_host *smc_host)
@@ -703,6 +766,16 @@ static inline void awsmc_procfs_attach(struct awsmc_host *smc_host)
     smc_host->proc_dbglevel->data = smc_host;
     smc_host->proc_dbglevel->read_proc = awsmc_proc_read_dbglevel;
     smc_host->proc_dbglevel->write_proc = awsmc_proc_write_dbglevel;
+
+	smc_host->proc_insert = create_proc_entry("insert", 0644, smc_host->proc_root);
+	if (IS_ERR(smc_host->proc_insert))
+	{
+		awsmc_msg("%s: failed to create procfs \"insert\".\n", dev_name(dev));
+	}
+	smc_host->proc_insert->data = smc_host;
+	smc_host->proc_insert->read_proc = awsmc_proc_read_insert_status;
+	smc_host->proc_insert->write_proc = awsmc_proc_card_insert_ctrl;
+
 }
 
 static inline void awsmc_procfs_remove(struct awsmc_host *smc_host)
@@ -711,6 +784,7 @@ static inline void awsmc_procfs_remove(struct awsmc_host *smc_host)
     char awsmc_proc_rootname[16] = {0};
     sprintf(awsmc_proc_rootname, "driver/%s", dev_name(dev));
 
+    remove_proc_entry("insert", smc_host->proc_root);
     remove_proc_entry("debug-level", smc_host->proc_root);
     remove_proc_entry("register", smc_host->proc_root);
     remove_proc_entry("hostinfo", smc_host->proc_root);
@@ -768,8 +842,8 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     }
 
     smc_host->cclk  = 400000;
-    smc_host->mod_clk   = 95000000;
-    smc_host->clk_source = 2;
+    smc_host->mod_clk   = smc_mod_clock;
+    smc_host->clk_source = smc_mclk_source;
     smc_host->ops.send_request = sdxc_request;
     smc_host->ops.finalize_requset = sdxc_request_done;
     smc_host->ops.check_status = sdxc_check_status;
@@ -786,7 +860,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->ocr_avail	= MMC_VDD_32_33 | MMC_VDD_33_34;
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
-    mmc->f_max 	    = 50000000;
+    mmc->f_max 	    = smc_io_clock;
 
     mmc->max_blk_count	= 0xffff;
     mmc->max_blk_size	= 0xffff;
@@ -900,8 +974,10 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
     struct awsmc_host	*smc_host = mmc_priv(mmc);
 
     awsmc_msg("%s: Remove.\n", dev_name(&pdev->dev));
+	
+	sdxc_exit(smc_host);
 
-    awsmc_shutdown(pdev);
+	awsmc_shutdown(pdev);
 
     //dma
     tasklet_disable(&smc_host->tasklet);
@@ -923,12 +999,14 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int awsmc_suspend(struct device *dev)
 {
-    struct mmc_host *mmc = platform_get_drvdata(to_platform_device(dev));
-	struct awsmc_host *smc_host = mmc_priv(mmc);
+    struct platform_device *pdev = to_platform_device(dev);
+    struct mmc_host *mmc = platform_get_drvdata(pdev);
     int ret = 0;
 
     if (mmc)
     {
+        struct awsmc_host *smc_host = mmc_priv(mmc);
+
         ret = mmc_suspend_host(mmc);
         
         /* backup registers */
@@ -941,18 +1019,20 @@ static int awsmc_suspend(struct device *dev)
     	clk_disable(smc_host->hclk);
     }
 
-    awsmc_msg("smc %d suspend\n", smc_host->pdev->id);
+    awsmc_msg("smc %d suspend\n", pdev->id);
     return ret;
 }
 
 static int awsmc_resume(struct device *dev)
 {
-    struct mmc_host *mmc = platform_get_drvdata(to_platform_device(dev));
-	struct awsmc_host *smc_host = mmc_priv(mmc);
+    struct platform_device *pdev = to_platform_device(dev);
+    struct mmc_host *mmc = platform_get_drvdata(pdev);
     int ret = 0;
 
     if (mmc)
     {
+        struct awsmc_host *smc_host = mmc_priv(mmc);
+
     	/* enable mmc hclk */
     	clk_enable(smc_host->hclk);
 
@@ -966,7 +1046,7 @@ static int awsmc_resume(struct device *dev)
         ret = mmc_resume_host(mmc);
     }
 
-    awsmc_msg("smc %d resume\n", smc_host->pdev->id);
+    awsmc_msg("smc %d resume\n", pdev->id);
     return ret;
 }
 

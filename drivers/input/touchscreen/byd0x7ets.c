@@ -504,7 +504,7 @@ byd0x7e_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	set_bit(EV_ABS, input_dev->evbit);
 	set_bit(EV_KEY, input_dev->evbit);
 
-	input_dev->name		= FT5X0X_NAME;		//dev_name(&client->dev)
+	input_dev->name		= BYD0X7E_NAME;		//dev_name(&client->dev)
 	err = input_register_device(input_dev);
 	if (err) {
 		dev_err(&client->dev,
@@ -584,7 +584,7 @@ static int __devexit byd0x7e_ts_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id byd0x7e_ts_id[] = {
-	{ FT5X0X_NAME, 0 },
+	{ BYD0X7E_NAME, 0 },
 	{}
 };
 MODULE_DEVICE_TABLE(i2c, byd0x7e_ts_id);
@@ -594,7 +594,7 @@ static struct i2c_driver byd0x7e_ts_driver = {
 	.remove		= __devexit_p(byd0x7e_ts_remove),
 	.id_table	= byd0x7e_ts_id,
 	.driver	= {
-		.name	= FT5X0X_NAME,
+		.name	= BYD0X7E_NAME,
 		.owner	= THIS_MODULE,
 	},
 };

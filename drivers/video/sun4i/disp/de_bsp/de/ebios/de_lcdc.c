@@ -199,13 +199,13 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 
     vblank_len = info->lcd_vt/2 - info->lcd_y;
     
-	if(vblank_len > 30)
+	if(vblank_len >= 32)
 	{
 		info->start_delay	= 30;
 	}
 	else
 	{
-		info->start_delay	= vblank_len - 1;
+		info->start_delay	= vblank_len - 2;
 	}
 	
 	switch(info->lcd_if)
@@ -303,7 +303,7 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	LCDC_WUINT32(sel, LCDC_IOCTL0_OFF,info->lcd_io_cfg0);
     LCDC_WUINT32(sel, LCDC_IOCTL1_OFF,info->lcd_io_cfg1);
 
-    LCDC_set_int_line(sel, 0,vblank_len+2);    
+    LCDC_set_int_line(sel, 0,info->start_delay + 2);    
 }
 
 
@@ -386,9 +386,9 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     __u32 reg_val;
 
     vblank_len = cfg->vt/2 - cfg->src_y - 2;
-	if(vblank_len > 30)
+	if(vblank_len >= 32)
 	{
-		cfg->start_delay	= 29;
+		cfg->start_delay	= 30;
 	}
 	else
 	{
@@ -426,7 +426,7 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     LCDC_WUINT32(sel, LCDC_IOCTL3_OFF,cfg->io_out);//add
 
 	
-	LCDC_set_int_line(sel,1, vblank_len+2);
+	LCDC_set_int_line(sel,1, cfg->start_delay + 2);
 
 	
     return 0;
@@ -1024,13 +1024,44 @@ __s32 TCON1_get_height(__u32 sel)
 }
 
 __s32 TCON1_set_gamma_table(__u32 sel, __u32 address,__u32 size)	//add next time
-{
-	return -1;	
+{	
+    __u32 tmp;
+
+	__s32 *pmem_align_dest;
+    __s32 *pmem_align_src;
+    __s32 *pmem_dest_cur;
+	
+    tmp = LCDC_RUINT32(sel, LCDC_GCTL_OFF);
+    LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp&(~(1<<30)));//disable gamma correction sel
+    
+	pmem_dest_cur = (__s32*)(LCDC_get_reg_base(sel)+LCDC_GAMMA_TABLE_OFF);
+	pmem_align_src = (__s32*)address;
+	pmem_align_dest = pmem_dest_cur + (size>>2);
+
+    while(pmem_dest_cur < pmem_align_dest)
+    {
+    	*(volatile __u32 *)pmem_dest_cur++ = *pmem_align_src++;
+    }
+
+    LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp);
+    
+    return 0;
 }
 
-__s32 TCON1_set_gamma_Enable(__u32 sel, __bool enable)	//add next time
+__s32 TCON1_set_gamma_Enable(__u32 sel, __bool enable)
 {
-	return -1;
+	__u32 tmp;
+
+	tmp = LCDC_RUINT32(sel, LCDC_GCTL_OFF);
+	if(enable)
+	{	
+		LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp| (1<<30));
+	}
+	else
+	{
+		LCDC_WUINT32(sel, LCDC_GCTL_OFF,tmp&(~(1<<30)));
+	}
+	return 0;
 }
 
 #define ____SEPARATOR_CPU____

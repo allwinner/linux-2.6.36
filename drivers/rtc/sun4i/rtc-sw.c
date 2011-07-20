@@ -517,6 +517,7 @@ err_out:
 #ifdef CONFIG_PM
 
 /* RTC Power management control */
+//rtc do not to suspend, need to keep timing.
 #define f23_rtc_suspend NULL
 #define f23_rtc_resume  NULL
 #else

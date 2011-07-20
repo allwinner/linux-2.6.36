@@ -492,16 +492,16 @@ config USB_SW_SUN4I_EHCI1
 	help
 	    SoftWinner SUN4I USB EHCI1.
 
-#config USB_SW_SUN4I_OHCI0
-#    tristate "SoftWinner SUN4I USB OHCI0"
-#	depends on USB_SW_SUN4I_HCI
-#	help
-#	    SoftWinner SUN4I USB OHCI0.
-#
-#config USB_SW_SUN4I_OHCI1
-#    tristate "SoftWinner SUN4I USB OHCI1"
-#	depends on USB_SW_SUN4I_HCI
-#	help
-#	    SoftWinner SUN4I USB OHCI1.
-#
+config USB_SW_SUN4I_OHCI0
+    tristate "SoftWinner SUN4I USB OHCI0"
+	depends on USB_SW_SUN4I_HCI
+	help
+	    SoftWinner SUN4I USB OHCI0.
+
+config USB_SW_SUN4I_OHCI1
+    tristate "SoftWinner SUN4I USB OHCI1"
+	depends on USB_SW_SUN4I_HCI
+	help
+	    SoftWinner SUN4I USB OHCI1.
+
 

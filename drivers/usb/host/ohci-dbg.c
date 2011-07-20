@@ -850,3 +850,68 @@ static inline void remove_debug_files (struct ohci_hcd *ohci)
 
 /*-------------------------------------------------------------------------*/
 
+/*
+*******************************************************************************
+*                     print_ohci_reg
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void print_ohci_reg(struct ohci_hcd *ohci)
+{
+	spinlock_t lock = SPIN_LOCK_UNLOCKED;
+	unsigned long flags = 0;
+
+	spin_lock_init(&lock);
+	spin_lock_irqsave(&lock, flags);
+
+    printk("\n");
+	printk("-------------------------------------------------------------------\n");
+
+    printk("revision                 = 0x%x\n", readl(&ohci->regs->revision));
+    printk("control                  = 0x%x\n", readl(&ohci->regs->control));
+    printk("cmdstatus                = 0x%x\n", readl(&ohci->regs->cmdstatus));
+    printk("intrstatus               = 0x%x\n", readl(&ohci->regs->intrstatus));
+    printk("intrenable               = 0x%x\n", readl(&ohci->regs->intrenable));
+    printk("intrdisable              = 0x%x\n", readl(&ohci->regs->intrdisable));
+
+    printk("hcca                     = 0x%x\n", readl(&ohci->regs->hcca));
+    printk("ed_periodcurrent         = 0x%x\n", readl(&ohci->regs->ed_periodcurrent));
+    printk("ed_controlhead           = 0x%x\n", readl(&ohci->regs->ed_controlhead));
+    printk("ed_controlcurrent        = 0x%x\n", readl(&ohci->regs->ed_controlcurrent));
+    printk("ed_bulkhead              = 0x%x\n", readl(&ohci->regs->ed_bulkhead));
+    printk("ed_bulkcurrent           = 0x%x\n", readl(&ohci->regs->ed_bulkcurrent));
+    printk("donehead                 = 0x%x\n", readl(&ohci->regs->donehead));
+
+    printk("fminterval               = 0x%x\n", readl(&ohci->regs->fminterval));
+    printk("fmremaining              = 0x%x\n", readl(&ohci->regs->fmremaining));
+    printk("fmnumber                 = 0x%x\n", readl(&ohci->regs->fmnumber));
+    printk("periodicstart            = 0x%x\n", readl(&ohci->regs->periodicstart));
+    printk("lsthresh                 = 0x%x\n", readl(&ohci->regs->lsthresh));
+
+    printk("roothub.a                = 0x%x\n", readl(&ohci->regs->roothub.a));
+    printk("roothub.b                = 0x%x\n", readl(&ohci->regs->roothub.b));
+    printk("roothub.status           = 0x%x\n", readl(&ohci->regs->roothub.status));
+    printk("roothub.portstatus[0]    = 0x%x\n", readl(&ohci->regs->roothub.portstatus[0]));
+
+	printk("-------------------------------------------------------------------\n");
+	printk("\n");
+
+	spin_unlock_irqrestore(&lock, flags);
+
+    return;
+}
+
+
+

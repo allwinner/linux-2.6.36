@@ -40,6 +40,12 @@ show_help()
     printf "\n"
 }
 
+build_standby()
+{
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} KDIR=${LICHEE_KDIR} \
+       -C ${LICHEE_KDIR}/arch/arm/mach-sun4i/pm/standby all
+}
+
 build_kernel()
 {
     if [ ! -e .config ]; then
@@ -47,6 +53,8 @@ build_kernel()
 	cp arch/arm/configs/sun4i_crane_defconfig .config
 
     fi
+
+    build_standby
 
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} uImage modules
 
@@ -71,7 +79,7 @@ build_modules()
     make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
-    make -C modules/wifi/Nanoradio-c047-7 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
+    make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
 
     #make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
@@ -81,8 +89,13 @@ build_modules()
     export LANG=en_US.UTF-8
     unset LANGUAGE
 
-    cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali
-    USING_MMU=1 USING_UMP=0 USING_PMM=0 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
+    cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/ump
+    CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
+    cp ump.ko ${LICHEE_MOD_DIR}
+    
+    cd ../mali
+    #cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali
+    USING_MMU=1 USING_UMP=1 USING_PMM=0 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
     cp mali.ko ${LICHEE_MOD_DIR}
     cd -
 }
@@ -96,7 +109,7 @@ clean_kernel()
 clean_modules()
 {
     make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
-    make -C modules/wifi/Nanoradio-c047-7 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
+    make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} clean
 }
 
@@ -111,6 +124,9 @@ export PATH=${LICHEE_ROOT}/buildroot/output/external-toolchain/bin:$PATH
 
 
 case "$1" in
+standby)
+    build_standby
+    ;;
 kernel)
     build_kernel
     ;;

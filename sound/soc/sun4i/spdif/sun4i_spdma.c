@@ -1,3 +1,18 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: sun4i-spdma.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/io.h>
@@ -59,7 +74,7 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 	int ret;
 	
 	unsigned long len = prtd->dma_period;
-//	printk("[SPDIF]Entered %s, line = %d\n", __func__, __LINE__);
+
   	limit = prtd->dma_limit;
   	while(prtd->dma_loaded < limit)
 	{
@@ -69,7 +84,6 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 		}
 
 	ret = sw_dma_enqueue(prtd->params->channel, substream, __bus_to_virt(pos),  len);
-//	 printk("[SPDIF]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
 	if(ret == 0){
 		prtd->dma_loaded++;
 		pos += prtd->dma_period;
@@ -82,14 +96,12 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 	  
 	}
 	prtd->dma_pos = pos;
-//	printk("[SPDIF]In the end of %s, dma_start = %#x, dma_end = %#x, dma_pos = %#x\n", __func__, prtd->dma_start, prtd->dma_end, prtd->dma_pos);
 }
 
 static void sun4i_audio_buffdone(struct sw_dma_chan *channel, 
 		                                  void *dev_id, int size,
 		                                  enum sw_dma_buffresult result)
 {
-//    	printk("[SPDIF]Buffer Done \n");
 		struct sun4i_runtime_data *prtd;
 		struct snd_pcm_substream *substream = dev_id;
 
@@ -99,7 +111,6 @@ static void sun4i_audio_buffdone(struct sw_dma_chan *channel,
 		prtd = substream->runtime->private_data;
 			if (substream)
 			{
-				//	printk("[SPDIF]Enter Elapsed\n");
 				snd_pcm_period_elapsed(substream);
 			}	
 	
@@ -121,17 +132,14 @@ static int sun4i_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct sun4i_dma_params *dma = 
 					snd_soc_dai_get_dma_data(rtd->dai->cpu_dai, substream);
 	int ret = 0;
-//		printk("[SPDIF]Entered %s\n", __func__);
 	if (!dma)
 		return 0;
 		
 	if (prtd->params == NULL) {
 		prtd->params = dma;
-		//	printk("[SPDIF]params %p, client %p, channel %d\n", prtd->params,	prtd->params->client, prtd->params->channel);
 		ret = sw_dma_request(prtd->params->channel,
 					  prtd->params->client, NULL);
 		if (ret < 0) {
-				//	printk("[SPDIF]spdif dma request fail. ret: %d, line = %d\n", ret, __LINE__);
 				return ret;
 		}
 	}
@@ -151,15 +159,12 @@ static int sun4i_pcm_hw_params(struct snd_pcm_substream *substream,
 	prtd->dma_pos = prtd->dma_start;
 	prtd->dma_end = prtd->dma_start + totbytes;
 	spin_unlock_irq(&prtd->lock);
-//	printk("[SPDIF]in %s, dma_loaded = %#x, limit = %#x,period = %#x, start = %#x, pos = %#x, end = %#x\n",
-//					__func__, prtd->dma_loaded, prtd->dma_limit, prtd->dma_period, prtd->dma_start, prtd->dma_pos, prtd->dma_end);
 	return 0;
 }
 
 static int sun4i_pcm_hw_free(struct snd_pcm_substream *substream)
 {
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
-//		printk("[SPDIF]Entered %s\n", __func__);
 
 	/* TODO - do we need to ensure DMA flushed */
 	if(prtd->params)
@@ -180,7 +185,6 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
 	struct dma_hw_conf *spdif_dma_conf;
 	int ret = 0;
-	//u32 reg_val = 0;
 	
 	spdif_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
 	if (!spdif_dma_conf)   
@@ -230,7 +234,6 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
 	int ret ;
-//		printk("[SPDIF]Entered %s\n", __func__);
 	spin_lock(&prtd->lock);
 
 	switch (cmd) {
@@ -241,14 +244,14 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 		prtd->dma_loaded--;
 		sun4i_pcm_enqueue(substream);
 		spin_unlock(&prtd->lock);
-//		printk("[SPDIF] dma trigger start\n");
+		printk("[SPDIF] dma trigger start\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_START);
 		break;
 		
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
- //  printk("[SPDIF] dma trigger stop\n");
+      //  printk("[SPDIF] dma trigger stop\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_STOP);
 		break;
 
@@ -267,7 +270,7 @@ static snd_pcm_uframes_t sun4i_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sun4i_runtime_data *prtd = runtime->private_data;
 	unsigned long res = 0;
 	snd_pcm_uframes_t offset = 0;
-	//	printk("[SPDIF]Entered %s\n", __func__);
+	
 	spin_lock(&prtd->lock);
 	sw_dma_getcurposition(DMACH_NSPDIF, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
 
@@ -315,7 +318,7 @@ static int sun4i_pcm_mmap(struct snd_pcm_substream *substream,
 	struct vm_area_struct *vma)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	//	printk("[SPDIF]Entered %s\n", __func__);
+	
 	return dma_mmap_writecombine(substream->pcm->card->dev, vma,
 				     runtime->dma_area,
 				     runtime->dma_addr,
@@ -356,7 +359,7 @@ static void sun4i_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
-	//	printk("[SPDIF]Entered %s\n", __func__);
+	
 	for (stream = 0; stream < 2; stream++) {
 		substream = pcm->streams[stream].substream;
 		if (!substream)
@@ -378,8 +381,6 @@ static int sun4i_pcm_new(struct snd_card *card,
 			   struct snd_soc_dai *dai, struct snd_pcm *pcm)
 {
 	int ret = 0;
-	
-	//	printk("[SPDIF]Entered %s\n", __func__);
 	
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &sun4i_pcm_mask;

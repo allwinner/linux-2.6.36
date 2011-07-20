@@ -1,5 +1,20 @@
-#ifndef _UDA134X_CODEC_H
-#define _UDA134X_CODEC_H
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: sun4i-codecchip.h   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
+#ifndef CODECCHIP_H_
+#define CODECCHIP_H_
 
 typedef struct hdmi_audio
 {
@@ -25,13 +40,6 @@ typedef struct
     __s32 (*hdmi_set_audio_para)(hdmi_audio_t * audio_para);
 }__audio_hdmi_func;
 
-
-/*
-************************************************************
-* display driver ioctl cmd definition
-*
-************************************************************
-*/
 
 /*define display driver command*/
 typedef enum tag_HDMI_CMD

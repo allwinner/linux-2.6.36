@@ -1,9 +1,17 @@
 /*
- * anx7150.c  --  ANX7150 ALSA SoC Codec driver
- *
- */
-
-
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: anx7150.c   author:chenpailin 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
@@ -13,32 +21,14 @@
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
 
-//#include <disp/drv_hdmi.h>
-
 #include "anx7150.h"
 
 #define HDMI
 
-//temp test for 23
 #ifdef HDMI
 extern __s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para);
 extern __s32 Hdmi_Audio_Enable(__u8 mode,  __u8 channel);
 #endif
-
-
-//#ifdef HDMI
-//static __audio_hdmi_func g_hdmi_func;
-//
-//int audio_set_hdmi_func(__audio_hdmi_func * func)
-//{
-//	g_hdmi_func.hdmi_audio_enable = func->hdmi_audio_enable;
-//	g_hdmi_func.hdmi_set_audio_para = func->hdmi_set_audio_para;
-//	
-//	return 0;
-//}
-//
-//EXPORT_SYMBOL(audio_set_hdmi_func);
-//#endif
 
 
 #define ANX7150_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
@@ -52,16 +42,19 @@ static int anx7150_mute(struct snd_soc_dai *dai, int mute)
 	return 0;
 }
 
+
 static int anx7150_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
+
 static void anx7150_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 }
+
 
 static int anx7150_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
@@ -69,16 +62,11 @@ static int anx7150_hw_params(struct snd_pcm_substream *substream,
 {
 	hdmi_para.sample_rate = params_rate(params);
 	
-#ifdef HDMI
-	Hdmi_Audio_Enable(1, 1);
-	Hdmi_Set_Audio_Para(&hdmi_para);
-#endif
+	#ifdef HDMI
+		Hdmi_Audio_Enable(1, 1);
+		Hdmi_Set_Audio_Para(&hdmi_para);
+	#endif
 
-
-//#ifdef HDMI
-//	g_hdmi_func.hdmi_audio_enable(1, 1);
-//	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
-//#endif
 	return 0;
 }
 
@@ -96,11 +84,14 @@ static int anx7150_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int
 	return 0;
 }
 
+
 static int anx7150_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			       unsigned int fmt)
 {
 	return 0;
 }
+
+//codec dai operation
 struct snd_soc_dai_ops anx7150_dai_ops = {
 		.startup = anx7150_startup,
 		.shutdown = anx7150_shutdown,
@@ -110,6 +101,8 @@ struct snd_soc_dai_ops anx7150_dai_ops = {
 		.set_clkdiv = anx7150_set_dai_clkdiv,
 		.set_fmt = anx7150_set_dai_fmt,
 };
+
+//codec dai
 struct snd_soc_dai anx7150_dai = {
 	.name = "ANX7150",
 	/* playback capabilities */
@@ -148,16 +141,9 @@ static int anx7150_soc_probe(struct platform_device *pdev)
 
 	ret = snd_soc_new_pcms(socdev, SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1);
 	if (ret < 0) {
-//		printk(KERN_ERR "ANX7150: failed to register pcms\n");
 		goto pcm_err;
 	}
 
-#if 0 
-	ret = snd_soc_init_card(socdev);
-	if (ret < 0) {
-		goto card_err;
-	}
-#endif
 	return 0;
 
 
@@ -166,7 +152,6 @@ pcm_err:
 	return ret;
 }
 
-/* power down chip */
 static int anx7150_soc_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
@@ -186,14 +171,12 @@ EXPORT_SYMBOL_GPL(soc_codec_dev_anx7150);
 
 static int __init anx7150_init(void)
 {
-//	printk("[IIS]Entered %s, %s, %d\n", __func__, __FILE__, __LINE__);
 	return snd_soc_register_dai(&anx7150_dai);
 }
 module_init(anx7150_init);
 
 static void __exit anx7150_exit(void)
 {
-//	printk("[IIS]Entered %s, %s, %d\n", __func__, __FILE__, __LINE__);
 	snd_soc_unregister_dai(&anx7150_dai);
 }
 module_exit(anx7150_exit);

@@ -144,7 +144,7 @@
 #endif
 
 #define DRVINFO_SZ	4 // unit is 8bytes
-#define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
+#define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
 
 //
 // Check if FW header exists. We do not consider the lower 4 bits in this case. 

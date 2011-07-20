@@ -158,6 +158,18 @@ __s32 DE_BE_Layer_Video_Enable(__u32 sel, __u8 layidx,__bool video_en)
     return 0;
 }
 
+__s32 DE_BE_Layer_Video_Ch_Sel(__u32 sel, __u8 layidx,__bool scaler_index)
+{
+
+    __u32 tmp;
+        
+    tmp = DE_BE_RUINT32IDX(sel, DE_BE_LAYER_ATTRCTL_OFF0,layidx);
+    DE_BE_WUINT32IDX(sel, DE_BE_LAYER_ATTRCTL_OFF0,layidx,(tmp&0xffffffef)|scaler_index<<4);
+
+    
+    return 0;
+}
+
 __s32 DE_BE_Layer_Yuv_Ch_Enable(__u32 sel, __u8 layidx,__bool yuv_en)
 {
 

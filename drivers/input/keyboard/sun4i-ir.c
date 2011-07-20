@@ -14,12 +14,14 @@
 #include <asm/io.h>
 #include <linux/slab.h>
 #include <linux/timer.h> 
-
 #include <mach/clock.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
-
 #include <linux/clk.h>
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
 
 #include "ir-keymap.h"
 
@@ -31,6 +33,7 @@ static u32 ir_gpio_hdle;
 #define SYS_GPIO_CFG_EN
 #define SYS_CLK_CFG_EN
 //#define DEBUG_IR
+#define PRINT_SUSPEND_INFO
 
 #ifdef DEBUG_IR
 #define DEBUG_IR_LEVEL0
@@ -41,10 +44,6 @@ static u32 ir_gpio_hdle;
 #undef DEBUG_IR_LEVEL2
 #undef DEBUG_IR_LEVEL1
 #endif
-
-//#define DEBUG_IR_LEVEL0
-//#define DEBUG_IR_LEVEL2
-//#define DEBUG_IR_LEVEL1
 
 //Registers
 #define IR_REG(x) 	                (x)
@@ -88,9 +87,6 @@ static u32 ir_gpio_hdle;
 #define IR_REPEAT_CODE		        (0x00000000)
 #define DRV_VERSION	                "1.00"
 
-static int debug = 8;   
-static unsigned int ir_cnt = 0;
-
 #define dprintk(level, fmt, arg...)	if (debug >= level) \
 	printk(KERN_DEBUG fmt , ## arg)
 
@@ -98,10 +94,11 @@ static unsigned int ir_cnt = 0;
 #define dprintk(level, fmt, arg...)	if (debug >= level) \
         printk(fmt , ## arg)*/
 
-static struct input_dev *ir_dev;
-static struct timer_list *s_timer; 
-static unsigned long ir_code=0;
-static int timer_used=0;
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+struct sun4i_ir_data {
+    struct early_suspend early_suspend;
+};
+#endif
 
 struct ir_raw_buffer	
 {
@@ -110,8 +107,17 @@ struct ir_raw_buffer
 	unsigned char buf[IR_RAW_BUF_SIZE];	
 };
 
-
+static int debug = 8;   
+static unsigned int ir_cnt = 0;
+static struct input_dev *ir_dev;
+static struct timer_list *s_timer; 
+static unsigned long ir_code=0;
+static int timer_used=0;
 static struct ir_raw_buffer	ir_rawbuf;
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static struct sun4i_ir_data *ir_data;
+#endif
 
 
 static inline void ir_reset_rawbuffer(void)
@@ -153,25 +159,14 @@ static inline int ir_rawbuffer_full(void)
 	return (ir_rawbuf.dcnt >= IR_RAW_BUF_SIZE);	
 }
 
-
-static void ir_sys_cfg(void)
+static void ir_clk_cfg(void)
 {
-	//unsigned long tmp;
-	unsigned long rate = 3000000; //3Mhz 
-
-	#ifdef SYS_GPIO_CFG_EN
-        if(0 == (ir_gpio_hdle = gpio_request_ex("ir_para", "ir0_rx"))){
-			printk("try to request ir_para gpio failed. \n");
-        }
-        
-	#else
-	    //config IO: PIOB4 to IR_Rx
-	    tmp = readl(PI_BASE + 0x24); //PIOB_CFG0_REG
-	    tmp &= ~(0xf<<16);
-	    tmp |= (0x2<<16);
-	    writel(tmp, PI_BASE + 0x24);
-	#endif
-
+    #ifdef SYS_CLK_CFG_EN
+        unsigned long rate = 3000000; //3Mhz     
+    #else
+        unsigned long tmp = 0;
+    #endif
+	
 	#ifdef SYS_CLK_CFG_EN
 		apb_ir_clk = clk_get(NULL, "apb_ir0");		
 		if(!apb_ir_clk) {
@@ -211,7 +206,40 @@ static void ir_sys_cfg(void)
 	    tmp |= (7<<0);	 	//Divisor = 8 
 	    writel(tmp, CCM_BASE + 0x34);	
 	#endif
-	
+
+    return;
+}
+
+static void ir_clk_uncfg(void)
+{
+	#ifdef SYS_CLK_CFG_EN
+	    clk_put(apb_ir_clk);
+	    clk_put(ir_clk);
+	#else	
+	#endif
+ 
+    return;
+}
+static void ir_sys_cfg(void)
+{
+	//unsigned long tmp;
+
+	#ifdef SYS_GPIO_CFG_EN
+        if(0 == (ir_gpio_hdle = gpio_request_ex("ir_para", "ir0_rx"))){
+			printk("try to request ir_para gpio failed. \n");
+        }
+        
+	#else
+	    //config IO: PIOB4 to IR_Rx
+	    tmp = readl(PI_BASE + 0x24); //PIOB_CFG0_REG
+	    tmp &= ~(0xf<<16);
+	    tmp |= (0x2<<16);
+	    writel(tmp, PI_BASE + 0x24);
+	#endif
+
+    ir_clk_cfg();
+
+    return;	
 }
 
 static void ir_sys_uncfg(void)
@@ -224,28 +252,14 @@ static void ir_sys_uncfg(void)
 	#else
 	#endif
 
-	#ifdef SYS_CLK_CFG_EN
-	    clk_put(apb_ir_clk);
-	    clk_put(ir_clk);
-	#else	
-	#endif
+    ir_clk_uncfg();
 
 	return;	
 }
 
-static void ir_setup(void)
+static void ir_reg_cfg(void)
 {
-	unsigned long tmp = 0;
-	
-	dprintk(2, "ir_setup: ir setup start!!\n");
-
-	ir_code = 0;
-	timer_used = 0;
-	
-	ir_reset_rawbuffer();
-	
-	ir_sys_cfg();
-	
+    unsigned long tmp = 0;
 	/*Enable IR Mode*/
 	tmp = 0x3<<4;
 	writel(tmp, IR_BASE+IR_CTRL_REG);
@@ -271,8 +285,23 @@ static void ir_setup(void)
 	tmp = readl(IR_BASE+IR_CTRL_REG);
 	tmp |= 0x3;
 	writel(tmp, IR_BASE+IR_CTRL_REG);
+
+    return;
+}
+
+static void ir_setup(void)
+{	
+	dprintk(2, "ir_setup: ir setup start!!\n");
+
+	ir_code = 0;
+	timer_used = 0;
+	ir_reset_rawbuffer();	
+	ir_sys_cfg();	
+    ir_reg_cfg();
 	
 	dprintk(2, "ir_setup: ir setup end!!\n");
+
+    return;
 }
 
 static inline unsigned char ir_get_data(void)
@@ -546,6 +575,50 @@ static void ir_timer_handle(unsigned long arg)
 	dprintk(2, "ir_timer_handle: timeout \n");	
 }
 
+//停用设备
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void sun4i_ir_suspend(struct early_suspend *h)
+{
+//    unsigned long tmp = 0;
+	/*int ret;
+	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
+      */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: sun4i_ir_suspend. \n");
+    #endif
+/*
+	tmp = readl(IR_BASE+IR_CTRL_REG);
+	tmp &= 0xfffffffc;
+    writel(tmp, IR_BASE+IR_CTRL_REG);
+*/
+    clk_disable(ir_clk);
+    clk_disable(apb_ir_clk);
+
+	return ;
+}
+
+//重新唤醒
+static void sun4i_ir_resume(struct early_suspend *h)
+{
+    //unsigned long tmp = 0;
+	/*int ret;
+	struct sun4i_ir_data *ts = container_of(h, struct sun4i_ir_data, early_suspend);
+    */
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: sun4i_ir_resume. \n");
+    #endif
+
+    ir_code = 0;
+	timer_used = 0;	
+	ir_reset_rawbuffer();	
+	ir_clk_cfg();	
+    ir_reg_cfg();
+
+	return ; 
+}
+#else
+#endif
+
 static int __init ir_init(void)
 {
 	int i,ret;
@@ -598,8 +671,25 @@ static int __init ir_init(void)
 		goto fail4;
 	printk("IR Initial OK\n");
 
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    printk("==register_early_suspend =\n");
+    ir_data = kzalloc(sizeof(*ir_data), GFP_KERNEL);
+	if (ir_data == NULL) {
+		err = -ENOMEM;
+		goto err_alloc_data_failed;
+	}
+	
+    ir_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    ir_data->early_suspend.suspend = sun4i_ir_suspend;
+    ir_data->early_suspend.resume	= sun4i_ir_resume;	
+    register_early_suspend(&ir_data->early_suspend);
+#endif
+
 	return 0;
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+ err_alloc_data_failed:
+#endif
  fail4:	
  	kfree(s_timer);
  fail3:	
@@ -612,6 +702,10 @@ static int __init ir_init(void)
 
 static void __exit ir_exit(void)
 {
+	#ifdef CONFIG_HAS_EARLYSUSPEND	
+	    unregister_early_suspend(&ir_data->early_suspend);	
+	#endif
+
 	free_irq(IR_IRQNO, ir_dev);
 	input_unregister_device(ir_dev);
 	ir_sys_uncfg();

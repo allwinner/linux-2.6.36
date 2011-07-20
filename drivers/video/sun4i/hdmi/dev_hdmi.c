@@ -13,7 +13,7 @@ static struct resource hdmi_resource[1] =
 {
 	[0] = {
 		.start = 0x01c16000,
-		.end   = 0x01c1654f,
+		.end   = 0x01c16fff,
 		.flags = IORESOURCE_MEM,
 	},
 };

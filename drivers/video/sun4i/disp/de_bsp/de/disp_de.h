@@ -18,5 +18,6 @@ __s32 Image_init(__u32 sel);
 __s32 Image_exit(__u32 sel);
 __s32 Image_open(__u32 sel);
 __s32 Image_close(__u32 sel);
+__s32 Disp_de_flicker_enable(__u32 sel, __u32 enable );
 
 #endif

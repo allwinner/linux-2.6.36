@@ -829,10 +829,18 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 	if(type == DISP_OUTPUT_TYPE_LCD)	//lcd panel
 	{		
 		pll_2x_req = (pll_freq>300000000)?1:0;
+
+		videopll = 	(videopll_sel == 0)?AW_SYS_CLK_PLL3:AW_SYS_CLK_PLL7;	
+		if(pll_2x_req)
+		{
+		    pll_freq /= 2;
+		}
+		OSAL_CCMU_SetSrcFreq(videopll,pll_freq);	//Set related Video Pll Frequency
+
 		videopll = 	(videopll_sel == 0)?
 			   		((pll_2x_req)?AW_SYS_CLK_PLL3X2: AW_SYS_CLK_PLL3):
 					((pll_2x_req)?AW_SYS_CLK_PLL7X2: AW_SYS_CLK_PLL7);	
-		OSAL_CCMU_SetSrcFreq(videopll,pll_freq);	//Set related Video Pll Frequency
+
 		if(gpanel_info[sel].tcon_index == 0)	//tcon0 drive lcd panel
 		{
 			h_lcdmclk0 = (sel == 0)?h_lcd0ch0mclk0 : h_lcd1ch0mclk0;
@@ -850,16 +858,22 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 		}
 	}
 	else //tv/vga/hdmi
-	{
+	{	    
+	    __u32 pll_freq_used;
+	    
 		pll_2x_req = pll_2x;
+		videopll = 	(videopll_sel == 0)?AW_SYS_CLK_PLL3:AW_SYS_CLK_PLL7;	
+		OSAL_CCMU_SetSrcFreq(videopll,pll_freq);	//Set related Video Pll Frequency
+
 		videopll = 	(videopll_sel == 0)?
 			   		((pll_2x_req)?AW_SYS_CLK_PLL3X2: AW_SYS_CLK_PLL3):
 					((pll_2x_req)?AW_SYS_CLK_PLL7X2: AW_SYS_CLK_PLL7);	
-		OSAL_CCMU_SetSrcFreq(videopll,pll_freq);	//Set related Video Pll Frequency
 
-		lcdmclk2_div = pll_freq/tve_freq;
+		pll_freq_used = pll_freq * (pll_2x_req + 1);
+
+		lcdmclk2_div = (pll_freq_used + (tve_freq / 2)) / tve_freq;
 		lcdmclk1_div = lcdmclk2_div*pre_scale;
-		hdmiclk_div = pll_freq/hdmi_freq;
+		hdmiclk_div = (pll_freq_used + (hdmi_freq / 2)) / hdmi_freq;
 		
 		h_lcdmclk1 = (sel == 0)?h_lcd0ch1mclk1 : h_lcd1ch1mclk1;
 		h_lcdmclk2 = (sel == 0)?h_lcd0ch1mclk2 : h_lcd1ch1mclk2;
@@ -872,6 +886,22 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 		{
 			OSAL_CCMU_SetMclkSrc(h_hdmimclk, videopll);
 			OSAL_CCMU_SetMclkDiv(h_hdmimclk, hdmiclk_div);
+
+            if(gdisp.init_para.hdmi_set_pll != NULL)
+            {
+    			if((videopll == AW_SYS_CLK_PLL3X2) || (videopll == AW_SYS_CLK_PLL3))
+    			{
+    			    gdisp.init_para.hdmi_set_pll(0, pll_freq);
+    			}
+    			else
+    			{
+    			    gdisp.init_para.hdmi_set_pll(1, pll_freq);
+    			}
+			}
+			else
+			{
+			    DE_WRN("gdisp.init_para.hdmi_set_pll is NULL\n");
+			}
 		}
 	}
 
@@ -915,8 +945,7 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 		pll_freq = clk_tab.vga_clk_tab[mode].pll_clk;
 		tve_freq = clk_tab.vga_clk_tab[mode].tve_clk;
 		pre_scale = clk_tab.vga_clk_tab[mode].pre_scale;
-		pll_2x = clk_tab.tv_clk_tab[mode].pll_2x;
-
+		pll_2x = clk_tab.vga_clk_tab[mode].pll_2x;
 	}
 	else if(type == DISP_OUTPUT_TYPE_LCD)
 	{
@@ -932,6 +961,7 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 	{
 		return DIS_FAIL;
 	}
+	
 	disp_pll_set(sel, videopll_sel, pll_freq, tve_freq, pre_scale, lcd_clk_div, hdmi_freq, pll_2x, type);
 	gdisp.screen[sel].pll_use_status |= ((videopll_sel == 0)?VIDEO_PLL0_USED : VIDEO_PLL1_USED);
 	

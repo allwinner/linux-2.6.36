@@ -35,7 +35,7 @@ __s32 BSP_disp_vga_open(__u32 sel)
     	disp_clk_cfg(sel,DISP_OUTPUT_TYPE_VGA, vga_mode);
     	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_VGA, 1);
 
-        BSP_disp_set_yuv_output(sel, TRUE);
+        BSP_disp_set_yuv_output(sel, FALSE);
         DE_BE_set_display_size(sel, vga_mode_to_width(vga_mode), vga_mode_to_height(vga_mode));
         DE_BE_Output_Select(sel, sel);
     	TCON1_set_vga_mode(sel,vga_mode);
@@ -78,9 +78,9 @@ __s32 BSP_disp_vga_close(__u32 sel)
 
 __s32 BSP_disp_vga_set_mode(__u32 sel, __disp_vga_mode_t  mode)
 { 	
-    if(mode > DISP_VGA_H1920_V1080)
+    if((mode >= DISP_VGA_MODE_NUM) || (mode == DISP_VGA_H1440_V900_RB) || (mode == DISP_VGA_H1680_V1050_RB))
     {
-        DE_WRN("unsupported vga mode in BSP_disp_vga_set_mode\n");
+        DE_WRN("unsupported vga mode:%d in BSP_disp_vga_set_mode\n", mode);
         return DIS_FAIL;
     }
 

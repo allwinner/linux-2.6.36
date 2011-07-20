@@ -40,6 +40,12 @@ show_help()
     printf "\n"
 }
 
+build_standby()
+{
+    make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} KDIR=${LICHEE_KDIR} \
+       -C ${LICHEE_KDIR}/arch/arm/mach-sun4i/pm/standby all
+}
+
 build_kernel()
 {
     if [ ! -e .config ]; then
@@ -47,6 +53,8 @@ build_kernel()
 	cp arch/arm/configs/sun4i_defconfig .config
 
     fi
+
+    build_standby
 
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} uImage modules
 
@@ -71,7 +79,7 @@ build_modules()
     make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} install
 
-    make -C modules/wifi/Nanoradio-c047-7 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
+    make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
 
     #make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
@@ -95,7 +103,7 @@ clean_kernel()
 clean_modules()
 {
     #make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
-    make -C modules/wifi/Nanoradio-c047-7 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
+    make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} clean
 }
 

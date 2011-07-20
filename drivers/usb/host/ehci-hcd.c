@@ -795,6 +795,8 @@ static irqreturn_t ehci_irq (struct usb_hcd *hcd)
 		unsigned	i = HCS_N_PORTS (ehci->hcs_params);
 		u32		ppcd = 0;
 
+        printk("ehci_irq: port change detect\n");
+
 		/* kick root hub later */
 		pcd_status = status;
 

@@ -966,9 +966,7 @@ static irqreturn_t sw_hcd_interrupt(struct sw_hcd *sw_hcd)
 	devctl = USBC_Readb(USBC_REG_DEVCTL(usbc_base));
 	power  = USBC_Readb(USBC_REG_PCTL(usbc_base));
 
-	DMSG_DBG_HCD("\n sw_hcd_interrupt: IRQ %s usb%04x tx%04x rx%04x\n\n",
-        		((devctl & (1 << USBC_BP_DEVCTL_HOST_MODE)) ? "host" : "peripheral"),
-        		sw_hcd->int_usb, sw_hcd->int_tx, sw_hcd->int_rx);
+	DMSG_DBG_HCD("irq: (0x%x, 0x%x, 0x%x)\n", sw_hcd->int_usb, sw_hcd->int_tx, sw_hcd->int_rx);
 
 	/* the core can interrupt us for multiple reasons; docs have
 	 * a generic interrupt flowchart to follow

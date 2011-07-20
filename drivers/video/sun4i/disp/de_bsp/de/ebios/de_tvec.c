@@ -38,7 +38,17 @@ __s32  TVE_init(__u32 sel)
 	TVE_dac_autocheck_enable(sel,2);
 	TVE_dac_autocheck_enable(sel,3);
 	TVE_csc_init(sel,0);
-	
+
+	if(sel == 0)
+	{
+	    TVE_dac_sel(0, 0, 0);
+	    TVE_dac_sel(0, 1, 1);
+	    TVE_dac_sel(0, 2, 2);
+	    TVE_dac_sel(0, 3, 3);
+	}
+	TVE_SET_BIT(sel,TVE_008,0x3<<16);	
+	TVE_WUINT32(sel,TVE_024,0x18181818);
+
 	return 0;
 }
 
@@ -352,30 +362,36 @@ __u8  TVE_clear_int(__u32 sel)
 }
 
 //0:unconnected; 1:connected; 3:short to ground
-__s32 TVE_get_dac_status(__u32 sel,__u32 index)
+__s32 TVE_get_dac_status(__u32 index)
 {
-    __u32   readval;
+    __u32 reg_000,map,sel,dac;
+    __s32 status;
 
-    readval = TVE_RUINT32(sel,TVE_038);
-    
-    if(index == 0)
+    reg_000 = TVE_RUINT32(0,TVE_000); 
+    map = (reg_000>>(4*(index+1))) & 0xf;
+    if(map>=1 && map<=4)
     {
-        readval = (readval & 0x00000003);
+        sel = 0;
+        dac = map-1;
     }
-    else if(index == 1)
+    else if(map>=5 && map<=8)
     {
-        readval = (readval & 0x00000300)>>8;
+        sel = 1;
+        dac = map-5;
     }
-    else if(index == 2)
+    else
     {
-        readval = (readval & 0x00030000)>>16;
-    }
-    else if(index == 3)
-    {
-        readval = (readval & 0x03000000)>>24;
+        return -1;
     }
 
-    return readval;
+    TVE_SET_BIT(sel,TVE_008,0x3<<16);		
+    TVE_SET_BIT(sel,TVE_008,0xf<<18);	
+    TVE_WUINT32(sel,TVE_024,0x18181818);
+
+    status = TVE_RUINT32(sel,TVE_038)>>(dac*8);
+    status &= 0x3;
+
+    return status;
 }
 
 __u8 TVE_dac_int_enable(__u32 sel,__u8 index)
@@ -476,6 +492,33 @@ __s32 TVE_dac_set_source(__u32 sel,__u32 index,__u32 source)
     return 0;
 }
 
+
+__s32 TVE_dac_get_source(__u32 sel,__u32 index)
+{
+    __u32   readval = 0;
+
+    readval = TVE_RUINT32(sel,TVE_008);
+
+    if(index == 0)
+    {
+        readval = (readval >> 4) & 0x7;
+    }
+    else if(index == 1)
+    {
+        readval = (readval >> 7) & 0x7;
+    }
+    else if(index == 2)
+    {
+        readval = (readval >> 10) & 0x7;
+    }
+    else if(index == 3)
+    {
+        readval = (readval >> 13) & 0x7;
+    }
+
+    return readval;
+}
+
 __u8 TVE_dac_set_de_bounce(__u32 sel,__u8 index,__u32 times)
 {
     __u32   readval;
@@ -538,15 +581,8 @@ __u8 TVE_dac_get_de_bounce(__u32 sel,__u8 index)
     return sts;
 }
 
-
-// 0:TV0_DOUT0
-// 1:TV0_DOUT1
-// 2:TV0_DOUT2
-// 3:TV0_DOUT3
-// 4:TV0_DOUT0
-// 5:TV0_DOUT1
-// 6:TV0_DOUT2
-// 7:TV0_DOUT3
+//dac: 0~3
+//index: 0~3
 __s32 TVE_dac_sel(__u32 sel,__u32 dac, __u32 index)
 {
 	__u32   readval;

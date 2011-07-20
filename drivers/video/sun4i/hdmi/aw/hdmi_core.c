@@ -4,6 +4,11 @@ __s32 			hdmi_state	=	HDMI_State_Idle;
 __s32           video_en    =   0;
 __s32 			video_mode  = 	HDMI720P_60;
 HDMI_AUDIO_INFO audio_info;
+__u8			EDID_Buf[1024];
+__u8 			Device_Support_VIC[256];
+
+__u32 hdmi_pll = 0;//0:video pll 0; 1:video pll 1
+__u32 hdmi_clk = 297000000;
 
 
 HDMI_VIDE_INFO video_timing[] = 
@@ -27,6 +32,7 @@ __s32 hdmi_core_initial(void)
 	hdmi_state	=	HDMI_State_Idle;
 	video_mode  = 	HDMI720P_60;
 	memset(&audio_info,0,sizeof(HDMI_AUDIO_INFO));
+	memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
     HDMI_WUINT32(0x004,0x80000000);			//start hdmi controller	
 	return 0;
 }
@@ -43,6 +49,9 @@ __s32 hdmi_main_task_loop(void)
 		{
 			hdmi_state = HDMI_State_Wait_Hpd;
 		}
+
+		if(hdmi_state > HDMI_State_Wait_Hpd)
+			__inf("unplug detected\n");
 	}
 	switch(hdmi_state)
     {
@@ -52,12 +61,14 @@ __s32 hdmi_main_task_loop(void)
     		 if(HPD)
     		 {
     		 	hdmi_state = 	HDMI_State_EDID_Parse;
-    		 	__inf("hotplug detected\n");
+    		 	__inf("plugin detected\n");
     		 }
     		 return 0;    	
     	case HDMI_State_Rx_Sense:
     		 return 0;    	
     	case HDMI_State_EDID_Parse:
+    		 //memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
+    		 //ParseEDID();
     		 hdmi_state = 	HDMI_State_Video_config;
     		 return 0;    	
     	case HDMI_State_Video_config:
@@ -66,7 +77,11 @@ __s32 hdmi_main_task_loop(void)
     		 return 0;    	
     	case HDMI_State_Audio_config:
     		 audio_config();
-    		 hdmi_state = 	HDMI_State_Playback;    	
+    		 hdmi_state = 	HDMI_State_Playback;    
+
+             //hdmi_delay_ms(1000);
+    		 //memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
+    		 //ParseEDID();
     		 return 0;    	
     	case HDMI_State_Playback:
     		 return 0;     	
@@ -80,23 +95,17 @@ __s32 hdmi_main_task_loop(void)
 
 __s32 Hpd_Check(void)
 {
-	static __s32 times    = 0;
-	static __s32 hpd_prev = 0;
-	static __s32 hpd_new  = 0;
+	__s32 i,times;
+	times    = 0;
 
-	hpd_new = HDMI_RUINT32(0x00c)&0x01;
-	if(hpd_new && hpd_prev)
+	for(i=0;i<3;i++)
 	{
-		if(times < 10)
-	   		times ++;
+		hdmi_delay_ms(1);
+		//HDMI_RUINT32(0x5f0);
+		if( HDMI_RUINT32(0x00c)&0x01)
+			times++;
 	}
-	else
-	{
-		times = 0;
-		hpd_prev = hpd_new;
-	}
-	
-	if(times >= 5)      
+	if(times == 3)      
 	   return 1;
 	else
 	   return 0;
@@ -167,8 +176,8 @@ __s32 get_audio_info(__s32 sample_rate)
    {
    		 audio_info.CTS =   ((74250000/100) *(audio_info.ACR_N /128)) / (sample_rate/100);
    }
-   else if( (video_mode == HDMI720P_50 ) || (video_mode == HDMI720P_60 ) ||
-            (video_mode == HDMI1080P_50) || (video_mode == HDMI1080P_60)  )
+   else if( (video_mode == HDMI1080P_50) || (video_mode == HDMI1080P_60) ||
+            (video_mode == HDMI1080P_24_3D_FP) )
    {
    		 audio_info.CTS =   ((148500000/100) *(audio_info.ACR_N /128)) / (sample_rate/100);
    }
@@ -327,11 +336,11 @@ __s32 video_config(__s32 vic)
     if( (vic == HDMI1440_480I) || (vic == HDMI1440_576I) || 
         (vic == HDMI480P)      || (vic == HDMI576P)       )
     {
-        clk_div = 270000000/video_timing[i].PCLK;
+        clk_div = hdmi_clk/video_timing[i].PCLK;
     }
     else
     {
-        clk_div = 297000000/video_timing[i].PCLK;
+        clk_div = hdmi_clk/video_timing[i].PCLK;
     }
 	clk_div &= 0x0f;
 	HDMI_WUINT32(0x208,(1<<31)+ (1<<30)+ (1<<29)+ (3<<27)+ (0<<26)+ 
@@ -341,6 +350,8 @@ __s32 video_config(__s32 vic)
  	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
 	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
 
+    HDMI_WUINT32(0x20c, hdmi_pll << 21);
+    
     return 0;
 }
 

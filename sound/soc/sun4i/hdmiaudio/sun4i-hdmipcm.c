@@ -1,3 +1,18 @@
+/*
+********************************************************************************************************
+*                          SUN4I----HDMI AUDIO
+*                   (c) Copyright 2002-2004, All winners Co,Ld.
+*                          All Right Reserved
+*
+* FileName: sun4i-hdmipcm.c   author:chenpailin  date:2011-07-19 
+* Description: 
+* Others: 
+* History:
+*   <author>      <time>      <version>   <desc> 
+*   chenpailin   2011-07-19     1.0      modify this module 
+********************************************************************************************************
+*/
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/io.h>
@@ -59,18 +74,14 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 	int ret;
 	
 	unsigned long len = prtd->dma_period;
-//	printk("[IIS]Entered %s, line = %d\n", __func__, __LINE__);
   	limit = prtd->dma_limit;
   	while(prtd->dma_loaded < limit)
 	{
-//	printk("[IIS]dma_loaded: %d\n", prtd->dma_loaded);
 		if((pos + len) > prtd->dma_end){
 			len  = prtd->dma_end - pos;
-			//	printk("[IIS]%s: corrected dma len %ld\n", __func__, len);
 		}
 	
 	ret = sw_dma_enqueue(prtd->params->channel, substream, __bus_to_virt(pos),  len);
-//	 printk("[IIS]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
 	if(ret == 0){
 		prtd->dma_loaded++;
 		pos += prtd->dma_period;
@@ -83,14 +94,12 @@ static void sun4i_pcm_enqueue(struct snd_pcm_substream *substream)
 	  
 	}
 	prtd->dma_pos = pos;
-//	printk("[IIS]In the end of %s, dma_start = %#x, dma_end = %#x, dma_pos = %#x\n", __func__, prtd->dma_start, prtd->dma_end, prtd->dma_pos);
 }
 
 static void sun4i_audio_buffdone(struct sw_dma_chan *channel, 
 		                                  void *dev_id, int size,
 		                                  enum sw_dma_buffresult result)
 {
-//    	printk("[IIS]Buffer Done \n");
 		struct sun4i_runtime_data *prtd;
 		struct snd_pcm_substream *substream = dev_id;
 
@@ -100,7 +109,6 @@ static void sun4i_audio_buffdone(struct sw_dma_chan *channel,
 		prtd = substream->runtime->private_data;
 			if (substream)
 			{
-				//	printk("[IIS]Enter Elapsed\n");
 				snd_pcm_period_elapsed(substream);
 			}	
 	
@@ -123,17 +131,14 @@ static int sun4i_pcm_hw_params(struct snd_pcm_substream *substream,
 					snd_soc_dai_get_dma_data(rtd->dai->cpu_dai, substream);
 
 	int ret = 0;
-//		printk("[IIS]Entered %s\n", __func__);
 	if (!dma)
 		return 0;
 		
 	if (prtd->params == NULL) {
 		prtd->params = dma;
-		//	printk("[IIS]params %p, client %p, channel %d\n", prtd->params,	prtd->params->client, prtd->params->channel);
 		ret = sw_dma_request(prtd->params->channel,
 					  prtd->params->client, NULL);
 		if (ret < 0) {
-				//	printk("[IIS]iis dma request fail. ret: %d, line = %d\n", ret, __LINE__);
 				return ret;
 		}
 	}
@@ -153,16 +158,13 @@ static int sun4i_pcm_hw_params(struct snd_pcm_substream *substream,
 	prtd->dma_pos = prtd->dma_start;
 	prtd->dma_end = prtd->dma_start + totbytes;
 	spin_unlock_irq(&prtd->lock);
-//	printk("[IIS]in %s, dma_loaded = %#x, limit = %#x,period = %#x, start = %#x, pos = %#x, end = %#x\n",
-//					__func__, prtd->dma_loaded, prtd->dma_limit, prtd->dma_period, prtd->dma_start, prtd->dma_pos, prtd->dma_end);
 	return 0;
 }
 
 static int sun4i_pcm_hw_free(struct snd_pcm_substream *substream)
 {
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
-//		printk("[IIS]Entered %s\n", __func__);
-
+	
 	/* TODO - do we need to ensure DMA flushed */
 	if(prtd->params)
   	sw_dma_ctrl(prtd->params->channel, SW_DMAOP_FLUSH);
@@ -182,38 +184,11 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
 	struct dma_hw_conf *codec_dma_conf;
 	int ret = 0;
-//	u32 reg_val  = 0;
-//		printk("[IIS]Entered %s\n", __func__);
-/*		
-	//set channel : mono or stereo
-	reg_val = readl(sun4i_i2s.regs + SUN4I_TXCHMAP);
-	reg_val &= ~(SUN4I_TXCHMAP_CH0(8));
-	reg_val &= ~(SUN4I_TXCHMAP_CH1(8));
-	switch(substream->runtime->channels)
-	{
-		case 1:
-			reg_val |= SUN4I_TXCHMAP_CH0(1);
-			reg_val |= SUN4I_TXCHMAP_CH1(1);	
-			break;
-		case 2:
-			reg_val |= SUN4I_TXCHMAP_CH0(1);
-			reg_val |= SUN4I_TXCHMAP_CH1(2);
-			break;
-		default:
-			reg_val |= SUN4I_TXCHMAP_CH0(1);
-			reg_val |= SUN4I_TXCHMAP_CH1(2);
-			break;
-			
-	}
-//	printk("[IIS]reg_val = %#x\n",reg_val);
-	writel(reg_val, sun4i_i2s.regs + SUN4I_TXCHMAP);	
-*/	 
 		
 	codec_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
 	if (!codec_dma_conf)   
 	{
 	   ret =  - ENOMEM;
-	   //	printk("[IIS]Can't audio malloc dma configure memory, line = %d\n", __LINE__);
 	   return ret;
 	}
 	if (!prtd->params)
@@ -231,18 +206,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 				codec_dma_conf->to           = prtd->params->dma_addr;
 			  ret = sw_dma_config(prtd->params->channel,codec_dma_conf);
 	}
-//   else {
-//			 	codec_dma_conf->drqsrc_type  = DRQ_TYPE_SDRAM;
-//				codec_dma_conf->drqdst_type  = DRQ_TYPE_IIS;
-//				codec_dma_conf->xfer_type    = DMAXFER_D_BWORD_S_BWORD;
-//				codec_dma_conf->address_type = DMAADDRT_D_INC_S_FIX;
-//				codec_dma_conf->dir          = SW_DMA_RDEV;
-//				codec_dma_conf->reload       = 1;
-//				codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL|SW_DMA_IRQ_HALF;
-//				codec_dma_conf->from         = prtd->params->dma_addr;
-//				codec_dma_conf->to           = prtd->dma_start;
-//			  	sw_dma_config(prtd->params->channel,codec_dma_conf);
-//   	}
+   
 	/* flush the DMA channel */
 	sw_dma_ctrl(prtd->params->channel, SW_DMAOP_FLUSH);
 	prtd->dma_loaded = 0;
@@ -258,7 +222,6 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 {
 	struct sun4i_runtime_data *prtd = substream->runtime->private_data;
 	int ret ;
-//		printk("[IIS]Entered %s\n", __func__);
 	spin_lock(&prtd->lock);
 
 	switch (cmd) {
@@ -269,15 +232,14 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 			prtd->dma_loaded--;
 			sun4i_pcm_enqueue(substream);
 			spin_unlock(&prtd->lock);
-		printk("[IIS] dma trigger start\n");
-		printk("[IIS] 0x01c22400+0x24 = %#x, line= %d\n", readl(0xf1c22400+0x24), __LINE__);
+		printk("[HDMI-AUDIO] PCM trigger start...\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_START);
 		break;
 		
 	case SNDRV_PCM_TRIGGER_SUSPEND:
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-//   printk("[IIS] dma trigger stop\n");
+		printk("[HDMI-AUDIO] PCM trigger stop...\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_STOP);
 		break;
 
@@ -296,8 +258,9 @@ static snd_pcm_uframes_t sun4i_pcm_pointer(struct snd_pcm_substream *substream)
 	struct sun4i_runtime_data *prtd = runtime->private_data;
 	unsigned long res = 0;
 	snd_pcm_uframes_t offset = 0;
-	//	printk("[IIS]Entered %s\n", __func__);
+	
 	spin_lock(&prtd->lock);
+	
 	sw_dma_getcurposition(DMACH_HDMIAUDIO, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
 
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
@@ -345,7 +308,7 @@ static int sun4i_pcm_mmap(struct snd_pcm_substream *substream,
 	struct vm_area_struct *vma)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-	//	printk("[IIS]Entered %s\n", __func__);
+	
 	return dma_mmap_writecombine(substream->pcm->card->dev, vma,
 				     runtime->dma_area,
 				     runtime->dma_addr,
@@ -386,7 +349,7 @@ static void sun4i_pcm_free_dma_buffers(struct snd_pcm *pcm)
 	struct snd_pcm_substream *substream;
 	struct snd_dma_buffer *buf;
 	int stream;
-	//	printk("[IIS]Entered %s\n", __func__);
+
 	for (stream = 0; stream < 2; stream++) {
 		substream = pcm->streams[stream].substream;
 		if (!substream)
@@ -408,9 +371,7 @@ static int sun4i_pcm_new(struct snd_card *card,
 			   struct snd_soc_dai *dai, struct snd_pcm *pcm)
 {
 	int ret = 0;
-	
-	//	printk("[IIS]Entered %s\n", __func__);
-	
+
 	if (!card->dev->dma_mask)
 		card->dev->dma_mask = &sun4i_pcm_mask;
 	if (!card->dev->coherent_dma_mask)

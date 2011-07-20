@@ -20,6 +20,8 @@
 
 extern unsigned int save_sp(void);
 extern void restore_sp(unsigned int sp);
+extern void standby_flush_tlb(void);
+extern void standby_preload_tlb(void);
 extern char *__bss_start;
 extern char *__bss_end;
 extern char *__standby_start;
@@ -27,7 +29,7 @@ extern char *__standby_end;
 
 static sp_backup;
 static void standby(void);
-static __u32 dcdc2, dcdc3, ldo1, ldo2, ldo3, ldo4;
+static __u32 dcdc2, dcdc3;
 static struct sun4i_clk_div_t  clk_div;
 static struct sun4i_clk_div_t  tmp_clk_div;
 
@@ -56,6 +58,13 @@ int main(struct aw_pm_info *arg)
         /* standby parameter is invalid */
         return -1;
     }
+
+    /* flush data and instruction tlb, there is 32 items of data tlb and 32 items of instruction tlb,
+       The TLB is normally allocated on a rotating basis. The oldest entry is always the next allocated */
+    standby_flush_tlb();
+    /* preload tlb for standby */
+    standby_preload_tlb();
+
     /* clear bss segment */
     do{*tmpPtr ++ = 0;}while(tmpPtr <= (char *)&__bss_end);
 
@@ -102,10 +111,12 @@ int main(struct aw_pm_info *arg)
     sp_backup = save_sp();
     /* enable dram enter into self-refresh */
     dram_enter_selfrefresh();
+    dram_power_save_process();
     /* process standby */
     standby();
     /* restore dram */
     dram_exit_selfrefresh();
+    dram_power_up_process();
     /* restore stack pointer register, switch stack back to dram */
     restore_sp(sp_backup);
 
@@ -144,6 +155,9 @@ int main(struct aw_pm_info *arg)
 */
 static void standby(void)
 {
+    /* gating off dram clock */
+    standby_clk_dramgating(0);
+
     /* switch cpu clock to HOSC, and disable pll */
     standby_clk_core2hosc();
     standby_clk_plldisable();
@@ -151,18 +165,10 @@ static void standby(void)
     /* backup voltages */
     dcdc2 = standby_get_voltage(POWER_VOL_DCDC2);
     dcdc3 = standby_get_voltage(POWER_VOL_DCDC3);
-    ldo1 = standby_get_voltage(POWER_VOL_LDO1);
-    ldo2 = standby_get_voltage(POWER_VOL_LDO2);
-    ldo3 = standby_get_voltage(POWER_VOL_LDO3);
-    ldo4 = standby_get_voltage(POWER_VOL_LDO4);
 
     /* adjust voltage */
     standby_set_voltage(POWER_VOL_DCDC2, STANDBY_DCDC2_VOL);
     standby_set_voltage(POWER_VOL_DCDC3, STANDBY_DCDC3_VOL);
-    standby_set_voltage(POWER_VOL_LDO1,  STANDBY_LDO1_VOL);
-    standby_set_voltage(POWER_VOL_LDO2,  STANDBY_LDO2_VOL);
-    standby_set_voltage(POWER_VOL_LDO3,  STANDBY_LDO3_VOL);
-    standby_set_voltage(POWER_VOL_LDO4,  STANDBY_LDO4_VOL);
 
     /* set clock division cpu:axi:ahb:apb = 2:2:2:1 */
     standby_clk_getdiv(&clk_div);
@@ -185,7 +191,10 @@ static void standby(void)
     #if(ALLOW_DISABLE_HOSC)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
+    /* delay 1ms for power be stable */
+    standby_delay(20);
     standby_clk_hoscenable();
+    standby_delay(50);
     #endif
     /* switch clock to LOSC */
     standby_clk_core2hosc();
@@ -203,17 +212,17 @@ static void standby(void)
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
     standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
-    standby_set_voltage(POWER_VOL_LDO1, ldo1);
-    standby_set_voltage(POWER_VOL_LDO2, ldo2);
-    standby_set_voltage(POWER_VOL_LDO3, ldo3);
-    standby_set_voltage(POWER_VOL_LDO4, ldo4);
-    standby_mdelay(30);
+    standby_mdelay(10);
 
     /* enable pll */
     standby_clk_pllenable();
-    standby_mdelay(30);
+    standby_mdelay(10);
     /* switch cpu clock to core pll */
     standby_clk_core2pll();
+    standby_mdelay(10);
+
+    /* gating on dram clock */
+    standby_clk_dramgating(1);
 
     return;
 }

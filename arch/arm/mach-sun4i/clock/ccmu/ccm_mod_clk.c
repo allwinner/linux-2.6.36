@@ -571,7 +571,7 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
                 case 1:
                     return AW_SYS_CLK_PLL4;
                 case 2:
-                    return AW_SYS_CLK_PLL5;
+                    return AW_SYS_CLK_PLL5P;
                 default:
                     return AW_SYS_CLK_PLL7;
             }
@@ -1434,7 +1434,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
                 case AW_SYS_CLK_PLL4:
                     aw_ccu_reg->MaliClk.ClkSrc = 1;
                     return 0;
-                case AW_SYS_CLK_PLL5:
+                case AW_SYS_CLK_PLL5P:
                     aw_ccu_reg->MaliClk.ClkSrc = 2;
                     return 0;
                 case AW_SYS_CLK_PLL7:
@@ -2093,7 +2093,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
                 return 0;
             }
 
-            return -1;
+            return 0;
         }
         case AW_MOD_CLK_LCD0CH1_S2:
         {
@@ -2117,7 +2117,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
                 return 0;
             }
 
-            return -1;
+            return 0;
         }
         case AW_MOD_CLK_LCD1CH1_S2:
         {
@@ -2152,7 +2152,7 @@ static __s32 mod_clk_set_rate(__aw_ccu_mod_clk_e id, __s64 rate)
             {
                 return -1;
             }
-            aw_ccu_reg->Csi1Clk.ClkDiv = rate-1;
+            aw_ccu_reg->VeClk.ClkDiv = rate-1;
             return 0;
         }
         case AW_MOD_CLK_ACE:
@@ -2414,7 +2414,7 @@ static __s32 mod_clk_set_rate_hz(__aw_ccu_mod_clk_e id, __s64 rate)
     __aw_ccu_clk_t      *tmpParent;
 
     tmpParent = aw_ccu_get_sys_clk(mod_clk_get_parent(id));
-    return mod_clk_set_rate(id, ccu_clk_uldiv((tmpParent->rate + rate - 1), rate));
+    return mod_clk_set_rate(id, ccu_clk_uldiv((tmpParent->rate + (rate>>1)), rate));
 }
 
 

@@ -43,6 +43,10 @@ static unsigned int i2c_debug = 0;
 #define AWXX_I2C_TFAIL  -4  /* stop  fail */
 
 //#define SYS_FPGA_SIM
+#define I2C0_TRANSFER_SPEED     (400000)
+#define I2C1_TRANSFER_SPEED     (200000)
+#define I2C2_TRANSFER_SPEED     (200000)
+
 
 /*aw_i2c_adapter: transfer status */
 enum
@@ -782,17 +786,11 @@ static const struct i2c_algorithm i2c_awxx_algorithm = {
 	.functionality	  = i2c_awxx_functionality,
 };
 
-static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
+static int i2c_awxx_clk_init(struct awxx_i2c *i2c)
 {
-    unsigned int apb_clk = 0;
     int ret = 0;
 
-    // enable GPIO pin
-    ret = aw_twi_request_gpio(i2c);
-    if(ret == -1){
-    	printk("request i2c gpio failed!\n");
-    	return -1;
-    }
+    unsigned int apb_clk = 0;
 
     // enable APB clk
     ret = aw_twi_enable_sys_clk(i2c);
@@ -812,6 +810,41 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
     }
     printk("twi%d, apb clock = %d \n",i2c->bus_num, apb_clk);
     aw_twi_set_clock(apb_clk, i2c->bus_freq, i2c->base_addr);
+
+    return 0;
+
+}
+
+static int i2c_awxx_clk_exit(struct awxx_i2c *i2c)
+{
+     void *base_addr = i2c->base_addr;
+
+    // aw_twi_disable_irq(base_addr);
+     // disable twi bus
+     aw_twi_disable_bus(base_addr);
+     // disable APB clk
+     aw_twi_disable_sys_clk(i2c);
+
+     return 0;
+
+}
+
+static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
+{
+    int ret = 0;
+
+    // enable GPIO pin
+    ret = aw_twi_request_gpio(i2c);
+    if(ret == -1){
+    	printk("request i2c gpio failed!\n");
+    	return -1;
+    }
+
+    if(i2c_awxx_clk_init(i2c))
+    {
+        return -1;
+    }
+    
     // soft reset
     aw_twi_soft_reset(i2c->base_addr);
 
@@ -820,14 +853,14 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
 
 static void i2c_awxx_hw_exit(struct awxx_i2c *i2c)
 {
-    void *base_addr = i2c->base_addr;
-   // aw_twi_disable_irq(base_addr);
-    // disable twi bus
-    aw_twi_disable_bus(base_addr);
-    // disable APB clk
-    aw_twi_disable_sys_clk(i2c);
-    // disable GPIO pin
+    if(i2c_awxx_clk_exit(i2c))
+    {
+        return;
+    }
+
+    // disable GPIO pin   
     aw_twi_release_gpio(i2c);
+    
 }
 
 static int i2c_awxx_probe(struct platform_device *dev)
@@ -998,11 +1031,20 @@ static int i2c_awxx_suspend(struct device *dev)
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
 
 	printk("[i2c%d] suspend okay.. \n", i2c->bus_num);
+	
+    if(0 == i2c->bus_num){
+        printk("err: when power ic is working ,suspend twi0 is prohibit. jump over\n");
+        return 0;
+    }
 
-	//i2c_awxx_hw_exit(i2c);
+    if(i2c_awxx_clk_exit(i2c))
+    {
+        return -1;
+    }
 
 	return 0;
 }
+
 
 static int i2c_awxx_resume(struct device *dev)
 {
@@ -1010,9 +1052,21 @@ static int i2c_awxx_resume(struct device *dev)
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
 
     printk("[i2c%d] resume okay.. \n", i2c->bus_num);
+    
+    if(0 == i2c->bus_num){
+        printk("err: twi0 is working, do not need to resum. just jump over\n");
+        return 0;
+    }
 
-	//i2c_awxx_hw_init(i2c);
+    if(i2c_awxx_clk_init(i2c))
+    {
+        return -1;
+    }
+    
+    // soft reset
+    aw_twi_soft_reset(i2c->base_addr);
 
+	
 	return 0;
 }
 
@@ -1052,7 +1106,7 @@ void __init aw_register_device(struct platform_device *dev, void *data)
 
 static struct aw_i2c_platform_data aw_twi0_pdata = {
 	.bus_num   = 0,
-	.frequency = 400000,
+	.frequency = I2C0_TRANSFER_SPEED,
 };
 
 static struct resource aw_twi0_resources[] = {
@@ -1077,7 +1131,7 @@ struct platform_device aw_twi0_device = {
 //twi1 resource
 static struct aw_i2c_platform_data aw_twi1_pdata = {
 	.bus_num   = 1,
-	.frequency = 400000,
+    .frequency = I2C1_TRANSFER_SPEED,
 };
 
 static struct resource aw_twi1_resources[] = {
@@ -1102,7 +1156,7 @@ struct platform_device aw_twi1_device = {
 // twi2 resource
 static struct aw_i2c_platform_data aw_twi2_pdata = {
 	.bus_num   = 2,
-	.frequency = 400000,
+    .frequency = I2C2_TRANSFER_SPEED,
 };
 
 static struct resource aw_twi2_resources[] = {
@@ -1147,21 +1201,37 @@ static struct i2c_board_info __initdata i2c_info_power[] =  {
 	},
 };
 
+/*
+#if defined(CONFIG_TOUCHSCREEN_FT) || defined(CONFIG_TOUCHSCREEN_FT_MODULE)
 static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 	{
 		I2C_BOARD_INFO("ft5x0x_ts", 0x7e),
 		.platform_data	= NULL,
 	},
 };
+#endif
+*/
 
+#if defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS) || defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS_MODULE)
+static struct i2c_board_info __initdata i2c_info_byd0x7e_ts[] =  {
+	{
+		I2C_BOARD_INFO("byd0x7e_ts", 0x7e),
+		.platform_data	= NULL,
+	},
+};
+#endif
+
+
+#if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)
 static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
 	{
 		I2C_BOARD_INFO("Goodix-TS", 0x55),
 		//.platform_data	= &goodix_data,
 	},//for GT80X of goodix
 };
+#endif
 
-#if defined CONFIG_SENSORS_MXC622X
+#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)
 static struct i2c_board_info gsensor_i2c_board_info[] __initdata = {
 	{ I2C_BOARD_INFO("mxc622x", 0x15), },
 };
@@ -1193,19 +1263,22 @@ static int __init i2c_adap_awxx_init(void)
 	int status = 0;
 	// bus-0
 	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
-	printk("power, status = %d \n",status);
-	// bus-1
-	status = i2c_register_board_info(1, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
-	printk("================goodix==============, status = %d \n",status);
-    // bus-0
-	status = i2c_register_board_info(2, i2c_info_ft5x0x_ts, ARRAY_SIZE(i2c_info_ft5x0x_ts));
-	printk("=========================tp, status = %d ==================\n",status);
+	printk("================power===================, status = %d \n",status);
+	
+    #if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)    // bus-0
+	    status = i2c_register_board_info(1, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
+	    printk("================goodix==============, status = %d \n",status);
+    #endif
 
-    //bus-1
-    #if defined CONFIG_SENSORS_MXC622X
-        i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
+    #if defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS) || defined(CONFIG_TOUCHSCREEN_BYD_0X7E_TS_MODULE)  // bus-2
+	    status = i2c_register_board_info(2, i2c_info_byd0x7e_ts, ARRAY_SIZE(i2c_info_byd0x7e_ts));
+	    printk("===============byd0x7e_ts=============, status = %d ===\n",status);
+    #endif
+        
+    #if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)   //bus-1
+        status = i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
+        printk("===============gsensor===============, status = %d ===\n",status);
     #endif	
-
 
 	if(i2c_awxx_get_cfg(0)){
 	    aw_register_device(&aw_twi0_device, &aw_twi0_pdata);

@@ -392,6 +392,7 @@ static void csi_start_generating(struct csi_dev *dev)
 static void csi_stop_generating(struct csi_dev *dev)
 {
 	 clear_bit(0, &dev->generating);
+	 first_flag = 0;
 	 return;
 }
 
@@ -406,6 +407,7 @@ static irqreturn_t csi_isr(int irq, void *priv)
 	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
 	
 	spin_lock(&dev->slock);
+
 	
 	if (first_flag == 0) {
 		first_flag=1;
@@ -457,7 +459,7 @@ unlock:
 	spin_unlock(&dev->slock);
 	
 	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
-	bsp_csi_int_enable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
+	bsp_csi_int_enable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE   
 	
 	return IRQ_HANDLED;
 }
@@ -493,7 +495,8 @@ static void free_buffer(struct videobuf_queue *vq, struct csi_buffer *buf)
 {
 	csi_dbg(1,"%s, state: %i\n", __func__, buf->vb.state);
 
-	videobuf_dma_contig_free(vq, &buf->vb);
+	// 2011-7-15 14:29:23
+	// videobuf_dma_contig_free(vq, &buf->vb);
 	
 	csi_dbg(1,"free_buffer: freed\n");
 	
@@ -897,18 +900,18 @@ static int vidioc_streamoff(struct file *file, void *priv, enum v4l2_buf_type i)
 		return 0;
 	}
 	
+	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
+	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
+	bsp_csi_capture_video_stop(dev);
+	
 	csi_stop_generating(dev);
-
+	
 	/* Resets frame counters */
 	dev->ms = 0;
 	dev->jiffies = jiffies;
 
 	dma_q->frame = 0;
 	dma_q->ini_jiffies = jiffies;
-	
-	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
-	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
-	bsp_csi_capture_video_stop(dev);
 	
 	if (i != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 		return -EINVAL;

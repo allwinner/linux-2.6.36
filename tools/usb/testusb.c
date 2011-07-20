@@ -75,6 +75,10 @@ struct usbtest_param {
 #define USB_CLASS_PER_INTERFACE		0	/* for DeviceClass */
 #define USB_CLASS_VENDOR_SPEC		0xff
 
+/* by Cesc */
+#define  DEVICE_NAME    "/dev/skel0"
+
+
 
 struct usb_device_descriptor {
 	__u8  bLength;
@@ -229,6 +233,11 @@ static int testdev_ifnum(FILE *fd)
 	if (dev.idVendor == 0x0b62 && dev.idProduct == 0x0059)
 		return 0;
 
+    /*----------------------------------------------------*/
+	/* u-disk from xujinfeng. by Cesc  */
+	if (dev.idVendor == 0x090c && dev.idProduct == 0x1000)
+		return 0;
+
 	/*----------------------------------------------------*/
 
 	/* the FunctionFS gadget can have the source/sink interface
@@ -257,12 +266,14 @@ static int find_testdev(const char *name, const struct stat *sb, int flag)
 	if (strrchr(name, '/')[1] == 'd')
 		return 0;
 
+    printf("name: %s\n", name); /* by Cesc */
 	fd = fopen(name, "rb");
 	if (!fd) {
 		perror(name);
 		return 0;
 	}
-
+    printf("device opened successfully.\n"); /* by Cesc */
+	
 	ifnum = testdev_ifnum(fd);
 	fclose(fd);
 	if (ifnum < 0)
@@ -302,8 +313,48 @@ usbdev_ioctl (int fd, int ifno, unsigned request, void *param)
 	wrapper.ioctl_code = request;
 	wrapper.data = param;
 
+    /* printf("enter ioctl\n");  by Cesc */
+	
 	return ioctl (fd, USBDEVFS_IOCTL, &wrapper);
 }
+
+static int
+usbdev_ioctl_me_o (int fd, int test_num)
+{
+	int cmd = 0; 
+
+    /* printf("enter ioctl\n");  by Cesc */
+	cmd = 1;
+	return ioctl (fd, cmd, test_num);
+
+}
+
+static int
+usbdev_ioctl_me_o2 (int fd, int test_num)
+{
+	int cmd = 0; 
+	struct usbdevfs_ioctl	wrapper;
+
+	wrapper.ifno = 1;
+	wrapper.ioctl_code = test_num;
+
+	cmd = 1;
+	return ioctl (fd, cmd, &wrapper);
+
+}
+
+static int
+usbdev_ioctl_me (int fd, void *param)
+{
+    int cmd = 0; 
+
+	struct usbtest_param parameter;
+    memcpy(&parameter, param, sizeof(parameter));
+	
+	cmd = 1;
+	return ioctl (fd, cmd, &parameter);
+}
+
 
 static void *handle_testdev (void *arg)
 {
@@ -311,19 +362,27 @@ static void *handle_testdev (void *arg)
 	int			fd, i;
 	int			status;
 
+	int test_num = 0; /* by Cesc */
+
+    /* printf("try to open device\n");  by Cesc */
+	
 	if ((fd = open (dev->name, O_RDWR)) < 0) {
 		perror ("can't open dev file r/w");
 		return 0;
 	}
+	printf("device opened\n"); /* by Cesc */
 
 restart:
 	for (i = 0; i < TEST_CASES; i++) {
 		if (dev->test != -1 && dev->test != i)
 			continue;
 		dev->param.test_num = i;
+        test_num = dev->param.test_num; /* by Cesc */
 
-		status = usbdev_ioctl (fd, dev->ifnum,
-				USBTEST_REQUEST, &dev->param);
+		//status = usbdev_ioctl (fd, dev->ifnum, USBTEST_REQUEST, &dev->param);
+		/*status = usbdev_ioctl_me(fd, test_num);  by Cesc */
+		status = usbdev_ioctl_me (fd, &dev->param);
+		
 		if (status < 0 && errno == EOPNOTSUPP)
 			continue;
 
@@ -356,7 +415,7 @@ restart:
 
 static const char *usbfs_dir_find(void)
 {
-	static char usbfs_path_0[] = "/dev/usb/devices";
+	static char usbfs_path_0[] = "/dev/skel0"; /*"/dev/usb/devices"; by Cesc */
 	static char usbfs_path_1[] = "/proc/bus/usb/devices";
 
 	static char *const usbfs_paths[] = {
@@ -397,7 +456,8 @@ int main (int argc, char **argv)
 
 	int			c;
 	struct testdev		*entry;
-	char			*device;
+	char			    *device="/dev/usbtest0"; /* "/dev/skel0";by Cesc */
+	
 	const char		*usbfs_dir = NULL;
 	int			all = 0, forever = 0, not = 0;
 	int			test = -1 /* all */;
@@ -417,19 +477,33 @@ int main (int argc, char **argv)
 	param.vary = 512;
 	param.sglen = 32;
 
-	/* for easy use when hotplugging */
-	device = getenv ("DEVICE");
+	/* printf("main entered!\n");  by Cesc */
 
+	/* for easy use when hotplugging */
+	/*device = getenv ("DEVICE"); */ /* by Cesc */
+	/* device = usb_device;  by Cesc */
+
+    /* by Cesc 
+       if (device)
+      {
+          printf("device in not null!\n"); 
+      }
+       */
+	
 	while ((c = getopt (argc, argv, "D:aA:c:g:hns:t:v:")) != EOF)
 	switch (c) {
 	case 'D':	/* device, if only one */
+		/* by Cesc
 		device = optarg;
+		*/
 		continue;
 	case 'A':	/* use all devices with specified usbfs dir */
 		usbfs_dir = optarg;
 		/* FALL THROUGH */
 	case 'a':	/* use all devices */
+		/* by Cesc
 		device = NULL;
+		*/
 		all = 1;
 		continue;
 	case 'c':	/* count iterations */
@@ -469,6 +543,9 @@ usage:
 			argv [0]);
 		return 1;
 	}
+
+	/* printf("main-1!\n");  by Cesc */
+	
 	if (optind != argc)
 		goto usage;
 	if (!all && !device) {
@@ -477,7 +554,10 @@ usage:
 		goto usage;
 	}
 
+	/* printf("main-2!\n");  by Cesc */
+
 	/* Find usbfs mount point */
+	/* by Cesc
 	if (!usbfs_dir) {
 		usbfs_dir = usbfs_dir_find();
 		if (!usbfs_dir) {
@@ -485,20 +565,29 @@ usage:
 			return -1;
 		}
 	}
+	*/
 
 	/* collect and list the test devices */
+	/* by Cesc
 	if (ftw (usbfs_dir, find_testdev, 3) != 0) {
 		fputs ("ftw failed; is usbfs missing?\n", stderr);
 		return -1;
 	}
+	*/
 
 	/* quit, run single test, or create test threads */
 	if (!testdevs && !device) {
-		fputs ("no test devices recognized\n", stderr);
+		/* fputs ("no test devices recognized\n", stderr); */ 
+		printf("no test devices recognized!\n"); /* by Cesc */
 		return -1;
 	}
+
+	/* printf("main-3!\n");  by Cesc */
+	
 	if (not)
 		return 0;
+
+	/* by Cesc
 	if (testdevs && testdevs->next == 0 && !device)
 		device = testdevs->name;
 	for (entry = testdevs; entry; entry = entry->next) {
@@ -519,12 +608,18 @@ usage:
 			continue;
 		}
 	}
+	*/
+
+	/* printf("main-4!\n");  by Cesc */
+	
 	if (device) {
 		struct testdev		dev;
 
 		/* kernel can recognize test devices we don't */
 		fprintf (stderr, "%s: %s may see only control tests\n",
 				argv [0], device);
+
+		/* printf("one device tested only!\n");  by Cesc */
 
 		memset (&dev, 0, sizeof dev);
 		dev.name = device;
@@ -535,13 +630,15 @@ usage:
 	}
 
 	/* wait for tests to complete */
+	/* by Cesc
 	for (entry = testdevs; entry; entry = entry->next) {
 		void	*retval;
 
 		if (pthread_join (entry->thread, &retval))
 			perror ("pthread_join");
-		/* testing errors discarded! */
+		// testing errors discarded! 
 	}
+      */
 
 	return 0;
 }

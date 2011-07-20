@@ -3,6 +3,7 @@
 #include "disp_event.h"
 #include "disp_scaler.h"
 #include "disp_clk.h"
+#include "disp_lcd.h"
 
 __s32 Image_init(__u32 sel)
 {
@@ -121,8 +122,89 @@ __s32 BSP_disp_set_yuv_output(__u32 sel, __bool bout_yuv)
 
 __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en)
 {   
-    DE_BE_deflicker_enable(sel, b_en);
-    gdisp.screen[sel].de_flicker_en = b_en;
-    
-    return DIS_SUCCESS;
+	if(b_en)
+	{
+		gdisp.screen[sel].de_flicker_status |= DE_FLICKER_REQUIRED;
+	}
+	else
+	{
+		gdisp.screen[sel].de_flicker_status &= DE_FLICKER_REQUIRED_MASK;
+	}
+	Disp_de_flicker_enable(sel, b_en);
+	return DIS_SUCCESS;
+}
+
+__s32 Disp_de_flicker_enable(__u32 sel, __u32 enable )
+{
+	__disp_tv_mode_t tv_mode;
+	__u32 scan_mode;
+	__u32 i;
+	__u32 scaler_index;
+	
+	tv_mode = gdisp.screen[sel].tv_mode;
+	scan_mode = Disp_get_screen_scan_mode(tv_mode);
+			
+	if(enable)
+	{
+		if((gdisp.screen[sel].de_flicker_status & DE_FLICKER_REQUIRED) && //when set DISP_CMD_DE_FLICKER_ON before
+			(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_TV) && (scan_mode == 1))	//when output device is ntsc/pal/480i/576i
+		{
+			for(i = 0; i < gdisp.screen[sel].max_layers; i++)
+			{
+				if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 	//when a layer using scaler layer
+					(gdisp.screen[sel].layer_manage[i].scaler_index == sel) && 						//when this scaler is the same channel with be
+					(g_video[gdisp.screen[sel].layer_manage[i].scaler_index].dit_enable == TRUE))	//when this scaler is using de-interlaced
+				{
+					DE_INF("de: CANNOT OPEN de-flicker due to scaler de-interlaced using!\n");
+					DE_INF("de: Will OPEN de-flicker when scaler de-interlaced disable automatic!\n");
+					break;
+				}
+			}
+			if(i == gdisp.screen[sel].max_layers)//no scaler using de-interlaced
+			{
+				BSP_disp_cfg_start(sel);
+				
+				DE_BE_deflicker_enable(sel, TRUE);
+
+				//config scaler to fit de-flicker
+				for(i = 0; i < gdisp.screen[sel].max_layers; i++)
+				{
+					if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 
+						 ((scaler_index = gdisp.screen[sel].layer_manage[i].scaler_index) == sel))
+					{
+						Scaler_Set_Outitl(scaler_index, FALSE);
+    					gdisp.scaler[scaler_index].b_reg_change = TRUE;
+					}
+				}
+				gdisp.screen[sel].de_flicker_status |= DE_FLICKER_USED;
+
+				BSP_disp_cfg_finish(sel);
+			}
+		}
+		else
+		{
+			DE_INF("de: Will OPEN de-flicker when output to interlaced device !\n");
+		}
+		
+	}
+	else
+	{
+		BSP_disp_cfg_start(sel);
+
+		for(i = 0; i < gdisp.screen[sel].max_layers; i++)
+		{
+			if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 
+					((scaler_index = gdisp.screen[sel].layer_manage[i].scaler_index) == sel))
+			{
+				Scaler_Set_Outitl(scaler_index, TRUE);
+				gdisp.scaler[scaler_index].b_reg_change = TRUE;
+			}
+		}
+		DE_BE_deflicker_enable(sel, FALSE);
+		gdisp.screen[sel].de_flicker_status &= DE_FLICKER_USED_MASK;
+
+		BSP_disp_cfg_finish(sel);
+	}
+	
+	return DIS_SUCCESS;
 }

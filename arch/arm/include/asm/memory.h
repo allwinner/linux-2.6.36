@@ -81,7 +81,7 @@
  * between 2MB and 14MB inclusive.
  */
 #ifndef CONSISTENT_DMA_SIZE
-#define CONSISTENT_DMA_SIZE 	SZ_8M
+#define CONSISTENT_DMA_SIZE 	SZ_16M
 #endif
 
 #define CONSISTENT_END		(0xffe00000UL)

@@ -37,7 +37,7 @@ struct platform_device g2d_device =
 	.dev            = {}
 };
 
-int drv_g2d_begin(viod)
+int drv_g2d_begin(void)
 {
 	int result = 0;
 	
@@ -45,7 +45,7 @@ int drv_g2d_begin(viod)
 	return result;
 }
 
-int drv_g2d_finish(viod)
+int drv_g2d_finish(void)
 {
 	int result = 0;
 

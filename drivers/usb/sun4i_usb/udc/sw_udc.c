@@ -946,6 +946,48 @@ static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
     		sw_udc_set_ep0_de_out(base_addr);
 		return;
 */
+
+        case USB_REQ_SET_FEATURE:
+            //--<1>--数据方向必须为 host to device
+            if(x_test_bit(crq->bRequestType, 7) == 1){
+                DMSG_PANIC("USB_REQ_CLEAR_FEATURE: data is not host to device\n");
+                break;
+            }
+
+            //--<3>--数据阶段
+            if(crq->bRequestType == USB_RECIP_DEVICE){
+                if((crq->wValue == USB_DEVICE_TEST_MODE) && (crq->wIndex == 0x0400)){
+                    //setup packet包接收完毕
+                    USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+
+                    dev->ep0state = EP0_END_XFER;
+                    crq_bRequest = USB_REQ_SET_FEATURE;
+
+                    return;
+                }
+            }else if(crq->bRequestType == USB_RECIP_INTERFACE){
+                //--<2>--令牌阶段结束
+                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
+
+                //不处理
+
+            }else if(crq->bRequestType == USB_RECIP_ENDPOINT){
+                //--<3>--禁用ep
+                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
+
+            }else{
+                DMSG_PANIC("PANIC : nonsupport set feature request. (%d)\n", crq->bRequestType);
+
+                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
+                USBC_Dev_EpSendStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0);
+
+                dev->ep0state = EP0_IDLE;
+            }
+
+            //--<4>--
+            dev->ep0state = EP0_IDLE;
+        break;
+
     	default:
 			/* 只收setup数据包，不能置DataEnd */
 			USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
@@ -1091,6 +1133,17 @@ DMSG_DBG_UDC("sw_udc_handle_ep0--3--%d\n", dev->ep0state);
 
 					DMSG_INFO_UDC("Set address %d\n", dev->address);
 				break;
+
+                case USB_REQ_SET_FEATURE:
+                {
+					u32 fifo = 0;
+
+                    fifo = USBC_SelectFIFO(g_sw_udc_io.usb_bsp_hdle, 0);
+					USBC_WritePacket(g_sw_udc_io.usb_bsp_hdle, fifo, 54, (u32 *)TestPkt);
+                    USBC_EnterMode_TestPacket(g_sw_udc_io.usb_bsp_hdle);
+                    USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+                }
+                break;
 
 				default:
 				break;
@@ -1405,9 +1458,9 @@ static irqreturn_t sw_udc_irq(int dummy, void *_dev)
 
 		/* Clear interrupts */
 		clear_all_irq();
-		
+
 		spin_unlock_irqrestore(&dev->lock, flags);
-		
+
 		return IRQ_NONE;
 	}
 
@@ -2883,7 +2936,7 @@ int sw_usb_device_enable(void)
 	}
 
 	usbd_port_no   	= 0;
-	usb_connect 	= 0;	
+	usb_connect 	= 0;
 	crq_bRequest 	= 0;
 	is_controller_alive = 1;
 
@@ -2977,7 +3030,7 @@ int sw_usb_device_disable(void)
     memset(&g_sw_udc_io, 0, sizeof(sw_udc_io_t));
 
 	usbd_port_no   = 0;
-	usb_connect    = 0;	
+	usb_connect    = 0;
 	crq_bRequest   = 0;
 	is_controller_alive = 0;
 

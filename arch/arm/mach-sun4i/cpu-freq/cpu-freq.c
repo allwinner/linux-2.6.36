@@ -23,7 +23,9 @@
 #include <linux/cpu.h>
 #include <linux/clk.h>
 #include <linux/err.h>
+#include <linux/regulator/consumer.h>
 #include "cpu-freq.h"
+
 
 static struct sun4i_cpu_freq_t  cpu_cur;    /* current cpu frequency configuration  */
 static unsigned int last_target = ~0;       /* backup last target frequency         */
@@ -34,6 +36,25 @@ static struct clk *clk_axi; /* axi clock handler */
 static struct clk *clk_ahb; /* ahb clock handler */
 static struct clk *clk_apb; /* apb clock handler */
 
+
+#ifdef CONFIG_CPU_FREQ_DVFS
+struct cpufreq_dvfs {
+    unsigned int    freq;   /* cpu frequency    */
+    unsigned int    volt;   /* voltage for the frequency    */
+};
+static struct cpufreq_dvfs dvfs_table[] = {
+    {.freq = 1104000000, .volt = 1500}, /* core vdd is 1.50v if cpu frequency is (1008Mhz, 1104Mhz] */
+    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.40v if cpu frequency is (960Mhz, 1008Mhz]  */
+    {.freq = 960000000,  .volt = 1350}, /* core vdd is 1.35v if cpu frequency is (912Mhz, 960Mhz]   */
+    {.freq = 912000000,  .volt = 1300}, /* core vdd is 1.30v if cpu frequency is (864Mhz, 912Mhz]   */
+    {.freq = 864000000,  .volt = 1250}, /* core vdd is 1.25v if cpu frequency is (624Mhz, 864Mhz]   */
+    {.freq = 624000000,  .volt = 1200}, /* core vdd is 1.20v if cpu frequency is (432Mhz, 624Mhz]   */
+    {.freq = 432000000,  .volt = 1100}, /* core vdd is 1.10v if cpu frequency is (0, 432Mhz]        */
+    {.freq = 0,          .volt = 1000}, /* end of cpu dvfs table                                    */
+};
+static struct regulator *corevdd;
+static unsigned int last_vdd    = 1400;     /* backup last target voltage, default is 1.4v  */
+#endif
 
 /*
 *********************************************************************************************************
@@ -80,6 +101,243 @@ static void sun4i_cpufreq_show(const char *pfx, struct sun4i_cpu_freq_t *cfg)
 }
 
 
+#ifdef CONFIG_CPU_FREQ_DVFS
+/*
+*********************************************************************************************************
+*                           __get_vdd_value
+*
+*Description: get vdd with cpu frequency.
+*
+*Arguments  : freq  cpu frequency;
+*
+*Return     : vdd value;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static inline unsigned int __get_vdd_value(unsigned int freq)
+{
+    struct cpufreq_dvfs *dvfs_inf = &dvfs_table[0];
+    while((dvfs_inf+1)->freq >= freq) dvfs_inf++;
+
+    return dvfs_inf->volt;
+}
+#endif
+
+
+/*
+*********************************************************************************************************
+*                           __set_cpufreq_hw
+*
+*Description: set cpu frequency configuration to hardware.
+*
+*Arguments  : freq  frequency configuration;
+*
+*Return     : result
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static inline int __set_cpufreq_hw(struct sun4i_cpu_freq_t *freq)
+{
+    int             ret;
+    unsigned int    frequency;
+
+    /* try to adjust pll frequency */
+    ret = clk_set_rate(clk_pll, freq->pll);
+    /* try to adjust cpu frequency */
+    frequency = freq->pll / freq->div.cpu_div;
+    ret |= clk_set_rate(clk_cpu, frequency);
+    /* try to adjuxt axi frequency */
+    frequency /= freq->div.axi_div;
+    ret |= clk_set_rate(clk_axi, frequency);
+    /* try to adjust ahb frequency */
+    frequency /= freq->div.ahb_div;
+    ret |= clk_set_rate(clk_ahb, frequency);
+    /* try to adjust apb frequency */
+    frequency /= freq->div.apb_div;
+    ret |= clk_set_rate(clk_apb, frequency);
+
+    return ret;
+}
+
+
+/*
+*********************************************************************************************************
+*                           __set_cpufreq_target
+*
+*Description: set target frequency, the frequency limitation of axi is 450Mhz, the frequency
+*             limitation of ahb is 250Mhz, and the limitation of apb is 150Mhz. for usb connecting,
+*             the frequency of ahb must not lower than 60Mhz.
+*
+*Arguments  : old   cpu/axi/ahb/apb frequency old configuration.
+*             new   cpu/axi/ahb/apb frequency new configuration.
+*
+*Return     : result, 0 - set frequency successed, !0 - set frequency failed;
+*
+*Notes      : we check two frequency point: 204Mhz, 408Mhz, 816Mhz and 1200Mhz.
+*             if increase cpu frequency, the flow should be:
+*               low(1:1:1:2) -> 204Mhz(1:1:1:2) -> 204Mhz(1:1:2:2) -> 408Mhz(1:1:2:2)
+*               -> 408Mhz(1:2:2:2) -> 816Mhz(1:2:2:2) -> 816Mhz(1:3:2:2) -> 1200Mhz(1:3:2:2)
+*               -> 1200Mhz(1:4:2:2) -> target(1:4:2:2) -> target(x:x:x:x)
+*             if decrease cpu frequency, the flow should be:
+*               high(x:x:x:x) -> target(1:4:2:2) -> 1200Mhz(1:4:2:2) -> 1200Mhz(1:3:2:2)
+*               -> 816Mhz(1:3:2:2) -> 816Mhz(1:2:2:2) -> 408Mhz(1:2:2:2) -> 408Mhz(1:1:2:2)
+*               -> 204Mhz(1:1:2:2) -> 204Mhz(1:1:1:2) -> target(1:1:1:2)
+*********************************************************************************************************
+*/
+static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_freq_t *new)
+{
+    int     ret = 0;
+    struct sun4i_cpu_freq_t old_freq, new_freq;
+
+    if(!old || !new) {
+        return -EINVAL;
+    }
+
+    old_freq = *old;
+    new_freq = *new;
+
+    CPUFREQ_INF("cpu: %dMhz->%dMhz\n", old_freq.pll/1000000, new_freq.pll/1000000);
+
+    if(new_freq.pll > old_freq.pll) {
+        if((old_freq.pll <= 204000000) && (new_freq.pll >= 204000000)) {
+            /* set to 204Mhz (1:1:1:2) */
+            old_freq.pll = 204000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 1;
+            old_freq.div.ahb_div = 1;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 204Mhz (1:1:2:2) */
+            old_freq.div.ahb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+        if((old_freq.pll <= 408000000) && (new_freq.pll >= 408000000)) {
+            /* set to 408Mhz (1:1:2:2) */
+            old_freq.pll = 408000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 1;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 408Mhz (1:2:2:2) */
+            old_freq.div.axi_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+        if((old_freq.pll <= 816000000) && (new_freq.pll >= 816000000)) {
+            /* set to 816Mhz (1:2:2:2) */
+            old_freq.pll = 816000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 2;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 816Mhz (1:3:2:2) */
+            old_freq.div.axi_div = 3;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+        if((old_freq.pll <= 1200000000) && (new_freq.pll >= 1200000000)) {
+            /* set to 1200Mhz (1:3:2:2) */
+           old_freq.pll = 1200000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 3;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 1200Mhz (1:4:2:2) */
+            old_freq.div.axi_div = 4;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+
+        /* adjust to target frequency */
+        ret |= __set_cpufreq_hw(&new_freq);
+    }
+    else if(new_freq.pll < old_freq.pll) {
+        if((old_freq.pll > 1200000000) && (new_freq.pll <= 1200000000)) {
+            /* set to 1200Mhz (1:3:2:2) */
+            old_freq.pll = 1200000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 3;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+        if((old_freq.pll > 816000000) && (new_freq.pll <= 816000000)) {
+            /* set to 816Mhz (1:3:2:2) */
+            old_freq.pll = 816000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 3;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 816Mhz (1:2:2:2) */
+            old_freq.div.axi_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+        if((old_freq.pll > 408000000) && (new_freq.pll <= 408000000)) {
+            /* set to 408Mhz (1:2:2:2) */
+            old_freq.pll = 408000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 2;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 816Mhz (1:1:2:2) */
+            old_freq.div.axi_div = 1;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+        if((old_freq.pll > 204000000) && (new_freq.pll <= 204000000)) {
+            /* set to 204Mhz (1:1:2:2) */
+            old_freq.pll = 204000000;
+            old_freq.div.cpu_div = 1;
+            old_freq.div.axi_div = 1;
+            old_freq.div.ahb_div = 2;
+            old_freq.div.apb_div = 2;
+            ret |= __set_cpufreq_hw(&old_freq);
+            /* set to 204Mhz (1:1:1:2) */
+            old_freq.div.ahb_div = 1;
+            ret |= __set_cpufreq_hw(&old_freq);
+        }
+
+        /* adjust to target frequency */
+        ret |= __set_cpufreq_hw(&new_freq);
+    }
+
+    if(ret) {
+        unsigned int    frequency;
+
+        CPUFREQ_ERR("try to set target frequency failed!\n");
+
+        /* try to restore frequency configuration */
+        frequency = clk_get_rate(clk_cpu);
+        frequency /= 4;
+        clk_set_rate(clk_axi, frequency);
+        frequency /= 2;
+        clk_set_rate(clk_ahb, frequency);
+        frequency /= 2;
+        clk_set_rate(clk_apb, frequency);
+
+        clk_set_rate(clk_pll, old->pll);
+        frequency = old->pll / old->div.cpu_div;
+        clk_set_rate(clk_cpu, frequency);
+        frequency /= old->div.axi_div;
+        clk_set_rate(clk_axi, frequency);
+        frequency /= old->div.ahb_div;
+        clk_set_rate(clk_ahb, frequency);
+        frequency /= old->div.apb_div;
+        clk_set_rate(clk_apb, frequency);
+
+        CPUFREQ_ERR(KERN_ERR "no compatible settings cpu freq for %d\n", new_freq.pll);
+        return -1;
+    }
+
+    return 0;
+}
+
+
 /*
 *********************************************************************************************************
 *                           sun4i_cpufreq_settarget
@@ -97,10 +355,12 @@ static void sun4i_cpufreq_show(const char *pfx, struct sun4i_cpu_freq_t *cfg)
 */
 static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_cpu_freq_t *cpu_freq)
 {
-    int             ret;
-    unsigned int    frequency;
     struct cpufreq_freqs    freqs;
     struct sun4i_cpu_freq_t cpu_new;
+
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    unsigned int    new_vdd;
+    #endif
 
     /* show current cpu frequency configuration, just for debug */
 	sun4i_cpufreq_show("cur", &cpu_cur);
@@ -117,53 +377,44 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
 		cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 	}
 
-    /* try to set div for axi/ahb/apb/first */
-    frequency = cpu_cur.pll / cpu_cur.div.cpu_div;
-    frequency /= 4;
-    clk_set_rate(clk_axi, frequency);
-    frequency /= 2;
-    clk_set_rate(clk_ahb, frequency);
-    frequency /= 2;
-    clk_set_rate(clk_apb, frequency);
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    /* get vdd value for new frequency */
+    new_vdd = __get_vdd_value(cpu_new.pll);
 
-    /* try to adjust pll frequency */
-    ret = clk_set_rate(clk_pll, cpu_new.pll);
-    /* try to adjust cpu frequency */
-    frequency = cpu_new.pll / cpu_new.div.cpu_div;
-    ret |= clk_set_rate(clk_cpu, frequency);
-    /* try to adjuxt axi frequency */
-    frequency /= cpu_new.div.axi_div;
-    ret |= clk_set_rate(clk_axi, frequency);
-    /* try to adjust ahb frequency */
-    frequency /= cpu_new.div.ahb_div;
-    ret |= clk_set_rate(clk_ahb, frequency);
-    /* try to adjust apb frequency */
-    frequency /= cpu_new.div.apb_div;
-    ret |= clk_set_rate(clk_apb, frequency);
+    if(corevdd && (new_vdd > last_vdd)) {
+        CPUFREQ_INF("set core vdd to %d\n", new_vdd);
+        regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
+    }
+    #endif
 
-    if(ret) {
-        CPUFREQ_ERR("%s try to set cpu frequency failed!\n", __func__);
-        clk_set_rate(clk_pll, cpu_cur.pll);
-        frequency = cpu_cur.pll / cpu_cur.div.cpu_div;
-        clk_set_rate(clk_cpu, frequency);
-        frequency /= cpu_cur.div.axi_div;
-        clk_set_rate(clk_axi, frequency);
-        frequency /= cpu_cur.div.ahb_div;
-        clk_set_rate(clk_ahb, frequency);
-        frequency /= cpu_cur.div.apb_div;
-        clk_set_rate(clk_apb, frequency);
-        sun4i_cpufreq_show("cur", &cpu_cur);
+    if(__set_cpufreq_target(&cpu_cur, &cpu_new)){
+
+        /* try to set cpu frequency failed */
+
+        #ifdef CONFIG_CPU_FREQ_DVFS
+        if(corevdd && (new_vdd > last_vdd)) {
+            CPUFREQ_INF("set core vdd to %d\n", last_vdd);
+            regulator_set_voltage(corevdd, last_vdd*1000, last_vdd*1000);
+        }
+        #endif
 
         /* notify everyone that clock transition finish */
     	if (policy) {
 	        freqs.cpu = 0;
 	        freqs.old = freqs.new = cpu_cur.pll / 1000;
-		    cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
+		    cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 	    }
 
-        CPUFREQ_ERR(KERN_ERR "no compatible settings cpu freq for %d\n", cpu_cur.pll);
         return -EINVAL;
     }
+
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    if(corevdd && (new_vdd < last_vdd)) {
+        CPUFREQ_INF("set core vdd to %d\n", new_vdd);
+        regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
+    }
+    last_vdd = new_vdd;
+    #endif
 
 	/* update our current settings */
 	cpu_cur = cpu_new;
@@ -206,9 +457,6 @@ static int sun4i_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
 	if (freq == last_target) {
 		return 0;
 	}
-	last_target = freq;
-
-    CPUFREQ_DBG("%s: policy %p, target %u, relation %u\n", __func__, policy, freq, relation);
 
     /* try to look for a valid frequency value from cpu frequency table */
     if (cpufreq_frequency_table_target(policy, sun4i_freq_tbl, freq, relation, &index)) {
@@ -216,10 +464,17 @@ static int sun4i_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
 		return -EINVAL;
 	}
 
+	if (sun4i_freq_tbl[index].frequency == last_target) {
+        /* frequency is same as the value last set, need not adjust */
+		return 0;
+	}
+	last_target = sun4i_freq_tbl[index].frequency;
+
     /* update the target frequency */
     freq_cfg.pll = sun4i_freq_tbl[index].frequency * 1000;
     freq_cfg.div = *(struct sun4i_clk_div_t *)&sun4i_freq_tbl[index].index;
     CPUFREQ_DBG("%s: target frequency find is %u, entry %u\n", __func__, freq_cfg.pll, index);
+
 
     /* try to set target frequency */
     return sun4i_cpufreq_settarget(policy, &freq_cfg);
@@ -345,12 +600,12 @@ static int sun4i_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pms
     sun4i_cpufreq_getcur(&suspend_freq);
 
     /* set cpu frequency to 60M hz for standby */
-    suspend.pll = 30000000;
+    suspend.pll = 60000000;
     suspend.div.cpu_div = 1;
     suspend.div.axi_div = 1;
-    suspend.div.ahb_div = 2;
+    suspend.div.ahb_div = 1;
     suspend.div.apb_div = 2;
-    sun4i_cpufreq_settarget(NULL, &suspend);
+    __set_cpufreq_target(&suspend_freq, &suspend);
 
     return 0;
 }
@@ -372,20 +627,18 @@ static int sun4i_cpufreq_suspend(struct cpufreq_policy *policy, pm_message_t pms
 */
 static int sun4i_cpufreq_resume(struct cpufreq_policy *policy)
 {
-	int ret;
+    struct sun4i_cpu_freq_t suspend;
 
     /* invalidate last_target setting */
 	last_target = ~0;
 
 	CPUFREQ_DBG("%s: resuming with policy %p\n", __func__, policy);
+    sun4i_cpufreq_getcur(&suspend);
 
     /* restore cpu frequency configuration */
-	ret = sun4i_cpufreq_settarget(NULL, &suspend_freq);
-	if (ret) {
-		CPUFREQ_ERR(KERN_ERR "%s: failed to reset pll/freq\n", __func__);
-		return ret;
-	}
+    __set_cpufreq_target(&suspend, &suspend_freq);
 
+	CPUFREQ_DBG("%s: resuming done\n", __func__);
 	return 0;
 }
 
@@ -441,6 +694,14 @@ static __init int sun4i_cpufreq_initclks(void)
 	printk(KERN_INFO "%s: clocks pll=%lu,cpu=%lu,axi=%lu,ahp=%lu,apb=%lu\n", __func__,
 	       clk_get_rate(clk_pll), clk_get_rate(clk_cpu), clk_get_rate(clk_axi),
 	       clk_get_rate(clk_ahb), clk_get_rate(clk_apb));
+
+    #ifdef CONFIG_CPU_FREQ_DVFS
+    corevdd = regulator_get(NULL, "axp20_core");
+    if(!corevdd) {
+        printk("try to get regulator failed, core vdd will not changed!\n");
+    }
+    last_vdd = regulator_get_voltage(corevdd) / 1000;
+    #endif
 
 	return 0;
 }

@@ -8,8 +8,6 @@
 *           2011-06-01                  Berg        1.0     create file
 *********************************************************************************************************
 */
-#include <linux/types.h>
-#include "boot0_i.h"
 #include "dram_i.h"
 
 typedef struct dram_para_t  __dram_para_t;
@@ -37,7 +35,7 @@ void mctl_ddr3_reset(void)
     reg_val = mctl_read_w(SDR_CR);
     reg_val &= ~(0x1<<12);
     mctl_write_w(SDR_CR, reg_val);
-        for(i=0; i<0x1000; i++);
+	standby_delay(0x1000);
     reg_val = mctl_read_w(SDR_CR);
     reg_val |= (0x1<<12);
     mctl_write_w(SDR_CR, reg_val);
@@ -49,7 +47,7 @@ void mctl_set_drive(void)
 
     reg_val = mctl_read_w(SDR_CR);
     reg_val |= (0x6<<12);
-    reg_val |= 0xFFC;
+		reg_val |= 0xF00;
     reg_val &= ~0x3;
     mctl_write_w(SDR_CR, reg_val);
 }
@@ -78,11 +76,11 @@ void mctl_enable_dll0(void)
 
     mctl_write_w(SDR_DLLCR0, mctl_read_w(SDR_DLLCR0) & ~0x40000000 | 0x80000000);
 
-    for(i=0; i<0x100; i++);
+	standby_delay(0x100);
 
     mctl_write_w(SDR_DLLCR0, mctl_read_w(SDR_DLLCR0) & ~0xC0000000);
 
-    for(i=0; i<0x1000; i++);
+	standby_delay(0x1000);
 
     mctl_write_w(SDR_DLLCR0, mctl_read_w(SDR_DLLCR0) & ~0x80000000 | 0x40000000);
 }
@@ -96,14 +94,14 @@ void mctl_enable_dllx(void)
         mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0x40000000 | 0x80000000);
     }
 
-    for(i=0; i<0x100; i++);
+	standby_delay(0x100);
 
     for(i=1; i<5; i++)
     {
         mctl_write_w(SDR_DLLCR0+(i<<2), mctl_read_w(SDR_DLLCR0+(i<<2)) & ~0xC0000000);
     }
 
-    for(i=0; i<0x1000; i++);
+	standby_delay(0x1000);
 
     for(i=1; i<5; i++)
     {
@@ -111,18 +109,45 @@ void mctl_enable_dllx(void)
     }
 }
 
+void mctl_disable_dll(void)
+{
+	__u32 reg_val;
+
+	reg_val = mctl_read_w(SDR_DLLCR0);
+	reg_val |= 0x3U<<30;
+	mctl_write_w(SDR_DLLCR0, reg_val);
+
+	reg_val = mctl_read_w(SDR_DLLCR1);
+	reg_val |= 0x3U<<30;
+	mctl_write_w(SDR_DLLCR1, reg_val);
+
+	reg_val = mctl_read_w(SDR_DLLCR2);
+	reg_val |= 0x3U<<30;
+	mctl_write_w(SDR_DLLCR2, reg_val);
+
+	reg_val = mctl_read_w(SDR_DLLCR3);
+	reg_val |= 0x3U<<30;
+	mctl_write_w(SDR_DLLCR3, reg_val);
+
+	reg_val = mctl_read_w(SDR_DLLCR4);
+	reg_val |= 0x3U<<30;
+	mctl_write_w(SDR_DLLCR4, reg_val);
+}
+
+__u32 hpcr_value[32] = {
+    0x00000301,0x00000301,0x00000301,0x00000301,
+    0x00000301,0x00000301,0x0,       0x0,
+    	0x0,       0x0,       0x0,       0x0,
+    0x0,       0x0,       0x0,       0x0,
+    0x00001035,0x00001031,0x00000735,0x00001031,
+    0x00001031,0x00000731,0x00001031,0x00000735,
+    0x00001031,0x00001031,0x00000731,0x00001031,
+    0x00001031,0x00000301,0x00000305,0x00000731,
+};
+
 void mctl_configure_hostport(void)
 {
     __u32 i;
-    __u32 hpcr_value[32] = {
-        0x00000301,0x00000301,0x00000301,0x00000301,
-        0x00000301,0x00000301,0x0,       0x0,
-        0x0,       0x0,       0x0,       0x0,
-        0x00001035,0x00001031,0x00000735,0x00001031,
-        0x00001031,0x00000731,0x00001031,0x00000735,
-        0x00001031,0x00001031,0x00000731,0x00001031,
-        0x00001031,0x00000301,0x00000305,0x00000731,
-    };
 
     for(i=0; i<32; i++)
     {
@@ -142,26 +167,37 @@ void mctl_setup_dram_clock(__u32 clk)
     reg_val &= ~(0x3<<4);
     reg_val |= 0x1<<4;                  //k factor
     reg_val &= ~(0x1f<<8);
-    reg_val |= ((clk/24)&0x1f)<<8;      //n factor
+    reg_val |= (standby_uldiv((__u64)clk, 24)&0x1f)<<8;      //n factor
     reg_val &= ~(0x3<<16);
     reg_val |= 0x1<<16;                 //p factor
     reg_val |= 0x1<<29;                 //PLL on
     reg_val |= (__u32)0x1<<31;          //PLL En
     mctl_write_w(DRAM_CCM_SDRAM_PLL_REG, reg_val);
-    for(i=0; i<0x1000; i++);
+	standby_delay(0x1000);
 
     //reset GPS
     reg_val = mctl_read_w(DRAM_CCM_GPS_CLK_REG);
     reg_val &= ~0x3;
-    reg_val |= 0x2;
     mctl_write_w(DRAM_CCM_GPS_CLK_REG, reg_val);
-    for(i=0; i<0x10; i++);
+    reg_val = mctl_read_w(DRAM_CCM_AHB_GATE_REG);
+    reg_val |= (0x1<<26);
+    mctl_write_w(DRAM_CCM_AHB_GATE_REG, reg_val);
+    for(i=0; i<0x20; i++);                                      //delay for a moment
+    reg_val = mctl_read_w(DRAM_CCM_AHB_GATE_REG);
+    reg_val &= ~(0x1<<26);
+    mctl_write_w(DRAM_CCM_AHB_GATE_REG, reg_val);
 
     //open DRAMC AHB clock
+    //close it first
     reg_val = mctl_read_w(DRAM_CCM_AHB_GATE_REG);
+    reg_val &= ~(0x1<<14);
+    mctl_write_w(DRAM_CCM_AHB_GATE_REG, reg_val);
+	standby_delay(0x1000);
+
+    //then open it
     reg_val |= 0x1<<14;
     mctl_write_w(DRAM_CCM_AHB_GATE_REG, reg_val);
-    for(i=0; i<0x1000; i++);
+	standby_delay(0x1000);
 }
 
 __s32 DRAMC_init(__dram_para_t *para)
@@ -221,16 +257,24 @@ __s32 DRAMC_init(__dram_para_t *para)
 
     //dram clock on
     DRAMC_clock_output_en(1);
-    for(i=0; i<0x10; i++){};
+	standby_delay(0x10);
     while(mctl_read_w(SDR_CCR) & (0x1U<<31)) {};
 
-    mctl_enable_dllx();
+		mctl_enable_dllx();
 
-    //set I/O configure register
-    reg_val = 0x0;
-    mctl_write_w(SDR_IOCR, reg_val);
+		//set odt impendance divide ratio
+		reg_val = mctl_read_w(SDR_ZQCR0);
+		reg_val &= ~(0xff<<20);
+		reg_val |= ((para->dram_zq)&0xff)<<20;
+		mctl_write_w(SDR_ZQCR0, reg_val);
 
-    //set refresh period
+		//set I/O configure register
+		reg_val = 0x00cc0000;
+		reg_val |= (para->dram_odt_en)&0x3;
+		reg_val |= ((para->dram_odt_en)&0x3)<<30;
+		mctl_write_w(SDR_IOCR, reg_val);
+
+		//set refresh period
     DRAMC_set_autorefresh_cycle(para->dram_clk);
 
     //set timing parameters
@@ -256,9 +300,9 @@ __s32 DRAMC_init(__dram_para_t *para)
     reg_val = 0x0;
     mctl_write_w(SDR_EMR, para->dram_emr1);
     reg_val = 0x0;
-    mctl_write_w(SDR_EMR2, para->dram_emr1);
+		mctl_write_w(SDR_EMR2, para->dram_emr2);
     reg_val = 0x0;
-    mctl_write_w(SDR_EMR3, para->dram_emr1);
+		mctl_write_w(SDR_EMR3, para->dram_emr3);
 
     //initial external DRAM
     reg_val = mctl_read_w(SDR_CCR);

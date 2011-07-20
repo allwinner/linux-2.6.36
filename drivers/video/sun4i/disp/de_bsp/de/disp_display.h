@@ -5,6 +5,7 @@
 #include "disp_display_i.h"
 #include "disp_layer.h"
 #include "disp_scaler.h"
+#include "disp_video.h"
 
 #define IMAGE_USED              0x00000004
 #define IMAGE_USED_MASK         (~(IMAGE_USED))
@@ -37,6 +38,11 @@
 #define IMAGE_OUTPUT_SCALER         0x00000002
 #define IMAGE_OUTPUT_LCDC_AND_SCALER 0x00000003
 
+#define DE_FLICKER_USED 0x01000000
+#define DE_FLICKER_USED_MASK (~(DE_FLICKER_USED))
+#define DE_FLICKER_REQUIRED 0x02000000
+#define DE_FLICKER_REQUIRED_MASK (~(DE_FLICKER_REQUIRED))
+
 typedef struct
 {    
     __u32                   status; /*display engine,lcd,tv,vga,hdmi status*/
@@ -56,7 +62,7 @@ typedef struct
     __u32                   max_layers;
     __layer_man_t           layer_manage[4];
     __bool                  bout_yuv;
-    __bool                  de_flicker_en;
+    __u32                   de_flicker_status;
 
     __u32                   image_output_type;//see macro definition IMAGE_OUTPUT_XXX above, it can be lcd only /lcd+scaler/ scaler only
     __u32                   out_scaler_index;
@@ -74,6 +80,7 @@ typedef struct
     __s32                   (*LCD_CPUIF_XY_Swap)(__s32 mode);
     void                    (*LCD_CPUIF_ISR)(void);
 	__u32	                pll_use_status;	//lcdc0/lcdc1 using which video pll(0 or 1)
+	__bool                  bl_not_open;
 }__disp_screen_t;
 
 typedef struct
@@ -84,6 +91,6 @@ typedef struct
 }__disp_dev_t;
 
 extern __disp_dev_t gdisp;
-
+extern frame_para_t g_video[2];
 
 #endif

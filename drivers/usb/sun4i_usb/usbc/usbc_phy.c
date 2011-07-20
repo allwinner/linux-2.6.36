@@ -2,7 +2,7 @@
 ********************************************************************************************************************
 *                                              usb controller
 *
-*                              (c) Copyright 2007-2009, 
+*                              (c) Copyright 2007-2009,
 *										All	Rights Reserved
 *
 * File Name 	: usbc_phy.c
@@ -15,7 +15,7 @@
 *
 * Description 	: 适用于sunii平台，USB公共操作部分
 *
-* History 		: 
+* History 		:
 *
 ********************************************************************************************************************
 */
@@ -43,7 +43,7 @@
 #define  USBC_PHY_OTG_FUNC_EN			0x28
 #define  USBC_PHY_VBUS_DET_EN			0x29
 #define  USBC_PHY_DISCON_TH_SEL			0x2a
-		
+
 #if 0
 /*
  ***************************************************************************
@@ -56,7 +56,7 @@ static __u32 __USBC_PHY_REG_READ(__u32 usbc_base_addr, __u32 usbc_phy_reg_addr)
 {
   	__u32 reg_val = 0;
   	__u32 i = 0;
-  	
+
   	USBC_Writeb(usbc_phy_reg_addr, USBC_REG_PHYCTL(USBC0_REGS_BASE) + 1);
   	for(i=0; i<0x4; i++);
   	reg_val = USBC_Readb(USBC_REG_PHYCTL(USBC0_REGS_BASE) + 2);
@@ -76,7 +76,7 @@ static __u32 __USBC_PHY_REG_READ(__u32 usbc_base_addr, __u32 usbc_phy_reg_addr)
 static void __USBC_PHY_REG_WRITE(__u32 usbc_base_addr, __u32 usbc_phy_reg_addr, __u32 usbc_phy_reg_data)
 {
   	__u32 reg_val = 0;
-  	
+
   	USBC_Writeb(usbc_phy_reg_addr, USBC_REG_PHYCTL(USBC0_REGS_BASE) + 1);
   	reg_val = USBC_Readb(USBC_REG_PHYCTL(USBC0_REGS_BASE));
   	reg_val &= ~(0x1 << 7);
@@ -95,7 +95,7 @@ static void __USBC_PHY_REG_WRITE(__u32 usbc_base_addr, __u32 usbc_phy_reg_addr, 
   		USBC_Writeb(reg_val, USBC_REG_PHYCTL(USBC0_REGS_BASE));
   		reg_val &= ~0x2;
   		USBC_Writeb(reg_val, USBC_REG_PHYCTL(USBC0_REGS_BASE));
-  	} 
+  	}
 }
 
 
@@ -110,7 +110,7 @@ static void __USBC_PHY_REG_WRITE(__u32 usbc_base_addr, __u32 usbc_phy_reg_addr, 
 static void __USBC_PHY_SET_PLL_BW(__u32 val)
 {
     __USBC_PHY_REG_WRITE(USBC0_REGS_BASE, USBC_PHY_PLL_BW, val);
-    __USBC_PHY_REG_WRITE(USBC0_REGS_BASE, USBC_PHY_PLL_BW + 1, val >> 1);    
+    __USBC_PHY_REG_WRITE(USBC0_REGS_BASE, USBC_PHY_PLL_BW + 1, val >> 1);
 }
 */
 
@@ -136,7 +136,7 @@ static void __USBC_PHY_RES45_CALIBRATION_ENABLE(__u32 val)
 static void __USBC_PHY_SET_TX_AMPLITUDE(__u32 usbc_base_addr, __u32 val)
 {
     __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_AMPLITUDE_TUNE, val);
-    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_AMPLITUDE_TUNE + 1, val >> 1);    
+    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_AMPLITUDE_TUNE + 1, val >> 1);
 }
 
 /*
@@ -149,8 +149,8 @@ static void __USBC_PHY_SET_TX_AMPLITUDE(__u32 usbc_base_addr, __u32 val)
 static void __USBC_PHY_SET_TX_SLEWRATE(__u32 usbc_base_addr, __u32 val)
 {
     __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_SLEWRATE_TUNE, val);
-    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_SLEWRATE_TUNE + 1, val >> 1); 
-    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_SLEWRATE_TUNE + 2, val >> 2);      
+    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_SLEWRATE_TUNE + 1, val >> 1);
+    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_TX_SLEWRATE_TUNE + 2, val >> 2);
 }
 
 /*
@@ -164,7 +164,7 @@ static void __USBC_PHY_SET_TX_SLEWRATE(__u32 usbc_base_addr, __u32 val)
 static void __USBC_PHY_SET_VBUS_VALID_THRESHOLD(__u32 usbc_base_addr, __u32 val)
 {
     __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_VBUSVALID_TH_SEL, val);
-    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_VBUSVALID_TH_SEL + 1, val >> 1);    
+    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_VBUSVALID_TH_SEL + 1, val >> 1);
 }
 */
 
@@ -206,7 +206,7 @@ static void __USBC_PHY_VBUS_DET_ENABLE(__u32 usbc_base_addr, __u32 val)
 static void __USBC_PHY_SET_DISCON_DET_THRESHOLD(__u32 usbc_base_addr, __u32 val)
 {
     __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_DISCON_TH_SEL, val);
-    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_DISCON_TH_SEL + 1, val >> 1);    
+    __USBC_PHY_REG_WRITE(usbc_base_addr, USBC_PHY_DISCON_TH_SEL + 1, val >> 1);
 }
 #endif
 
@@ -230,7 +230,7 @@ static void __USBC_PHY_SET_DISCON_DET_THRESHOLD(__u32 usbc_base_addr, __u32 val)
 */
 void USBC_PHY_SetCommonConfig(void)
 {
-    //__USBC_PHY_RES45_CALIBRATION_ENABLE(1);    
+    //__USBC_PHY_RES45_CALIBRATION_ENABLE(1);
 }
 
 /*
@@ -254,11 +254,11 @@ void USBC_PHY_SetCommonConfig(void)
 void USBC_PHY_SetPrivateConfig(__hdle hUSB)
 {
 //    __usbc_otg_t *usbc_otg = (__usbc_otg_t *)hUSB;
-//    
+//
 //	if(usbc_otg == NULL){
 //		return ;
 //	}
-//    
+//
 //    USBC_REG_set_bit_l(0, USBC_REG_PHYTUNE(usbc_otg->base_addr));
 //    USBC_REG_set_bit_l(7, USBC_REG_PHYTUNE(usbc_otg->base_addr));
 //    USBC_REG_set_bit_l(6, USBC_REG_PHYTUNE(usbc_otg->base_addr));
@@ -266,7 +266,7 @@ void USBC_PHY_SetPrivateConfig(__hdle hUSB)
 //    USBC_REG_set_bit_l(4, USBC_REG_PHYTUNE(usbc_otg->base_addr));
 //    //__USBC_PHY_SET_TX_AMPLITUDE(usbc_otg->base_addr, 2);
 //    //__USBC_PHY_SET_TX_SLEWRATE(usbc_otg->base_addr, 6);
-//    //__USBC_PHY_SET_DISCON_DET_THRESHOLD(usbc_otg->base_addr, 3);    
+//    //__USBC_PHY_SET_DISCON_DET_THRESHOLD(usbc_otg->base_addr, 3);
 }
 
 /*
@@ -292,7 +292,7 @@ __u32 USBC_PHY_GetCommonConfig(void)
     __u32 reg_val = 0;
 /*
     __u32 i = 0;
-    
+
     reg_val = 0;
 	for(i=0; i<0x20; i++)
 	{
@@ -426,7 +426,7 @@ static __u32 USBC_Phy_GetCsr(__u32 usbc_no)
 			val = SW_VA_USB0_IO_BASE + 0x404;
 		break;
 
-		case 1: 
+		case 1:
 			val = SW_VA_USB0_IO_BASE + 0x404;
 		break;
 
@@ -463,7 +463,7 @@ static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
 {
 	__u32 temp = 0, ret = 0;
 	__u32 i=0;
-	__u32 j=0;	
+	__u32 j=0;
 
 	for(j = len; j > 0; j--)
 	{
@@ -477,7 +477,7 @@ static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
 
 		temp = USBC_Readl(USBC_Phy_GetCsr(usbc_no));
 		ret <<= 1;
-		ret |= ((temp >> (16 + usbc_no)) & 0x1); 
+		ret |= ((temp >> (16 + usbc_no)) & 0x1);
 	}
 
 	return ret;
@@ -555,7 +555,7 @@ static __u32 USBC_Phy_TpWrite(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 */
 static __u32 USBC_Phy_Read(__u32 usbc_no, __u32 addr, __u32 len)
 {
-	return USBC_Phy_TpRead(usbc_no, addr, len);	
+	return USBC_Phy_TpRead(usbc_no, addr, len);
 }
 
 /*
@@ -601,12 +601,23 @@ static __u32 USBC_Phy_Write(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 */
 void UsbPhyInit(__u32 usbc_no)
 {
-	DMSG_INFO("csr1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
+//	DMSG_INFO("csr1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
 
+    /* 调节45欧阻抗 */
+	USBC_Phy_Write(usbc_no, 0x0c, 0x01, 1);
+//	DMSG_INFO("csr2-0: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x0c, 1));
+
+    /* 调整 USB0 PHY 的幅度和速率 */
+	if(usbc_no == 0){
+		USBC_Phy_Write(usbc_no, 0x20, 0x1e, 5);
+//		DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
+	}
+
+    /* 调节 disconnect 域值 */
 	USBC_Phy_Write(usbc_no, 0x2a, 3, 2);
 
-	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
-	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
+//	DMSG_INFO("csr2: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x2a, 2));
+//	DMSG_INFO("csr3: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Readl(USBC_Phy_GetCsr(usbc_no)));
 
 	return;
 }

@@ -30,7 +30,7 @@ config LYCHEE_DISPLAY_DUAL_SAME_SCREEN
 	default n
 
 config LYCHEE_DISPLAY_DUAL_DIFF_SCREEN_SAME_CONTENTS
-	bool "daul different screen, use fb0"
+	bool "daul different screen same content, use fb0"
 	---help---
 	default n
 endchoice

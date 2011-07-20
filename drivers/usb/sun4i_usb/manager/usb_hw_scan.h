@@ -21,7 +21,7 @@
 #ifndef  __USB_HW_SCAN_H__
 #define  __USB_HW_SCAN_H__
 
-#define  USB_SCAN_INSMOD_DEVICE_DRIVER_DELAY	4
+#define  USB_SCAN_INSMOD_DEVICE_DRIVER_DELAY	2
 #define  USB_SCAN_INSMOD_HOST_DRIVER_DELAY		1
 
 /* ubs id */

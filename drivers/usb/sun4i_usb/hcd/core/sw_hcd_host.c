@@ -766,7 +766,7 @@ static void sw_hcd_start_urb(struct sw_hcd *sw_hcd, int is_in, struct sw_hcd_qh 
 
         default:
 start:
-    		if(is_sw_hcd_dma_capable(len, qh->maxpacket, epnum)){
+    		if(is_sw_hcd_dma_capable(sw_hcd->usbc_no, len, qh->maxpacket, epnum)){
 	    		DMSG_DBG_HCD("Start TX%d %s\n", epnum, "dma");
 
     			sw_hcd_h_tx_dma_start(hw_ep, qh);
@@ -1458,7 +1458,7 @@ static void sw_hcd_ep_program(struct sw_hcd *sw_hcd,
         }
 
         /* dma transmit */
-        if (is_sw_hcd_dma_capable(len, packet_sz, epnum)){
+        if (is_sw_hcd_dma_capable(sw_hcd->usbc_no, len, packet_sz, epnum)){
 			if(sw_hcd_tx_dma_program(hw_ep, qh, urb, offset, len)){
 				load_count = 0;
 			}
@@ -1504,7 +1504,7 @@ static void sw_hcd_ep_program(struct sw_hcd *sw_hcd,
 		}
 
         /* kick things off */
-		if(is_sw_hcd_dma_capable(len, packet_sz, epnum)){
+		if(is_sw_hcd_dma_capable(sw_hcd->usbc_no, len, packet_sz, epnum)){
 			qh->segsize = len;
 
 			/* AUTOREQ is in a DMA register */
@@ -1880,7 +1880,10 @@ void sw_hcd_host_tx(struct sw_hcd *sw_hcd, u8 epnum)
 
 	pipe = urb->pipe;
 
-	DMSG_DBG_HCD("sw_hcd_host_tx: OUT/TX%d end, csr %04x\n", epnum, tx_csr);
+	DMSG_DBG_HCD("rx: ep(0x%p, %d, 0x%x), qh(0x%p, 0x%x, 0x%x), urb(0x%p, 0x%p, %d, %d), dma(0x%x, 0x%x, 0x%x)\n",
+		      hw_ep, hw_ep->epnum, USBC_Readw(USBC_REG_TXCSR(usbc_base)),
+		      qh, qh->epnum, qh->type,
+		      urb, urb->transfer_buffer, urb->transfer_buffer_length, urb->actual_length);
 
 	/* check for errors */
 	if (tx_csr & (1 << USBC_BP_TXCSR_H_TX_STALL)) {
@@ -1946,7 +1949,7 @@ void sw_hcd_host_tx(struct sw_hcd *sw_hcd, u8 epnum)
 		done = true;
 	}
 
-	if (is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum)
+	if (is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum)
 		&& !status) {
 		/* dma中断产生以后，USB设备不会马上取走FIFO中的数据,
 		 * 这里检测TX_READY，一直到数据被取走为止。
@@ -2003,7 +2006,7 @@ void sw_hcd_host_tx(struct sw_hcd *sw_hcd, u8 epnum)
 	}
 
 	if (!status
-		|| is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum)
+		|| is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum)
 		|| usb_pipeisoc(pipe)) {
 		length = qh->segsize;
 		qh->offset += length;
@@ -2021,7 +2024,7 @@ void sw_hcd_host_tx(struct sw_hcd *sw_hcd, u8 epnum)
 				offset = d->offset;
 				length = d->length;
 			}
-		} else if (is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum)) {
+		} else if (is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum)) {
 			done = true;
 		} else {
 			/* see if we need to send more data, or ZLP */
@@ -2055,7 +2058,7 @@ void sw_hcd_host_tx(struct sw_hcd *sw_hcd, u8 epnum)
 		sw_hcd_advance_schedule(sw_hcd, urb, hw_ep, USB_DIR_OUT);
 
 		return;
-	} else	if (usb_pipeisoc(pipe) && is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum)) {
+	} else	if (usb_pipeisoc(pipe) && is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum)) {
 		if (sw_hcd_tx_dma_program(hw_ep, qh, urb, offset, length)){
 		    return;
 		}
@@ -2144,8 +2147,8 @@ static void sw_hcd_bulk_rx_nak_timeout(struct sw_hcd *sw_hcd, struct sw_hcd_hw_e
 {
 	struct urb          *urb        = NULL;
 	void __iomem        *usbc_base  = NULL;
-	struct sw_hcd_qh      *cur_qh     = NULL;
-    struct sw_hcd_qh      *next_qh    = NULL;
+	struct sw_hcd_qh    *cur_qh     = NULL;
+    struct sw_hcd_qh    *next_qh    = NULL;
 	u16                 rx_csr      = 0;
 
     /* check argment */
@@ -2266,8 +2269,10 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 
 	pipe = urb->pipe;
 
-	DMSG_DBG_HCD("sw_hcd_host_rx, hw %d rxcsr %04x, urb actual %d, count %d\n",
-		  	  epnum, rx_csr, urb->actual_length, USBC_Readw(USBC_REG_RXCOUNT(usbc_base)));
+	DMSG_DBG_HCD("rx: ep(0x%p, %d, 0x%x, %d), qh(0x%p, 0x%x, 0x%x), urb(0x%p, 0x%p, %d, %d), dma(0x%x, 0x%x, 0x%x)\n",
+		      hw_ep, hw_ep->epnum, USBC_Readw(USBC_REG_RXCSR(usbc_base)), USBC_Readw(USBC_REG_RXCOUNT(usbc_base)),
+		      qh, qh->epnum, qh->type,
+		      urb, urb->transfer_buffer, urb->transfer_buffer_length, urb->actual_length);
 
 	/* check for errors, concurrent stall & unlink is not really
 	 * handled yet! */
@@ -2377,7 +2382,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 		USBC_Writew((USBC_RXCSR_H_WZC_BITS | rx_csr), USBC_REG_RXCSR(usbc_base));
 	}
 
-	if (is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum) && (rx_csr & (1 << USBC_BP_RXCSR_H_DMA_REQ_EN))) {
+	if (is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum) && (rx_csr & (1 << USBC_BP_RXCSR_H_DMA_REQ_EN))) {
 		/* during dma, if usb receive short packet, then rx irq come */
 
 		/* 查询当前DMA传输的字节数 */
@@ -2448,7 +2453,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
 		}
 
 		/* we are expecting IN packets */
-		if (is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum)) {
+		if (is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum)) {
 			u16 rx_count = 0;
 			int length = 0, desired_mode = 0;
 			dma_addr_t buf = 0;
@@ -2551,7 +2556,7 @@ void sw_hcd_host_rx(struct sw_hcd *sw_hcd, u8 epnum)
  			DMSG_DBG_DMA("RXCSR%d := %04x\n", epnum, val);
        }
 
-        if (!is_sw_hcd_dma_capable(qh->segsize, qh->maxpacket, epnum)) {
+        if (!is_sw_hcd_dma_capable(sw_hcd->usbc_no, qh->segsize, qh->maxpacket, epnum)) {
 			done = sw_hcd_host_packet_rx(sw_hcd, urb, epnum, iso_err);
 			DMSG_DBG_HCD("ERR: sw_hcd_host_rx, read %spacket\n", done ? "last " : "");
 		}
@@ -3002,7 +3007,7 @@ static int sw_hcd_cleanup_urb(struct urb *urb, struct sw_hcd_qh *qh, int is_in)
 
 	sw_hcd_ep_select(usbc_base, hw_end);
 
-	if (is_sw_hcd_dma_capable(urb->transfer_buffer_length, qh->maxpacket, ep->epnum)) {
+	if (is_sw_hcd_dma_capable(ep->sw_hcd->usbc_no, urb->transfer_buffer_length, qh->maxpacket, ep->epnum)) {
 		DMSG_DBG_HCD("HCD: sw_hcd_cleanup_urb, abort %cX%d DMA for urb %p --> %d\n",
                 (is_in ? 'R' : 'T'), ep->epnum, urb, status);
 

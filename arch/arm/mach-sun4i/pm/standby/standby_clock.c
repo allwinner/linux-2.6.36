@@ -161,7 +161,7 @@ __s32 standby_clk_plldisable(void)
     CmuReg->Pll2Ctl.PLLEn = 0;
     CmuReg->Pll3Ctl.PLLEn = 0;
     CmuReg->Pll4Ctl.PLLEn = 0;
-    #if 0
+    #if 1
     CmuReg->Pll5Ctl.PLLEn = 0;
     #endif
     CmuReg->Pll6Ctl.PLLEn = 0;
@@ -188,7 +188,7 @@ __s32 standby_clk_pllenable(void)
     CmuReg->Pll2Ctl.PLLEn = 1;
     CmuReg->Pll3Ctl.PLLEn = 1;
     CmuReg->Pll4Ctl.PLLEn = 1;
-    #if 0
+    #if 1
     CmuReg->Pll5Ctl.PLLEn = 1;
     #endif
     CmuReg->Pll6Ctl.PLLEn = 1;
@@ -247,12 +247,10 @@ __s32 standby_clk_hoscenable(void)
 */
 __s32 standby_clk_ldodisable(void)
 {
-    __u32   tmpReg;
-
-    tmpReg = *(volatile __u32 *)&CmuReg->HoscCtl;
-    tmpReg &= ~(1<<16);
-    *(volatile __u32 *)&CmuReg->HoscCtl = tmpReg | (0xa7<<24) ;
-
+    CmuReg->HoscCtl.KeyField = 0x538;
+    CmuReg->HoscCtl.LDOEn = 0;
+    CmuReg->Pll5Ctl.LDO2En = 0;
+    CmuReg->HoscCtl.KeyField = 0x00;
     return 0;
 }
 
@@ -270,12 +268,10 @@ __s32 standby_clk_ldodisable(void)
 */
 __s32 standby_clk_ldoenable(void)
 {
-    __u32   tmpReg;
-
-    tmpReg = *(volatile __u32 *)&CmuReg->HoscCtl;
-    tmpReg |= (1<<16);
-    *(volatile __u32 *)&CmuReg->HoscCtl = tmpReg | (0xa7<<24) ;
-
+    CmuReg->HoscCtl.KeyField = 0x538;
+    CmuReg->HoscCtl.LDOEn = 1;
+    CmuReg->Pll5Ctl.LDO2En = 1;
+    CmuReg->HoscCtl.KeyField = 0x00;
     return 0;
 }
 
@@ -330,3 +326,29 @@ __s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div)
 
     return 0;
 }
+
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_dramgating
+*
+* Description: gating dram clock.
+*
+* Arguments  : onoff    dram clock gating on or off;
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+void standby_clk_dramgating(int onoff)
+{
+    if(onoff) {
+        CmuReg->DramGate.ClkOutputEn = 1;
+    }
+    else {
+        CmuReg->DramGate.ClkOutputEn = 0;
+    }
+}
+
+
+
+

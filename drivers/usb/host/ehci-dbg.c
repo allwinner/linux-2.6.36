@@ -1079,3 +1079,56 @@ static inline void remove_debug_files (struct ehci_hcd *ehci)
 }
 
 #endif /* STUB_DEBUG_FILES */
+
+/*
+*******************************************************************************
+*                     print_ehci_reg
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void print_ehci_reg(struct ehci_hcd *ehci)
+{
+	spinlock_t lock = SPIN_LOCK_UNLOCKED;
+	unsigned long flags = 0;
+
+	spin_lock_init(&lock);
+	spin_lock_irqsave(&lock, flags);
+
+    printk("\n");
+	printk("-------------------------------------------------------------------\n");
+    printk("hc_capbase       = 0x%x\n", readl(&ehci->caps->hc_capbase));
+    printk("hcs_params       = 0x%x\n", readl(&ehci->caps->hcs_params));
+    printk("hcc_params       = 0x%x\n", readl(&ehci->caps->hcc_params));
+    printk("portroute[0]     = 0x%x\n", readl(&ehci->caps->portroute[0]));
+
+    printk("command          = 0x%x\n", readl(&ehci->regs->command));
+    printk("status           = 0x%x\n", readl(&ehci->regs->status));
+    printk("intr_enable      = 0x%x\n", readl(&ehci->regs->intr_enable));
+    printk("frame_index      = 0x%x\n", readl(&ehci->regs->frame_index));
+    printk("segment          = 0x%x\n", readl(&ehci->regs->segment));
+    printk("frame_list       = 0x%x\n", readl(&ehci->regs->frame_list));
+    printk("async_next       = 0x%x\n", readl(&ehci->regs->async_next));
+    printk("configured_flag  = 0x%x\n", readl(&ehci->regs->configured_flag));
+    printk("port_status[0]   = 0x%x\n", readl(&ehci->regs->port_status[0]));
+
+	printk("-------------------------------------------------------------------\n");
+	printk("\n");
+
+	spin_unlock_irqrestore(&lock, flags);
+
+    return;
+}
+
+
