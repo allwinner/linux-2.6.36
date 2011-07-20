@@ -174,7 +174,7 @@ typedef struct {
 
 /* image struct */
 typedef struct {
-	__u32			 addr;		/* base addr of image frame buffer in byte */
+	__u32			 addr[3];		/* base addr of image frame buffer in byte */
 	__u32			 w;			/* width of image frame buffer in pixel */
 	__u32			 h;			/* height of image frame buffer in pixel */
 	g2d_data_fmt	 format;	/* pixel format of image frame buffer */
