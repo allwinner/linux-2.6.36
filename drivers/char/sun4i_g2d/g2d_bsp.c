@@ -615,7 +615,6 @@ __u32 mixer_blt(g2d_blt *para){
 	
 	mixer_reg_init();/* initial mixer register */
 	
-	printk("[yuputang]para->src_image.addr[0]:[%x]para->src_image.addr[1]:[%x]para->dst_image.addr[0]:[%x]\n", para->src_image.addr[0],para->src_image.addr[1],para->dst_image.addr[0]);
 	/* src surface */
 	addr_val = mixer_get_addr(para->src_image.addr[0],para->src_image.format,para->src_image.w,para->src_rect.x,para->src_rect.y);
 	reg_val = (addr_val>>32)&0xF;/* high addr in bits */	
@@ -676,7 +675,6 @@ __u32 mixer_blt(g2d_blt *para){
 		reg_val = read_wvalue(G2D_DMA1_CONTROL_REG);
 		reg_val |= (5<<8) | G2D_IDMA_ENABLE;
 		write_wvalue(G2D_DMA1_CONTROL_REG, reg_val);
-//		write_wvalue(G2D_CSC0_CONTROL_REG, 0x21);
 	}
 	
 	/* pyuv422/420/411uvc */
