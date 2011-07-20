@@ -46,19 +46,19 @@ static _mali_osk_resource_t arch_configuration [] =
 	},
 #endif
 //#if USING_ZBT
-    {
-    	.type = MEMORY,
-    	.description = "Mali Sdram",
-    	.alloc_order = 0, /* Medium preference for this memory */
-    	.base = 0x5A000000,
-    	.size = 96 * 1024 * 1024, /*64M*/
-    	.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
-    },
+	{
+		.type = MEMORY,
+	   	.description = "Mali Sdram",
+    		.alloc_order = 0, /* Medium preference for this memory */
+	    	.base = 0x5C000000,
+    		.size = 64 * 1024 * 1024, /*64M*/
+	    	.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
+	},
 //#endif
 	{
 		.type = MEM_VALIDATION,
 		.description = "Framebuffer",
-		.base = 0x58000000,
+		.base = 0x5A000000,
 		.size = 32 * 1024 * 1024,  /*16M*/
 		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
 	},
@@ -66,7 +66,7 @@ static _mali_osk_resource_t arch_configuration [] =
 		.type = OS_MEMORY,
 		.description = "OS Memory",
 		.alloc_order = 10, /* Lowest preference for this memory */
-		.size = 64 * 1024 * 1024, /* 96 MB */
+		.size = 64 * 1024 * 1024, /* 64 MB */
 		//.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_PP_READABLE | _MALI_PP_WRITEABLE |_MALI_GP_READABLE | _MALI_GP_WRITEABLE
 		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
 	},
