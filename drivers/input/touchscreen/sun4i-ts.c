@@ -34,6 +34,10 @@
 #include <asm/uaccess.h> 
 #include <linux/mm.h> 
 #include <linux/slab.h>
+#include <linux/timer.h>
+#include <linux/jiffies.h>
+#include <linux/tick.h>
+#include <asm-generic/cputime.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
     #include <linux/pm.h>
@@ -54,8 +58,11 @@ static int tp_flag = 0;
 #define TOUCH_CHANGE           (3)
 #define TP_DATA_AV_NO          (0x3)
 
-//#define CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_INT_INFO
-//#define CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
+//#define PRINT_INT_INFO
+//#define PRINT_FILTER_INFO
+//#define PRINT_REPORT_STATUS_INFO
+//#define PRINT_REPORT_DATA_INFO
+//#define PRINT_TASKLET_INFO
 #define CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 #define PRINT_SUSPEND_INFO
 
@@ -112,6 +119,7 @@ static int tp_flag = 0;
 #define SINGLE_TOUCH_MODE      (1)
 #define DOUBLE_TOUCH_MODE      (2)
 #define SINGLE_CNT_LIMIT       (25)
+#define DOUBLE_CNT_LIMIT       (8)
 
                                
 #define TPDATA_MASK            (0xfff)
@@ -123,16 +131,84 @@ static int tp_flag = 0;
 #define Y_TURN_POINT            (260)         // y1 < (1468 -MAX_DELTA_Y )
 #define Y_COMPENSATE            (2*Y_TURN_POINT)
 
+#define X_CENTER_COORDINATE     (2048)        //for construct two point 
+#define Y_CENTER_COORDINATE     (2048)
+
+#define CYCLE_BUFFER_SIZE       (64)          //must be 2^n
+#define DELAY_PERIOD            (8)          //delay 90 ms, unit is 10ms  
+
 #ifndef TRUE
 #define TRUE   1
 #define FALSE  0
 #endif
+
+#ifdef PRINT_INT_INFO 
+#define print_int_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_int_info(fmt, args...)   //
+#endif
+
+#ifdef PRINT_FILTER_INFO 
+#define print_filter_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_filter_info(fmt, args...)   //
+#endif
+
+#ifdef PRINT_REPORT_STATUS_INFO 
+#define print_report_status_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_report_status_info(fmt, args...)   //
+#endif
+
+#ifdef PRINT_REPORT_DATA_INFO 
+#define print_report_data_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_report_data_info(fmt, args...)   //
+#endif
+
+#ifdef PRINT_TASKLET_INFO 
+#define print_tasklet_info(fmt, args...)     \
+            do{                              \
+                    printk(fmt, ##args);     \
+            }while(0)
+#else
+#define print_tasklet_info(fmt, args...)   //
+#endif
+
 
 struct sun4i_ts_data {
 	struct resource *res;
 	struct input_dev *input;
 	void __iomem *base_addr;
 	int irq;
+	char phys[32];
+	unsigned int count; //for report threshold & touchmod(double to single touch mode) change
+	unsigned long buffer_head; //for cycle buffer
+	unsigned long buffer_tail;
+	int ts_sample_status;                //for touchscreen status when sampling
+	int ts_process_status;               //for record touchscreen status when process data 
+	int double_point_cnt;            //for noise reduction when in double_touch_mode
+	int single_touch_cnt;                //for noise reduction when change to double_touch_mode
+	int ts_delay_period;                 //will determine responding sensitivity
+	int touchflag;
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    struct early_suspend early_suspend;
+#endif
+};
+
+struct ts_sample_data{
 	unsigned int x1;
 	unsigned int y1;
 	unsigned int x;
@@ -141,31 +217,30 @@ struct sun4i_ts_data {
 	unsigned int dy;
 	unsigned int z1;
 	unsigned int z2;
-	int status;
-	int count;
-	int touchflag;
-	char phys[32];
-#ifdef CONFIG_HAS_EARLYSUSPEND	
-    struct early_suspend early_suspend;
-#endif
+	int sample_status;                       //record the sample point status when sampling 
+	unsigned int sample_time;
 };
 
 struct sun4i_ts_data * mtTsData =NULL;	
-static int single_touch_cnt = 0;
 static int touch_mode = SINGLE_TOUCH_MODE;
 static int change_mode = TRUE;
-/*	
-static int tansfer_x1 = 0; 
-static int tansfer_x2 = 0;
-static int tansfer_y1 = 0;
-static int tansfer_y2 = 0;
-*/
+static int tp_irq_state = TRUE;
+
+static cputime64_t cur_wall_time = 0L;
+//static cputime64_t cur_idle_time = 0L;
+
+static struct ts_sample_data cycle_buffer[CYCLE_BUFFER_SIZE] = {{0},};
+static struct ts_sample_data *prev_sample;
+static struct timer_list data_timer;
+static int data_timer_status = 0;  //when 1, mean tp driver have recervied data, and begin to report data, and start timer to reduce up&down signal  
+
 
 //for test
 //static int tp_irq = 0;
 
 void tp_do_tasklet(unsigned long data);
 DECLARE_TASKLET(tp_tasklet,tp_do_tasklet,0);
+
 //Í£ÓÃÉè±¸
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void sun4i_ts_suspend(struct early_suspend *h)
@@ -257,49 +332,50 @@ static int  tp_init(void)
     return (0);
 }
 
-static void report_single_point(struct sun4i_ts_data *ts_data)
+static void report_single_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
 {
     input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-    input_report_abs(ts_data->input, ABS_MT_POSITION_X, ts_data->x);
-    input_report_abs(ts_data->input, ABS_MT_POSITION_Y, ts_data->y);   
-#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
-    printk("report single point: x = %d, y = %d\n                  \
-            ts_data->dx = %d, ts_data->dy = %d. \n",      \
-            ts_data->x, ts_data->y, ts_data->dx, ts_data->dy);
-#endif
-        
+    input_report_abs(ts_data->input, ABS_MT_POSITION_X, sample_data->x);
+    input_report_abs(ts_data->input, ABS_MT_POSITION_Y, sample_data->y);   
+/*
+    print_report_data_info("report single point: x = %d, y = %d\n                  \
+            sample_data->dx = %d, sample_data->dy = %d. \n",      \
+            sample_data->x, sample_data->y, sample_data->dx, sample_data->dy);
+   */
+    print_report_data_info("report single point: x = %d \n", sample_data->x);
+    
     input_mt_sync(ts_data->input);                 
     input_sync(ts_data->input);
    
     return;
 }
 
-static void report_double_point(struct sun4i_ts_data *ts_data)
+static void report_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
 {
 	int x1,x2,y1,y2;
 	//int tmp;
     //tmp = X_TURN_POINT<<2;
 	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-	if(ts_data->dx < X_TURN_POINT){
-	    x1 = 2048 - (ts_data->dx<<2);
-        x2 = 2048 + (ts_data->dx<<2);  
+	if(sample_data->dx < X_TURN_POINT){
+	    x1 = X_CENTER_COORDINATE - (sample_data->dx<<2);
+        x2 = X_CENTER_COORDINATE + (sample_data->dx<<2);  
 	}else{
-        x1 = 2048 - X_COMPENSATE - ((ts_data->dx) - X_TURN_POINT);
-        x2 = 2048 + X_COMPENSATE + ((ts_data->dx) - X_TURN_POINT); 
+        x1 = X_CENTER_COORDINATE - X_COMPENSATE - ((sample_data->dx) - X_TURN_POINT);
+        x2 = X_CENTER_COORDINATE + X_COMPENSATE + ((sample_data->dx) - X_TURN_POINT); 
 	}
    
     //printk("X_TURN_POINT is %d. \n", tmp);
     
-	if(ts_data->dy < Y_TURN_POINT){
-        y1 = 2048 - (ts_data->dy<<1);
-        y2 = 2048 + (ts_data->dy<<1);
+	if(sample_data->dy < Y_TURN_POINT){
+        y1 = Y_CENTER_COORDINATE - (sample_data->dy<<1);
+        y2 = Y_CENTER_COORDINATE + (sample_data->dy<<1);
 
 	}else{
-        y1 = 2048 - Y_COMPENSATE - (ts_data->dy - Y_TURN_POINT);
-        y2 = 2048 + Y_COMPENSATE + (ts_data->dy - Y_TURN_POINT);
+        y1 = Y_CENTER_COORDINATE - Y_COMPENSATE - (sample_data->dy - Y_TURN_POINT);
+        y2 = Y_CENTER_COORDINATE + Y_COMPENSATE + (sample_data->dy - Y_TURN_POINT);
 	}
 
-    //printk("dx:%d, dy: %d, x1:%d, y1:%d \n", ts_data->dx, ts_data->dy, x1, y1);
+    //printk("dx:%d, dy: %d, x1:%d, y1:%d \n", sample_data->dx, sample_data->dy, x1, y1);
 
 	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
 	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
@@ -310,23 +386,27 @@ static void report_double_point(struct sun4i_ts_data *ts_data)
 	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y2);
 	input_mt_sync(ts_data->input);
 	input_sync(ts_data->input);
-	#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
-        printk("report two point: x1 = %d, y1 = %d; x2 = %d, y2 = %d. \n",x1, y1, x2, y2);
-        printk("ts_data->dx = %d, ts_data->dy = %d. \n", ts_data->dx, ts_data->dy);
-    #endif
+
+    print_report_data_info("report two point: x1 = %d, y1 = %d; x2 = %d, y2 = %d. \n",x1, y1, x2, y2);
+    print_report_data_info("sample_data->dx = %d, sample_data->dy = %d. \n", sample_data->dx, sample_data->dy);
+
 
     return;
 }
 
-static void report_data(struct sun4i_ts_data *ts_data)
+static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
 {
-    if(TRUE == change_mode){
+    //printk("calling report data. \n");
+    if(TRUE == change_mode){                 //only up event happened, chang_mode is allowed.
         //remain in double touch mode    
-        single_touch_cnt++;        
-        if(single_touch_cnt > SINGLE_CNT_LIMIT){ 
+        ts_data->single_touch_cnt++;        
+        if(ts_data->single_touch_cnt > SINGLE_CNT_LIMIT){ 
             //change to single touch mode
-            report_single_point(ts_data);
-            touch_mode = SINGLE_TOUCH_MODE; 
+            report_single_point(ts_data, sample_data);
+            touch_mode = SINGLE_TOUCH_MODE;
+
+            print_report_data_info("change touch mode to SINGLE_TOUCH_MODE");
+
         }
     }else if(FALSE == change_mode){
           //keep in double touch mode
@@ -336,144 +416,191 @@ static void report_data(struct sun4i_ts_data *ts_data)
     return;
 }
 
+static void report_up_event(unsigned long data)
+{
+    struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)data;
+
+    /*when the time is out, and the buffer data can not affect the timer to re-timing immediately,
+        *this will happen, 
+        *from this we can conclude, the delay_time is not proper, need to be longer
+        */
+    if(ts_data->buffer_head != ts_data->buffer_tail){ 
+        printk("warn: when report_up_event, the buffer is not empty. clear the buffer.\n");
+        printk("ts_data->buffer_head = %lu,  ts_data->buffer_tail = %lu \n", ts_data->buffer_head, ts_data->buffer_tail);
+        //ts_data->buffer_tail = ts_data->buffer_head;
+        //do not discard the data, just let the tasklet to take care of it.
+        mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
+        return;
+    }
+    
+    print_report_status_info("report_up_event. \n");
+
+    //note: below operation may be interfere by intterrupt, but it does not matter
+    input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,0);
+    input_sync(ts_data->input);
+    del_timer(&data_timer);
+    data_timer_status = 0;
+    ts_data->ts_process_status = TP_UP;
+    ts_data->double_point_cnt = 0;
+    //ts_data->buffer_head = 0;
+    //ts_data->buffer_tail = 0;
+    ts_data->touchflag = 0; 
+    //ts_data->count     = 0;
+    //touch_mode = SINGLE_TOUCH_MODE;
+    change_mode = TRUE;
+
+    return;
+}
+
+static void process_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
+{
+    //printk("enter process_data. \n");
+    ts_data->touchflag = 1;
+    if(((sample_data->dx) > DUAL_TOUCH)&&((sample_data->dy) > DUAL_TOUCH)){
+        ts_data->touchflag = 2;
+        ts_data->double_point_cnt++;
+        //printk("ts_data->double_point_cnt is %d. \n", ts_data->double_point_cnt);
+        if(ts_data->double_point_cnt > DOUBLE_CNT_LIMIT){
+            if(sample_data->dx < MAX_DELTA_X && sample_data->dy < MAX_DELTA_Y){
+                    //ts_data->count = 0;  
+                    touch_mode = DOUBLE_TOUCH_MODE;
+                    change_mode = FALSE;
+                    ts_data->single_touch_cnt = 0; //according this counter, change to single touch mode
+                    report_double_point(ts_data, sample_data);
+            }
+        }
+    
+    }else  if(1 == ts_data->touchflag){
+           if(DOUBLE_TOUCH_MODE == touch_mode ){
+                 report_data(ts_data, sample_data);
+           }else if(SINGLE_TOUCH_MODE == touch_mode ){//remain in single touch mode
+                 report_single_point(ts_data, sample_data);
+           }                    
+    }
+    
+    return;
+
+}
+
+
+
 void tp_do_tasklet(unsigned long data)
 {
     //struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
 
-	struct sun4i_ts_data *ts_data = mtTsData;	
-#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
-	int x1,x2,y1,y2;
-#endif
+	struct sun4i_ts_data *ts_data = mtTsData;
+	struct ts_sample_data *sample_data;
 
-  	switch(ts_data->status)
-  	{
-  		case TP_DOWN:
-  		{
-			ts_data->touchflag = 0; 
-			ts_data->count     = 0;
-  			break;
-  		}
-  		case TP_UP :
-    	{
-    	    if(1 == ts_data->touchflag || 2 == ts_data->touchflag)
-    	    {
-                ts_data->touchflag = 0; 
-                ts_data->count     = 0;
-                //touch_mode = SINGLE_TOUCH_MODE;
-                change_mode = TRUE;
-                input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,0);
-                input_sync(ts_data->input);
-    	    }
-		    break;
-  		}
+    //
+    int head = (int)data;
+    int tail = (int)ts_data->buffer_tail; //!!! tail may have changed, while the data is remain?
 
-  		case TP_DATA_VA:
-  		{
-  		    if(ts_data->count > FILTER_NOISE_LOWER_LIMIT)
-  		    {
-      		    ts_data->touchflag = 1;
-  			    if(((ts_data->dx) > DUAL_TOUCH)&&((ts_data->dy) > DUAL_TOUCH)){
-  			    	ts_data->touchflag = 2;
-  			    	ts_data->count = 0;  
-                    touch_mode = DOUBLE_TOUCH_MODE;
-                    change_mode = FALSE;
-  			    	single_touch_cnt = 0; //according this counter, change to single touch mode
-  			    	if(ts_data->dx < MAX_DELTA_X && ts_data->dy < MAX_DELTA_Y){
-                        report_double_point(ts_data);
-  			    	}
-
-		        }else  if(1 == ts_data->touchflag){
-		               if(DOUBLE_TOUCH_MODE == touch_mode ){
-                                
-                               {
-#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_POINT_INFO
-                                     //just for debug
-                                     //input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-                                     x1 = 2048 - (ts_data->dx<<2);
-                                     y1 = 2048 - (ts_data->dy<<2);
-                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
-                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
-                                     //input_mt_sync(ts_data->input);
-                                     
-                                     //input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
-                                     x2 = 2048 + (ts_data->dx<<2);
-                                     y2 = 2048 + (ts_data->dy<<2);
-                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_X, x2);
-                                     //input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y2);
-                                     //input_mt_sync(ts_data->input);
-                                     //input_sync(ts_data->input);
-                                 
-
-                                     printk("do not report two point: x1 = %d, y1 = %d; x2 = %d, y2 = %d. \n",x1, y1, x2, y2);
-                                     printk("ts_data->dx = %d, ts_data->dy = %d. \n", ts_data->dx, ts_data->dy);
-#endif
-                                 }
-                                 report_data(ts_data);
+    if((tail + CYCLE_BUFFER_SIZE*2) < head){ //tail have been modify to avoid overflow
+        return;
+    }
     
-		               }else if(SINGLE_TOUCH_MODE == touch_mode ){//remain in single touch mode
-                             report_single_point(ts_data);
-        		             }
-
-		            	
-		        }
-              
-            }
-
-  			break;
-  		}
-  		
-		default:	
-  			break;
-  	
-  	}
-}
-/*
-static irqreturn_t sun4i_isr_tp(int irq, void *dev_id)
-{
-	struct platform_device *pdev = dev_id;
-	struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
-
-	unsigned int reg_val;
-	//unsigned int i;
-	int x1,x2,y1,y2,z1,z2;
-	
-
-	reg_val  = readl(TP_BASSADDRESS + TP_INT_FIFOS);
-	if(reg_val&TP_DOWN_PENDING)
-	{
-	    #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
-		    printk("enter press the screen \n");
-		#endif
-	}
-	
-	if(reg_val&TP_UP_PENDING)
-	{
-	    #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
-	        printk("enter up the screen \n");
-        #endif
+    print_tasklet_info("enter tasklet. head = %d, tail = %d\n", head, tail);
+    
+    while((tail) < (head)){ //when tail == head, mean the buffer is empty
+        sample_data = &cycle_buffer[tail&(CYCLE_BUFFER_SIZE-1)];
+        tail++;
+        print_filter_info("sample_data->sample_status == %d, ts_data->ts_process_status == %d \n", \
+                           sample_data->sample_status, ts_data->ts_process_status);
+        if(TP_UP == sample_data->sample_status || TP_DOWN == sample_data->sample_status)
+        {
+            //when received up & down event, reinitialize ts_data->double_point_cnt to debounce for DOUBLE_TOUCH_MODE        
+            ts_data->double_point_cnt = 0; 
+            
+            if((TP_DATA_VA == ts_data->ts_process_status || TP_DOWN == ts_data->ts_process_status) && data_timer_status){
+                //delay   20ms , ignore up event & down event
+                print_filter_info("(prev_sample->sample_time + ts_data->ts_delay_period) == %u, \
+                        (sample_data->sample_time) == %u. \n", \
+                        (prev_sample->sample_time + ts_data->ts_delay_period), \
+                        (sample_data->sample_time));
+      
+                if(time_after_eq((unsigned long)(prev_sample->sample_time + ts_data->ts_delay_period), (unsigned long)(sample_data->sample_time))){
+                    //notice: sample_time may overflow
+                    print_filter_info("ignore up event & down event. \n");
+                    mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
+                    continue;
+                }
+                
+            }            
+        }
         
-		ts_data->status = TP_UP;
-		ts_data->count  = 0;
+      	switch(sample_data->sample_status)
+      	{
+      		case TP_DOWN:
+      		{
+    			ts_data->touchflag = 0; 
+    			//ts_data->count     = 0;
+    			ts_data->ts_process_status = TP_DOWN;
+    			ts_data->double_point_cnt = 0;
+    			print_report_status_info("actuall TP_DOWN . \n");
+      			break;
+      		}
+      		case TP_DATA_VA:
+      		{
+      		    //memcpy(prev_sample, sample_date, sizeof(ts_sample_data));
+      		    prev_sample->sample_time = sample_data->sample_time;
+                process_data(ts_data, sample_data);
+                if(0 == data_timer_status){
+                    mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
+                    data_timer_status = 1;
+                    print_report_status_info("timer is start up. \n");
+                }else{
+                    mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
+                   // print_report_info("more ts_data->ts_delay_period ms delay. \n");
+                }
+                ts_data->ts_process_status = TP_DATA_VA;
+      			break;
+      		}      		
+      		case TP_UP :
+        	{
+        	    //actually, this case will never be run
+        	    if(1 == ts_data->touchflag || 2 == ts_data->touchflag)
+        	    {
+        	        print_report_status_info("actually TP_UP. \n");
+                    ts_data->touchflag = 0; 
+                    //ts_data->count     = 0;
+                    //touch_mode = SINGLE_TOUCH_MODE;
+                    change_mode = TRUE;
+                    ts_data->ts_process_status = TP_UP;
+                    report_up_event((unsigned long)ts_data);
+                    
 
-	}
+        	    }
+    		    break;
+      		}
+      		
+    		default:	
+      			break;
+      	
+      	}
+    }
+    //update buffer_tail
+    ts_data->buffer_tail = (unsigned long)tail;
 
-	if(reg_val&FIFO_DATA_PENDING)
-	{    		
-		x1  = readl(TP_BASSADDRESS + TP_DATA);
-		y1  = readl(TP_BASSADDRESS + TP_DATA);		
-   	    x2  = readl(TP_BASSADDRESS + TP_DATA);
-        y2  = readl(TP_BASSADDRESS + TP_DATA);	
-        z1  = readl(TP_BASSADDRESS + TP_DATA);
-        z2  = readl(TP_BASSADDRESS + TP_DATA);
-        #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG			
-		    printk("%d,%d,%d,%d,%d,%d\n",x1,y1,x2,y2,z1,z2);
-		#endif
-  	}
-  	
-  	writel(reg_val,TP_BASSADDRESS + TP_INT_FIFOS);
-	return IRQ_HANDLED;
+    //avoid overflow
+    if(ts_data->buffer_tail > (CYCLE_BUFFER_SIZE << 4)){
+        writel(0, ts_data->base_addr + TP_INT_FIFOC);         //disable irq
+        
+        ts_data->buffer_tail -= (CYCLE_BUFFER_SIZE<<3);
+        ts_data->buffer_head -= (CYCLE_BUFFER_SIZE<<3);        //head may have been change by interrupt       
+
+        if(TRUE == tp_irq_state){
+            //enable irq
+            writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr + TP_INT_FIFOC);
+        }
+    }
+   
+    if(FALSE == tp_irq_state){
+        //enable irq
+        writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr + TP_INT_FIFOC);
+        tp_irq_state = TRUE;
+    }
+    
 }
-*/
 
 static irqreturn_t sun4i_isr_tp(int irq, void *dev_id)
 {
@@ -481,72 +608,99 @@ static irqreturn_t sun4i_isr_tp(int irq, void *dev_id)
 	struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
 
 	unsigned int reg_val;
-	//unsigned int i;
-	//int       ret = -1;
-	//int x1,x2,y1,y2,z1,z2;
-/*	
-	//just for test disable_irq api
-	printk("before disable irq. \n");
-    disable_irq_nosync(irq);
-    printk("after disable irq. \n");
-*/
+    int head_index = (int)(ts_data->buffer_head&(CYCLE_BUFFER_SIZE-1));
+    int tail = (int)ts_data->buffer_tail;
 
 	reg_val  = readl(TP_BASSADDRESS + TP_INT_FIFOS);
+	if(!(reg_val&(TP_DOWN_PENDING | FIFO_DATA_PENDING | TP_UP_PENDING))){
+        return IRQ_NONE;
+	}
+
+	if(((tail+CYCLE_BUFFER_SIZE)) <= (ts_data->buffer_head)){ //when head-tail == CYCLE_BUFFER_SIZE, mean the buffer is full.
+        printk("warn: cycle buffer is full. \n");
+        //ts_data->buffer_tail++; //ignore one point, increment tail is danger, when tasklet is using the tail.
+        writel(0, ts_data->base_addr + TP_INT_FIFOC); //disable irq
+        tp_irq_state = FALSE;
+        writel(reg_val,TP_BASSADDRESS + TP_INT_FIFOS); //clear irq pending
+        
+        tp_tasklet.data = ts_data->buffer_head;	
+        printk("schedule tasklet. ts_data->buffer_head = %lu, \
+                ts_data->buffer_tail = %lu.\n", ts_data->buffer_head, ts_data->buffer_tail);
+                
+        tasklet_schedule(&tp_tasklet);
+        return IRQ_HANDLED;
+	}
+	
 	if(reg_val&TP_DOWN_PENDING)
 	{
 		writel(reg_val&TP_DOWN_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
-		#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_INT_INFO
-		    printk("enter press the screen \n");
-		#endif
-		ts_data->status = TP_DOWN;
-		ts_data->count  = 0;
-		tp_do_tasklet(0);	
-		return IRQ_HANDLED;
-	}
-	
-	if(reg_val&TP_UP_PENDING)
-	{
-		writel(reg_val&TP_UP_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
-		#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_INT_INFO
-		    printk("enter up the screen \n");
-		#endif
-		ts_data->status = TP_UP;
-		ts_data->count  = 0;
-		tp_do_tasklet(0);	
-		return IRQ_HANDLED;
-	}
+	    print_int_info("press the screen: jiffies to ms == %u , jiffies == %lu, time: = %llu \n", \
+	           jiffies_to_msecs((long)get_jiffies_64()), jiffies, get_cpu_idle_time_us(0, &cur_wall_time));
 
-    //do not report data on up status
-	if(reg_val&FIFO_DATA_PENDING)
+		ts_data->ts_sample_status = TP_DOWN;
+		ts_data->count  = 0;
+		cycle_buffer[head_index].sample_status = TP_DOWN;
+		cycle_buffer[head_index].sample_time= jiffies;
+		//update buffer_head
+	    ts_data->buffer_head++;
+
+	}else if(reg_val&FIFO_DATA_PENDING)        //do not report data on up status
 	{   
-	    if(TP_DOWN == ts_data->status || TP_DATA_VA == ts_data->status){
+	   // if((TP_DOWN == ts_data->ts_sample_status || TP_DATA_VA == ts_data->ts_sample_status)){
             ts_data->count++;
-            ts_data->x      = readl(TP_BASSADDRESS + TP_DATA);
-            ts_data->y      = readl(TP_BASSADDRESS + TP_DATA);      
-            ts_data->dx     = readl(TP_BASSADDRESS + TP_DATA);
-            ts_data->dy     = readl(TP_BASSADDRESS + TP_DATA);  
-            //ts_data->z1     = readl(TP_BASSADDRESS + TP_DATA);
-            //ts_data->z2     = readl(TP_BASSADDRESS + TP_DATA);        
-            ts_data->status = TP_DATA_VA;       
-            //writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr+TP_INT_FIFOC); 
-            writel(reg_val&FIFO_DATA_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
-            tp_do_tasklet(0);   
-            return IRQ_HANDLED;
-        
+            if(ts_data->count > FILTER_NOISE_LOWER_LIMIT){
+                cycle_buffer[head_index].x      = readl(TP_BASSADDRESS + TP_DATA);
+                cycle_buffer[head_index].y      = readl(TP_BASSADDRESS + TP_DATA);      
+                cycle_buffer[head_index].dx     = readl(TP_BASSADDRESS + TP_DATA);
+                cycle_buffer[head_index].dy     = readl(TP_BASSADDRESS + TP_DATA); 
+                cycle_buffer[head_index].sample_time= jiffies;
+                //ts_data->z1     = readl(TP_BASSADDRESS + TP_DATA);
+                //ts_data->z2     = readl(TP_BASSADDRESS + TP_DATA);        
+                cycle_buffer[head_index].sample_status = TP_DATA_VA;
+                ts_data->ts_sample_status = TP_DATA_VA;
+                writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr+TP_INT_FIFOC); 
+                writel(reg_val&FIFO_DATA_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
 
-	    }else{ //INITIAL or UP
-	        #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG_WITH_INT_INFO
-		        printk("data int when tp up. \n");
-		    #endif
+    		    print_int_info("data coming, jiffies to ms == %u , jiffies == %lu, time: = %llu \n", \
+		           jiffies_to_msecs((long)get_jiffies_64()), jiffies, get_cpu_idle_time_us(0, &cur_wall_time));
+
+                //update buffer_head
+                ts_data->buffer_head++;
+
+            }else{
+                //flush fifo, the data you do not want to reserved, need to be flush out fifo
+                writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr+TP_INT_FIFOC); 
+
+            }    
+
+	   /* }else{ //INITIAL or UP
+
+    printk("err: data int when tp up. jiffies to ms == %u ,  jiffies == %llu, time: = %llu \n", \
+		           jiffies_to_msecs((long)get_jiffies_64()), jiffies,  get_cpu_idle_time_us(0, &cur_wall_time));
+
 	        //writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr + TP_INT_FIFOC);
 	        writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr+TP_INT_FIFOC); 
             writel(reg_val&FIFO_DATA_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
             return IRQ_HANDLED;
-	    }
+	    }*/
 	    
-	    }
-  	
-  	return IRQ_NONE;
+    }else if(reg_val&TP_UP_PENDING)	{
+	        writel(reg_val&TP_UP_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
+	        print_int_info("up the screen. jiffies to ms == %u ,  jiffies == %lu,  time: = %llu \n", \
+	                   jiffies_to_msecs((long)get_jiffies_64()), jiffies, get_cpu_idle_time_us(0, &cur_wall_time));
+            
+	        cycle_buffer[head_index].sample_status = TP_UP;
+	        ts_data->count  = 0;
+	        cycle_buffer[head_index].sample_time= jiffies;
+	        //update buffer_head
+	        ts_data->buffer_head++;
+
+	}
+
+    tp_tasklet.data = ts_data->buffer_head;	
+    //print_tasklet_info("schedule tasklet. ts_data->buffer_head = %lu, ts_data->buffer_tail = %lu\n", ts_data->buffer_head, ts_data->buffer_tail);
+	tasklet_schedule(&tp_tasklet);
+	return IRQ_HANDLED;
 }
 
 static int sun4i_ts_open(struct input_dev *dev)
@@ -596,7 +750,14 @@ static struct sun4i_ts_data *sun4i_ts_data_alloc(struct platform_device *pdev)
 	ts_data->input->open = sun4i_ts_open;
 	ts_data->input->close = sun4i_ts_close;
 	ts_data->input->dev.parent = &pdev->dev; 
-	ts_data->status = TP_INITIAL;
+	ts_data->ts_sample_status = TP_INITIAL;
+	ts_data->ts_process_status = TP_INITIAL;
+	ts_data->double_point_cnt = 0;
+	ts_data->single_touch_cnt = 0;
+	ts_data->ts_delay_period = DELAY_PERIOD;
+	
+	ts_data->buffer_head = 0;
+	ts_data->buffer_tail = 0;
  
 	return ts_data;
 }
@@ -684,6 +845,13 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
     register_early_suspend(&ts_data->early_suspend);
 #endif
 
+    init_timer(&data_timer);
+    data_timer.expires = jiffies + ts_data->ts_delay_period;
+    data_timer.data = (unsigned long)ts_data;
+    data_timer.function = report_up_event;
+
+    prev_sample = kzalloc(sizeof(*prev_sample), GFP_KERNEL);
+    
 	return 0;
 
  err_out3:
