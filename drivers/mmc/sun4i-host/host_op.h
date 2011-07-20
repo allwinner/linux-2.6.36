@@ -52,6 +52,15 @@
 
 #define DRIVER_NAME "sw-smc"
 
+#define SMC_MAX_MOD_CLOCK		(45000000)
+#define SMC_MAX_IO_CLOCK		(45000000)
+enum mclk_src {
+	SMC_MCLK_SRC_HOSC,
+	SMC_MCLK_SRC_SATAPLL,
+	SMC_MCLK_SRC_DRAMPLL
+};
+
+
 #define CARD_DETECT_BY_GPIO     (1)
 #define CARD_DETECT_BY_DATA3    (2)        /* mmc detected by status of data3 */
 #define CARD_ALWAYS_PRESENT     (3)        /* mmc always present, without detect pin */

@@ -40,6 +40,18 @@ unsigned int smc_debug = 2;
 EXPORT_SYMBOL_GPL(smc_debug);
 module_param_named(awsmc_debug, smc_debug, int, 0);
 
+unsigned int smc_mclk_source = SMC_MCLK_SRC_SATAPLL;
+EXPORT_SYMBOL_GPL(smc_mclk_source);
+module_param_named(mclk_source, smc_mclk_source, int, 0);
+
+unsigned int smc_io_clock = SMC_MAX_IO_CLOCK;
+EXPORT_SYMBOL_GPL(smc_io_clock);
+module_param_named(io_clock, smc_io_clock, int, 0);
+
+unsigned int smc_mod_clock = SMC_MAX_MOD_CLOCK;
+EXPORT_SYMBOL_GPL(smc_mod_clock);
+module_param_named(mod_clock, smc_mod_clock, int, 0);
+
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
     __u32 i;
@@ -72,7 +84,7 @@ s32 awsmc_init_controller(struct awsmc_host* smc_host)
 static int awsmc_set_src_clk(struct awsmc_host* smc_host)
 {
     struct clk *source_clock = NULL;
-    char* name;
+    char* name = NULL;
     int ret;
 
     switch (smc_host->clk_source)
@@ -645,6 +657,25 @@ static int awsmc_proc_read_regs(char *page, char **start, off_t off, int count, 
         p += sprintf(p, "%08x ", sdc_read(smc_host->smc_base + i));
     }
     p += sprintf(p, "\n");
+    
+    p += sprintf(p, "Dump ccmu regs:\n");
+    for (i=0; i<0x200; i+=4)
+    {
+        if (!(i&0xf))
+            p += sprintf(p, "\n0x%08x : ", i);
+        p += sprintf(p, "%08x ", sdc_read(SW_VA_CCM_IO_BASE + i)); 
+    }
+    p += sprintf(p, "\n");
+
+    p += sprintf(p, "Dump gpio regs:\n");
+    for (i=0; i<0x200; i+=4)
+    {
+        if (!(i&0xf))
+            p += sprintf(p, "\n0x%08x : ", i);
+        p += sprintf(p, "%08x ", sdc_read(SW_VA_PORTC_IO_BASE+ i));
+    }
+    p += sprintf(p, "\n");
+
 
     return p - page;
 }
@@ -811,8 +842,8 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     }
 
     smc_host->cclk  = 400000;
-    smc_host->mod_clk   = 95000000;
-    smc_host->clk_source = 2;
+    smc_host->mod_clk   = smc_mod_clock;
+    smc_host->clk_source = smc_mclk_source;
     smc_host->ops.send_request = sdxc_request;
     smc_host->ops.finalize_requset = sdxc_request_done;
     smc_host->ops.check_status = sdxc_check_status;
@@ -829,7 +860,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->ocr_avail	= MMC_VDD_32_33 | MMC_VDD_33_34;
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
-    mmc->f_max 	    = 50000000;
+    mmc->f_max 	    = smc_io_clock;
 
     mmc->max_blk_count	= 0xffff;
     mmc->max_blk_size	= 0xffff;
