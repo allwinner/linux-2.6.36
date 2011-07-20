@@ -12,13 +12,14 @@ extern volatile __u32 HDMI_BASE;
 #define HDMI_WUINT8(offset,value)   writeb(value, HDMI_BASE + offset)
 #define HDMI_RUINT8(offset)         readb(HDMI_BASE + offset)
 
-#define HDMI_State_Idle 			0x00
-#define HDMI_State_Wait_Hpd			0x02
-#define HDMI_State_Rx_Sense			0x03
-#define HDMI_State_EDID_Parse		0x04
-#define HDMI_State_Video_config		0x05
-#define HDMI_State_Audio_config		0x06
-#define HDMI_State_Playback			0x09
+#define HDMI_State_Idle 			 0x00
+#define HDMI_State_Wait_Hpd			 0x02
+#define HDMI_State_Rx_Sense			 0x03
+#define HDMI_State_EDID_Parse		 0x04
+#define HDMI_State_Wait_Video_config 0x05
+#define HDMI_State_Video_config		 0x06
+#define HDMI_State_Audio_config		 0x07
+#define HDMI_State_Playback			 0x09
 
 #define HDMI1440_480I		6
 #define HDMI1440_576I		21
@@ -83,7 +84,6 @@ __s32 hdmi_core_initial(void);
 __s32 hdmi_core_open(void);
 __s32 hdmi_core_close(void);
 __s32 hdmi_main_task_loop(void);
-__s32 Hpd_Check(void);
 __s32 ParseEDID(void);
 __s32 get_video_info(__s32 vic);
 __s32 get_audio_info(__s32 sample_rate);
@@ -96,7 +96,7 @@ extern __u32 hdmi_clk;
 
 void DDC_Init(void);
 void send_ini_sequence(void);
-void DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf);
+__s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf);
 extern 	__u8		EDID_Buf[1024];
 extern 	__u8		Device_Support_VIC[256];
 

@@ -1,15 +1,15 @@
 #include "hdmi_core.h"
 
 __s32 			hdmi_state	=	HDMI_State_Idle;
-__s32           video_en    =   0;
+__bool          video_enable = 0;
 __s32 			video_mode  = 	HDMI720P_60;
 HDMI_AUDIO_INFO audio_info;
 __u8			EDID_Buf[1024];
 __u8 			Device_Support_VIC[256];
+__s32           HPD = 0;
 
 __u32 hdmi_pll = 0;//0:video pll 0; 1:video pll 1
 __u32 hdmi_clk = 297000000;
-
 
 HDMI_VIDE_INFO video_timing[] = 
 {
@@ -37,63 +37,7 @@ __s32 hdmi_core_initial(void)
 	return 0;
 }
 
-__s32 hdmi_main_task_loop(void)
-{
-	__s32 HPD;
-	
-	HPD = Hpd_Check();
-	if( !HPD )
-	{
-	    __inf("unplug detected\n");
-		if(hdmi_state > HDMI_State_Idle)
-		{
-			hdmi_state = HDMI_State_Wait_Hpd;
-		}
-
-		if(hdmi_state > HDMI_State_Wait_Hpd)
-			__inf("unplug detected\n");
-	}
-	switch(hdmi_state)
-    {
-    	case HDMI_State_Idle:
-    		 return 0;
-    	case HDMI_State_Wait_Hpd:
-    		 if(HPD)
-    		 {
-    		 	hdmi_state = 	HDMI_State_EDID_Parse;
-    		 	__inf("plugin detected\n");
-    		 }
-    		 return 0;    	
-    	case HDMI_State_Rx_Sense:
-    		 return 0;    	
-    	case HDMI_State_EDID_Parse:
-    		 //memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
-    		 //ParseEDID();
-    		 hdmi_state = 	HDMI_State_Video_config;
-    		 return 0;    	
-    	case HDMI_State_Video_config:
-    		 video_config(video_mode);
-    		 hdmi_state = 	HDMI_State_Audio_config;    	
-    		 return 0;    	
-    	case HDMI_State_Audio_config:
-    		 audio_config();
-    		 hdmi_state = 	HDMI_State_Playback;    
-
-             //hdmi_delay_ms(1000);
-    		 //memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
-    		 //ParseEDID();
-    		 return 0;    	
-    	case HDMI_State_Playback:
-    		 return 0;     	
-		default:
-			 __wrn(" unkonwn hdmi state, set to idle\n")
-			 hdmi_state = HDMI_State_Idle;	
-			 return 0;	
-    }
-}
-
-
-__s32 Hpd_Check(void)
+__s32 main_Hpd_Check(void)
 {
 	__s32 i,times;
 	times    = 0;
@@ -101,7 +45,6 @@ __s32 Hpd_Check(void)
 	for(i=0;i<3;i++)
 	{
 		hdmi_delay_ms(1);
-		//HDMI_RUINT32(0x5f0);
 		if( HDMI_RUINT32(0x00c)&0x01)
 			times++;
 	}
@@ -109,6 +52,89 @@ __s32 Hpd_Check(void)
 	   return 1;
 	else
 	   return 0;
+}
+
+__s32 hdmi_main_task_loop(void)
+{
+	static __u32 times = 0;
+	
+	HPD = main_Hpd_Check();
+	if( !HPD )
+	{
+	    if((times++) >= 10)
+	    {
+	        times = 0;
+	        __inf("unplug state\n");
+	    }
+		if(hdmi_state > HDMI_State_Idle)
+		{
+			hdmi_state = HDMI_State_Wait_Hpd;
+		}
+
+		if(hdmi_state > HDMI_State_Wait_Hpd)
+		{
+			__inf("plugout\n");
+		}
+	}
+	switch(hdmi_state)
+    {
+    	case HDMI_State_Idle:
+    		 hdmi_state = 	HDMI_State_Wait_Hpd;
+    		 return 0; 
+    		 
+    	case HDMI_State_Wait_Hpd:
+    		 if(HPD)
+    		 {
+    		 	hdmi_state = 	HDMI_State_EDID_Parse;
+    		 	__inf("plugin\n");
+    		 }
+    		 return 0; 
+    		 
+    	case HDMI_State_Rx_Sense:
+    		 return 0;    
+    		 
+    	case HDMI_State_EDID_Parse:
+    	     HDMI_WUINT32(0x004,0x80000000);
+    	     HDMI_WUINT32(0x208,(1<<31)+ (1<<30)+ (1<<29)+ (3<<27)+ (0<<26)+ 
+	    		       (1<<25)+ (0<<24)+ (0<<23)+ (4<<20)+ (7<<17)+
+	    		       (15<<12)+ (7<<8)+ (0x0f<<4)+(8<<0) );	  
+         	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
+        	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
+
+            HDMI_WUINT32(0x20c, 0 << 21);    		 
+
+            
+    		 ParseEDID();
+    		 HDMI_RUINT32(0x5f0);
+
+    		 hdmi_state = HDMI_State_Wait_Video_config;
+    		 return 0;   
+
+    	case HDMI_State_Wait_Video_config:
+    	    if(video_enable)
+    		 {
+    		    hdmi_state = 	HDMI_State_Video_config;
+    		 }
+    		 return 0;
+    		 
+    	case HDMI_State_Video_config:
+    		 video_config(video_mode);
+    		 hdmi_state = 	HDMI_State_Audio_config;    	
+    		 return 0;    
+    		 
+    	case HDMI_State_Audio_config:
+    		 audio_config();
+    		 hdmi_state = 	HDMI_State_Playback;    
+    		 return 0;    	
+    		 
+    	case HDMI_State_Playback:
+    		 return 0;  
+    		 
+		default:
+			 __wrn(" unkonwn hdmi state, set to idle\n")
+			 hdmi_state = HDMI_State_Idle;	
+			 return 0;	
+    }
 }
 
 __s32 get_video_info(__s32 vic)
@@ -368,12 +394,14 @@ __s32 audio_config(void)
 	while(HDMI_RUINT32(0x040) != 0);	
 	
 	if(!audio_info.audio_en)
+	{
         return 0;
-	
+	}
 	i = get_audio_info(audio_info.sample_rate);
 	if(i == -1)
+	{
 		return 0;
-		
+	}	
     if(audio_info.channel_num == 2)
     {
           HDMI_WUINT32(0x044,0x00000000);             	//audio fifo rst and select ddma, 2 ch 16bit pcm 

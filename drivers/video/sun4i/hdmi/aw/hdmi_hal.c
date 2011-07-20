@@ -2,11 +2,13 @@
 #include "hdmi_interface.h"
 #include "hdmi_core.h"
 
-
-extern __s32 hdmi_state;
-extern __s32 video_mode;
-extern HDMI_AUDIO_INFO audio_info;
 volatile __u32 HDMI_BASE = 0;
+
+extern __s32            hdmi_state;
+extern __bool           video_enable;
+extern __s32            video_mode;
+extern HDMI_AUDIO_INFO  audio_info;
+extern __s32            HPD;
 
 void Hdmi_set_reg_base(__u32 base)
 {
@@ -15,14 +17,8 @@ void Hdmi_set_reg_base(__u32 base)
 
 __s32 Hdmi_hal_video_enable(__bool enable)
 {
-    if(enable)
-    {
-        hdmi_state	=	HDMI_State_Wait_Hpd;
-    }
-    else
-    {
-        hdmi_state	=	HDMI_State_Idle;
-    }
+    video_enable = enable;
+    
     return 0;
 }
 
@@ -72,18 +68,28 @@ __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para)
 
 __s32 Hdmi_hal_mode_support(__u8 mode)
 {
-
-	return Device_Support_VIC[mode];
+    if(HPD == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        while(hdmi_state < HDMI_State_Wait_Video_config)
+        {
+	        hdmi_delay_ms(1);
+	    }
+	    return Device_Support_VIC[mode];
+	}
 }
 
 __s32 Hdmi_hal_get_HPD(void)
 {
-	return Hpd_Check();
+	return HPD;
 }
 
 __s32 Hdmi_hal_get_state(void)
 {
-    return HDMI_State_Playback;
+    return hdmi_state;
 }
 
 __s32 Hdmi_hal_set_pll(__u32 pll, __u32 clk)

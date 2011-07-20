@@ -13,7 +13,7 @@ static struct resource hdmi_resource[1] =
 {
 	[0] = {
 		.start = 0x01c16000,
-		.end   = 0x01c16fff,
+		.end   = 0x01c165ff,
 		.flags = IORESOURCE_MEM,
 	},
 };
@@ -166,7 +166,7 @@ int __init hdmi_module_init(void)
 {
 	int ret = 0, err;
 	
-	__inf("----------- hdmi_module_init call --------------\n");
+	__inf("hdmi_module_init\n");
 
 	 alloc_chrdev_region(&devid, 0, 1, "hdmi");
 	 my_cdev = cdev_alloc();

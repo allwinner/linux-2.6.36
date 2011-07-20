@@ -1,20 +1,11 @@
 
 #include "hdmi_core.h"
 void DDC_Init(void)
-{
-    __u32 val;
-    
+{    
     __inf("DDC_Init\n");
 
 	HDMI_WUINT32(0x500,0x80000001);
-
-	val = HDMI_RUINT32(0x500) & 0x01;
-	__here__;
-	while(val);			//wait soft reset finish
-	{
-	    val = HDMI_RUINT32(0x500) &0x01;
-	    __here__;
-	}
+    hdmi_delay_ms(1);
     
 	HDMI_WUINT32(0x528,0x0d   );					//N = 5,M=1 Fscl= Ftmds/2/10/2^N/(M+1)
 	//HDMI_WUINT8(0x506,0x60   );					//ddc address  0x60
@@ -45,7 +36,7 @@ void send_ini_sequence()
     return;
 	
 }*/
-void DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
+__s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
 {
    __u8 i=0;
    __u8 n=0;
@@ -89,9 +80,10 @@ void DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
         if((end_ms - begin_ms) > 1000)
         {
             __wrn("ddc read timeout\n");
-            return;
+            return -1;
         }
       }
+
       i=0;
       while(i<n)
       {
@@ -99,7 +91,8 @@ void DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
    	     i++;
       }
    }
-      	
+
+   return 0;
 }
 
 
@@ -283,6 +276,8 @@ __s32 ParseEDID(void)
     __u32 i,offset ;
 
     __inf("ParseEDID\n");
+
+    memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
     
 	DDC_Init();
 
