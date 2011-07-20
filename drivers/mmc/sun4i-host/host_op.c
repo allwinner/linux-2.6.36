@@ -40,7 +40,7 @@ unsigned int smc_debug = 2;
 EXPORT_SYMBOL_GPL(smc_debug);
 module_param_named(awsmc_debug, smc_debug, int, 0);
 
-unsigned int smc_mclk_source = SMC_MCLK_SRC_SATAPLL;
+unsigned int smc_mclk_source = SMC_MCLK_SRC_DRAMPLL;
 EXPORT_SYMBOL_GPL(smc_mclk_source);
 module_param_named(mclk_source, smc_mclk_source, int, 0);
 

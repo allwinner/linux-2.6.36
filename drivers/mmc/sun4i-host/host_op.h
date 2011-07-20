@@ -52,8 +52,8 @@
 
 #define DRIVER_NAME "sw-smc"
 
-#define SMC_MAX_MOD_CLOCK		(45000000)
-#define SMC_MAX_IO_CLOCK		(45000000)
+#define SMC_MAX_MOD_CLOCK		(42000000)
+#define SMC_MAX_IO_CLOCK		(42000000)
 enum mclk_src {
 	SMC_MCLK_SRC_HOSC,
 	SMC_MCLK_SRC_SATAPLL,
