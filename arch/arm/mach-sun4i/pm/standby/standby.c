@@ -29,7 +29,7 @@ extern char *__standby_end;
 
 static sp_backup;
 static void standby(void);
-static __u32 dcdc2, dcdc3, ldo1, ldo2, ldo3, ldo4;
+static __u32 dcdc2, dcdc3;
 static struct sun4i_clk_div_t  clk_div;
 static struct sun4i_clk_div_t  tmp_clk_div;
 
@@ -165,18 +165,10 @@ static void standby(void)
     /* backup voltages */
     dcdc2 = standby_get_voltage(POWER_VOL_DCDC2);
     dcdc3 = standby_get_voltage(POWER_VOL_DCDC3);
-    ldo1 = standby_get_voltage(POWER_VOL_LDO1);
-    ldo2 = standby_get_voltage(POWER_VOL_LDO2);
-    ldo3 = standby_get_voltage(POWER_VOL_LDO3);
-    ldo4 = standby_get_voltage(POWER_VOL_LDO4);
 
     /* adjust voltage */
     standby_set_voltage(POWER_VOL_DCDC2, STANDBY_DCDC2_VOL);
     standby_set_voltage(POWER_VOL_DCDC3, STANDBY_DCDC3_VOL);
-    standby_set_voltage(POWER_VOL_LDO1,  STANDBY_LDO1_VOL);
-    standby_set_voltage(POWER_VOL_LDO2,  STANDBY_LDO2_VOL);
-    standby_set_voltage(POWER_VOL_LDO3,  STANDBY_LDO3_VOL);
-    standby_set_voltage(POWER_VOL_LDO4,  STANDBY_LDO4_VOL);
 
     /* set clock division cpu:axi:ahb:apb = 2:2:2:1 */
     standby_clk_getdiv(&clk_div);
@@ -220,10 +212,6 @@ static void standby(void)
     /* restore voltage for exit standby */
     standby_set_voltage(POWER_VOL_DCDC2, dcdc2);
     standby_set_voltage(POWER_VOL_DCDC3, dcdc3);
-    standby_set_voltage(POWER_VOL_LDO1, ldo1);
-    standby_set_voltage(POWER_VOL_LDO2, ldo2);
-    standby_set_voltage(POWER_VOL_LDO3, ldo3);
-    standby_set_voltage(POWER_VOL_LDO4, ldo4);
     standby_mdelay(10);
 
     /* enable pll */
