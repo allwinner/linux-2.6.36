@@ -1228,6 +1228,7 @@ __s32 Fb_Init(void)
             fb_para.mode = DISP_LAYER_WORK_MODE_NORMAL;
             if(disp_init.disp_mode == DISP_INIT_MODE_SCREEN0)
             {
+                fb_para.mode = DISP_LAYER_WORK_MODE_SCALER;
                 fb_para.fb_mode = FB_MODE_SCREEN0;
             }
             else if(disp_init.disp_mode == DISP_INIT_MODE_SCREEN1)

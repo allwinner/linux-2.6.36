@@ -38,7 +38,17 @@ __s32  TVE_init(__u32 sel)
 	TVE_dac_autocheck_enable(sel,2);
 	TVE_dac_autocheck_enable(sel,3);
 	TVE_csc_init(sel,0);
-	
+
+	if(sel == 0)
+	{
+	    TVE_dac_sel(0, 0, 0);
+	    TVE_dac_sel(0, 1, 1);
+	    TVE_dac_sel(0, 2, 2);
+	    TVE_dac_sel(0, 3, 3);
+	}
+	TVE_SET_BIT(sel,TVE_008,0x3<<16);	
+	TVE_WUINT32(sel,TVE_024,0x18181818);
+
 	return 0;
 }
 
@@ -354,36 +364,34 @@ __u8  TVE_clear_int(__u32 sel)
 //0:unconnected; 1:connected; 3:short to ground
 __s32 TVE_get_dac_status(__u32 index)
 {
-    __u32 readval, val_00;
+    __u32 reg_000,map,sel,dac;
+    __s32 status;
 
-	TVE_SET_BIT(0,TVE_008,0x3<<16);	
-	TVE_WUINT32(0,TVE_024,0x1F1F1F1F);
+    reg_000 = TVE_RUINT32(0,TVE_000); 
+    map = (reg_000>>(4*(index+1))) & 0xf;
+    if(map>=1 && map<=4)
+    {
+        sel = 0;
+        dac = map-1;
+    }
+    else if(map>=5 && map<=8)
+    {
+        sel = 1;
+        dac = map-5;
+    }
+    else
+    {
+        return -1;
+    }
 
-    val_00 = TVE_RUINT32(0,TVE_000);
-    TVE_WUINT32(0,TVE_000,(val_00 & 0xfff0000f) | (0x4321 << 4));
+    TVE_SET_BIT(sel,TVE_008,0x3<<16);		
+    TVE_SET_BIT(sel,TVE_008,0xf<<18);	
+    TVE_WUINT32(sel,TVE_024,0x18181818);
 
-    mdelay(500);
-    
-    readval = TVE_RUINT32(0,TVE_038);
-    if(index == 0)
-    {
-        readval = (readval & 0x00000003);
-    }
-    else if(index == 1)
-    {
-        readval = (readval & 0x00000300)>>8;
-    }
-    else if(index == 2)
-    {
-        readval = (readval & 0x00030000)>>16;
-    }
-    else if(index == 3)
-    {
-        readval = (readval & 0x03000000)>>24;
-    }
-    TVE_WUINT32(0,TVE_000,val_00);
-    
-    return readval;
+    status = TVE_RUINT32(sel,TVE_038)>>(dac*8);
+    status &= 0x3;
+
+    return status;
 }
 
 __u8 TVE_dac_int_enable(__u32 sel,__u8 index)
@@ -573,15 +581,8 @@ __u8 TVE_dac_get_de_bounce(__u32 sel,__u8 index)
     return sts;
 }
 
-
-// 0:TV0_DOUT0
-// 1:TV0_DOUT1
-// 2:TV0_DOUT2
-// 3:TV0_DOUT3
-// 4:TV1_DOUT0
-// 5:TV1_DOUT1
-// 6:TV1_DOUT2
-// 7:TV1_DOUT3
+//dac: 0~3
+//index: 0~3
 __s32 TVE_dac_sel(__u32 sel,__u32 dac, __u32 index)
 {
 	__u32   readval;
