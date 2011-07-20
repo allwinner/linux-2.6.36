@@ -662,8 +662,8 @@ __u32 mixer_blt(g2d_blt *para){
 	/* pyuv422/420/411uvc */
 	if((para->src_image.format>0x16)&&(para->src_image.format<0x1A))
 	{
-		if(para->src_image.format == G2D_FMT_PYUV422UVC) bppnum = 8;
-		else bppnum = 4;
+		if(para->src_image.format == G2D_FMT_PYUV411UVC) bppnum = 4;
+		else bppnum = 8;
 		addr_val = (__u64)para->src_image.addr[1]*8+(__u64)((para->src_image.w*para->src_rect.y+para->src_rect.x)*bppnum);
 		reg_val = read_wvalue(G2D_DMA_HADDR_REG);
 		reg_val |= ((addr_val>>32)&0xF)<<8;/* high addr in bits */
@@ -680,8 +680,8 @@ __u32 mixer_blt(g2d_blt *para){
 	/* pyuv422/420/411uvc */
 	if((para->dst_image.format>0x16)&&(para->dst_image.format<0x1A))
 	{
-		if(para->dst_image.format == G2D_FMT_PYUV422UVC) bppnum = 8;
-		else bppnum = 4;
+		if(para->dst_image.format == G2D_FMT_PYUV411UVC) bppnum = 4;
+		else bppnum = 8;
 		addr_val = (__u64)para->dst_image.addr[1]*8+(__u64)((para->dst_image.w*para->dst_y + para->dst_x)*bppnum);
 		reg_val = read_wvalue(G2D_DMA_HADDR_REG);
 		reg_val |= ((addr_val>>32)&0xF)<<16;/* high addr in bits */
