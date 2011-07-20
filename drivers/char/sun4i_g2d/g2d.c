@@ -70,6 +70,7 @@ int g2d_clk_on(void)/* used in request */
 
 int g2d_clk_off(void)/* used in release */
 {
+	clk_disable(g2d_ahbclk);
 	clk_disable(g2d_dramclk);
 	clk_disable(g2d_mclk);
 	

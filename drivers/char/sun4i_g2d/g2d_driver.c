@@ -391,6 +391,7 @@ static int g2d_remove(struct platform_device *pdev)
 static int g2d_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	g2d_clk_off();
+	INFO("g2d_suspend succesfully.\n");
 	
 	return 0;
 }
@@ -398,6 +399,7 @@ static int g2d_suspend(struct platform_device *pdev, pm_message_t state)
 static int g2d_resume(struct platform_device *pdev)
 {	
 	g2d_clk_on();
+	INFO("g2d_resume succesfully.\n");
 
 	return 0;
 }
