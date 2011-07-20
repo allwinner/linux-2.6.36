@@ -43,15 +43,13 @@ struct cpufreq_dvfs {
     unsigned int    volt;   /* voltage for the frequency    */
 };
 static struct cpufreq_dvfs dvfs_table[] = {
-    {.freq = 1200000000, .volt = 1500}, /* core vdd is 1.50v if cpu frequency is (1152Mhz, 1200Mhz] */
-    {.freq = 1152000000, .volt = 1450}, /* core vdd is 1.45v if cpu frequency is (1104Mhz, 1152Mhz] */
-    {.freq = 1104000000, .volt = 1400}, /* core vdd is 1.40v if cpu frequency is (1008Mhz, 1104Mhz] */
-    {.freq = 1008000000, .volt = 1300}, /* core vdd is 1.30v if cpu frequency is (960Mhz, 1008Mhz]  */
-    {.freq = 960000000,  .volt = 1250}, /* core vdd is 1.25v if cpu frequency is (912Mhz, 960Mhz]   */
-    {.freq = 912000000,  .volt = 1200}, /* core vdd is 1.20v if cpu frequency is (864Mhz, 912Mhz]   */
-    {.freq = 864000000,  .volt = 1150}, /* core vdd is 1.15v if cpu frequency is (624Mhz, 864Mhz]   */
-    {.freq = 624000000,  .volt = 1100}, /* core vdd is 1.10v if cpu frequency is (432Mhz, 624Mhz]   */
-    {.freq = 432000000,  .volt = 1050}, /* core vdd is 1.05v if cpu frequency is (0, 432Mhz]        */
+    {.freq = 1104000000, .volt = 1500}, /* core vdd is 1.50v if cpu frequency is (1008Mhz, 1104Mhz] */
+    {.freq = 1008000000, .volt = 1400}, /* core vdd is 1.40v if cpu frequency is (960Mhz, 1008Mhz]  */
+    {.freq = 960000000,  .volt = 1350}, /* core vdd is 1.35v if cpu frequency is (912Mhz, 960Mhz]   */
+    {.freq = 912000000,  .volt = 1300}, /* core vdd is 1.30v if cpu frequency is (864Mhz, 912Mhz]   */
+    {.freq = 864000000,  .volt = 1250}, /* core vdd is 1.25v if cpu frequency is (624Mhz, 864Mhz]   */
+    {.freq = 624000000,  .volt = 1200}, /* core vdd is 1.20v if cpu frequency is (432Mhz, 624Mhz]   */
+    {.freq = 432000000,  .volt = 1100}, /* core vdd is 1.10v if cpu frequency is (0, 432Mhz]        */
     {.freq = 0,          .volt = 1000}, /* end of cpu dvfs table                                    */
 };
 static struct regulator *corevdd;
@@ -179,14 +177,14 @@ static inline int __set_cpufreq_hw(struct sun4i_cpu_freq_t *freq)
 *
 *Return     : result, 0 - set frequency successed, !0 - set frequency failed;
 *
-*Notes      : we check two frequency point: 204Mhz, 432Mhz, 864Mhz and 1200Mhz.
+*Notes      : we check two frequency point: 204Mhz, 408Mhz, 816Mhz and 1200Mhz.
 *             if increase cpu frequency, the flow should be:
-*               low(1:1:1:2) -> 204Mhz(1:1:1:2) -> 204Mhz(1:1:2:2) -> 432Mhz(1:1:2:2)
-*               -> 432Mhz(1:2:2:2) -> 864Mhz(1:2:2:2) -> 864Mhz(1:3:2:2) -> 1200Mhz(1:3:2:2)
+*               low(1:1:1:2) -> 204Mhz(1:1:1:2) -> 204Mhz(1:1:2:2) -> 408Mhz(1:1:2:2)
+*               -> 408Mhz(1:2:2:2) -> 816Mhz(1:2:2:2) -> 816Mhz(1:3:2:2) -> 1200Mhz(1:3:2:2)
 *               -> 1200Mhz(1:4:2:2) -> target(1:4:2:2) -> target(x:x:x:x)
 *             if decrease cpu frequency, the flow should be:
 *               high(x:x:x:x) -> target(1:4:2:2) -> 1200Mhz(1:4:2:2) -> 1200Mhz(1:3:2:2)
-*               -> 864Mhz(1:3:2:2) -> 864Mhz(1:2:2:2) -> 432Mhz(1:2:2:2) -> 432Mhz(1:1:2:2)
+*               -> 816Mhz(1:3:2:2) -> 816Mhz(1:2:2:2) -> 408Mhz(1:2:2:2) -> 408Mhz(1:1:2:2)
 *               -> 204Mhz(1:1:2:2) -> 204Mhz(1:1:1:2) -> target(1:1:1:2)
 *********************************************************************************************************
 */
@@ -217,27 +215,27 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
             old_freq.div.ahb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll <= 432000000) && (new_freq.pll >= 432000000)) {
-            /* set to 432Mhz (1:1:2:2) */
-            old_freq.pll = 432000000;
+        if((old_freq.pll <= 408000000) && (new_freq.pll >= 408000000)) {
+            /* set to 408Mhz (1:1:2:2) */
+            old_freq.pll = 408000000;
             old_freq.div.cpu_div = 1;
             old_freq.div.axi_div = 1;
             old_freq.div.ahb_div = 2;
             old_freq.div.apb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
-            /* set to 432Mhz (1:2:2:2) */
+            /* set to 408Mhz (1:2:2:2) */
             old_freq.div.axi_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll <= 864000000) && (new_freq.pll >= 864000000)) {
-            /* set to 864Mhz (1:2:2:2) */
-            old_freq.pll = 864000000;
+        if((old_freq.pll <= 816000000) && (new_freq.pll >= 816000000)) {
+            /* set to 816Mhz (1:2:2:2) */
+            old_freq.pll = 816000000;
             old_freq.div.cpu_div = 1;
             old_freq.div.axi_div = 2;
             old_freq.div.ahb_div = 2;
             old_freq.div.apb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
-            /* set to 864Mhz (1:3:2:2) */
+            /* set to 816Mhz (1:3:2:2) */
             old_freq.div.axi_div = 3;
             ret |= __set_cpufreq_hw(&old_freq);
         }
@@ -267,27 +265,27 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
             old_freq.div.apb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll > 864000000) && (new_freq.pll <= 864000000)) {
-            /* set to 864Mhz (1:3:2:2) */
-            old_freq.pll = 864000000;
+        if((old_freq.pll > 816000000) && (new_freq.pll <= 816000000)) {
+            /* set to 816Mhz (1:3:2:2) */
+            old_freq.pll = 816000000;
             old_freq.div.cpu_div = 1;
             old_freq.div.axi_div = 3;
             old_freq.div.ahb_div = 2;
             old_freq.div.apb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
-            /* set to 864Mhz (1:2:2:2) */
+            /* set to 816Mhz (1:2:2:2) */
             old_freq.div.axi_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
         }
-        if((old_freq.pll > 432000000) && (new_freq.pll <= 432000000)) {
-            /* set to 432Mhz (1:2:2:2) */
-            old_freq.pll = 432000000;
+        if((old_freq.pll > 408000000) && (new_freq.pll <= 408000000)) {
+            /* set to 408Mhz (1:2:2:2) */
+            old_freq.pll = 408000000;
             old_freq.div.cpu_div = 1;
             old_freq.div.axi_div = 2;
             old_freq.div.ahb_div = 2;
             old_freq.div.apb_div = 2;
             ret |= __set_cpufreq_hw(&old_freq);
-            /* set to 864Mhz (1:1:2:2) */
+            /* set to 816Mhz (1:1:2:2) */
             old_freq.div.axi_div = 1;
             ret |= __set_cpufreq_hw(&old_freq);
         }
@@ -384,7 +382,7 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
     new_vdd = __get_vdd_value(cpu_new.pll);
 
     if(corevdd && (new_vdd > last_vdd)) {
-        CPUFREQ_DBG("set core vdd to %d\n", new_vdd);
+        CPUFREQ_INF("set core vdd to %d\n", new_vdd);
         regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
     }
     #endif
@@ -395,7 +393,7 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
 
         #ifdef CONFIG_CPU_FREQ_DVFS
         if(corevdd && (new_vdd > last_vdd)) {
-            CPUFREQ_DBG("set core vdd to %d\n", last_vdd);
+            CPUFREQ_INF("set core vdd to %d\n", last_vdd);
             regulator_set_voltage(corevdd, last_vdd*1000, last_vdd*1000);
         }
         #endif
@@ -412,7 +410,7 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
 
     #ifdef CONFIG_CPU_FREQ_DVFS
     if(corevdd && (new_vdd < last_vdd)) {
-        CPUFREQ_DBG("set core vdd to %d\n", new_vdd);
+        CPUFREQ_INF("set core vdd to %d\n", new_vdd);
         regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
     }
     last_vdd = new_vdd;
