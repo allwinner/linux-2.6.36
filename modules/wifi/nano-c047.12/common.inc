@@ -34,7 +34,7 @@ DEFS += -Wextra
 DEFS += -Wno-sign-compare
 DEFS += -Wno-unused-parameter
 ##
-DEFS += -Werror
+#DEFS += -Werror
 
 NANO_SPI_OBJ = \
 kernel/spi/spi.o \
