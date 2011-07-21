@@ -190,7 +190,7 @@ static inline __aw_ccu_sys_clk_e _parse_module0_clk_src(volatile __ccmu_module0_
         case 0:
             return AW_SYS_CLK_HOSC;
         case 1:
-            return AW_SYS_CLK_PLL6;
+            return AW_SYS_CLK_PLL62;
         case 2:
             return AW_SYS_CLK_PLL5P;
         default:
@@ -224,7 +224,7 @@ static inline __s32 _set_module0_clk_src(volatile __ccmu_module0_clk_t *reg, __a
         case AW_SYS_CLK_HOSC:
             reg->ClkSrc = 0;
             break;
-        case AW_SYS_CLK_PLL6:
+        case AW_SYS_CLK_PLL62:
             reg->ClkSrc = 1;
             break;
         case AW_SYS_CLK_PLL5P:
@@ -383,7 +383,7 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
             switch(aw_ccu_reg->SataClk.ClkSrc)
             {
                 case 0:
-                    return AW_SYS_CLK_PLL6;
+                    return AW_SYS_CLK_PLL6M;
                 default:
                     return AW_SYS_CLK_NONE;
             }
@@ -395,7 +395,7 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_USBPHY2:
         case AW_MOD_CLK_USBOHCI0:
         case AW_MOD_CLK_USBOHCI1:
-            return AW_SYS_CLK_PLL6;
+            return AW_SYS_CLK_PLL62;
         case AW_MOD_CLK_GPS:
             return AW_SYS_CLK_AHB;
         case AW_MOD_CLK_SPI3:
@@ -455,7 +455,7 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
                 case 2:
                     return AW_SYS_CLK_PLL5P;
                 default:
-                    return AW_SYS_CLK_PLL6;
+                    return AW_SYS_CLK_PLL62;
             }
             return AW_SYS_CLK_NONE;
         }
@@ -1174,7 +1174,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
         }
         case AW_MOD_CLK_SATA:
         {
-            if(parent == AW_SYS_CLK_PLL6)
+            if(parent == AW_SYS_CLK_PLL6M)
             {
                 aw_ccu_reg->SataClk.ClkSrc = 0;
                 return 0;
@@ -1189,7 +1189,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
         case AW_MOD_CLK_USBOHCI0:
         case AW_MOD_CLK_USBOHCI1:
         {
-            if(parent == AW_SYS_CLK_PLL6)
+            if(parent == AW_SYS_CLK_PLL62)
             {
                 aw_ccu_reg->UsbClk.OHCIClkSrc = 0;
                 return 0;
@@ -1264,7 +1264,7 @@ static __s32 mod_clk_set_parent(__aw_ccu_mod_clk_e id, __aw_ccu_sys_clk_e parent
                 case AW_SYS_CLK_PLL5:
                     aw_ccu_reg->CsiIspClk.ClkSrc = 2;
                     return 0;
-                case AW_SYS_CLK_PLL6:
+                case AW_SYS_CLK_PLL62:
                     aw_ccu_reg->CsiIspClk.ClkSrc = 3;
                     return 0;
                 default:

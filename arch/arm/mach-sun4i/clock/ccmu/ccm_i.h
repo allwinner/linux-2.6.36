@@ -28,8 +28,8 @@ extern __ccmu_reg_list_t   *aw_ccu_reg;
 #undef CCU_DBG
 #undef CCU_ERR
 #if (1)
-    #define CCU_DBG     printk
-    #define CCU_ERR     printk
+    #define CCU_DBG(format,args...)   printk("[ccmu] "format,##args)
+    #define CCU_ERR(format,args...)   printk("[ccmu] "format,##args)
 #else
     #define CCU_DBG(...)
     #define CCU_ERR(...)

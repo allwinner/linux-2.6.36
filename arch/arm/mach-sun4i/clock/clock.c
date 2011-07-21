@@ -164,6 +164,18 @@ int clk_init(void)
     tmpSclk->set_clk(tmpSclk->clk);
 
     tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6];
+    tmpSclk->clk->rate  = 600000000;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL6M];
+    tmpSclk->clk->rate  = 100000000;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk->clk->onoff = AW_CCU_CLK_ON;
+    tmpSclk->set_clk(tmpSclk->clk);
+    tmpSclk = &ccu_sys_clk[AW_SYS_CLK_PLL62];
+    tmpSclk->clk->rate  = 300000000;
+    tmpSclk->set_clk(tmpSclk->clk);
     tmpSclk->clk->onoff = AW_CCU_CLK_ON;
     tmpSclk->set_clk(tmpSclk->clk);
 
@@ -360,9 +372,9 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 
     spin_lock_irqsave(&clockfw_lock, flags);
     old_parent = clk->parent;
-    
+
     clk->clk->rate = clk_get_rate(parent) / (clk_get_rate(old_parent) / clk_get_rate(clk));
-    
+
     clk->clk->parent = parent->clk->id;
     ret = clk->set_clk(clk->clk);
     if(ret){

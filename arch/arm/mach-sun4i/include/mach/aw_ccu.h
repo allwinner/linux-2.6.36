@@ -64,7 +64,10 @@ typedef enum __AW_CCU_SYS_CLK
     AW_SYS_CLK_PLL5,    /* "sdram_pll"  ,PLL5 clock             */
     AW_SYS_CLK_PLL5M,   /* "sdram_pll_m",PLL5 M clock           */
     AW_SYS_CLK_PLL5P,   /* "sdram_pll_p",PLL5 P clock           */
-    AW_SYS_CLK_PLL6,    /* "sata_pll"   ,PLL6 clock             */
+    AW_SYS_CLK_PLL6,    /* "sata_pll"   ,PLL6 clock, just used
+                           as source of sata_pll_m and sata_pll_2,
+                           users should not use this clock dirctly
+                        */
     AW_SYS_CLK_PLL7,    /* "video_pll1" ,PLL7 clock             */
     AW_SYS_CLK_PLL7X2,  /* "video_pll1x2" ,PLL7 2x clock        */
     AW_SYS_CLK_200M,    /* "200m_pll"   ,200Mhz clock           */
@@ -74,6 +77,10 @@ typedef enum __AW_CCU_SYS_CLK
     AW_SYS_CLK_AHB,     /* "ahb"        ,AHB clock              */
     AW_SYS_CLK_APB0,    /* "apb"        ,APB0 clock             */
     AW_SYS_CLK_APB1,    /* "apb1"       ,APB1 clock             */
+
+    /* add by kevin, 2011-7-21 19:01 */
+    AW_SYS_CLK_PLL6M,   /* "sata_pll_m" ,PLL6 M clock, just for SATA    */
+    AW_SYS_CLK_PLL62,   /* "sata_pll_2" ,PLL6 2 clock, for module       */
 
     AW_SYS_CLK_CNT      /* invalid id, for calc count           */
 

@@ -28,13 +28,15 @@
 #include <linux/delay.h>
 #include "aw_clocksrc.h"
 
-#undef kevin_dbg
+#undef CLKSRC_DBG
+#undef CLKSRC_ERR
 #if (0)
-    #define kevin_dbg       printk
+    #define CLKSRC_DBG(format,args...)  printk("[CLKSRC] "format,##args)
+    #define CLKSRC_ERR(format,args...)  printk("[CLKSRC] "format,##args)
 #else
-    #define kevin_dbg(...)
+    #define CLKSRC_DBG(...)
+    #define CLKSRC_ERR(...)
 #endif
-
 
 static cycle_t aw_clksrc_read(struct clocksource *cs);
 static irqreturn_t aw_clkevt_irq(int irq, void *handle);
@@ -139,7 +141,7 @@ static cycle_t aw_clksrc_read(struct clocksource *cs)
 */
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
 {
-    kevin_dbg("aw_set_clkevt_mode:%u\n", mode);
+    CLKSRC_DBG("aw_set_clkevt_mode:%u\n", mode);
     switch (mode)
     {
         case CLOCK_EVT_MODE_PERIODIC:
@@ -195,7 +197,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
 */
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev)
 {
-    kevin_dbg("aw_set_next_clkevt: %u\n", (unsigned int)delta);
+    CLKSRC_DBG("aw_set_next_clkevt: %u\n", (unsigned int)delta);
 
     #if(0)  //2011-5-20 11:08, suggested by david
     TMR_REG_IRQ_STAT = (1<<1);
@@ -247,7 +249,7 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 {
     if(TMR_REG_IRQ_STAT & (1<<1))
     {
-        kevin_dbg("aw_clkevt_irq!\n");
+        CLKSRC_DBG("aw_clkevt_irq!\n");
         /* clock event interrupt handled */
         aw_clock_event.event_handler(&aw_clock_event);
         /* clear pending */
@@ -278,7 +280,7 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 */
 static int __init aw_clksrc_init(void)
 {
-    printk("all-winners clock source init!\n");
+    CLKSRC_DBG("all-winners clock source init!\n");
     /* we use 64bits counter as HPET(High Precision Event Timer) */
     TMR_REG_CNT64_CTL  = 0;
     /* config clock source for 64bits counter */
@@ -289,14 +291,14 @@ static int __init aw_clksrc_init(void)
     #endif
     /* clear 64bits counter */
     TMR_REG_CNT64_CTL |= (1<<0);
-    printk("register all-winners clock source!\n");
+    CLKSRC_DBG("register all-winners clock source!\n");
     /* calculate the mult by shift  */
     aw_clocksrc.mult = clocksource_hz2mult(AW_HPET_CLOCK_SOURCE_HZ, aw_clocksrc.shift);
     /* register clock source */
     clocksource_register(&aw_clocksrc);
 
     /* register clock event irq     */
-    printk("set up all-winners clock event irq!\n");
+    CLKSRC_DBG("set up all-winners clock event irq!\n");
     /* config clock source for timer1 */
     #if(AW_HPET_CLK_EVT == TMR_CLK_SRC_32KLOSC)
         TMR_REG_TMR1_CTL |= (0<<2);
@@ -312,7 +314,7 @@ static int __init aw_clksrc_init(void)
     TMR_REG_IRQ_EN |= (1<<1);
 
     /* register clock event device  */
-    printk("register all-winners clock event device!\n");
+    CLKSRC_DBG("register all-winners clock event device!\n");
 	aw_clock_event.mult = div_sc(AW_HPET_CLOCK_EVENT_HZ, NSEC_PER_SEC, aw_clock_event.shift);
 	aw_clock_event.max_delta_ns = clockevent_delta2ns((0x80000000/AW_HPET_CLOCK_EVENT_HZ), &aw_clock_event);
 	aw_clock_event.min_delta_ns = clockevent_delta2ns(1, &aw_clock_event) + 1;
