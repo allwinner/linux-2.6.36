@@ -1069,7 +1069,7 @@ config CSI1_SUN4I
 	default m
 	depends on CSI_DEV_SEL&&I2C && VIDEO_DEV && VIDEO_V4L2
 	select VIDEOBUF_DMA_CONTIG
-	
+
 config CSI_OV7670
 	tristate "OmniVision OV7670 sensor support"
 	depends on I2C && VIDEO_V4L2
