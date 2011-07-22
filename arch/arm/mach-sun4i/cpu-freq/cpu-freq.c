@@ -739,6 +739,8 @@ static int __init sun4i_cpufreq_initcall(void)
     ret = cpufreq_register_driver(&sun4i_cpufreq_driver);
     /* register cpu frequency table to cpufreq core */
     cpufreq_frequency_table_get_attr(sun4i_freq_tbl, 0);
+    /* update policy for boot cpu */
+    cpufreq_update_policy(0);
 
 	return ret;
 }
