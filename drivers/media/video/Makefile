@@ -83,7 +83,12 @@ obj-$(CONFIG_SOC_CAMERA_OV772X)		+= ov772x.o
 obj-$(CONFIG_SOC_CAMERA_OV9640)		+= ov9640.o
 obj-$(CONFIG_SOC_CAMERA_RJ54N1)		+= rj54n1cb0c.o
 obj-$(CONFIG_SOC_CAMERA_TW9910)		+= tw9910.o
-obj-$(CONFIG_SUN4I_OV7670) 				+= sun4i_csi/device/ov7670.o
+
+obj-$(CONFIG_CSI_OV7670) 					+= sun4i_csi/device/ov7670.o
+obj-$(CONFIG_CSI_GT2005)					+= sun4i_csi/device/gt2005.o
+obj-$(CONFIG_CSI_GC0308)					+= sun4i_csi/device/gc0308.o
+
+
 
 # And now the v4l2 drivers:
 
@@ -189,7 +194,9 @@ ifeq ($(CONFIG_VIDEO_SUN3I_CEDAR),y)
   obj-$(CONFIG_VIDEO_SUN3I_CEDAR) += sun3i/
 endif
 
-obj-$(CONFIG_CSI_SUN4I) += sun4i_csi/
+obj-$(CONFIG_CSI0_SUN4I) += sun4i_csi/csi0/
+obj-$(CONFIG_CSI1_SUN4I) += sun4i_csi/csi1/
+
 
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends

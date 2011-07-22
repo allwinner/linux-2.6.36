@@ -851,30 +851,6 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		return;
 	
 	dbg_showchan(chan);
-
-	if (buf != NULL) {
-		/* update the chain to make sure that if we load any more
-		 * buffers when we call the callback function, things should
-		 * work properly */
-
-		chan->curr = buf->next;
-		buf->next  = NULL;
-
-		if (buf->magic != BUF_MAGIC) {
-			printk(KERN_ERR "dma%d: %s: buf %p incorrect magic\n",
-			       chan->number, __func__, buf);
-			return;
-		}
-
-		if(chan->state != SW_DMA_IDLE)     //if dma is stopped by app, app may not want callback
-			sw_dma_buffdone(chan, buf, SW_RES_OK);
-
-		/* free resouces */
-		sw_dma_freebuf(buf);
-	} else {
-	}
-
-	local_irq_save(flags);
 	/* modify the channel state */
 	switch (chan->load_state) {
 	case SW_DMALOAD_1RUNNING:
@@ -905,7 +881,7 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 
 		pr_debug("L%d, loadstate SW_DMALOAD_1LOADED_1RUNNING -> SW_DMALOAD_1LOADED\n", __LINE__);
 		chan->load_state = SW_DMALOAD_1LOADED;
-		/*
+		
 		if(!(( chan->dcon & SW_NDMA_CONF_CONTI) || (chan->dcon & SW_DDMA_CONF_CONTI))){
 			struct sw_dma_buf  *next = chan->curr->next;
 			
@@ -914,8 +890,13 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 			tmp = SW_DCONF_LOADING | chan->dcon;
 			dma_wrreg(chan, SW_DMA_DCONF, tmp);
 			tmp = dma_rdreg(chan, SW_DMA_DCONF);
+			if (sw_dma_waitforload(chan, __LINE__) == 0) {
+				printk(KERN_ERR "dma%d: timeout waiting for load (%s)\n",
+				       chan->number, __func__);
+				return;
+			}
 		}
-		*/
+	
 		break;
 
 	case SW_DMALOAD_NONE:
@@ -928,7 +909,30 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		       chan->number, chan->load_state);
 		break;
 	}
+	
+	if (buf != NULL) {
+		/* update the chain to make sure that if we load any more
+		 * buffers when we call the callback function, things should
+		 * work properly */
 
+		chan->curr = buf->next;
+		buf->next  = NULL;
+
+		if (buf->magic != BUF_MAGIC) {
+			printk(KERN_ERR "dma%d: %s: buf %p incorrect magic\n",
+			       chan->number, __func__, buf);
+			return;
+		}
+
+		if(chan->state != SW_DMA_IDLE)     //if dma is stopped by app, app may not want callback
+			sw_dma_buffdone(chan, buf, SW_RES_OK);
+
+		/* free resouces */
+		sw_dma_freebuf(buf);
+	} else {
+	}
+
+	/*
 	if(chan->load_state == SW_DMALOAD_1LOADED && !((chan->dcon & SW_NDMA_CONF_CONTI)||(chan->dcon & SW_DDMA_CONF_CONTI))){
 
 		writel(__virt_to_bus(chan->curr->data), chan->addr_reg);
@@ -937,8 +941,7 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		dma_wrreg(chan, SW_DMA_DCONF, tmp);
 		tmp = dma_rdreg(chan, SW_DMA_DCONF);
 	}
-	
-	local_irq_restore(flags);
+	*/
 	
 	/* only reload if the channel is still running... our buffer done
 	 * routine may have altered the state by requesting the dma channel

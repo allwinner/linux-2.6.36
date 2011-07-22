@@ -11,12 +11,11 @@
 #include <linux/videodev2.h>
 #include <linux/i2c.h>
 
-#include "sun4i_csi_reg.h"
 
 //for internel driver debug
 #define DBG_EN   		0 	
 //debug level 0~3
-#define DBG_LEVEL 	0
+#define DBG_LEVEL 	3
 
 //for internel driver debug
 #if(DBG_EN==1)		
@@ -217,6 +216,17 @@ typedef struct tag_CSI_INT_STATUS
     _Bool vsync_trig;
 }__csi_int_status_t;
 
+/*
+ * csi sub device info
+ */
+typedef struct tag_CSI_SUBDEV_INFO
+{
+    int								 mclk;				/* the mclk frequency for sensor module in HZ unit*/
+    __csi_ref_t        vref;        /* input vref signal polarity */
+    __csi_ref_t        href;        /* input href signal polarity */
+    __csi_clk_t        clock;       /* input data valid of the input clock edge type */
+    int								 iocfg;				/*0 for csi0 , 1 for csi1*/						 
+}__csi_subdev_info_t;
 struct csi_buf_addr {
 	dma_addr_t	y;
 	dma_addr_t	cb;
@@ -280,6 +290,7 @@ struct csi_dev {
 	struct csi_fmt          *fmt;
 	unsigned int            width;
 	unsigned int            height;
+	unsigned int						frame_size;
 	struct videobuf_queue   vb_vidq;
 
 	/*working state*/
@@ -287,7 +298,7 @@ struct csi_dev {
 	int						opened;
 
 	/*pin,clock,irq resource*/
-	int						csi0_pin_hd;
+	int							csi_pin_hd;
 	struct clk				*csi_clk_src;
 	struct clk				*csi_ahb_clk;
 	struct clk				*csi_module_clk;
@@ -301,7 +312,7 @@ struct csi_dev {
 	/*parameters*/
 	__csi_conf_t			csi_mode;
 	struct csi_buf_addr		csi_buf_addr;
-	
+	__csi_subdev_info_t ccm_info;
 };
 
 void  bsp_csi_open(struct csi_dev *dev);

@@ -20,6 +20,9 @@
 #include <media/v4l2-chip-ident.h>
 #include <media/v4l2-i2c-drv.h>
 
+#include <mach/gpio_v2.h>
+#include "../include/sun4i_csi_core.h"
+#include "../include/sun4i_dev_csi.h"
 
 MODULE_AUTHOR("Jonathan Corbet <corbet@lwn.net>");
 MODULE_DESCRIPTION("A low-level driver for OmniVision ov7670 sensors");
@@ -28,6 +31,11 @@ MODULE_LICENSE("GPL");
 static int debug;
 module_param(debug, bool, 0644);
 MODULE_PARM_DESC(debug, "Debug level (0-1)");
+#define MCLK (27*1000*1000)
+#define VREF_POL	CSI_LOW
+#define HREF_POL	CSI_HIGH
+#define CLK_POL		CSI_RISING
+#define IO_CFG		0						//0 for csi0
 
 /*
  * Basic window sizes.  These probably belong somewhere more globally
@@ -194,9 +202,18 @@ MODULE_PARM_DESC(debug, "Debug level (0-1)");
  * Information we maintain about a known sensor.
  */
 struct ov7670_format_struct;  /* coming later */
+__csi_subdev_info_t ccm_info_con = 
+{
+	.mclk 	= MCLK,
+	.vref 	= VREF_POL,
+	.href 	= HREF_POL,
+	.clock	= CLK_POL,
+	.iocfg	= IO_CFG,
+};
 struct ov7670_info {
 	struct v4l2_subdev sd;
 	struct ov7670_format_struct *fmt;  /* Current format */
+	__csi_subdev_info_t *ccm_info;
 	unsigned char sat;		/* Saturation value */
 	int hue;			/* Hue value */
 	u8 clkrc;			/* Clock divider value */
@@ -585,8 +602,85 @@ static int ov7670_init(struct v4l2_subdev *sd, u32 val)
 	return ov7670_write_array(sd, ov7670_default_regs);
 }
 
+static int ov7670_power(struct v4l2_subdev *sd, int on)
+{
+	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	struct ov7670_info *info = to_state(sd);
+	char csi_pwr_en[20];
+	
+//	printk("sensor_power,ccm_inf->iocfg=%d\n",info->ccm_info->iocfg);
+	
+	if(info->ccm_info->iocfg == 0)
+		strcpy(csi_pwr_en,"CSI0_POWER_EN");
+	else if(info->ccm_info->iocfg == 1)
+		strcpy(csi_pwr_en,"CSI1_POWER_EN");
+	
+	switch(on)
+	{
+		case 0:
+			gpio_write_one_pin_value(dev->csi_pin_hd,0,csi_pwr_en);
+			break;
+		case 1:
+			gpio_write_one_pin_value(dev->csi_pin_hd,1,csi_pwr_en);
+			break;
+		default:
+			return -EINVAL;
+			
+	}
+	return 0;
+}
 
-
+static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
+{
+	int ret=0;
+	
+	switch(cmd){
+		case CSI_SUBDEV_CMD_GET_INFO: 
+		{
+			struct ov7670_info *info = to_state(sd);
+			__csi_subdev_info_t *ccm_info = arg;
+			
+//			printk("CSI_SUBDEV_CMD_GET_INFO\n");
+			
+			ccm_info->mclk 	=	info->ccm_info->mclk ;
+			ccm_info->vref 	=	info->ccm_info->vref ;
+			ccm_info->href 	=	info->ccm_info->href ;
+			ccm_info->clock	=	info->ccm_info->clock;
+			ccm_info->iocfg	=	info->ccm_info->iocfg;
+			
+//			printk("ccm_info.mclk=%x\n ",info->ccm_info->mclk);
+//			printk("ccm_info.vref=%x\n ",info->ccm_info->vref);
+//			printk("ccm_info.href=%x\n ",info->ccm_info->href);
+//			printk("ccm_info.clock=%x\n ",info->ccm_info->clock);
+//			printk("ccm_info.iocfg=%x\n ",info->ccm_info->iocfg);
+			break;
+		}
+		case CSI_SUBDEV_CMD_SET_INFO:
+		{
+			struct ov7670_info *info = to_state(sd);
+			__csi_subdev_info_t *ccm_info = arg;
+			
+//			printk("CSI_SUBDEV_CMD_SET_INFO\n");
+			
+			info->ccm_info->mclk 	=	ccm_info->mclk 	;
+			info->ccm_info->vref 	=	ccm_info->vref 	;
+			info->ccm_info->href 	=	ccm_info->href 	;
+			info->ccm_info->clock	=	ccm_info->clock	;
+			info->ccm_info->iocfg	=	ccm_info->iocfg	;
+			
+//			printk("ccm_info.mclk=%x\n ",info->ccm_info->mclk);
+//			printk("ccm_info.vref=%x\n ",info->ccm_info->vref);
+//			printk("ccm_info.href=%x\n ",info->ccm_info->href);
+//			printk("ccm_info.clock=%x\n ",info->ccm_info->clock);
+//			printk("ccm_info.iocfg=%x\n ",info->ccm_info->iocfg);
+			
+			break;
+		}
+		default:
+			break;
+	}		
+		return ret;
+}
 //static int ov7670_detect(struct v4l2_subdev *sd)
 //{
 //	unsigned char v;
@@ -1516,6 +1610,8 @@ static const struct v4l2_subdev_core_ops ov7670_core_ops = {
 	.queryctrl = ov7670_queryctrl,
 	.reset = ov7670_reset,
 	.init = ov7670_init,
+	.s_power = ov7670_power,
+	.ioctl = sensor_ioctl,
 #ifdef CONFIG_VIDEO_ADV_DEBUG
 	.g_register = ov7670_g_register,
 	.s_register = ov7670_s_register,
@@ -1564,6 +1660,7 @@ static int ov7670_probe(struct i2c_client *client,
 			client->addr << 1, client->adapter->name);
 	*/	
 	info->fmt = &ov7670_formats[0];
+	info->ccm_info = &ccm_info_con;
 	info->sat = 128;	/* Review this */
 	info->clkrc = 1;	/* 30fps */
 
