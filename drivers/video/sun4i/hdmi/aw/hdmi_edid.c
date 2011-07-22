@@ -6,6 +6,9 @@ void DDC_Init(void)
 
 	HDMI_WUINT32(0x500,0x80000001);
     hdmi_delay_ms(1);
+
+    //while(HDMI_RUINT32(0x500) & 0x1);
+    //__here__;
     
 	HDMI_WUINT32(0x528,0x0d   );					//N = 5,M=1 Fscl= Ftmds/2/10/2^N/(M+1)
 	//HDMI_WUINT8(0x506,0x60   );					//ddc address  0x60

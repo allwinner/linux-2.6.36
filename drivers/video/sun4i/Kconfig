@@ -110,6 +110,23 @@ config LYCHEE_DISPLAY_FB0_PIXEL_SEQUENCE
 	---help---
 	default 0
 
+config LYCHEE_DISPLAY_FB0_SCALER_MODE
+	depends on LYCHEE_DISPLAY_INIT_CONFIG_SUN4I
+	bool "fb0 framebuffer scaler mode"
+	---help---
+	default y
+	
+config LYCHEE_DISPLAY_FB0_OUT_WIDTH
+	depends on LYCHEE_DISPLAY_INIT_CONFIG_SUN4I && LYCHEE_DISPLAY_FB0_SCALER_MODE
+	int "fb0 framebuffer output width(used when scaler mode)"
+	---help---
+	default 800
+	
+config LYCHEE_DISPLAY_FB0_OUT_HEIGHT
+	depends on LYCHEE_DISPLAY_INIT_CONFIG_SUN4I && LYCHEE_DISPLAY_FB0_SCALER_MODE
+	int "fb0 framebuffer output height(used when scaler mode)"
+	---help---
+	default 480
 
 
 config LYCHEE_DISPLAY_FB1_DOUBLE_BUFFER
@@ -142,6 +159,22 @@ config LYCHEE_DISPLAY_FB1_PIXEL_SEQUENCE
 	---help---
 	default 0
 
-
+config LYCHEE_DISPLAY_FB1_SCALER_MODE
+	depends on LYCHEE_DISPLAY_INIT_CONFIG_SUN4I && LYCHEE_DISPLAY_DUAL_DIFF_SCREEN
+	bool "fb1 framebuffer scaler mode"
+	---help---
+	default y
+	
+config LYCHEE_DISPLAY_FB1_OUT_WIDTH
+	depends on LYCHEE_DISPLAY_INIT_CONFIG_SUN4I && LYCHEE_DISPLAY_DUAL_DIFF_SCREEN && LYCHEE_DISPLAY_FB1_SCALER_MODE
+	int "fb1 framebuffer output width(used when scaler mode)"
+	---help---
+	default 800
+	
+config LYCHEE_DISPLAY_FB1_OUT_HEIGHT
+	depends on LYCHEE_DISPLAY_INIT_CONFIG_SUN4I && LYCHEE_DISPLAY_DUAL_DIFF_SCREEN && LYCHEE_DISPLAY_FB1_SCALER_MODE
+	int "fb1 framebuffer output height(used when scaler mode)"
+	---help---
+	default 480
 
 

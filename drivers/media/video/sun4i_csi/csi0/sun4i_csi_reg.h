@@ -10,8 +10,10 @@
 #define  S(addr,bit)	writel(readl(addr)|bit,addr)
 #define  C(addr,bit)	writel(readl(addr)&(~bit),addr)
 
-#define CSIC_REGS_BASE         0x01c09000
-#define CSI_REG_SIZE 0x1000
+#define CSI0_REGS_BASE        0x01c09000
+#define CSI1_REGS_BASE        0X01c1D000
+#define CSI0_REG_SIZE 				0x1000
+#define CSI1_REG_SIZE 				0x1000
 
 #define CSI_REG_EN           (0x00)
 #define CSI_REG_CONF         (0x04)

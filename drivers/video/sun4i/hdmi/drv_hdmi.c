@@ -25,7 +25,7 @@ __s32 Hdmi_open(void)
 	//{
 	//	up(run_sem);
 	//}
-	//ghdmi.bopen = 1;
+	ghdmi.bopen = 1;
 
 	return 0;
 }
@@ -35,7 +35,7 @@ __s32 Hdmi_close(void)
     __inf("[Hdmi_close]\n");
     
 	Hdmi_hal_video_enable(0); 
-	//ghdmi.bopen = 0;
+	ghdmi.bopen = 0;
 
 	return 0;
 }
@@ -196,13 +196,13 @@ int Hdmi_run_thread(void *parg)
 		
 		Hdmi_hal_main_task();
 
-		if(Hdmi_hal_get_state() == HDMI_STATE_PLAY_BACK)
+		if(ghdmi.bopen)
 		{		    
 			hdmi_delay_ms(200);
 		}
 		else
 		{
-			hdmi_delay_ms(200);   
+			hdmi_delay_ms(1000);   
 		}
 	}
 

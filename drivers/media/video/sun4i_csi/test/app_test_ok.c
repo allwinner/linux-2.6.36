@@ -94,8 +94,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -104,8 +102,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUV420,
 		.disp_format	= DISP_FORMAT_YUV420,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -114,8 +110,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -124,8 +118,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 328,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -134,8 +126,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 248,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -144,8 +134,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 312,
 		.input_height = 240,
-		.disp_width   = 176,
-		.disp_height  = 144,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -154,8 +142,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 232,
-		.disp_width   = 176,
-		.disp_height  = 144,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -164,8 +150,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -174,8 +158,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 648,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -184,8 +166,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 488,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -194,8 +174,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 632,
 		.input_height = 480,
-		.disp_width   = 352,
-		.disp_height  = 288,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -204,8 +182,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 472,
-		.disp_width   = 352,
-		.disp_height  = 288,
 		.csi_format   = V4L2_PIX_FMT_YUV422P,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -214,8 +190,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUV420,
 		.disp_format	= DISP_FORMAT_YUV420,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -224,8 +198,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_NV16,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_UV_COMBINED,
@@ -234,8 +206,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_NV12,
 		.disp_format	= DISP_FORMAT_YUV420,
 		.disp_mode		= DISP_MOD_NON_MB_UV_COMBINED,
@@ -244,8 +214,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUV420,
 		.disp_format	= DISP_FORMAT_YUV420,
 		.disp_mode		= DISP_MOD_NON_MB_PLANAR,
@@ -254,8 +222,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_NV16,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_NON_MB_UV_COMBINED,
@@ -264,8 +230,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_NV12,
 		.disp_format	= DISP_FORMAT_YUV420,
 		.disp_mode		= DISP_MOD_NON_MB_UV_COMBINED,
@@ -274,8 +238,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -284,8 +246,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 328,
 		.input_height = 240,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -294,8 +254,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 248,
-		.disp_width   = 320,
-		.disp_height  = 240,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -304,8 +262,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 312,
 		.input_height = 240,
-		.disp_width   = 176,
-		.disp_height  = 144,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -314,8 +270,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 320,
 		.input_height = 232,
-		.disp_width   = 176,
-		.disp_height  = 144,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -324,8 +278,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -334,8 +286,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 648,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -344,8 +294,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 488,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -354,8 +302,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 632,
 		.input_height = 480,
-		.disp_width   = 352,
-		.disp_height  = 288,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -364,8 +310,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 472,
-		.disp_width   = 352,
-		.disp_height  = 288,
 		.csi_format   = V4L2_PIX_FMT_YUYV,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -374,8 +318,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_YVYU,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -384,8 +326,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_UYVY,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -394,8 +334,6 @@ struct test_case test_case_set[]={
 	{
 		.input_width  = 640,
 		.input_height = 480,
-		.disp_width   = 640,
-		.disp_height  = 480,
 		.csi_format   = V4L2_PIX_FMT_VYUY,
 		.disp_format	= DISP_FORMAT_YUV422,
 		.disp_mode		= DISP_MOD_INTERLEAVED,
@@ -536,7 +474,7 @@ int disp_int(int w,int h)
 	unsigned long fb_layer;
 	void *addr = NULL;
 	fb_fd = open("/dev/fb0", O_RDWR);
-	if (ioctl(fb_fd, FBIOGET_LAYER_HDL, &fb_layer) == -1) {
+	if (ioctl(fb_fd, FBIOGET_LAYER_HDL_0, &fb_layer) == -1) {
 		printf("get fb layer handel\n");	
 	}
 	
@@ -655,9 +593,9 @@ int main_test (void)
 	enum v4l2_buf_type type;
 	struct v4l2_cropcap cropcap;
 	
-	fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
 	//fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
-	close (fd);
+	//fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
+	//close (fd);
 	fd = open (dev_name, O_RDWR /* required */ | O_NONBLOCK, 0);//打开设备
 	
 	if(invalid_ops)
@@ -755,6 +693,8 @@ int main_test (void)
 					//goto close;
 			}
 			
+			disp_size.width = fmt.fmt.pix.width;
+			disp_size.height = fmt.fmt.pix.height;
 			
 //		printf("%s %d\n",__FILE__,__LINE__);
 		if(ioctl_test==1)
@@ -806,18 +746,18 @@ int main_test (void)
 			printf("denominator = %d\n",parms.parm.capture.timeperframe.denominator);
 	
 	
-		//Test VIDIOC_S_PARM		
-			parms.parm.capture.timeperframe.denominator = fps;//
-			
-			if (-1 == ioctl (fd, VIDIOC_S_PARM, &parms)) //获取帧率
-					printf ("VIDIOC_G_PARM error\n");
-		
-		//Test VIDIOC_G_PARM
-			if (-1 == ioctl (fd, VIDIOC_G_PARM, &parms)) //获取帧率
-					printf ("VIDIOC_G_PARM error\n");
-					
-			printf("numerator = %d\n",parms.parm.capture.timeperframe.numerator);
-			printf("denominator = %d\n",parms.parm.capture.timeperframe.denominator);	
+//		//Test VIDIOC_S_PARM		
+//			parms.parm.capture.timeperframe.denominator = fps;//
+//			
+//			if (-1 == ioctl (fd, VIDIOC_S_PARM, &parms)) //获取帧率
+//					printf ("VIDIOC_G_PARM error\n");
+//		
+//		//Test VIDIOC_G_PARM
+//			if (-1 == ioctl (fd, VIDIOC_G_PARM, &parms)) //获取帧率
+//					printf ("VIDIOC_G_PARM error\n");
+//					
+//			printf("numerator = %d\n",parms.parm.capture.timeperframe.numerator);
+//			printf("denominator = %d\n",parms.parm.capture.timeperframe.denominator);	
 	}
 	
 	//count=read_num;
@@ -1048,17 +988,28 @@ main(void)
 		read_num=200;
 		
 		req_frame_num = 5;
-		input_size.width = 640;
-		input_size.height = 480;
-		disp_size.width = 640;
-		disp_size.height = 480;
+		input_size.width = 640;//1600;//640;
+		input_size.height = 480;//1200;//480;
+		disp_size.width = 640;//1600;//640;
+		disp_size.height = 480;//1200;//480;
 		csi_format=V4L2_PIX_FMT_NV16;
 		disp_format=DISP_FORMAT_YUV422;
 		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
 		disp_seq=DISP_SEQ_UVUV;
 
-
+printf("********************************************************************Read stream test start,capture 1000 frames,press to continue\n");
+		getchar();
 		
+		read_num = 1000;
+		main_test();
+
+printf("********************************************************************fps test start,press to continue\n");
+		getchar();		
+
+		fps_test=1;
+		read_num=30;
+		main_test();		
+		fps_test=0;
 		
 //printf("********************************************************************IOCTL invalid test start,press to continue\n");		
 //		getchar();
@@ -1091,7 +1042,7 @@ main(void)
 //		
 //		read_num = 1000;
 //		main_test();
-//
+
 //printf("********************************************************************Req buffer test start,press to continue\n");
 //		getchar();
 //		
@@ -1116,7 +1067,7 @@ main(void)
 //		disp_seq=DISP_SEQ_UVUV;
 //	 	main_test();
 //		control_test=0;
-		
+//		
 //printf("********************************************************************resolution and format test start,press to continue\n");
 //		getchar();
 //		
@@ -1127,8 +1078,8 @@ main(void)
 //			test_ptr = &test_case_set[i];
 //			input_size.width = test_ptr->input_width;
 //			input_size.height = test_ptr->input_height;
-//			disp_size.width = test_ptr->disp_width;
-//			disp_size.height = test_ptr->disp_height;
+////			disp_size.width = test_ptr->disp_width;
+////			disp_size.height = test_ptr->disp_height;
 //			csi_format = test_ptr->csi_format;
 //			disp_format = test_ptr->disp_format;
 //			disp_mode=test_ptr->disp_mode;
@@ -1175,57 +1126,57 @@ main(void)
 //			printf("press to continue\n");	
 //			getchar();
 //		}
-
-printf("********************************************************************lost frame test start,press to continue\n");
-		getchar();	
-		lost_frame_test=1;
-		fps=30;
-		read_num=200;
-		req_frame_num = 4;
-		input_size.width = 640;
-		input_size.height = 480;
-		disp_size.width = 640;
-		disp_size.height = 480;
-		csi_format=V4L2_PIX_FMT_NV16;
-		disp_format=DISP_FORMAT_YUV422;
-		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
-		disp_seq=DISP_SEQ_UVUV;
-		main_test();
-		
-		
-printf("********************************************************************fps test start,press to continue\n");
-		getchar();		
-
-		printf("set fps to 30fps\n");
-		fps_test=1;
-		fps=30;
-		read_num=30;
-		req_frame_num = 4;
-		input_size.width = 640;
-		input_size.height = 480;
-		disp_size.width = 640;
-		disp_size.height = 480;
-		csi_format=V4L2_PIX_FMT_NV16;
-		disp_format=DISP_FORMAT_YUV422;
-		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
-		disp_seq=DISP_SEQ_UVUV;
-		main_test();
-		
-	
-		
-		printf("set fps to 30fps\n");
-		fps=15;
-		read_num=30;
-		req_frame_num = 4;
-		input_size.width = 640;
-		input_size.height = 480;
-		disp_size.width = 640;
-		disp_size.height = 480;
-		csi_format=V4L2_PIX_FMT_NV16;
-		disp_format=DISP_FORMAT_YUV422;
-		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
-		disp_seq=DISP_SEQ_UVUV;
-		main_test();
+//
+//printf("********************************************************************lost frame test start,press to continue\n");
+//		getchar();	
+//		lost_frame_test=1;
+//		fps=30;
+//		read_num=200;
+//		req_frame_num = 4;
+//		input_size.width = 640;
+//		input_size.height = 480;
+//		disp_size.width = 640;
+//		disp_size.height = 480;
+//		csi_format=V4L2_PIX_FMT_NV16;
+//		disp_format=DISP_FORMAT_YUV422;
+//		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
+//		disp_seq=DISP_SEQ_UVUV;
+//		main_test();
+//		
+//		
+//printf("********************************************************************fps test start,press to continue\n");
+//		getchar();		
+//
+//		printf("set fps to 30fps\n");
+//		fps_test=1;
+//		fps=30;
+//		read_num=30;
+//		req_frame_num = 4;
+//		input_size.width = 640;
+//		input_size.height = 480;
+//		disp_size.width = 640;
+//		disp_size.height = 480;
+//		csi_format=V4L2_PIX_FMT_NV16;
+//		disp_format=DISP_FORMAT_YUV422;
+//		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
+//		disp_seq=DISP_SEQ_UVUV;
+//		main_test();
+//		
+//	
+//		
+//		printf("set fps to 15fps\n");
+//		fps=15;
+//		read_num=30;
+//		req_frame_num = 4;
+//		input_size.width = 640;
+//		input_size.height = 480;
+//		disp_size.width = 640;
+//		disp_size.height = 480;
+//		csi_format=V4L2_PIX_FMT_NV16;
+//		disp_format=DISP_FORMAT_YUV422;
+//		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
+//		disp_seq=DISP_SEQ_UVUV;
+//		main_test();
 		
 printf("********************************************************************test done,press to end\n");	
 		getchar();
