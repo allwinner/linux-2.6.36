@@ -27,13 +27,15 @@
 #include <linux/i2c.h>
 #include <media/v4l2-subdev.h>
 #include <media/videobuf-dma-contig.h>
-
+#include <linux/moduleparam.h>
 
 #include <mach/gpio_v2.h>
 #include <mach/clock.h>
 #include <mach/irqs.h>
 
-#include "sun4i_csi_core.h"
+#include "../include/sun4i_csi_core.h"
+#include "../include/sun4i_dev_csi.h"
+#include "sun4i_csi_reg.h"
 
 #define CSI_MAJOR_VERSION 1
 #define CSI_MINOR_VERSION 0
@@ -42,10 +44,16 @@
 	KERNEL_VERSION(CSI_MAJOR_VERSION, CSI_MINOR_VERSION, CSI_RELEASE)
 #define CSI_MODULE_NAME "sun4i_csi"
 
+//#define USE_DMA_CONTIG
+
+#define AJUST_DRAM_PRIORITY
+#define REGS_pBASE					(0x01C00000)	 	      // register base addr
+#define SDRAM_REGS_pBASE    (REGS_pBASE + 0x01000)    // SDRAM Controller
+
 #define NUM_INPUTS 1
-#define CSI_OUT_RATE      (27*1000*1000)
+#define CSI_OUT_RATE      (24*1000*1000)
 #define CSI_ISP_RATE			(100*1000*1000)
-#define CSI_MAX_FRAME_MEM (8*1024*1024)
+#define CSI_MAX_FRAME_MEM (32*1024*1024)
 #define TWI_NO		 (1)
 
 #define MIN_WIDTH  (32)
@@ -55,10 +63,17 @@
 
 static unsigned video_nr = 0;
 static unsigned first_flag = 0;
-//need to be moved to platform info
-static struct i2c_board_info  dev_ov0760[] =  {
+
+static char ccm[I2C_NAME_SIZE] = "ov7670";
+static uint i2c_addr = 0x42;
+
+module_param_string(ccm, ccm, sizeof(ccm), S_IRUGO|S_IWUSR);
+module_param(i2c_addr,uint, S_IRUGO|S_IWUSR);
+
+
+static struct i2c_board_info  dev_sensor[] =  {
 	{
-		I2C_BOARD_INFO("ov7670", 0x21),
+		//I2C_BOARD_INFO(ccm, i2c_addr),
 		.platform_data	= NULL,
 	},
 };
@@ -261,13 +276,24 @@ static int csi_clk_get(struct csi_dev *dev)
        	csi_err("get csi0 ahb clk error!\n");	
 		return -1;
     }
-
-	dev->csi_clk_src=clk_get(NULL,"video_pll0");
-	if (dev->csi_clk_src == NULL) {
-       	csi_err("get csi0 source clk error!\n");	
-		return -1;
+	
+	if(dev->ccm_info.mclk==24000000)
+	{
+		dev->csi_clk_src=clk_get(NULL,"hosc");
+		if (dev->csi_clk_src == NULL) {
+       	csi_err("get csi0 hosc source clk error!\n");	
+			return -1;
     }
-    
+  }
+  else
+  {
+		dev->csi_clk_src=clk_get(NULL,"video_pll0");
+		if (dev->csi_clk_src == NULL) {
+       	csi_err("get csi0 video pll0 source clk error!\n");	
+			return -1;
+    }
+	}  
+   
 	dev->csi_module_clk=clk_get(NULL,"csi0");
 	if(dev->csi_module_clk == NULL) {
        	csi_err("get csi0 module clk error!\n");	
@@ -282,7 +308,7 @@ static int csi_clk_get(struct csi_dev *dev)
      
 	clk_put(dev->csi_clk_src);
 	
-	ret = clk_set_rate(dev->csi_module_clk, CSI_OUT_RATE);
+	ret = clk_set_rate(dev->csi_module_clk,dev->ccm_info.mclk);
 	if (ret == -1) {
         csi_err("set csi0 module clock error\n");
 		return -1;
@@ -359,6 +385,7 @@ static int csi_clk_disable(struct csi_dev *dev)
 {
 	clk_disable(dev->csi_ahb_clk);
 	clk_disable(dev->csi_module_clk);
+	clk_disable(dev->csi_isp_clk);
 	clk_disable(dev->csi_dram_clk);
 
 	return 0;
@@ -391,8 +418,8 @@ static void csi_start_generating(struct csi_dev *dev)
 
 static void csi_stop_generating(struct csi_dev *dev)
 {
-	 clear_bit(0, &dev->generating);
 	 first_flag = 0;
+	 clear_bit(0, &dev->generating);
 	 return;
 }
 
@@ -401,13 +428,13 @@ static irqreturn_t csi_isr(int irq, void *priv)
 	struct csi_buffer *buf;	
 	struct csi_dev *dev = (struct csi_dev *)priv;
 	struct csi_dmaqueue *dma_q = &dev->vidq;
+//	__csi_int_status_t * status;
 
 	csi_dbg(3,"csi_isr\n");
 	
 	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
 	
 	spin_lock(&dev->slock);
-
 	
 	if (first_flag == 0) {
 		first_flag=1;
@@ -458,8 +485,22 @@ set_next_addr:
 unlock:
 	spin_unlock(&dev->slock);
 	
+//	bsp_csi_int_get_status(dev, status);
+//	if((status->buf_0_overflow) || (status->buf_1_overflow) || (status->buf_2_overflow))
+//	{
+//		bsp_csi_int_clear_status(dev,CSI_INT_BUF_0_OVERFLOW);
+//		bsp_csi_int_clear_status(dev,CSI_INT_BUF_1_OVERFLOW);
+//		bsp_csi_int_clear_status(dev,CSI_INT_BUF_2_OVERFLOW);
+//		csi_err("fifo overflow\n");
+//	}
+//	
+//	if((status->hblank_overflow))
+//	{
+//		bsp_csi_int_clear_status(dev,CSI_INT_HBLANK_OVERFLOW);
+//		csi_err("hblank overflow\n");
+//	}
 	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
-	bsp_csi_int_enable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE   
+	bsp_csi_int_enable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
 	
 	return IRQ_HANDLED;
 }
@@ -470,11 +511,58 @@ unlock:
 static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned int *size)
 {
 	struct csi_dev *dev = vq->priv_data;
-
-	*size = dev->width * dev->height * 2;
-
+	
 	csi_dbg(1,"buffer_setup\n");
+	
+	if(dev->fmt->input_fmt == CSI_RAW)
+	{
+		switch(dev->fmt->fourcc) {
+			case 	V4L2_PIX_FMT_YUYV:
+			case	V4L2_PIX_FMT_YVYU:
+			case	V4L2_PIX_FMT_UYVY:
+			case	V4L2_PIX_FMT_VYUY:
+				*size = dev->width * dev->height * 2;
+				break;
+			default:
+				*size = dev->width * dev->height;
+				break;
+		}
+	}
+	else if(dev->fmt->input_fmt == CSI_BAYER)
+	{
+		*size = dev->width * dev->height;
+	}
+	else if(dev->fmt->input_fmt == CSI_CCIR656)
+	{
+		//TODO
+	}
+	else if(dev->fmt->input_fmt == CSI_YUV422)
+	{
+		switch (dev->fmt->output_fmt) {
+			case 	CSI_PLANAR_YUV422:
+			case	CSI_UV_CB_YUV422:
+			case 	CSI_MB_YUV422:
+				*size = dev->width * dev->height * 2;
+				break;
+				
+			case CSI_PLANAR_YUV420:
+			case CSI_UV_CB_YUV420:
+			case CSI_MB_YUV420:
+				*size = dev->width * dev->height * 3/2;
+				break;
 
+			default:
+				*size = dev->width * dev->height * 2;
+				break;
+		}
+	}
+	else
+	{
+		*size = dev->width * dev->height * 2;	
+	}
+	
+	dev->frame_size = *size;
+	
 	if (*count < 3) {
 		*count = 3;
 		csi_err("buffer count is invalid, set to 3\n");
@@ -486,7 +574,7 @@ static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned
 	while (*size * *count > CSI_MAX_FRAME_MEM) {
 		(*count)--;
 	}	
-	csi_dbg(1,"%s, count=%d, size=%d\n", __func__,*count, *size);
+	csi_print("%s, buffer count=%d, size=%d\n", __func__,*count, *size);
 
 	return 0;
 }
@@ -495,8 +583,9 @@ static void free_buffer(struct videobuf_queue *vq, struct csi_buffer *buf)
 {
 	csi_dbg(1,"%s, state: %i\n", __func__, buf->vb.state);
 
-	// 2011-7-15 14:29:23
-	// videobuf_dma_contig_free(vq, &buf->vb);
+#ifdef USE_DMA_CONTIG	
+	videobuf_dma_contig_free(vq, &buf->vb);
+#endif
 	
 	csi_dbg(1,"free_buffer: freed\n");
 	
@@ -519,28 +608,7 @@ static int buffer_prepare(struct videobuf_queue *vq, struct videobuf_buffer *vb,
 		return -EINVAL;
 	}
 	
-	switch(dev->fmt->input_fmt){
-	case CSI_RAW:
-		if ( (dev->fmt->fourcc == V4L2_PIX_FMT_YUYV) || (dev->fmt->fourcc == V4L2_PIX_FMT_YVYU) || \
-				 (dev->fmt->fourcc == V4L2_PIX_FMT_UYVY) || (dev->fmt->fourcc == V4L2_PIX_FMT_VYUY)) {
-				 		
-			buf->vb.size = dev->width * dev->height * 2;
-		} else {
-			buf->vb.size = dev->width * dev->height;
-		}
-		break;
-	case CSI_BAYER:
-		buf->vb.size = dev->width * dev->height;
-		break;
-	case CSI_CCIR656://TODO
-	case CSI_YUV422:
-		buf->vb.size = dev->width * dev->height * 2;
-		break;
-	default:
-		buf->vb.size = dev->width * dev->height * 2;
-		break;
-	}			
-	
+	buf->vb.size = dev->frame_size;			
 	
 	if (0 != buf->vb.baddr && buf->vb.bsize < buf->vb.size) {
 		return -EINVAL;
@@ -793,7 +861,7 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 		height_buf = dev->height;
 		break;
 	}			
-	
+
 	bsp_csi_configure(dev,&dev->csi_mode);
 	//horizontal and vertical offset are constant zero
 	bsp_csi_set_size(dev,width_buf,height_buf,width_len);
@@ -900,18 +968,18 @@ static int vidioc_streamoff(struct file *file, void *priv, enum v4l2_buf_type i)
 		return 0;
 	}
 	
-	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
-	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
-	bsp_csi_capture_video_stop(dev);
-	
 	csi_stop_generating(dev);
-	
+
 	/* Resets frame counters */
 	dev->ms = 0;
 	dev->jiffies = jiffies;
 
 	dma_q->frame = 0;
 	dma_q->ini_jiffies = jiffies;
+	
+	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
+	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
+	bsp_csi_capture_video_stop(dev);
 	
 	if (i != V4L2_BUF_TYPE_VIDEO_CAPTURE) {
 		return -EINVAL;
@@ -1076,18 +1144,16 @@ static int csi_open(struct file *file)
 		return -EBUSY;
 	}
 	
-	//TODO: move to platform info
-
-  dev->csi_mode.vref       = CSI_LOW;
-  dev->csi_mode.href       = CSI_HIGH;
-  dev->csi_mode.clock      = CSI_RISING;
-
-	csi_reset_disable(dev);
+  dev->csi_mode.vref       = dev->ccm_info.vref;
+  dev->csi_mode.href       = dev->ccm_info.href;
+  dev->csi_mode.clock      = dev->ccm_info.clock;
 	
-	csi_clk_enable(dev);	
+	csi_clk_enable(dev);
+	csi_reset_disable(dev);
 	
 	bsp_csi_open(dev);
 	bsp_csi_set_offset(dev,0,0);//h and v offset is initialed to zero
+	
 	
 	ret = v4l2_subdev_call(dev->sd,core, init,0);
 	if (ret!=0) {
@@ -1230,21 +1296,14 @@ static int csi_probe(struct platform_device *pdev)
 		goto err_req_region;
 	}
 
-   /*clock resource*/
-	if (csi_clk_get(dev)) {
-		csi_err("csi clock get failed!\n");
-		ret = -ENXIO;
-		goto err_regs_unmap;
-	}
-
-	csi_clk_enable(dev);
+  
   /*get irq resource*/
 	
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if (!res) {
 		csi_err("failed to get IRQ resource\n");
 		ret = -ENXIO;
-		goto err_clk;
+		goto err_regs_unmap;
 	}
 	
 	dev->irq = res->start;
@@ -1256,13 +1315,12 @@ static int csi_probe(struct platform_device *pdev)
 	}
 
     /*pin resource*/
-	dev->csi0_pin_hd = gpio_request_ex("csi0_para",NULL);
-	if (dev->csi0_pin_hd==-1) {
+	dev->csi_pin_hd = gpio_request_ex("csi0_para",NULL);
+	if (dev->csi_pin_hd==-1) {
 		csi_err("csi0 pin request error!\n");
 		ret = -ENXIO;
 		goto err_irq;
 	}
-	gpio_set_one_pin_io_status(dev->csi0_pin_hd,1,"CSI0_PWDN");//set gpio to output
 	
     /* v4l2 device register */
 	ret = v4l2_device_register(&pdev->dev, &dev->v4l2_dev);	
@@ -1277,18 +1335,24 @@ static int csi_probe(struct platform_device *pdev)
     /* v4l2 subdev register	*/
 	i2c_adap = i2c_get_adapter(TWI_NO);
 	
+	if (i2c_adap == NULL) {
+		csi_err("request i2c adapter failed\n");
+		ret = -EINVAL;
+	}
 	
 	dev->sd = kmalloc(sizeof(struct v4l2_subdev *),GFP_KERNEL);
 	if (dev->sd == NULL) {
 		csi_err("unable to allocate memory for subdevice pointers\n");
 		ret = -ENOMEM;
 	}
-
-	//TODO: need to be moved to platform info
+	
+	dev_sensor[0].addr = (unsigned short)(i2c_addr>>1);
+	strcpy(dev_sensor[0].type,ccm);
+	
 	dev->sd = v4l2_i2c_new_subdev_board(&dev->v4l2_dev,
 										i2c_adap,
-										"ov7670",
-										dev_ov0760,
+										dev_sensor[0].type,
+										dev_sensor,
 										NULL);
 	if (!dev->sd) {
 		csi_err("Error registering v4l2 subdevice\n");
@@ -1298,13 +1362,40 @@ static int csi_probe(struct platform_device *pdev)
 		csi_print("registered sub device\n");
 	}
 	
+	dev->ccm_info.mclk = CSI_OUT_RATE;
+	dev->ccm_info.vref = CSI_LOW;
+	dev->ccm_info.href = CSI_LOW;
+	dev->ccm_info.clock	 = CSI_FALLING;
+	
+	
+	ret = v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_GET_INFO,&dev->ccm_info);
+	if (ret < 0)
+	{
+		csi_err("Error when get ccm info,use default!\n");
+	}
+	
+	dev->ccm_info.iocfg	 = 0;
+	
+	ret = v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_SET_INFO,&dev->ccm_info);
+	if (ret < 0)
+	{
+		csi_err("Error when set ccm info,use default!\n");
+	}
+	
+	/*clock resource*/
+	if (csi_clk_get(dev)) {
+		csi_err("csi clock get failed!\n");
+		ret = -ENXIO;
+		goto unreg_dev;
+	}
+	
 //	csi_dbg("%s(): csi-%d registered successfully\n",__func__, dev->id);
 
 	/*video device register	*/
 	ret = -ENOMEM;
 	vfd = video_device_alloc();
 	if (!vfd) {
-		goto unreg_dev;
+		goto err_clk;
 	}	
 
 	*vfd = csi_template;
@@ -1337,19 +1428,51 @@ static int csi_probe(struct platform_device *pdev)
 	/* init video dma queues */
 	INIT_LIST_HEAD(&dev->vidq.active);
 	//init_waitqueue_head(&dev->vidq.wq);
-
+	
+#ifdef AJUST_DRAM_PRIORITY
+{
+	void __iomem *regs_dram;
+	volatile unsigned int tmpval = 0;
+	volatile unsigned int tmpval_csi = 0;
+	
+	printk("Warning: we write the DRAM priority directely here, it will be fixed in the next version.");
+	regs_dram = ioremap(SDRAM_REGS_pBASE, 0x2E0);
+	
+	tmpval = readl(regs_dram + 0x250 + 4 * 16);
+	printk("cpu host port: %x\n", tmpval);
+	tmpval |= 3 << 2;
+	printk("cpu priority: %d\n", tmpval);
+	
+	tmpval_csi = readl(regs_dram + 0x250 + 4 * 20);		// csi0
+	printk("csi0 host port: %x\n", tmpval_csi);
+	tmpval_csi |= (!(3<<2));
+	tmpval_csi |= tmpval;
+	writel(tmpval_csi, regs_dram + 0x250 + 4 * 20);
+	printk("csi0 host port(after): %x\n", tmpval_csi);
+	
+	tmpval_csi = readl(regs_dram + 0x250 + 4 * 27);		// csi1
+	printk("csi1 host port: %x\n", tmpval_csi);
+	tmpval_csi |= (!(3<<2));
+	tmpval_csi |= tmpval;
+	writel(tmpval_csi, regs_dram + 0x250 + 4 * 27);
+	printk("csi1 host port(after): %x\n", tmpval_csi);
+	
+	iounmap(regs_dram);
+}
+#endif // AJUST_DRAM_PRIORITY
+	
 	return 0;
 
 rel_vdev:
 	video_device_release(vfd);
+err_clk:
+	csi_clk_release(dev);	
 unreg_dev:
 	v4l2_device_unregister(&dev->v4l2_dev);	
 free_dev:
 	kfree(dev);
 err_irq:
 	free_irq(dev->irq, dev);
-err_clk:
-	csi_clk_release(dev);
 err_regs_unmap:
 	iounmap(dev->regs);
 err_req_region:
@@ -1407,13 +1530,9 @@ static int csi_suspend(struct platform_device *pdev, pm_message_t state)
 
 	csi_dbg(0,"csi_suspend\n");
 	
-	clk_disable(dev->csi_ahb_clk);
-	clk_disable(dev->csi_module_clk);
-	clk_disable(dev->csi_dram_clk);
+	csi_clk_disable(dev);
 
-	gpio_write_one_pin_value(dev->csi0_pin_hd,0,"CSI0_PWDN");
-	
-	return 0;
+	return v4l2_subdev_call(dev->sd,core, s_power,0);//0=off;1=on
 }
 
 static int csi_resume(struct platform_device *pdev)
@@ -1423,28 +1542,36 @@ static int csi_resume(struct platform_device *pdev)
 	
 	csi_dbg(0,"csi_resume\n");
 
-	csi_clk_out_set(dev);
-	
-	clk_enable(dev->csi_ahb_clk);
-	clk_enable(dev->csi_module_clk);
-	clk_enable(dev->csi_dram_clk);
-
-	gpio_write_one_pin_value(dev->csi0_pin_hd,1,"CSI0_PWDN");
-	
 	if (dev->opened==1) {
+		csi_clk_out_set(dev);
+	
+		csi_clk_enable(dev);
+
+		ret = v4l2_subdev_call(dev->sd,core, s_power,1);//0=off;1=on
+		if (ret!=0) {
+			csi_err("sensor power on error when resume from suspend!\n");
+			return ret;
+		} else {
+			csi_dbg(0,"sensor power on success when resume from suspend!\n");
+			
+		}
+		
 		ret = v4l2_subdev_call(dev->sd,core, init,0);
 		if (ret!=0) {
-			csi_err("sensor initial error when resume form suspend!\n");
+			csi_err("sensor initial error when resume from suspend!\n");
+			return ret;
 		} else {
-			csi_dbg(0,"sensor initial success when resume form suspend!\n");
+			csi_dbg(0,"sensor initial success when resume from suspend!\n");
 		}
-		return ret;
+		
+		return 0;
+		
 	} else {
 		return 0;
 	}
 }
 
-//TODO: Please move the following platform resource define to arch/arm/mach-software/sun4i-platform.c
+
 static struct platform_driver csi_driver = {
 	.probe		= csi_probe,
 	.remove		= __devexit_p(csi_remove),
@@ -1459,8 +1586,8 @@ static struct platform_driver csi_driver = {
 
 static struct resource csi0_resource[] = {
 	[0] = {
-		.start	= CSIC_REGS_BASE,
-		.end	= CSIC_REGS_BASE + CSI_REG_SIZE - 1,
+		.start	= CSI0_REGS_BASE,
+		.end	= CSI0_REGS_BASE + CSI0_REG_SIZE - 1,
 		.flags	= IORESOURCE_MEM,
 	},
 	[1] = {

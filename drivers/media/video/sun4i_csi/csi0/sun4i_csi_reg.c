@@ -5,7 +5,8 @@
 #include <linux/io.h>
 #include <linux/delay.h>
 
-#include "sun4i_csi_core.h"
+#include "../include/sun4i_csi_core.h"
+#include "sun4i_csi_reg.h"
 
 /* open module */
 void bsp_csi_open(struct csi_dev *dev)
@@ -21,6 +22,7 @@ void bsp_csi_close(struct csi_dev *dev)
 /* configure */
 void bsp_csi_configure(struct csi_dev *dev,__csi_conf_t *mode)
 {
+	u32 t;
 	W(dev->regs+CSI_REG_CONF, mode->input_fmt << 20 | /* [21:20] */
 							  mode->output_fmt<< 16 | /* [18:16] */
 							  mode->field_sel << 10 | /* [11:10] */
@@ -29,6 +31,9 @@ void bsp_csi_configure(struct csi_dev *dev,__csi_conf_t *mode)
 							  mode->href      << 1  | /* [1] */
 							  mode->clock     << 0    /* [0] */
       );
+  
+  t = R(dev->regs+CSI_REG_CONF);
+ 
 }
 
 /* buffer */
