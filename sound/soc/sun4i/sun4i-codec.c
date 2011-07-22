@@ -40,8 +40,6 @@
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 static volatile unsigned int dmasrc = 0;
 static volatile unsigned int dmadst = 0;
-static volatile unsigned int pst_src = 0;
-static volatile unsigned int dma_flg = 0;
 
 /* Structure/enum declaration ------------------------------- */
 typedef struct codec_board_info {
@@ -96,7 +94,7 @@ static struct snd_pcm_hardware sw_pcm_hardware =
 	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
 	.rates			= (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |SNDRV_PCM_RATE_11025 |\
 				   SNDRV_PCM_RATE_22050| SNDRV_PCM_RATE_32000 |\
-				   SNDRV_PCM_RATE_44100| SNDRV_PCM_RATE_48000 |\
+				   SNDRV_PCM_RATE_44100| SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_96000 |SNDRV_PCM_RATE_192000 |\
 				   SNDRV_PCM_RATE_KNOT),
 	.rate_min		= 8000,
 	.rate_max		= 192000,
@@ -287,7 +285,8 @@ static  int codec_init(void)
 	//enable dac digital 
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	//codec version seting
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
+	//codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
+	codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x1);
 	//set digital volume to maximum
 	codec_wr_control(SW_DAC_DPC, 0x6, DIGITAL_VOL, 0x0);
 	//pa mute
@@ -1023,8 +1022,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	int ret;
 	struct snd_card *card;
 	struct sw_codec *chip;
-	struct codec_board_info  *db;
-    pst_src = 0;
+	struct codec_board_info  *db;    
     printk("enter sun4i Audio codec!!!\n"); 
 	/* register the soundcard */
 	ret = snd_card_create(0, "sun4i-codec", THIS_MODULE, sizeof(struct sw_codec), 
