@@ -65,7 +65,7 @@
 #define  SW_USB_MASS_STORAGE_RELEASE       100
 
 /* 逻辑单元个数， 即PC上能够看见的U盘盘符的个数 */
-#define  SW_USB_NLUNS               2
+#define  SW_USB_NLUNS               3
 
 //---------------------------------------------------------------
 //  USB ethernet
