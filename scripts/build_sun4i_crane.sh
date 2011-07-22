@@ -83,7 +83,7 @@ build_modules()
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
 
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
-			CROSS_COMPILE=arm-none-linux-gnueabi- ARCH=arm LINUXVER=2.6.36.4 \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl-debug 
 
@@ -117,7 +117,7 @@ clean_modules()
     make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} clean
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
-			CROSS_COMPILE=arm-none-linux-gnueabi- ARCH=arm LINUXVER=2.6.36.4 \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 			INSTALL_DIR=${LICHEE_MOD_DIR} clean 
 
