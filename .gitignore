@@ -79,8 +79,12 @@ GTAGS
 arch/arm/boot/compressed/lib1funcs.S
 arch/arm/boot/compressed/piggy.gzip
 arch/arm/boot/compressed/vmlinux
+arch/arm/mach-sun4i/pm/standby/standby.bin
+arch/arm/mach-sun4i/pm/standby/standby.map
 modules/example/Module.symvers
 modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali/Module.symvers
-modules/wifi/Nanoradio-c047-7/kernel/ic/Module.symvers
-modules/wifi/Nanoradio-c047-7/kernel/ksdio/Module.symvers
-output/*
+modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/ump/Module.symvers
+modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/ump/arch/arch-ca8-virtex820-m400-1
+modules/wifi/nano-c047.12/kernel/ic/Module.symvers
+modules/wifi/nano-c047.12/kernel/ksdio/Module.symvers
+output/
