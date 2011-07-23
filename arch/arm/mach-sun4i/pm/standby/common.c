@@ -66,6 +66,6 @@ void standby_memcpy(void *dest, void *src, int n)
 */
 void standby_mdelay(int ms)
 {
-    standby_tmr_mdlay(ms);
+    standby_delay(ms * cpu_ms_loopcnt);
 }
 

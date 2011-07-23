@@ -192,9 +192,9 @@ static void standby(void)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
     /* delay 1ms for power be stable */
-    standby_delay(20);
+    standby_delay(10);
     standby_clk_hoscenable();
-    standby_delay(50);
+    standby_delay(10);
     #endif
     /* switch clock to LOSC */
     standby_clk_core2hosc();

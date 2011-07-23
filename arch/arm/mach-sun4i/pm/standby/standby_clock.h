@@ -45,6 +45,7 @@ __s32 standby_clk_ldoenable(void);
 __s32 standby_clk_setdiv(struct sun4i_clk_div_t  *clk_div);
 __s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div);
 void standby_clk_dramgating(int onoff);
+extern __u32   cpu_ms_loopcnt;
 
 #endif  /* __STANDBY_CLOCK_H__ */
 

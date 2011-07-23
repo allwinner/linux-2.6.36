@@ -21,7 +21,7 @@
 
 static __ccmu_reg_list_t   *CmuReg;;
 static __u32    ccu_reg_back[7];
-static __u32    cpu_freq;
+__u32   cpu_ms_loopcnt;
 
 //==============================================================================
 // CLOCK SET FOR SYSTEM STANDBY
@@ -56,6 +56,9 @@ __s32 standby_clk_init(void)
     ccu_reg_back[4] = *(volatile __u32 *)&CmuReg->Pll5Ctl;
     ccu_reg_back[5] = *(volatile __u32 *)&CmuReg->Pll6Ctl;
     ccu_reg_back[6] = *(volatile __u32 *)&CmuReg->Pll7Ctl;
+
+    /* cpu frequency is 60mhz now */
+    cpu_ms_loopcnt = 60000;
 
     return 0;
 }
@@ -104,6 +107,9 @@ __s32 standby_clk_exit(void)
 __s32 standby_clk_core2losc(void)
 {
     CmuReg->SysClkDiv.AC328ClkSrc = 0;
+    /* cpu frequency is 32k hz */
+    cpu_ms_loopcnt = 16;
+
     return 0;
 }
 
@@ -122,6 +128,9 @@ __s32 standby_clk_core2losc(void)
 __s32 standby_clk_core2hosc(void)
 {
     CmuReg->SysClkDiv.AC328ClkSrc = 1;
+    /* cpu frequency is 24M hz */
+    cpu_ms_loopcnt = 12000;
+
     return 0;
 }
 
@@ -140,6 +149,9 @@ __s32 standby_clk_core2hosc(void)
 __s32 standby_clk_core2pll(void)
 {
     CmuReg->SysClkDiv.AC328ClkSrc = 2;
+    /* cpu frequency is 30M hz */
+    cpu_ms_loopcnt = 30000;
+
     return 0;
 }
 
