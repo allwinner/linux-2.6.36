@@ -248,6 +248,9 @@ int clk_enable(struct clk *clk)
     spin_lock_irqsave(&clockfw_lock, flags);
     if(clk->clk->onoff == AW_CCU_CLK_OFF)
     {
+        /* update clock parameter */
+        clk->clk = clk->get_clk(clk->clk->id);
+
         /* try to enable clock */
         clk->clk->onoff = AW_CCU_CLK_ON;
         ret = clk->set_clk(clk->clk);
@@ -279,6 +282,9 @@ void clk_disable(struct clk *clk)
     }
     if(clk->clk->onoff == AW_CCU_CLK_ON)
     {
+        /* update clock parameter */
+        clk->clk = clk->get_clk(clk->clk->id);
+
         /* try to disalbe clock */
         clk->clk->onoff = AW_CCU_CLK_OFF;
         clk->set_clk(clk->clk);
@@ -323,7 +329,8 @@ int clk_set_rate(struct clk *clk, unsigned long rate)
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
 
     spin_lock_irqsave(&clockfw_lock, flags);
-
+    /* update clock parameter */
+    clk->clk = clk->get_clk(clk->clk->id);
     clk->clk->rate = rate;
     ret = clk->set_clk(clk->clk);
 
@@ -344,7 +351,6 @@ struct clk *clk_get_parent(struct clk *clk)
     }
 
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
-
     parent = clk->parent;
 
     return parent;
@@ -371,10 +377,11 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
 
     spin_lock_irqsave(&clockfw_lock, flags);
+
+    /* update clock parameter */
+    clk->clk = clk->get_clk(clk->clk->id);
     old_parent = clk->parent;
-
     clk->clk->rate = clk_get_rate(parent) / (clk_get_rate(old_parent) / clk_get_rate(clk));
-
     clk->clk->parent = parent->clk->id;
     ret = clk->set_clk(clk->clk);
     if(ret){
@@ -426,6 +433,8 @@ int clk_reset(struct clk *clk, int reset)
     CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
 
     spin_lock_irqsave(&clockfw_lock, flags);
+    /* update clock parameter */
+    clk->clk = clk->get_clk(clk->clk->id);
     reset? (clk->clk->reset = AW_CCU_CLK_RESET) : (clk->clk->reset = AW_CCU_CLK_NRESET);
     ret = clk->set_clk(clk->clk);
     spin_unlock_irqrestore(&clockfw_lock, flags);
