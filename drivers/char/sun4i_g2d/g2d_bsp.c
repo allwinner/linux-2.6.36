@@ -22,6 +22,7 @@
 
 #include "g2d_regs.h"
 #include "g2d_bsp.h"
+#include "g2d.h"
 
 static	__u32	base_addr;
 
@@ -776,6 +777,7 @@ __u32 mixer_blt(g2d_blt *para){
 }
 
 __u32 mixer_stretchblt(g2d_stretchblt *para){
+	__u32 bppnum = 0;
 	__u32 reg_val = 0;
 	__u32 reg_tmp = 0;
 	__u64 addr_val;
@@ -816,7 +818,11 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		reg_val |= para->flag1;
 	}		
 	write_wvalue(G2D_DMA0_CONTROL_REG, reg_val);
-
+	reg_val = mixer_in_csc_set(para->src_image.format);
+	write_wvalue(G2D_CSC0_CONTROL_REG, reg_val);
+	reg_val = mixer_in_csc_set(para->dst_image.format);
+	write_wvalue(G2D_CSC1_CONTROL_REG, reg_val);
+	
 	/* sacler setting */
 	write_wvalue(G2D_SCALER_CONTROL_REG,G2D_SCALER_4TAP4 | G2D_SCALER_ENABLE);
 	write_wvalue(G2D_SCALER_HPHASE_REG,0);
@@ -931,6 +937,7 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 			/* start */
 			write_wvalue(G2D_CONTROL_REG, 0x0); 
 			write_wvalue(G2D_CONTROL_REG, 0x303);
+			g2d_wait_cmd_finish();
 		}
 		
 		/* last block */
@@ -1004,6 +1011,42 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		reg_val |= (reg_tmp<<16)/para->dst_rect.h;
 		write_wvalue(G2D_SCALER_VFACTOR_REG,reg_val);
 
+		/* pyuv422/420/411uvc */
+		if((para->src_image.format>0x16)&&(para->src_image.format<0x1A))
+		{
+			if(para->src_image.format == G2D_FMT_PYUV411UVC) bppnum = 4;
+			else bppnum = 8;
+			addr_val = (__u64)para->src_image.addr[1]*8+(__u64)((para->src_image.w*para->src_rect.y+para->src_rect.x)*bppnum);
+			reg_val = read_wvalue(G2D_DMA_HADDR_REG);
+			reg_val |= ((addr_val>>32)&0xF)<<8;/* high addr in bits */
+			write_wvalue(G2D_DMA_HADDR_REG, reg_val);
+			reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
+			write_wvalue(G2D_DMA1_LADDR_REG, reg_val);
+			write_wvalue(G2D_DMA1_STRIDE_REG, para->src_image.w*bppnum);
+			write_wvalue(G2D_DMA1_SIZE_REG, (para->src_rect.w -1) | ((para->src_rect.h -1)<<16));
+			reg_val = read_wvalue(G2D_DMA1_CONTROL_REG);
+			reg_val |= (5<<8) | G2D_IDMA_ENABLE;
+			write_wvalue(G2D_DMA1_CONTROL_REG, reg_val);
+		}
+		
+		/* pyuv422/420/411uvc */
+		if((para->dst_image.format>0x16)&&(para->dst_image.format<0x1A))
+		{
+			if(para->dst_image.format == G2D_FMT_PYUV411UVC) bppnum = 4;
+			else bppnum = 8;
+			addr_val = (__u64)para->dst_image.addr[1]*8+(__u64)((para->dst_image.w*para->dst_rect.y + para->dst_rect.x)*bppnum);
+			reg_val = read_wvalue(G2D_DMA_HADDR_REG);
+			reg_val |= ((addr_val>>32)&0xF)<<16;/* high addr in bits */
+			write_wvalue(G2D_DMA_HADDR_REG, reg_val);
+			reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
+			write_wvalue(G2D_DMA2_LADDR_REG, reg_val);
+			write_wvalue(G2D_DMA2_STRIDE_REG, para->dst_image.w*bppnum);
+			write_wvalue(G2D_DMA2_SIZE_REG, (para->dst_rect.w -1) | ((para->dst_rect.h -1)<<16));
+			reg_val = read_wvalue(G2D_DMA2_CONTROL_REG);
+			reg_val |= (5<<8) | G2D_IDMA_ENABLE;
+			write_wvalue(G2D_DMA2_CONTROL_REG, reg_val);
+		}
+		
 		addr_val = mixer_get_addr(para->dst_image.addr[0],para->dst_image.format,para->dst_image.w,para->dst_rect.x,para->dst_rect.y);
 		reg_val = read_wvalue(G2D_DMA_HADDR_REG);
 		reg_val |= ((addr_val>>32)&0xF)<<24;/* high addr in bits */

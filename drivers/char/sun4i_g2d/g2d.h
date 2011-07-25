@@ -24,5 +24,6 @@ int g2d_blit(g2d_blt * para);
 int g2d_fill(g2d_fillrect * para);
 int g2d_stretchblit(g2d_stretchblt * para);
 int g2d_set_palette_table(g2d_palette *para);
+void g2d_wait_cmd_finish(void);
 
 #endif/* __G2D_H__ */
