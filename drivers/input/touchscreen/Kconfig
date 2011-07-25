@@ -660,9 +660,33 @@ config  TOUCHSCREEN_SUN4I_TS
        help
            sun4i-ts touchscreen driver
 
-config  TOUCHSCREEN_BYD_0X7E_TS
-       tristate  "byd0x7ets touchscreen driver"
+config  TOUCHSCREEN_FT5X_TS
+       tristate  "ft5x touchscreen driver"
        help
           byd0x7ets touchscreen driver
+
+config TOUCHSCREEN_FT5X_TS_SLAVE_ADDR
+	depends on TOUCHSCREEN_FT5X_TS
+	int "slave address(0:0x7e 1:0x70, etc...)"
+	---help---
+	default 0
+
+config TOUCHSCREEN_FT5X_TS_BUS_NUM
+	depends on TOUCHSCREEN_FT5X_TS
+	int "master adaper num(0:master bus-0 1:master bus-1 2:master bus-2)"
+	---help---
+	default 0
+
+config TOUCHSCREEN_FT5X_TS_SCREEN_MAX_X
+	depends on TOUCHSCREEN_FT5X_TS
+	int "screen max x(800, etc... )"
+	---help---
+	default 800
+
+config TOUCHSCREEN_FT5X_TS_SCREEN_MAX_Y
+	depends on TOUCHSCREEN_FT5X_TS
+	int "screen max y(480, 600, ect...)"
+	---help---
+	default 480
 
 endif

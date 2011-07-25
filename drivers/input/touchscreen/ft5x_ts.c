@@ -1,7 +1,7 @@
 /* 
  * drivers/input/touchscreen/ft5x0x_ts.c
  *
- * FocalTech byd0x7e TouchScreen driver. 
+ * FocalTech ft5x TouchScreen driver. 
  *
  * Copyright (c) 2010  Focal tech Ltd.
  *
@@ -21,7 +21,7 @@
 
 #include <linux/i2c.h>
 #include <linux/input.h>
-#include "byd0x7ets.h"
+#include "ft5x_ts.h"
 #ifdef CONFIG_HAS_EARLYSUSPEND
     #include <linux/pm.h>
 #endif
@@ -68,7 +68,7 @@ struct ts_event {
     u8  touch_point;
 };
 
-struct byd0x7e_ts_data {
+struct ft5x_ts_data {
 	struct input_dev	*input_dev;
 	struct ts_event		event;
 	struct work_struct 	pen_event_work;
@@ -78,7 +78,17 @@ struct byd0x7e_ts_data {
 #endif
 };
 
-static int byd0x7e_i2c_rxdata(char *rxdata, int length)
+static struct i2c_board_info __initdata i2c_info_ft5x_ts[] =  {
+	{
+	    //need to be modify, according the menuconfig 
+		//I2C_BOARD_INFO("ft5x_ts", 0x7e),
+		I2C_BOARD_INFO("ft5x_ts", 0x00),
+		.platform_data	= NULL,
+	},
+};
+
+
+static int ft5x_i2c_rxdata(char *rxdata, int length)
 {
 	int ret;
 
@@ -105,7 +115,7 @@ static int byd0x7e_i2c_rxdata(char *rxdata, int length)
 	return ret;
 }
 
-//static int byd0x7e_i2c_txdata(char *txdata, int length)
+//static int ft5x_i2c_txdata(char *txdata, int length)
 //{
 //	int ret;
 //
@@ -126,14 +136,14 @@ static int byd0x7e_i2c_rxdata(char *rxdata, int length)
 //	return ret;
 //}
 //
-//static int byd0x7e_set_reg(u8 addr, u8 para)
+//static int ft5x_set_reg(u8 addr, u8 para)
 //{
 //    u8 buf[3];
 //    int ret = -1;
 //
 //    buf[0] = addr;
 //    buf[1] = para;
-//    ret = byd0x7e_i2c_txdata(buf, 2);
+//    ret = ft5x_i2c_txdata(buf, 2);
 //    if (ret < 0) {
 //        pr_err("write reg failed! %#x ret: %d", buf[0], ret);
 //        return -1;
@@ -143,9 +153,9 @@ static int byd0x7e_i2c_rxdata(char *rxdata, int length)
 //}
 //
 
-static void byd0x7e_ts_release(void)
+static void ft5x_ts_release(void)
 {
-	struct byd0x7e_ts_data *data = i2c_get_clientdata(this_client);
+	struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
 #ifdef CONFIG_FT5X0X_MULTITOUCH	
 	input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 #else
@@ -156,18 +166,18 @@ static void byd0x7e_ts_release(void)
 
 }
 
-static int byd0x7e_read_data(void)
+static int ft5x_read_data(void)
 {
-	struct byd0x7e_ts_data *data = i2c_get_clientdata(this_client);
+	struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
 	struct ts_event *event = &data->event;
 	unsigned char buf[32]={0};
 	int ret = -1;
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 
-	ret = byd0x7e_i2c_rxdata(buf, 31);
+	ret = ft5x_i2c_rxdata(buf, 31);
 #else
-    ret = byd0x7e_i2c_rxdata(buf, 7);
+    ret = ft5x_i2c_rxdata(buf, 7);
 #endif
     if (ret < 0) {
 		printk("%s read_data i2c_rxdata failed: %d\n", __func__, ret);
@@ -181,7 +191,7 @@ static int byd0x7e_read_data(void)
 	printk("touch point = %d\n",event->touch_point);
 #endif
     if (event->touch_point == 0) {
-        byd0x7e_ts_release();
+        ft5x_ts_release();
         return 1; 
     }
 
@@ -221,12 +231,12 @@ static int byd0x7e_read_data(void)
     return 0;
 }
 
-static void byd0x7e_report_value(void)
+static void ft5x_report_value(void)
 {
-	struct byd0x7e_ts_data *data = i2c_get_clientdata(this_client);
+	struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
 	struct ts_event *event = &data->event;
 
-		//printk("==byd0x7e_report_value =\n");
+		//printk("==ft5x_report_value =\n");
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 	switch(event->touch_point) {
 		case 5:
@@ -290,27 +300,27 @@ static void byd0x7e_report_value(void)
 
 	dev_dbg(&this_client->dev, "%s: 1:%d %d 2:%d %d \n", __func__,
 		event->x1, event->y1, event->x2, event->y2);
-}	/*end byd0x7e_report_value*/
+}	/*end ft5x_report_value*/
 
-static void byd0x7e_ts_pen_irq_work(struct work_struct *work)
+static void ft5x_ts_pen_irq_work(struct work_struct *work)
 {
 	int ret = -1;
 	//printk("==work 1=\n");
-	ret = byd0x7e_read_data();	
+	ret = ft5x_read_data();	
 	if (ret == 0) {	
-		byd0x7e_report_value();
+		ft5x_report_value();
 	}
 	//enable_irq(SW_INT_IRQNO_PIO);
 
 }
 
-static irqreturn_t byd0x7e_ts_interrupt(int irq, void *dev_id)
+static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 {
-	struct byd0x7e_ts_data *byd0x7e_ts = dev_id;
+	struct ft5x_ts_data *ft5x_ts = dev_id;
 	int reg_val;
 
 #ifdef PRINT_INT_INFO		
-	printk("==========------byd0x7ets TS Interrupt-----============\n"); 
+	printk("==========------ft5x_ts TS Interrupt-----============\n"); 
 #endif
 	
 	//clear the IRQ_EINT21 interrupt pending
@@ -323,12 +333,12 @@ static irqreturn_t byd0x7e_ts_interrupt(int irq, void *dev_id)
         #endif
         writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
         //disable_irq(SW_INT_IRQNO_PIO);
-        if (!work_pending(&byd0x7e_ts->pen_event_work)) 
+        if (!work_pending(&ft5x_ts->pen_event_work)) 
         {
             #ifdef PRINT_INT_INFO
         	    printk("Enter work\n");
         	#endif
-        	queue_work(byd0x7e_ts->ts_workqueue, &byd0x7e_ts->pen_event_work);
+        	queue_work(ft5x_ts->ts_workqueue, &ft5x_ts->pen_event_work);
         }
 	}
     else
@@ -345,31 +355,31 @@ static irqreturn_t byd0x7e_ts_interrupt(int irq, void *dev_id)
 }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-static void byd0x7e_ts_suspend(struct early_suspend *handler)
+static void ft5x_ts_suspend(struct early_suspend *handler)
 {
-//	struct byd0x7e_ts_data *ts;
-//	ts =  container_of(handler, struct byd0x7e_ts_data, early_suspend);
+//	struct ft5x_ts_data *ts;
+//	ts =  container_of(handler, struct ft5x_ts_data, early_suspend);
 
-	printk("==byd0x7e_ts_suspend=\n");
+	printk("==ft5x_ts_suspend=\n");
 //	disable_irq(this_client->irq);
 //	disable_irq(IRQ_EINT(6));
 //	cancel_work_sync(&ts->pen_event_work);
 //	flush_workqueue(ts->ts_workqueue);
 	// ==set mode ==, 
-//    	byd0x7e_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
+//    	ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);
 
    /*    //gpio i28 output low
-	printk("==byd0x7e_ts_suspend=\n");
+	printk("==ft5x_ts_suspend=\n");
 	//enter HIBERNATE mode
-    byd0x7e_set_reg(0x3a,PMODE_HIBERNATE);
+    ft5x_set_reg(0x3a,PMODE_HIBERNATE);
 	*/
     //suspend 
     gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");        
 }
 
-static void byd0x7e_ts_resume(struct early_suspend *handler)
+static void ft5x_ts_resume(struct early_suspend *handler)
 {
-	printk("==byd0x7e_ts_resume=\n");
+	printk("==ft5x_ts_resume=\n");
 	// wake the mode
 //	__gpio_as_output(GPIO_FT5X0X_WAKE);		
 //	__gpio_clear_pin(GPIO_FT5X0X_WAKE);		//set wake = 0,base on system
@@ -381,7 +391,7 @@ static void byd0x7e_ts_resume(struct early_suspend *handler)
 ***************
 
     //gpio i28 output high
-	printk("==byd0x7e_ts_resume=\n");
+	printk("==ft5x_ts_resume=\n");
     //wake up
     gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");
     mdelay(5);
@@ -391,15 +401,15 @@ static void byd0x7e_ts_resume(struct early_suspend *handler)
 #endif  //CONFIG_HAS_EARLYSUSPEND
 
 static int 
-byd0x7e_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
+ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-	struct byd0x7e_ts_data *byd0x7e_ts;
+	struct ft5x_ts_data *ft5x_ts;
 	struct input_dev *input_dev;
 	int err = 0;
 	int reg_val;
 	
 	printk("=====capacitor touchscreen driver register ================\n");
-	printk("===================byd0x7e_ts_probe========================\n");
+	printk("===================ft5x_ts_probe========================\n");
 	
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		err = -ENODEV;
@@ -407,8 +417,8 @@ byd0x7e_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	}
 
 
-	byd0x7e_ts = kzalloc(sizeof(*byd0x7e_ts), GFP_KERNEL);
-	if (!byd0x7e_ts)	{
+	ft5x_ts = kzalloc(sizeof(*ft5x_ts), GFP_KERNEL);
+	if (!ft5x_ts)	{
 		err = -ENOMEM;
 		goto exit_alloc_data_failed;
 	}
@@ -420,13 +430,13 @@ byd0x7e_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	}
 	//printk("touch panel gpio addr: = 0x%x", gpio_addr);
 	this_client = client;
-	i2c_set_clientdata(client, byd0x7e_ts);
+	i2c_set_clientdata(client, ft5x_ts);
 
 //	printk("==INIT_WORK=\n");
-	INIT_WORK(&byd0x7e_ts->pen_event_work, byd0x7e_ts_pen_irq_work);
+	INIT_WORK(&ft5x_ts->pen_event_work, ft5x_ts_pen_irq_work);
 
-	byd0x7e_ts->ts_workqueue = create_singlethread_workqueue(dev_name(&client->dev));
-	if (!byd0x7e_ts->ts_workqueue) {
+	ft5x_ts->ts_workqueue = create_singlethread_workqueue(dev_name(&client->dev));
+	if (!ft5x_ts->ts_workqueue) {
 		err = -ESRCH;
 		goto exit_create_singlethread;
 	}
@@ -469,7 +479,7 @@ byd0x7e_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_input_dev_alloc_failed;
 	}
 	
-	byd0x7e_ts->input_dev = input_dev;
+	ft5x_ts->input_dev = input_dev;
 
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 	set_bit(ABS_MT_TOUCH_MAJOR, input_dev->absbit);
@@ -504,53 +514,52 @@ byd0x7e_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	set_bit(EV_ABS, input_dev->evbit);
 	set_bit(EV_KEY, input_dev->evbit);
 
-	input_dev->name		= BYD0X7E_NAME;		//dev_name(&client->dev)
+	input_dev->name		= FT5X_NAME;		//dev_name(&client->dev)
 	err = input_register_device(input_dev);
 	if (err) {
 		dev_err(&client->dev,
-		"byd0x7e_ts_probe: failed to register input device: %s\n",
+		"ft5x_ts_probe: failed to register input device: %s\n",
 		dev_name(&client->dev));
 		goto exit_input_register_device_failed;
 	}
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	printk("==register_early_suspend =\n");
-	byd0x7e_ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
-	byd0x7e_ts->early_suspend.suspend = byd0x7e_ts_suspend;
-	byd0x7e_ts->early_suspend.resume	= byd0x7e_ts_resume;
-	register_early_suspend(&byd0x7e_ts->early_suspend);
+	ft5x_ts->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	ft5x_ts->early_suspend.suspend = ft5x_ts_suspend;
+	ft5x_ts->early_suspend.resume	= ft5x_ts_resume;
+	register_early_suspend(&ft5x_ts->early_suspend);
 #endif
 
 #ifdef    CONFIG_FT5X0X_MULTITOUCH
     printk("CONFIG_FT5X0X_MULTITOUCH is defined. \n");
 #endif
 
-    disable_irq(SW_INT_IRQNO_PIO);
-	err = request_irq(SW_INT_IRQNO_PIO, byd0x7e_ts_interrupt, IRQF_TRIGGER_FALLING, "byd0x7e_ts", byd0x7e_ts);
+   
+	err = request_irq(SW_INT_IRQNO_PIO, ft5x_ts_interrupt, IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
    
 	if (err < 0) {
-		dev_err(&client->dev, "byd0x7e_ts_probe: request irq failed\n");
+		dev_err(&client->dev, "ft5x_ts_probe: request irq failed\n");
 		goto exit_irq_request_failed;
 	}
 
-    enable_irq(SW_INT_IRQNO_PIO);
 	printk("==probe over =\n");
     return 0;
 
 exit_irq_request_failed:
-	cancel_work_sync(&byd0x7e_ts->pen_event_work);
-	destroy_workqueue(byd0x7e_ts->ts_workqueue);
+	cancel_work_sync(&ft5x_ts->pen_event_work);
+	destroy_workqueue(ft5x_ts->ts_workqueue);
 	enable_irq(SW_INT_IRQNO_PIO);
 exit_input_register_device_failed:
 	input_free_device(input_dev);
 exit_input_dev_alloc_failed:
-	free_irq(SW_INT_IRQNO_PIO, byd0x7e_ts);
+	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
 exit_gpio_wakeup_request_failed:
 exit_gpio_int_request_failed:
 exit_create_singlethread:
 	printk("==singlethread error =\n");
 	i2c_set_clientdata(client, NULL);
-	kfree(byd0x7e_ts);
+	kfree(ft5x_ts);
 exit_ioremap_failed:
     if(gpio_addr){
         iounmap(gpio_addr);
@@ -560,19 +569,19 @@ exit_check_functionality_failed:
 	return err;
 }
 
-static int __devexit byd0x7e_ts_remove(struct i2c_client *client)
+static int __devexit ft5x_ts_remove(struct i2c_client *client)
 {
 	
-	struct byd0x7e_ts_data *byd0x7e_ts = i2c_get_clientdata(client);  
-	printk("==byd0x7e_ts_remove=\n");
+	struct ft5x_ts_data *ft5x_ts = i2c_get_clientdata(client);  
+	printk("==ft5x_ts_remove=\n");
 	#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&byd0x7e_ts->early_suspend);
+	unregister_early_suspend(&ft5x_ts->early_suspend);
 	#endif
-	free_irq(SW_INT_IRQNO_PIO, byd0x7e_ts);
-	input_unregister_device(byd0x7e_ts->input_dev);
-	kfree(byd0x7e_ts);
-	cancel_work_sync(&byd0x7e_ts->pen_event_work);
-	destroy_workqueue(byd0x7e_ts->ts_workqueue);
+	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
+	input_unregister_device(ft5x_ts->input_dev);
+	kfree(ft5x_ts);
+	cancel_work_sync(&ft5x_ts->pen_event_work);
+	destroy_workqueue(ft5x_ts->ts_workqueue);
 	i2c_set_clientdata(client, NULL);
     if(gpio_addr)
     {
@@ -583,38 +592,50 @@ static int __devexit byd0x7e_ts_remove(struct i2c_client *client)
 	return 0;
 }
 
-static const struct i2c_device_id byd0x7e_ts_id[] = {
-	{ BYD0X7E_NAME, 0 },
+static const struct i2c_device_id ft5x_ts_id[] = {
+	{ FT5X_NAME, 0 },
 	{}
 };
-MODULE_DEVICE_TABLE(i2c, byd0x7e_ts_id);
+MODULE_DEVICE_TABLE(i2c, ft5x_ts_id);
 
-static struct i2c_driver byd0x7e_ts_driver = {
-	.probe		= byd0x7e_ts_probe,
-	.remove		= __devexit_p(byd0x7e_ts_remove),
-	.id_table	= byd0x7e_ts_id,
+static struct i2c_driver ft5x_ts_driver = {
+	.probe		= ft5x_ts_probe,
+	.remove		= __devexit_p(ft5x_ts_remove),
+	.id_table	= ft5x_ts_id,
 	.driver	= {
-		.name	= BYD0X7E_NAME,
+		.name	= FT5X_NAME,
 		.owner	= THIS_MODULE,
 	},
 };
 
-static int __init byd0x7e_ts_init(void)
+static int __init ft5x_ts_init(void)
 {
-	printk("=========byd0x7e-ts-init============\n");
-	return i2c_add_driver(&byd0x7e_ts_driver);
+    int status = 0;
+    
+	printk("=========ft5x-ts-init============\n");
+
+	if(0 == CONFIG_TOUCHSCREEN_FT5X_TS_SLAVE_ADDR){
+        i2c_info_ft5x_ts[0].addr = 0x7e;
+	}else if(1 == CONFIG_TOUCHSCREEN_FT5X_TS_SLAVE_ADDR){
+        i2c_info_ft5x_ts[0].addr = 0x70;
+	}
+	
+    status = i2c_register_board_info(CONFIG_TOUCHSCREEN_FT5X_TS_BUS_NUM, i2c_info_ft5x_ts, ARRAY_SIZE(i2c_info_ft5x_ts));
+    printk("===============ft5x_ts=============, status = %d ===\n",status);
+ 
+	return i2c_add_driver(&ft5x_ts_driver);
 }
 
-static void __exit byd0x7e_ts_exit(void)
+static void __exit ft5x_ts_exit(void)
 {
-	printk("==byd0x7e_ts_exit==\n");
-	i2c_del_driver(&byd0x7e_ts_driver);
+	printk("==ft5x_ts_exit==\n");
+	i2c_del_driver(&ft5x_ts_driver);
 }
 
-module_init(byd0x7e_ts_init);
-module_exit(byd0x7e_ts_exit);
+module_init(ft5x_ts_init);
+module_exit(ft5x_ts_exit);
 
 MODULE_AUTHOR("<wenfs@Focaltech-systems.com>");
-MODULE_DESCRIPTION("FocalTech byd0x7e TouchScreen driver");
+MODULE_DESCRIPTION("FocalTech ft5x TouchScreen driver");
 MODULE_LICENSE("GPL");
 

@@ -1,5 +1,5 @@
-#ifndef __LINUX_BYD_0X7E_TS_H__
-#define __LINUX_BYD_0X7E_TS_H__
+#ifndef __LINUX_FT5X_TS_H__
+#define __LINUX_FT5X_TS_H__
 
 // gpio base address
 #define PIO_BASE_ADDRESS             (0x01c20800)
@@ -19,19 +19,19 @@
 //#define AW_FPGA_SIM
 #ifdef AW_FPGA_SIM
 #endif
-#define SCREEN_MAX_X    800
-#define SCREEN_MAX_Y    480
+#define SCREEN_MAX_X    CONFIG_TOUCHSCREEN_FT5X_TS_SCREEN_MAX_X
+#define SCREEN_MAX_Y    CONFIG_TOUCHSCREEN_FT5X_TS_SCREEN_MAX_Y
 #define PRESS_MAX       255
 
-#define BYD0X7E_NAME	"byd0x7e_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
+#define FT5X_NAME	"ft5x_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
 #define AW_GPIO_API_ENABLE
 #undef CONFIG_HAS_EARLYSUSPEND
 //#define CONFIG_HAS_EARLYSUSPEND
-struct byd0x7e_ts_platform_data{
+struct ft5x_ts_platform_data{
 	u16	intr;		/* irq number	*/
 };
 
-enum byd0x7e_ts_regs {
+enum ft5x_ts_regs {
 	FT5X0X_REG_PMODE	= 0xA5,	/* Power Consume Mode		*/	
 };
 

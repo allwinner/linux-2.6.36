@@ -713,7 +713,7 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 #ifdef SHUT_OFF_IRQ
  	disable_irq(ts->gpio_irq);       
 #endif
-	err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING,client->name, ts);
+	err =  request_irq(SW_INT_IRQNO_PIO, goodix_ts_irq_handler, IRQF_TRIGGER_RISING | IRQF_SHARED, client->name, ts);
 
 	if (err < 0) {
 		pr_info( "goodix_probe: request irq failed\n");
