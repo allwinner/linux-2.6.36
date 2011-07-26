@@ -369,6 +369,9 @@ __s32 DRV_DISP_Init(void)
     BSP_disp_open();
     Fb_Init();
     
+    sys_put_wvalue(0xf1C0129C, 0x00001035);
+    sys_put_wvalue(0xf1C012B0, 0x00001035);
+    
     return 0;        
 }
 
@@ -728,35 +731,61 @@ static int disp_remove(struct platform_device *pdev)
 void backlight_early_suspend(struct early_suspend *h)
 {
     int i = 0;
-
+    
     for(i=0; i<2; i++)
     {
         output_type[i] = BSP_disp_get_output_type(i);
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
-            LCD_PWM_EN(i, 0);
-            LCD_BL_EN(i, 0);
+            DRV_lcd_close(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
+        {
+            BSP_disp_tv_close(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_VGA)
+        {
+            BSP_disp_vga_close(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_HDMI)
+        {
+            BSP_disp_hdmi_close(i);
         }
     }
+
+    BSP_disp_clk_off();
 }
 
 void backlight_late_resume(struct early_suspend *h)
 {
     int i = 0;
+    
+    BSP_disp_clk_on();
 
     for(i=0; i<2; i++)
     {
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
-            LCD_BL_EN(i, 1);
-            LCD_PWM_EN(i, 1);
+            DRV_lcd_open(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
+        {
+            BSP_disp_tv_open(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_VGA)
+        {
+            BSP_disp_vga_open(i);
+        }
+        else if(output_type[i] == DISP_OUTPUT_TYPE_HDMI)
+        {
+            BSP_disp_hdmi_open(i);
         }
     }
 }
 
 static struct early_suspend backlight_early_suspend_handler = 
 {
-    .level   = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+    .level   = EARLY_SUSPEND_LEVEL_DISABLE_FB,
 	.suspend = backlight_early_suspend,
 	.resume = backlight_late_resume,
 };
@@ -765,8 +794,9 @@ static struct early_suspend backlight_early_suspend_handler =
 
 int disp_suspend(struct platform_device *pdev, pm_message_t state)
 {
+#ifndef CONFIG_HAS_EARLYSUSPEND
     int i = 0;
-    
+
     __inf("disp_suspend call\n");
 
     for(i=0; i<2; i++)
@@ -791,28 +821,24 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     }
 
     BSP_disp_clk_off();
-    
+#endif
     return 0;
 }
 
 int disp_resume(struct platform_device *pdev)
 {
+#ifndef CONFIG_HAS_EARLYSUSPEND    
     int i = 0;
 
     __inf("disp_resume call\n");
+
     BSP_disp_clk_on();
 
     for(i=0; i<2; i++)
     {
         if(output_type[i] == DISP_OUTPUT_TYPE_LCD)
         {
-            #ifdef CONFIG_HAS_EARLYSUSPEND
-            BSP_disp_set_bl_not_open(i, 1);
-            #endif
             DRV_lcd_open(i);
-            #ifdef CONFIG_HAS_EARLYSUSPEND
-            BSP_disp_set_bl_not_open(i, 0);
-            #endif
         }
         else if(output_type[i] == DISP_OUTPUT_TYPE_TV)
         {
@@ -827,6 +853,7 @@ int disp_resume(struct platform_device *pdev)
             BSP_disp_hdmi_open(i);
         }
     }
+#endif
 
     return 0;
 }

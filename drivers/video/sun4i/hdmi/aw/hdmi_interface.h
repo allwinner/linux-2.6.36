@@ -1,5 +1,5 @@
-#ifndef __HDMI_I2C_H__
-#define __HDMI_I2C_H__
+#ifndef __HDMI_INTERFACE_H__
+#define __HDMI_INTERFACE_H__
 
 #include "../hdmi_hal.h"
 

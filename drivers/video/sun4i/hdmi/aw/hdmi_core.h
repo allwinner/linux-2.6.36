@@ -1,5 +1,6 @@
-#ifndef _ANX7150_Sys_H
-#define _ANX7150_Sys_H
+#ifndef __HDMI_CORE_H__
+#define __HDMI_CORE_H__
+
 #include "../hdmi_hal.h"
 #include "hdmi_interface.h"
 
