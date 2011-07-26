@@ -362,7 +362,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				printk("set parent of ve_moduleclk to ve_pll4clk failed!\n");		
 				return -EFAULT;
 			}
-			clk_set_rate(ve_moduleclk, pll4clk_rate/3);
+			clk_set_rate(ve_moduleclk, pll4clk_rate/4);
 			if (-1 == clk_enable(ve_moduleclk)) {
 				printk("ve_moduleclk failed; \n");
 				return -EFAULT;
