@@ -90,3 +90,5 @@ i2c_register_board_info(int busnum,
 
 	return status;
 }
+EXPORT_SYMBOL(i2c_register_board_info);
+
