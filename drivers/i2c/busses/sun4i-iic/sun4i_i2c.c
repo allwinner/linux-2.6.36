@@ -768,7 +768,7 @@ static int i2c_awxx_do_xfer(struct awxx_i2c *i2c, struct i2c_msg *msgs, int num)
 		pr_warning("i2c-%d, xfer timeout\n", i2c->bus_num);
 	}
 	else if (ret != num){
-		pr_warning("incomplete xfer (%d\n", ret);
+		pr_notice("incomplete xfer (%d\n", ret);
 		//dev_dbg(i2c->adap.dev, "incomplete xfer (%d)\n", ret);
 	}
 out:
