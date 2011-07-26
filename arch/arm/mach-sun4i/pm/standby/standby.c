@@ -36,6 +36,9 @@ static struct sun4i_clk_div_t  tmp_clk_div;
 /* parameter for standby, it will be transfered from sys_pwm module */
 struct aw_pm_info  pm_info;
 
+#define DRAM_BASE_ADDR      0xc0000000
+#define DRAM_TRANING_SIZE   (16)
+static __u32 dram_traning_area_back[DRAM_TRANING_SIZE];
 
 /*
 *********************************************************************************************************
@@ -72,6 +75,8 @@ int main(struct aw_pm_info *arg)
     standby_memcpy(&pm_info, arg, sizeof(pm_info));
     /* copy standby code & data to load tlb */
     standby_memcpy((char *)&__standby_end, (char *)&__standby_start, (char *)&__bss_end - (char *)&__bss_start);
+    /* backup dram traning area */
+    standby_memcpy((char *)dram_traning_area_back, (char *)DRAM_BASE_ADDR, sizeof(__u32)*DRAM_TRANING_SIZE);
 
     /* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
     /* init module before dram enter selfrefresh */
@@ -134,6 +139,9 @@ int main(struct aw_pm_info *arg)
     standby_tmr_exit();
     standby_int_exit();
     standby_clk_exit();
+
+    /* restore dram traning area */
+    standby_memcpy((char *)DRAM_BASE_ADDR, (char *)dram_traning_area_back, sizeof(__u32)*DRAM_TRANING_SIZE);
 
     /* report which wake source wakeup system */
     arg->standby_para.event = pm_info.standby_para.event;
