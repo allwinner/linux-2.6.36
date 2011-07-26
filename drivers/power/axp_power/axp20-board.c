@@ -192,8 +192,7 @@ static struct power_supply_info battery_data ={
 		.technology = POWER_SUPPLY_TECHNOLOGY_LiFe,
 		.voltage_max_design = 4200000,
 	    .voltage_min_design = 2700000,
-	    .charge_full_design = 1450,
-		.energy_full_design = 1450,
+		.energy_full_design = BATTERYCAP,
 	    .use_for_apm = 1,
 };
 

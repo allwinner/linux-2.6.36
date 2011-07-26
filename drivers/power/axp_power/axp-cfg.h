@@ -63,7 +63,7 @@
 #define AXP19_AVER_MAX		10
 #define AXP19_RDC_COUNT		10
 
-#define AXP20_VOL_MAX		50
+#define AXP20_VOL_MAX			18 // capability buffer length
 #define AXP20_TIME_MAX		20
 #define AXP20_AVER_MAX		10
 #define AXP20_RDC_COUNT		10
@@ -94,5 +94,10 @@
 #define FUELGUAGE_LEVEL6	83
 #define FUELGUAGE_LEVEL7	93
 #define FUELGUAGE_TOP_LEVEL	100     //>4.16v,100%
+
+#define INIT_RDC				200//initial rdc
+#define TIMER 					20 //axp19 renew capability time
+#define BATTERYCAP         1250 // battery capability
+#define RENEW_TIME       10 //axp20 renew capability time
 
 #endif

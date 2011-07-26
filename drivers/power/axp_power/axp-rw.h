@@ -182,4 +182,10 @@ out:
 }
 EXPORT_SYMBOL_GPL(axp_update);
 
+struct device *axp_get_dev(void)
+{
+	return &axp->dev;
+}
+EXPORT_SYMBOL_GPL(axp_get_dev);
+
 #endif
