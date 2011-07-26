@@ -15,13 +15,14 @@
 
 #if USING_MALI_PMM
 #include <linux/sched.h>
+#include <linux/clk.h>   //zchmin
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif /* CONFIG_HAS_EARLYSUSPEND */
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #include <linux/pm_runtime.h>
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
 #include <linux/platform_device.h>
 #include <linux/version.h>
@@ -84,7 +85,7 @@ static const char* const mali_states[_MALI_MAX_DEBUG_OPERATIONS] = {
 extern void set_mali_parent_power_domain(struct platform_device* dev);
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 #ifndef CONFIG_HAS_EARLYSUSPEND
 static int mali_pwr_suspend_notifier(struct notifier_block *nb,unsigned long event,void* dummy);
@@ -94,7 +95,7 @@ static struct notifier_block mali_pwr_notif_block = {
 };
 #endif /* CONFIG_HAS_EARLYSUSPEND */
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
 /* Power management thread pointer */
 struct task_struct *pm_thread;
@@ -136,12 +137,12 @@ static int mali_pm_suspend(struct device *dev);
 static int mali_pm_resume(struct device *dev);
 
 /* Run time suspend and resume functions */
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 static int mali_device_runtime_suspend(struct device *dev);
 static int mali_device_runtime_resume(struct device *dev);
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
 /* Early suspend functions */
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -151,7 +152,7 @@ static void mali_pm_late_resume(struct early_suspend *mali_dev);
 
 /* OS suspend and resume callbacks */
 #if !MALI_PMM_RUNTIME_JOB_CONTROL_ON
-#ifndef CONFIG_PM_RUNTIME
+#ifndef CONFIG_PM_RUNTIME_MIN
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(LINUX_KERNEL_MAJOR_VERSION,LINUX_KERNEL_MINOR_VERSION,LINUX_KERNEL_DEVELOPMENT_VERSION))
 static int mali_pm_os_suspend(struct platform_device *pdev, pm_message_t state);
 #else
@@ -163,7 +164,7 @@ static int mali_pm_os_resume(struct platform_device *pdev);
 #else
 static int mali_pm_os_resume(struct device *dev);
 #endif
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
 
 /* OS Hibernation suspend callback */
@@ -177,19 +178,19 @@ static void _mali_release_pm(struct device* device);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(LINUX_KERNEL_MAJOR_VERSION,LINUX_KERNEL_MINOR_VERSION,LINUX_KERNEL_DEVELOPMENT_VERSION))
 static const struct dev_pm_ops mali_dev_pm_ops = {
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	.runtime_suspend = mali_device_runtime_suspend,
 	.runtime_resume = mali_device_runtime_resume,
 #endif  /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif  /* CONFIG_PM_RUNTIME */
+#endif  /* CONFIG_PM_RUNTIME_MIN */
 
-#ifndef CONFIG_PM_RUNTIME
+#ifndef CONFIG_PM_RUNTIME_MIN
 #if !MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	.suspend = mali_pm_os_suspend,
 	.resume = mali_pm_os_resume,
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 	.freeze = mali_pm_os_suspend_on_hibernation,
 	.poweroff = mali_pm_os_suspend_on_hibernation,
 	.thaw = mali_pm_os_resume_on_hibernation,
@@ -212,11 +213,11 @@ static struct platform_driver mali_plat_driver = {
 	.probe  = mali_pm_probe,
 	.remove = mali_pm_remove,
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(LINUX_KERNEL_MAJOR_VERSION,LINUX_KERNEL_MINOR_VERSION,LINUX_KERNEL_DEVELOPMENT_VERSION))
-#ifndef CONFIG_PM_RUNTIME
+#ifndef CONFIG_PM_RUNTIME_MIN
 #if !MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	.suspend = mali_pm_os_suspend,
 	.resume  = mali_pm_os_resume,
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
 	.pm = &mali_pm_operations,
 #endif
@@ -318,6 +319,11 @@ int mali_device_suspend(unsigned int event_id, struct task_struct **pwr_mgmt_thr
 static int mali_pm_suspend(struct device *dev)
 {
 	int err = 0;
+	//zchmin for suspend
+	struct clk *mali_hclk, *mali_clk;
+
+	MALI_PRINT(("mali_pm_suspend!\n"));
+	
 	_mali_osk_lock_wait(lock, _MALI_OSK_LOCKMODE_RW);
 #if MALI_GPU_UTILIZATION
 	mali_utilization_suspend();
@@ -336,10 +342,17 @@ static int mali_pm_suspend(struct device *dev)
 	err = mali_device_suspend(MALI_PMM_EVENT_OS_POWER_DOWN, &pm_thread);
 	mali_device_state = _MALI_DEVICE_SUSPEND;
 	_mali_osk_lock_signal(lock, _MALI_OSK_LOCKMODE_RW);
+
+	//zchmin for suspend
+	mali_hclk = clk_get(NULL, "ahb_mali");
+	mali_clk = clk_get(NULL, "mali");
+	clk_disable(mali_hclk);
+	clk_disable(mali_clk);
+	
 	return err;
 }
 
-#ifndef CONFIG_PM_RUNTIME
+#ifndef CONFIG_PM_RUNTIME_MIN
 #if !MALI_PMM_RUNTIME_JOB_CONTROL_ON
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(LINUX_KERNEL_MAJOR_VERSION,LINUX_KERNEL_MINOR_VERSION,LINUX_KERNEL_DEVELOPMENT_VERSION))
 static int mali_pm_os_suspend(struct platform_device *pdev, pm_message_t state)
@@ -352,9 +365,9 @@ static int mali_pm_os_suspend(struct device *dev)
 	return err;
 }
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 #ifndef CONFIG_HAS_EARLYSUSPEND
 static int mali_pwr_suspend_notifier(struct notifier_block *nb,unsigned long event,void* dummy)
@@ -376,7 +389,7 @@ static int mali_pwr_suspend_notifier(struct notifier_block *nb,unsigned long eve
 }
 #endif /* CONFIG_HAS_EARLYSUSPEND */
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
 /** This function is called when mali GPU device is to be resumed.
  */
@@ -401,12 +414,26 @@ int mali_device_resume(unsigned int event_id, struct task_struct **pwr_mgmt_thre
 static int mali_pm_resume(struct device *dev)
 {
 	int err = 0;
+	//zchmin for resume
+	struct clk *mali_hclk, *mali_clk;
+	
+	MALI_PRINT(("mali_pm_resume!\n"));
+		
 	_mali_osk_lock_wait(lock, _MALI_OSK_LOCKMODE_RW);
 	if (mali_device_state == _MALI_DEVICE_RESUME)
 	{
 		_mali_osk_lock_signal(lock, _MALI_OSK_LOCKMODE_RW);
 		return err;
 	}
+	mali_hclk = clk_get(NULL, "ahb_mali");
+	mali_clk = clk_get(NULL, "mali");
+	if(clk_enable(mali_hclk)){
+		MALI_PRINT(("try to enable mali ahb failed!\n"));
+	}
+	if(clk_enable(mali_clk)){
+		MALI_PRINT(("try to enable mali clock failed!\n"));
+	}
+	
 	err = mali_device_resume(MALI_PMM_EVENT_OS_POWER_UP, &pm_thread);
 	mali_device_state = _MALI_DEVICE_RESUME;
 	mali_dvfs_device_state = _MALI_DEVICE_RESUME;
@@ -414,7 +441,7 @@ static int mali_pm_resume(struct device *dev)
 	return err;
 }
 
-#ifndef CONFIG_PM_RUNTIME
+#ifndef CONFIG_PM_RUNTIME_MIN
 #if !MALI_PMM_RUNTIME_JOB_CONTROL_ON
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(LINUX_KERNEL_MAJOR_VERSION,LINUX_KERNEL_MINOR_VERSION,LINUX_KERNEL_DEVELOPMENT_VERSION))
 static int mali_pm_os_resume(struct platform_device *pdev)
@@ -427,7 +454,7 @@ static int mali_pm_os_resume(struct device *dev)
 	return err;
 }
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
 static int mali_pm_os_suspend_on_hibernation(struct device *dev)
 {
@@ -443,7 +470,7 @@ static int mali_pm_os_resume_on_hibernation(struct device *dev)
 	return err;
 }
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 /** This function is called when runtime suspend of mali device is required.
  */
@@ -461,7 +488,7 @@ static int mali_device_runtime_resume(struct device *dev)
 	return 0;
 }
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /*  CONFIG_PM_RUNTIME */
+#endif /*  CONFIG_PM_RUNTIME_MIN */
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 
@@ -469,6 +496,9 @@ static int mali_device_runtime_resume(struct device *dev)
  */
 static void mali_pm_early_suspend(struct early_suspend *mali_dev)
 {
+	//zchmin for suspend
+	struct clk *mali_hclk, *mali_clk;
+	
 	switch(mali_dev->level)
 	{
 		/* Screen should be turned off but framebuffer will be accessible */
@@ -495,6 +525,15 @@ static void mali_pm_early_suspend(struct early_suspend *mali_dev)
 			mali_device_suspend(MALI_PMM_EVENT_OS_POWER_DOWN, &pm_thread);
 			mali_device_state =  _MALI_DEVICE_EARLYSUSPEND_DISABLE_FB;
 			_mali_osk_lock_signal(lock, _MALI_OSK_LOCKMODE_RW);
+
+			//zchmin for suspend
+			mali_hclk = clk_get(NULL, "ahb_mali");
+			mali_clk = clk_get(NULL, "mali");
+			clk_disable(mali_hclk);
+			clk_disable(mali_clk);
+			MALI_PRINT(("mali_pm_early_suspend!\n"));
+			
+	
 		break;
 
 		default:
@@ -508,6 +547,10 @@ static void mali_pm_early_suspend(struct early_suspend *mali_dev)
  */
 static void mali_pm_late_resume(struct early_suspend *mali_dev)
 {
+	//zchmin for resume
+	struct clk *mali_hclk, *mali_clk;
+	MALI_PRINT(("mali_pm_later_resume!\n"));
+	
 	_mali_osk_lock_wait(lock, _MALI_OSK_LOCKMODE_RW);
 	if (mali_device_state == _MALI_DEVICE_RESUME)
 	{
@@ -516,6 +559,15 @@ static void mali_pm_late_resume(struct early_suspend *mali_dev)
 	}
 	if (mali_device_state ==  _MALI_DEVICE_EARLYSUSPEND_DISABLE_FB)
 	{
+		mali_hclk = clk_get(NULL, "ahb_mali");
+	    mali_clk = clk_get(NULL, "mali");
+	    if(clk_enable(mali_hclk)){
+	    	MALI_PRINT(("try to enable mali ahb failed!\n"));
+	    }
+	    if(clk_enable(mali_clk)){
+	    	MALI_PRINT(("try to enable mali clock failed!\n"));
+	    }
+	
 		mali_device_resume(MALI_PMM_EVENT_OS_POWER_UP, &pm_thread);
 		mali_dvfs_device_state = _MALI_DEVICE_RESUME;
 		mali_device_state =  _MALI_DEVICE_RESUME;
@@ -662,11 +714,11 @@ static int mali_pm_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM_DEBUG
 	device_remove_file(&mali_gpu_device.dev, &dev_attr_file);
 #endif /* CONFIG_PM_DEBUG */
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	pm_runtime_disable(&pdev->dev);
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 	return 0;
 }
 
@@ -690,10 +742,11 @@ int _mali_dev_platform_register(void)
 {
 	int err;
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON	
+	MALI_PRINT(("_mali_dev_platform_register MALI_PMM_RUNTIME_JOB_CONTROL_ON!\n"));
 	set_mali_parent_power_domain(&mali_gpu_device);
 #endif
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #ifndef CONFIG_HAS_EARLYSUSPEND
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	err = register_pm_notifier(&mali_pwr_notif_block);
@@ -703,7 +756,7 @@ int _mali_dev_platform_register(void)
 	}
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
 #endif /* CONFIG_HAS_EARLYSUSPEND */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 	err = platform_device_register(&mali_gpu_device);
 	lock = _mali_osk_lock_init((_mali_osk_lock_flags_t)( _MALI_OSK_LOCKFLAG_READERWRITER | _MALI_OSK_LOCKFLAG_ORDERED), 0, 0);
 	if (!err) 
@@ -718,13 +771,13 @@ int _mali_dev_platform_register(void)
 		else
 		{
 			_mali_osk_lock_term(lock);
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #ifndef CONFIG_HAS_EARLYSUSPEND
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 			unregister_pm_notifier(&mali_pwr_notif_block);
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
 #endif /* CONFIG_HAS_EARLYSUSPEND */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 			platform_device_unregister(&mali_gpu_device);
 		}
 	}
@@ -741,13 +794,13 @@ void _mali_dev_platform_unregister(void)
 	unregister_early_suspend(&mali_dev_early_suspend);
 #endif /* CONFIG_HAS_EARLYSUSPEND */
 
-#ifdef CONFIG_PM_RUNTIME
+#ifdef CONFIG_PM_RUNTIME_MIN
 #ifndef CONFIG_HAS_EARLYSUSPEND
 #if MALI_PMM_RUNTIME_JOB_CONTROL_ON
 	unregister_pm_notifier(&mali_pwr_notif_block);
 #endif /* MALI_PMM_RUNTIME_JOB_CONTROL_ON */
 #endif /* CONFIG_HAS_EARLYSUSPEND */
-#endif /* CONFIG_PM_RUNTIME */
+#endif /* CONFIG_PM_RUNTIME_MIN */
 
 	platform_driver_unregister(&mali_plat_driver);
 	platform_device_unregister(&mali_gpu_device);
