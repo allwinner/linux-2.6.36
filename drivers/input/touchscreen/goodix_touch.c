@@ -80,8 +80,8 @@ static int gpio_wakeup_hdle = 0;
 #define X_DIFF (800)
 
 #define FOR_TSLIB_TEST
-#define PRINT_INT_INFO
-#define PRINT_POINT_INFO
+//#define PRINT_INT_INFO
+//#define PRINT_POINT_INFO
 #define PRINT_SUSPEND_INFO
 #define TEST_I2C_TRANSFER
 
