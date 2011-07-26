@@ -5,6 +5,7 @@
  * 
 * 
 ***************************************************************************************************/
+#define DEBUG
 #ifndef CONFIG_PM
 #define CONFIG_PM
 #endif
@@ -38,8 +39,11 @@
 #define SW_ADC_FIFO         0x01c22c20
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
-static volatile unsigned int dmasrc = 0;
-static volatile unsigned int dmadst = 0;
+
+static volatile unsigned int capture_dmasrc = 0;
+static volatile unsigned int capture_dmadst = 0;
+static volatile unsigned int play_dmasrc = 0;
+static volatile unsigned int play_dmadst = 0;
 
 /* Structure/enum declaration ------------------------------- */
 typedef struct codec_board_info {
@@ -61,19 +65,19 @@ static struct sw_dma_client sw_codec_dma_client_capture = {
 
 static struct sw_pcm_dma_params sw_codec_pcm_stereo_play = {
 	.client		= &sw_codec_dma_client_play,
-	.channel	= DMACH_NADDA,
+	.channel	= DMACH_NADDA_PLAY,
 	.dma_addr	= CODEC_BASSADDRESS + SW_DAC_TXDATA,//发送数据地址
 	.dma_size	= 4,
 };
 
 static struct sw_pcm_dma_params sw_codec_pcm_stereo_capture = {
 	.client		= &sw_codec_dma_client_capture,
-	.channel	= DMACH_NADDA,  //only support half full
+	.channel	= DMACH_NADDA_CAPTURE,  //only support half full
 	.dma_addr	= CODEC_BASSADDRESS + SW_ADC_RXDATA,//接收数据地址
 	.dma_size	= 4,
 };
 
-struct sw_runtime_data {
+struct sw_playback_runtime_data {
 	spinlock_t lock;
 	int state;
 	unsigned int dma_loaded;
@@ -85,7 +89,44 @@ struct sw_runtime_data {
 	struct sw_pcm_dma_params	*params;
 };
 
-static struct snd_pcm_hardware sw_pcm_hardware =
+struct sw_capture_runtime_data {
+	spinlock_t lock;
+	int state;
+	unsigned int dma_loaded;
+	unsigned int dma_limit;
+	unsigned int dma_period;
+	dma_addr_t   dma_start;
+	dma_addr_t   dma_pos;
+	dma_addr_t	 dma_end;
+	struct sw_pcm_dma_params	*params;
+};
+
+/*播放设备硬件定义*/
+static struct snd_pcm_hardware sw_pcm_playback_hardware =
+{
+	.info			= (SNDRV_PCM_INFO_INTERLEAVED |
+				   SNDRV_PCM_INFO_BLOCK_TRANSFER |
+				   SNDRV_PCM_INFO_MMAP | SNDRV_PCM_INFO_MMAP_VALID |
+				   SNDRV_PCM_INFO_PAUSE | SNDRV_PCM_INFO_RESUME),
+	.formats		= SNDRV_PCM_FMTBIT_S16_LE,
+	.rates			= (SNDRV_PCM_RATE_8000 | SNDRV_PCM_RATE_16000 |SNDRV_PCM_RATE_11025 |\
+				   SNDRV_PCM_RATE_22050| SNDRV_PCM_RATE_32000 |\
+				   SNDRV_PCM_RATE_44100| SNDRV_PCM_RATE_48000 |SNDRV_PCM_RATE_96000 | SNDRV_PCM_RATE_192000 |\
+				   SNDRV_PCM_RATE_KNOT),
+	.rate_min		= 8000,
+	.rate_max		= 192000,
+	.channels_min		= 1,
+	.channels_max		= 2,
+	.buffer_bytes_max	= 128*1024,//最大的缓冲区大小
+	.period_bytes_min	= 1024*16,//最小周期大小
+	.period_bytes_max	= 1024*32,//最大周期大小
+	.periods_min		= 4,//最小周期数
+	.periods_max		= 8,//最大周期数
+	.fifo_size	     	= 32,//fifo字节数
+};
+
+/*录音设备硬件定义*/
+static struct snd_pcm_hardware sw_pcm_capture_hardware =
 {
 	.info			= (SNDRV_PCM_INFO_INTERLEAVED |
 				   SNDRV_PCM_INFO_BLOCK_TRANSFER |
@@ -146,7 +187,7 @@ int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 	change = old != new;
 
 	if (change){       
-		//printk("reg = %x,reg_val = %x\n",reg,new);
+		pr_debug("reg = %x,reg_val = %x\n",reg,new);
 		codec_wrreg(reg,new);
 	}
 		
@@ -298,8 +339,7 @@ static  int codec_init(void)
 	//set volume
 	codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
 	
-	return 0;
-	
+	return 0;	
 }
 
 static int codec_play_open(void)
@@ -452,165 +492,246 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
 }
 
 static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
-{
-	struct sw_runtime_data *prtd = substream->runtime->private_data;
-	dma_addr_t pos = prtd->dma_pos;
-	unsigned int limit;
-	int ret;
-	
-	unsigned long len = prtd->dma_period;
-  	limit = prtd->dma_limit;
-  	while(prtd->dma_loaded < limit){
-		if((pos + len) > prtd->dma_end){
-			len  = prtd->dma_end - pos;			
+{	
+	int play_ret = 0, capture_ret = 0;
+	struct sw_playback_runtime_data *play_prtd = NULL;
+	struct sw_capture_runtime_data *capture_prtd = NULL;
+	dma_addr_t play_pos = 0, capture_pos = 0;
+	unsigned long play_len = 0, capture_len = 0;
+	unsigned int play_limit = 0, capture_limit = 0;
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){  
+//		printk("play: %s, %d\n", __func__, __LINE__);
+		play_prtd = substream->runtime->private_data;
+		play_pos = play_prtd->dma_pos;
+		play_len = play_prtd->dma_period;
+		play_limit = play_prtd->dma_limit; 
+		while(play_prtd->dma_loaded < play_limit){
+			if((play_pos + play_len) > play_prtd->dma_end){
+				play_len  = play_prtd->dma_end - play_pos;			
+			}
+			play_ret = sw_dma_enqueue(play_prtd->params->channel, substream, __bus_to_virt(play_pos), play_len);		
+			if(play_ret == 0){
+				play_prtd->dma_loaded++;
+				play_pos += play_prtd->dma_period;
+				if(play_pos >= play_prtd->dma_end)
+					play_pos = play_prtd->dma_start;
+			}else{
+				break;
+			}	  
 		}
-		ret = sw_dma_enqueue(prtd->params->channel, substream, __bus_to_virt(pos),  len);
-		//printk("[audio_codec]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
-		if(ret == 0){
-			prtd->dma_loaded++;
-			pos += prtd->dma_period;
-			if(pos >= prtd->dma_end)
-				pos = prtd->dma_start;
-		}else{
-			break;
-		}	  
-	}
-	prtd->dma_pos = pos;	
+		play_prtd->dma_pos = play_pos;	
+	}else{
+//		printk("capture: %s, %d\n", __func__, __LINE__);
+		capture_prtd = substream->runtime->private_data;
+		capture_pos = capture_prtd->dma_pos;
+		capture_len = capture_prtd->dma_period;
+		capture_limit = capture_prtd->dma_limit; 
+		while(capture_prtd->dma_loaded < capture_limit){
+			if((capture_pos + capture_len) > capture_prtd->dma_end){
+				capture_len  = capture_prtd->dma_end - capture_pos;			
+			}
+			capture_ret = sw_dma_enqueue(capture_prtd->params->channel, substream, __bus_to_virt(capture_pos), capture_len);
+			//printk("[audio_codec]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
+			if(capture_ret == 0){
+			capture_prtd->dma_loaded++;
+			capture_pos += capture_prtd->dma_period;
+			if(capture_pos >= capture_prtd->dma_end)
+			capture_pos = capture_prtd->dma_start;
+			}else{
+				break;
+			}	  
+		}
+		capture_prtd->dma_pos = capture_pos;	
+	}		
 }
 
-static void sw_audio_buffdone(struct sw_dma_chan *channel, 
+static void sw_audio_capture_buffdone(struct sw_dma_chan *channel, 
 		                                  void *dev_id, int size,
 		                                  enum sw_dma_buffresult result)
 {
-		struct sw_runtime_data *prtd;
-		struct snd_pcm_substream *substream = dev_id;
+	struct sw_capture_runtime_data *capture_prtd;
+	struct snd_pcm_substream *substream = dev_id;
 
-		if (result == SW_RES_ABORT || result == SW_RES_ERR)
-			return;
-			
-		prtd = substream->runtime->private_data;
-			if (substream){				
-				snd_pcm_period_elapsed(substream);
-			}	
-	
-		spin_lock(&prtd->lock);
-		{
-			prtd->dma_loaded--;
-			sw_pcm_enqueue(substream);
-		}
-		spin_unlock(&prtd->lock);
+	if (result == SW_RES_ABORT || result == SW_RES_ERR)
+		return;
+		
+	capture_prtd = substream->runtime->private_data;
+		if (substream){				
+			snd_pcm_period_elapsed(substream);
+		}	
+
+	spin_lock(&capture_prtd->lock);
+	{
+		capture_prtd->dma_loaded--;
+		sw_pcm_enqueue(substream);
+	}
+	spin_unlock(&capture_prtd->lock);
+}
+
+static void sw_audio_play_buffdone(struct sw_dma_chan *channel, 
+		                                  void *dev_id, int size,
+		                                  enum sw_dma_buffresult result)
+{
+	struct sw_playback_runtime_data *play_prtd;
+	struct snd_pcm_substream *substream = dev_id;
+
+	if (result == SW_RES_ABORT || result == SW_RES_ERR)
+		return;
+		
+	play_prtd = substream->runtime->private_data;
+	if (substream){				
+		snd_pcm_period_elapsed(substream);
+	}	
+
+	spin_lock(&play_prtd->lock);
+	{
+		play_prtd->dma_loaded--;
+		sw_pcm_enqueue(substream);
+	}
+	spin_unlock(&play_prtd->lock);
 }
 
 static snd_pcm_uframes_t snd_sw_codec_pointer(struct snd_pcm_substream *substream)
 {
-	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct sw_runtime_data *prtd = runtime->private_data;
-	unsigned long res = 0;
-    //printk("GET POINTER\n");
-	spin_lock(&prtd->lock);
-	sw_dma_getcurposition(DMACH_NADDA, (dma_addr_t*)&dmasrc, (dma_addr_t*)&dmadst);
-	//printk("func:%s,line:%d,dmasrc: %x,dmadst:%x\n",__func__,__LINE__,dmasrc,dmadst);
-	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE){
-		res = dmadst + prtd->dma_period - prtd->dma_start;
-	}else{
-		res = dmasrc + prtd->dma_period - prtd->dma_start;		
-	}
-	spin_unlock(&prtd->lock);
-
-	/* we seem to be getting the odd error from the pcm library due
-	 * to out-of-bounds pointers. this is maybe due to the dma engine
-	 * not having loaded the new values for the channel before being
-	 * callled... (todo - fix )
-	 */        
-	if (res >= snd_pcm_lib_buffer_bytes(substream)) {
-		if (res == snd_pcm_lib_buffer_bytes(substream))
-			res = 0;
-	}
-//    printk("func:%s,line:%d,res:%lu\n", __func__, __LINE__, res);
-	return bytes_to_frames(substream->runtime, res);	
-}
-static int sw_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
-{
-	struct snd_pcm_runtime *runtime = substream->runtime;
-	struct sw_runtime_data *prtd = runtime->private_data;
-	int    stream_id = substream->stream;
-	unsigned long totbytes = params_buffer_bytes(params);
-    int ret;
-    snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(params));
-
-//	printk("Entered %s, %d,%lu\n", __func__, __LINE__, totbytes);
-  
-	if(prtd->params == NULL){	
-		switch(stream_id){
-		case SNDRV_PCM_STREAM_PLAYBACK :
-			prtd->params = &sw_codec_pcm_stereo_play;
-			break;
-		
-		case SNDRV_PCM_STREAM_CAPTURE :
-			prtd->params = &sw_codec_pcm_stereo_capture;
-			break;
-		
-		default :
-			ret = -EINVAL;
-			return ret;
-			break;
-		}				
-		pr_debug("params %p, client %p, channel %d\n", prtd->params, prtd->params->client,prtd->params->channel);
-		ret = sw_dma_request(prtd->params->channel,prtd->params->client,NULL);
-		
-		if(ret < 0){
-			printk(KERN_ERR "failed to get dma channel. ret == %d\n", ret);
-			return ret;
+	unsigned long play_res = 0, capture_res = 0;
+	struct sw_playback_runtime_data *play_prtd = NULL;
+	struct sw_capture_runtime_data *capture_prtd = NULL;
+    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+//    	printk("play: %s, %d\n", __func__, __LINE__);  
+    	play_prtd = substream->runtime->private_data;
+   		spin_lock(&play_prtd->lock);
+		sw_dma_getcurposition(DMACH_NADDA_PLAY, (dma_addr_t*)&play_dmasrc, (dma_addr_t*)&play_dmadst);
+//		printk("func:%s,line:%d,play_prtd: %x,play_dmadst:%x\n", __func__, __LINE__, play_dmasrc, play_dmadst);
+		play_res = play_dmasrc + play_prtd->dma_period - play_prtd->dma_start;
+		spin_unlock(&play_prtd->lock);
+		if (play_res >= snd_pcm_lib_buffer_bytes(substream)) {
+			if (play_res == snd_pcm_lib_buffer_bytes(substream))
+				play_res = 0;
 		}
-	}
-    sw_dma_set_buffdone_fn(prtd->params->channel,
-			sw_audio_buffdone);
-	snd_pcm_set_runtime_buffer(substream, &substream->dma_buffer);
-	runtime->dma_bytes = totbytes;
-        spin_lock_irq(&prtd->lock);
-	prtd->dma_loaded = 0;
-	prtd->dma_limit = runtime->hw.periods_min;
-	prtd->dma_period = params_period_bytes(params);
-	prtd->dma_start = runtime->dma_addr;	
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-		dmasrc = prtd->dma_start;
-	else
-		dmadst = prtd->dma_start;
-	prtd->dma_pos = prtd->dma_start;
-	prtd->dma_end = prtd->dma_start + totbytes;
-//	printk("prtd->dma_start:%x, prtd->dma_end:%x\n", prtd->dma_start, prtd->dma_end);
-	spin_unlock_irq(&prtd->lock);
+		return bytes_to_frames(substream->runtime, play_res);
+    }else{
+//    	printk("capture: %s, %d\n", __func__, __LINE__);
+    	capture_prtd = substream->runtime->private_data;
+    	spin_lock(&capture_prtd->lock);
+    	sw_dma_getcurposition(DMACH_NADDA_CAPTURE, (dma_addr_t*)&capture_dmasrc, (dma_addr_t*)&capture_dmadst);
+    	capture_res = capture_dmadst + capture_prtd->dma_period - capture_prtd->dma_start;
+    	spin_unlock(&capture_prtd->lock);
+    	if (capture_res >= snd_pcm_lib_buffer_bytes(substream)) {
+			if (capture_res == snd_pcm_lib_buffer_bytes(substream))
+				capture_res = 0;
+		}
+		return bytes_to_frames(substream->runtime, capture_res);
+    }	
+}
 
+static int sw_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params)
+{	
+    int play_ret = 0, capture_ret = 0;
+    struct snd_pcm_runtime *play_runtime = NULL, *capture_runtime = NULL;
+    struct sw_playback_runtime_data *play_prtd = NULL;
+    struct sw_capture_runtime_data *capture_prtd = NULL;
+    unsigned long play_totbytes = 0, capture_totbytes = 0;
+	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){  
+	  	play_runtime = substream->runtime;
+		play_prtd = play_runtime->private_data;
+		play_totbytes = params_buffer_bytes(params);
+		snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(params));
+		if(play_prtd->params == NULL){
+			play_prtd->params = &sw_codec_pcm_stereo_play;			
+			play_ret = sw_dma_request(play_prtd->params->channel, play_prtd->params->client, NULL);
+//			printk("play:%s,%d,play_params %p, client %p, channel %d\n", __func__, __LINE__, play_prtd->params, play_prtd->params->client, play_prtd->params->channel);
+			if(play_ret < 0){
+				printk(KERN_ERR "failed to get dma channel. ret == %d\n", play_ret);
+				return play_ret;
+			}
+			sw_dma_set_buffdone_fn(play_prtd->params->channel, sw_audio_play_buffdone);
+			snd_pcm_set_runtime_buffer(substream, &substream->dma_buffer);
+			play_runtime->dma_bytes = play_totbytes;
+   			spin_lock_irq(&play_prtd->lock);
+			play_prtd->dma_loaded = 0;
+			play_prtd->dma_limit = play_runtime->hw.periods_min;
+			play_prtd->dma_period = params_period_bytes(params);
+			play_prtd->dma_start = play_runtime->dma_addr;	
+
+			play_dmasrc = play_prtd->dma_start;	 
+			play_prtd->dma_pos = play_prtd->dma_start;
+			play_prtd->dma_end = play_prtd->dma_start + play_totbytes;
+			
+			spin_unlock_irq(&play_prtd->lock);		
+		}
+	}else if(substream->stream == SNDRV_PCM_STREAM_CAPTURE){
+		capture_runtime = substream->runtime;
+		capture_prtd = capture_runtime->private_data;
+		capture_totbytes = params_buffer_bytes(params);
+		snd_pcm_lib_malloc_pages(substream, params_buffer_bytes(params));
+		if(capture_prtd->params == NULL){
+			capture_prtd->params = &sw_codec_pcm_stereo_capture;
+			capture_ret = sw_dma_request(capture_prtd->params->channel, capture_prtd->params->client, NULL);
+		
+			if(capture_ret < 0){
+				printk(KERN_ERR "failed to get dma channel. capture_ret == %d\n", capture_ret);
+				return capture_ret;
+			}
+			sw_dma_set_buffdone_fn(capture_prtd->params->channel, sw_audio_capture_buffdone);
+			snd_pcm_set_runtime_buffer(substream, &substream->dma_buffer);
+			capture_runtime->dma_bytes = capture_totbytes;
+			spin_lock_irq(&capture_prtd->lock);
+			capture_prtd->dma_loaded = 0;
+			capture_prtd->dma_limit = capture_runtime->hw.periods_min;
+			capture_prtd->dma_period = params_period_bytes(params);
+			capture_prtd->dma_start = capture_runtime->dma_addr;
+						
+			capture_dmadst = capture_prtd->dma_start;
+			capture_prtd->dma_pos = capture_prtd->dma_start;
+			capture_prtd->dma_end = capture_prtd->dma_start + capture_totbytes;
+
+			spin_unlock_irq(&capture_prtd->lock);
+		}
+	}else{		
+		return -EINVAL;
+	}
 	return 0;	
 }
 
 static int snd_sw_codec_hw_free(struct snd_pcm_substream *substream)
-{
-	struct sw_runtime_data *prtd = substream->runtime->private_data;
-
-	pr_debug("Entered %s\n", __func__);
-
-	/* TODO - do we need to ensure DMA flushed */
-	if(prtd->params)
-  	sw_dma_ctrl(prtd->params->channel, SW_DMAOP_FLUSH);
-	snd_pcm_set_runtime_buffer(substream, NULL);
-  
-	if (prtd->params) {
-		sw_dma_free(prtd->params->channel, prtd->params->client);
-		prtd->params = NULL;
-	}
-
+{	
+	struct sw_playback_runtime_data *play_prtd = NULL;
+	struct sw_capture_runtime_data *capture_prtd = NULL;	
+   	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){    	  
+ 		play_prtd = substream->runtime->private_data;
+ 		/* TODO - do we need to ensure DMA flushed */
+		if(play_prtd->params)
+	  	sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_FLUSH);
+		snd_pcm_set_runtime_buffer(substream, NULL);
+//	  	printk("play: %s,%d\n", __func__, __LINE__);
+		if (play_prtd->params) {
+			sw_dma_free(play_prtd->params->channel, play_prtd->params->client);
+			play_prtd->params = NULL;
+		}
+   	}else{
+		capture_prtd = substream->runtime->private_data;
+   		/* TODO - do we need to ensure DMA flushed */
+		if(capture_prtd->params)
+	  	sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_FLUSH);
+		snd_pcm_set_runtime_buffer(substream, NULL);
+//	  	printk("capture: %s,%d\n", __func__, __LINE__);
+		if (capture_prtd->params) {
+			sw_dma_free(capture_prtd->params->channel, capture_prtd->params->client);
+			capture_prtd->params = NULL;
+		}
+   	}
 	return 0;
 }
 
 static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
-{
-	struct sw_runtime_data *prtd = substream->runtime->private_data;
-	struct dma_hw_conf *codec_dma_conf;
-	int ret ;
+{	
+	struct dma_hw_conf *codec_play_dma_conf = NULL, *codec_capture_dma_conf = NULL;
+	int play_ret = 0, capture_ret = 0;
 	unsigned int reg_val;
-	ret = 0;
-	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+	struct sw_playback_runtime_data *play_prtd = NULL;
+	struct sw_capture_runtime_data *capture_prtd = NULL;
+	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){		
+//		printk("play: %s, %d\n", __func__, __LINE__);
 		switch(substream->runtime->rate){
 			case 44100:							
 				clk_set_rate(codec_pll2clk, 22579200);
@@ -729,6 +850,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				break;
 		}
 	}else{
+//		printk("capture: %s, %d\n", __func__, __LINE__);
 		switch(substream->runtime->rate){
 			case 44100:
 				clk_set_rate(codec_pll2clk, 22579200);
@@ -831,125 +953,166 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 			break;
 		}        	
 	}
-	
-	codec_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
-	if (!codec_dma_conf){
-	   ret =  - ENOMEM;
-	   pr_debug("Can't audio malloc dma configure memory\n");
-	   return ret;
-	}
-	pr_debug("Entered %s\n", __func__);
-
-	/* return if this is a bufferless transfer e.g.
-	 * codec <--> BT codec or GSM modem -- lg FIXME */
-	if (!prtd->params)
-		return 0;                            
-
-   if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){                                       
+   if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){      		
+		codec_play_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
+		if (!codec_play_dma_conf){
+		   play_ret =  - ENOMEM;
+		   printk("Can't audio malloc dma play configure memory\n");
+		   return play_ret;
+		}
+   	 	play_prtd = substream->runtime->private_data;
+   	 /* return if this is a bufferless transfer e.g.
+	  * codec <--> BT codec or GSM modem -- lg FIXME */       
+   	 	if (!play_prtd->params)
+		return 0;                              
    	 	//open the dac channel register
 		codec_play_open();    
-	  	codec_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;
-		codec_dma_conf->drqdst_type  = DRQ_TYPE_AUDIO;
-		codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
-		codec_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
-		codec_dma_conf->dir          = SW_DMA_WDEV;
-		codec_dma_conf->reload       = 0;
-		codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
-		codec_dma_conf->from         = prtd->dma_start;
-		codec_dma_conf->to           = prtd->params->dma_addr;
-		pr_debug("Set DMA parameter %8x, %8x\n",prtd->dma_start,prtd->params->dma_addr);
-	  	ret = sw_dma_config(prtd->params->channel,codec_dma_conf);
-	  	pr_debug("codec_dma_conf->reload: %d\n",codec_dma_conf->reload);
-	}else {
+	  	codec_play_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;
+		codec_play_dma_conf->drqdst_type  = DRQ_TYPE_AUDIO;
+		codec_play_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
+		codec_play_dma_conf->address_type = DMAADDRT_D_FIX_S_INC;
+		codec_play_dma_conf->dir          = SW_DMA_WDEV;
+		codec_play_dma_conf->reload       = 0;
+		codec_play_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
+		codec_play_dma_conf->from         = play_prtd->dma_start;
+		codec_play_dma_conf->to           = play_prtd->params->dma_addr;
+//		printk("%s,%d,Set DMA parameter %8x, %8x\n",__func__,__LINE__, play_prtd->dma_start, play_prtd->params->dma_addr);
+	  	play_ret = sw_dma_config(play_prtd->params->channel, codec_play_dma_conf);
+//	  	printk("%s,%d,codec_dma_conf->reload: %d\n",__func__,__LINE__, codec_play_dma_conf->reload);
+	  	/* flush the DMA channel */
+		sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_FLUSH);
+		play_prtd->dma_loaded = 0;
+		play_prtd->dma_pos = play_prtd->dma_start;	
+		/* enqueue dma buffers */
+		sw_pcm_enqueue(substream);
+		return play_ret;
+	}else {			
+		codec_capture_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
+//		printk("capture: %s, %d\n", __func__, __LINE__);
+		if (!codec_capture_dma_conf){
+		   capture_ret =  - ENOMEM;
+		   printk("Can't audio malloc dma capture configure memory\n");
+		   return capture_ret;
+		}
+		capture_prtd = substream->runtime->private_data;
+   	 	/* return if this is a bufferless transfer e.g.
+	  	 * codec <--> BT codec or GSM modem -- lg FIXME */       
+   	 	if (!capture_prtd->params)
+		return 0;
 	   	//open the adc channel register
 	   	codec_capture_open();
 	   	//set the dma
-	   	pr_debug("dma start address : %8x\n",prtd->dma_start);
-	   	codec_dma_conf->drqsrc_type  = DRQ_TYPE_AUDIO;
-		codec_dma_conf->drqdst_type  = D_DRQSRC_SDRAM;
-		codec_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
-		codec_dma_conf->address_type = DMAADDRT_D_INC_S_FIX;
-		codec_dma_conf->dir          = SW_DMA_RDEV;
-		codec_dma_conf->reload       = 0;
-		codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
-		codec_dma_conf->from         = prtd->params->dma_addr;
-		codec_dma_conf->to           = prtd->dma_start;
-	  	ret = sw_dma_config(prtd->params->channel,codec_dma_conf);  	   	 
+	   	pr_debug("dma start address : %8x\n",capture_prtd->dma_start);
+	   	codec_capture_dma_conf->drqsrc_type  = DRQ_TYPE_AUDIO;
+		codec_capture_dma_conf->drqdst_type  = D_DRQSRC_SDRAM;
+		codec_capture_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
+		codec_capture_dma_conf->address_type = DMAADDRT_D_INC_S_FIX;
+		codec_capture_dma_conf->dir          = SW_DMA_RDEV;
+		codec_capture_dma_conf->reload       = 0;
+		codec_capture_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
+		codec_capture_dma_conf->from         = capture_prtd->params->dma_addr;
+		codec_capture_dma_conf->to           = capture_prtd->dma_start;
+//		printk("%s,%d,Set DMA parameter %8x, %8x\n",__func__,__LINE__, capture_prtd->dma_start, capture_prtd->params->dma_addr);
+	  	capture_ret = sw_dma_config(capture_prtd->params->channel, codec_capture_dma_conf);  	   
+	  	/* flush the DMA channel */
+		sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_FLUSH);
+		capture_prtd->dma_loaded = 0;
+		capture_prtd->dma_pos = capture_prtd->dma_start;
+	
+		/* enqueue dma buffers */
+		sw_pcm_enqueue(substream);	 
+		return capture_ret;
 	}
-	/* flush the DMA channel */
-	sw_dma_ctrl(prtd->params->channel, SW_DMAOP_FLUSH);
-	prtd->dma_loaded = 0;
-	prtd->dma_pos = prtd->dma_start;
-
-	/* enqueue dma buffers */
-	sw_pcm_enqueue(substream);
-
-	return ret;	
 }
 
 static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
-{
-	struct sw_runtime_data *prtd = substream->runtime->private_data;
-	int ret ;
-
-	spin_lock(&prtd->lock);
-
-	switch (cmd) {
-	case SNDRV_PCM_TRIGGER_START:
-	case SNDRV_PCM_TRIGGER_RESUME:
-	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		prtd->state |= ST_RUNNING;
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			codec_play_start();
-		else
+{	
+	int play_ret = 0, capture_ret = 0;
+	struct sw_playback_runtime_data *play_prtd = NULL;
+	struct sw_capture_runtime_data *capture_prtd = NULL;
+	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
+		play_prtd = substream->runtime->private_data;
+//		printk("play:%s,%d\n", __func__, __LINE__);
+		spin_lock(&play_prtd->lock);
+		switch (cmd) {
+			case SNDRV_PCM_TRIGGER_START:
+			case SNDRV_PCM_TRIGGER_RESUME:
+			case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+				pr_debug("%s,%d\n", __func__, __LINE__);
+				play_prtd->state |= ST_RUNNING;				
+				codec_play_start();			
+				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);			
+				break;
+			case SNDRV_PCM_TRIGGER_SUSPEND:
+				pr_debug("%s,%d\n", __func__, __LINE__);
+				codec_play_stop();				
+				break;
+			case SNDRV_PCM_TRIGGER_STOP:			 
+				pr_debug("%s,%d\n", __func__, __LINE__);
+				play_prtd->state &= ~ST_RUNNING;
+				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_STOP);
+				break;
+			case SNDRV_PCM_TRIGGER_PAUSE_PUSH:			
+				pr_debug("%s,%d\n", __func__, __LINE__);
+				play_prtd->state &= ~ST_RUNNING;
+				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_STOP);
+				break;		
+			default:
+				printk("error:%s,%d\n", __func__, __LINE__);
+				play_ret = -EINVAL;
+				break;
+			}
+		spin_unlock(&play_prtd->lock);
+	}else{
+		capture_prtd = substream->runtime->private_data;
+//		printk("capture:%s,%d\n", __func__, __LINE__);
+		spin_lock(&capture_prtd->lock);
+		switch (cmd) {
+		case SNDRV_PCM_TRIGGER_START:
+		case SNDRV_PCM_TRIGGER_RESUME:
+		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+			capture_prtd->state |= ST_RUNNING;		 
 			codec_capture_start();
-		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_START);
-	//	printk("dma start %s,%d\n", __func__,__LINE__);		
-		break;
-	case SNDRV_PCM_TRIGGER_SUSPEND:
-		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
-			codec_play_stop();
-		else
-			codec_capture_stop();
-	//		printk("dma suspend %s,%d\n", __func__,__LINE__);
-		break;
-	case SNDRV_PCM_TRIGGER_STOP:
-	 //       printk("dma stop %s,%d\n", __func__,__LINE__);
-		prtd->state &= ~ST_RUNNING;
-		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_STOP);
-		break;
-	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-	//	printk("dma stop %s,%d\n", __func__,__LINE__);
-		prtd->state &= ~ST_RUNNING;
-		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_STOP);
-		break;
-
-	default:
-		ret = -EINVAL;
-		break;
+			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_START);		
+			break;
+		case SNDRV_PCM_TRIGGER_SUSPEND:
+			codec_capture_stop();		
+			break;
+		case SNDRV_PCM_TRIGGER_STOP:		 
+			capture_prtd->state &= ~ST_RUNNING;
+			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_STOP);
+			break;
+		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:		
+			capture_prtd->state &= ~ST_RUNNING;
+			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_STOP);
+			break;	
+		default:
+			printk("error:%s,%d\n", __func__, __LINE__);
+			capture_ret = -EINVAL;
+			break;
+		}
+		spin_unlock(&capture_prtd->lock);
 	}
-
-	spin_unlock(&prtd->lock);
 	return 0;
 }
 
-static int snd_card_sw_codec_open(struct snd_pcm_substream *substream)
+static int snd_swcard_capture_open(struct snd_pcm_substream *substream)
 {
 	/*获得PCM运行时信息指针*/
 	struct snd_pcm_runtime *runtime = substream->runtime;
 	int err;
-	struct sw_runtime_data *prtd;
+	struct sw_capture_runtime_data *capture_prtd;
 
-	pr_debug("Entered %s\n", __func__);
-	prtd = kzalloc(sizeof(struct sw_runtime_data), GFP_KERNEL);
-	if (prtd == NULL)
+//	printk("Entered %s, %d\n", __func__, __LINE__);
+	capture_prtd = kzalloc(sizeof(struct sw_capture_runtime_data), GFP_KERNEL);
+	if (capture_prtd == NULL)
 		return -ENOMEM;
 
-	spin_lock_init(&prtd->lock);
+	spin_lock_init(&capture_prtd->lock);
 
-	runtime->private_data = prtd;
+	runtime->private_data = capture_prtd;
     
-	runtime->hw = sw_pcm_hardware;
+	runtime->hw = sw_pcm_capture_hardware;
 	
 	/* ensure that buffer size is a multiple of period size */
 	if ((err = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS)) < 0)
@@ -960,16 +1123,63 @@ static int snd_card_sw_codec_open(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static int snd_card_sw_codec_close(struct snd_pcm_substream *substream)
+static int snd_swcard_capture_close(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
+//	printk("Entered %s, %d\n", __func__, __LINE__);
 	kfree(runtime->private_data);
 	return 0;
 }
 
-static struct snd_pcm_ops sw_pcm_ops = {
-	.open			= snd_card_sw_codec_open,//打开
-	.close			= snd_card_sw_codec_close,//关闭
+static int snd_swcard_playback_open(struct snd_pcm_substream *substream)
+{
+	/*获得PCM运行时信息指针*/
+	struct snd_pcm_runtime *runtime = substream->runtime;
+	int err;
+	struct sw_playback_runtime_data *play_prtd;
+
+//	printk("Entered %s, %d\n", __func__, __LINE__);
+	play_prtd = kzalloc(sizeof(struct sw_playback_runtime_data), GFP_KERNEL);
+	if (play_prtd == NULL)
+		return -ENOMEM;
+
+	spin_lock_init(&play_prtd->lock);
+
+	runtime->private_data = play_prtd;
+    
+	runtime->hw = sw_pcm_playback_hardware;
+	
+	/* ensure that buffer size is a multiple of period size */
+	if ((err = snd_pcm_hw_constraint_integer(runtime, SNDRV_PCM_HW_PARAM_PERIODS)) < 0)
+		return err;
+	if ((err = snd_pcm_hw_constraint_list(runtime, 0, SNDRV_PCM_HW_PARAM_RATE, &hw_constraints_rates)) < 0)
+		return err;
+        
+	return 0;
+}
+
+static int snd_swcard_playback_close(struct snd_pcm_substream *substream)
+{
+	struct snd_pcm_runtime *runtime = substream->runtime;
+//	printk("Entered %s, %d\n", __func__, __LINE__);
+	kfree(runtime->private_data);
+	return 0;
+}
+
+static struct snd_pcm_ops sw_pcm_playback_ops = {
+	.open			= snd_swcard_playback_open,//打开
+	.close			= snd_swcard_playback_close,//关闭
+	.ioctl			= snd_pcm_lib_ioctl,//I/O控制
+	.hw_params	    = sw_codec_pcm_hw_params,//硬件参数
+	.hw_free	    = snd_sw_codec_hw_free,//资源释放
+	.prepare		= snd_sw_codec_prepare,//准备
+	.trigger		= snd_sw_codec_trigger,//在pcm被开始、停止或暂停时调用
+	.pointer		= snd_sw_codec_pointer,//当前缓冲区的硬件位置
+};
+
+static struct snd_pcm_ops sw_pcm_capture_ops = {
+	.open			= snd_swcard_capture_open,//打开
+	.close			= snd_swcard_capture_close,//关闭
 	.ioctl			= snd_pcm_lib_ioctl,//I/O控制
 	.hw_params	    = sw_codec_pcm_hw_params,//硬件参数
 	.hw_free	    = snd_sw_codec_hw_free,//资源释放
@@ -1001,8 +1211,8 @@ static int __init snd_card_sw_codec_pcm(struct sw_codec *sw_codec, int device)
 	*	设置PCM操作，第1个参数是snd_pcm的指针，第2 个参数是SNDRV_PCM_STREAM_PLAYBACK
 	*	或SNDRV_ PCM_STREAM_CAPTURE，而第3 个参数是PCM 操作结构体snd_pcm_ops
 	*/
-	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &sw_pcm_ops);
-	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sw_pcm_ops);
+	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &sw_pcm_playback_ops);
+	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &sw_pcm_capture_ops);
 	pcm->private_data = sw_codec;//置pcm->private_data为芯片特定数据
 	pcm->info_flags = 0;
 	strcpy(pcm->name, "sun4i PCM");

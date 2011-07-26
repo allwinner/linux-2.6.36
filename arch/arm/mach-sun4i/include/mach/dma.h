@@ -49,7 +49,8 @@ enum sw_dma_ch {
 	DMACH_NSRAM,
 	DMACH_NSDRAM,
 	DMACH_NTPAD,
-	DMACH_NADDA,//audio
+	DMACH_NADDA_PLAY,//audio play
+	DMACH_NADDA_CAPTURE,//audio capture
 	DMACH_NIIS,
 	DMACH_NIR0,
 	DMACH_NIR1,

@@ -96,8 +96,13 @@ static struct sw_dma_map __initdata sw_dma_mappings[DMACH_MAX] = {
 		.name		= "tpadc",
 		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,0,0,0,0,0,0,0,0},
 	},
-	[DMACH_NADDA] = {
-		.name		= "adda",
+	[DMACH_NADDA_PLAY] = {
+		.name		= "adda_play",
+		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
+				0,0,0,0,0,0,0,0,},
+	},
+	[DMACH_NADDA_CAPTURE] = {
+		.name		= "adda_capture",
 		.channels = {DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,DMA_CH_VALID,
 				0,0,0,0,0,0,0,0,},
 	},
