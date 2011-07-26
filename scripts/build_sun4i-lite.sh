@@ -94,7 +94,7 @@ build_modules()
     unset LANGUAGE
 
     cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali
-    USING_MMU=1 USING_UMP=0 USING_PMM=0 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
+    USING_MMU=1 USING_UMP=0 USING_PMM=1 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
     cp mali.ko ${LICHEE_MOD_DIR}
     cd -
 }
