@@ -3,13 +3,17 @@
 #include<linux/g2d_driver.h>
 #include"g2d.h"
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
+
 static struct info_mem g2d_mem[MAX_G2D_MEM_INDEX];
 static int	g2d_mem_sel = 0;
 
 static struct class	*g2d_class;
 static struct cdev	*g2d_cdev;
 static dev_t		 devid ;
-__g2d_drv_t	 g2d_ext_hd;
+__g2d_drv_t			 g2d_ext_hd;
 __g2d_info_t		 para;
 
 static struct resource g2d_resource[2] =
@@ -176,13 +180,13 @@ int g2d_mmap(struct file *file, struct vm_area_struct * vma)
 
 static int g2d_open(struct inode *inode, struct file *file)
 {
-
+	g2d_clk_on();
 	return 0;
 }
 
 static int g2d_release(struct inode *inode, struct file *file)
 {
-
+	g2d_clk_off();
 	return 0;
 }
 
@@ -306,7 +310,7 @@ static int g2d_probe(struct platform_device *pdev)
 	
 	/* get the clk */
 	g2d_openclk();
-	g2d_clk_on();
+//	g2d_clk_on();
 			
 	/* get the memory region */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -404,12 +408,37 @@ static int g2d_resume(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+void g2d_early_suspend(struct early_suspend *h)
+{
+    g2d_suspend(NULL, PMSG_SUSPEND);
+}
+
+void g2d_late_resume(struct early_suspend *h)
+{
+    g2d_resume(NULL);
+}
+
+static struct early_suspend g2d_early_suspend_handler =
+{
+    .level   = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+	.suspend = g2d_early_suspend,
+	.resume = g2d_late_resume,
+};
+#endif
+
+
 static struct platform_driver g2d_driver = {
 	.probe          = g2d_probe,
 	.remove         = g2d_remove,
+#ifndef CONFIG_HAS_EARLYSUSPEND
 	.suspend        = g2d_suspend,
 	.resume         = g2d_resume,
-	.driver			= 
+#else
+	.suspend        = NULL,
+	.resume         = NULL,
+#endif
+	.driver			=
 	{
 		.owner		= THIS_MODULE,
 		.name		= "g2d",
@@ -444,7 +473,11 @@ int __init g2d_module_init(void)
 	{	
 		ret = platform_driver_register(&g2d_driver);
 	}
-	INFO("Module initialized.major:%d\n", MAJOR(devid));	
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    register_early_suspend(&g2d_early_suspend_handler);
+#endif
+	INFO("Module initialized.major:%d\n", MAJOR(devid));
 	return ret;
 }
 
@@ -452,7 +485,11 @@ static void __exit g2d_module_exit(void)
 {
 	INFO("g2d_module_exit\n");
 	kfree(g2d_ext_hd.g2d_finished_sem);
-	
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    unregister_early_suspend(&g2d_early_suspend_handler);
+#endif
+
 	platform_driver_unregister(&g2d_driver);
 	platform_device_unregister(&g2d_device);
 

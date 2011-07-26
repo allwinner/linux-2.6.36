@@ -12,27 +12,14 @@ int g2d_openclk(void)
 	
 	/* ahb g2d gating */
 	g2d_ahbclk = clk_get(NULL,"ahb_de_mix");
-	if(-1 == clk_enable(g2d_ahbclk))
-		{
-			printk("open ahb_de_mix gating failed; \n");
-		}
 	
 	/* sdram g2d gating */
 	g2d_dramclk = clk_get(NULL,"sdram_de_mix");
 	
-	if(-1 == clk_enable(g2d_dramclk))
-	{
-		printk("open sdram_de_mix gating failed; \n");
-	}
-	
 	/* g2d gating */
 	g2d_mclk = clk_get(NULL,"de_mix");
-	if(clk_enable(g2d_mclk) == -1)
-		{
-			printk("enable DE_MIX error! \n");
-		}
 		
-	/*disable mp clk reset*/	
+	/*disable mp clk reset*/
 	clk_reset(g2d_mclk,0);
 	
 	/* set g2d clk value */
@@ -41,10 +28,10 @@ int g2d_openclk(void)
 	clk_put(g2d_src);
 	
 	ret = clk_get_rate(g2d_src);
-	clk_set_rate(g2d_mclk,ret/2);	
+	clk_set_rate(g2d_mclk,ret/2);
+		
 	return 0;
 }
-      
 
 int g2d_closeclk(void)/* used once when g2d driver exit */
 {	
@@ -106,15 +93,18 @@ int g2d_exit(void)
 	
 	return err;
 }
+
 void g2d_wait_cmd_finish(void)
 {
-	long timeout = 30; /* 50ms */
+	long timeout = 200; /* 200ms */
 	
 	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, msecs_to_jiffies(timeout));
 	if(timeout == 0)
 	{
 		printk("wait g2d irq pending flag timeout\n");
 		mixer_clear_init();
+		g2d_ext_hd.finish_flag = 1;
+		wake_up(&g2d_ext_hd.queue);
 	}
 }
 
