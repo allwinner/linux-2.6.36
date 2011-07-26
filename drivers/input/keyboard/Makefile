@@ -53,4 +53,4 @@ ifdef CONFIG_ARCH_SUN3I
 obj-$(CONFIG_IR_SUN3I)			+= sun3i-ir.o
 endif
 
-
+obj-$(CONFIG_KEYBOARD_HV2605_KEYBOARD)  += hv2605.o
