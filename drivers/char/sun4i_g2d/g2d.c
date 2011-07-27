@@ -96,7 +96,7 @@ int g2d_exit(void)
 
 void g2d_wait_cmd_finish(void)
 {
-	long timeout = 200; /* 200ms */
+	long timeout = 30; /* 30ms */
 	
 	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, msecs_to_jiffies(timeout));
 	if(timeout == 0)
