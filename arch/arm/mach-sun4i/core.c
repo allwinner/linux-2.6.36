@@ -279,14 +279,20 @@ static u32 DRAMC_get_dram_size(void)
         return dram_size;
 }
 
+extern unsigned long fb_start;
+extern unsigned long fb_size;
+
 int sw_plat_init(void)
 {
 	pr_info("SUN4i Platform Init\n");
-	memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
-	pr_info("Reserve memory for system, base=%x, size=%d\n",
-		CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
 
-	memblock_reserve(CONFIG_ANDROID_PMEM_BASE - 0x2000000, 0x2000000);
+	
+	memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+	memblock_reserve(fb_start, fb_size);
+
+	pr_info("reserve: base=0x%08x, size=0x%08x\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+	pr_info("reserve: base=0x%08x, size=0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
+
 	return 0;
 }
 

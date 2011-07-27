@@ -467,6 +467,37 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
+
+unsigned long fb_start = 0x5a000000;
+unsigned long fb_size = 32 * 1024 * 1024;
+EXPORT_SYMBOL(fb_start);
+EXPORT_SYMBOL(fb_size);
+
+
+
+static int __init early_fbmem(char *p)
+{
+	unsigned long size, start;
+	char *endp;
+
+	/*
+	 * If the user specifies memory size, we
+	 * blow away any automatically generated
+	 * size.
+	 */
+	start = PHYS_OFFSET;
+	size  = memparse(p, &endp);
+	if (*endp == '@')
+		start = memparse(endp + 1, NULL);
+
+	printk("fbmem: start=0x%08x, size=0x%08x\n", (unsigned int)start, (unsigned int)size);
+	fb_start = start;
+	fb_size = size;
+
+	return 0;
+}
+early_param("fbmem", early_fbmem);
+
 static void __init
 setup_ramdisk(int doload, int prompt, int image_start, unsigned int rd_sz)
 {
@@ -570,6 +601,7 @@ struct screen_info screen_info = {
  .orig_video_points	= 8
 };
 
+
 static int __init parse_tag_videotext(const struct tag *tag)
 {
 	screen_info.orig_x            = tag->u.videotext.x;
@@ -624,6 +656,7 @@ static int __init parse_tag_cmdline(const struct tag *tag)
 __tagtable(ATAG_CMDLINE, parse_tag_cmdline);
 #endif /* CONFIG_CMDLINE_FORCE */
 
+#ifdef USE_TAG
 /*
  * Scan the tag table for this tag, and call its parse function.
  * The tag table is built by the linker from all the __tagtable
@@ -655,6 +688,7 @@ static void __init parse_tags(const struct tag *t)
 				"Ignoring unrecognised tag 0x%08x\n",
 				t->hdr.tag);
 }
+#endif
 
 /*
  * This holds our defaults.
@@ -672,6 +706,7 @@ static struct init_tags {
 	{ MEM_SIZE, PHYS_OFFSET },
 	{ 0, ATAG_NONE }
 };
+
 
 static void (*init_machine)(void) __initdata;
 
@@ -757,13 +792,14 @@ static int __init setup_elfcorehdr(char *arg)
 early_param("elfcorehdr", setup_elfcorehdr);
 #endif /* CONFIG_CRASH_DUMP */
 
+#ifdef USE_TAG
 static void __init squash_mem_tags(struct tag *tag)
 {
 	for (; tag->hdr.size; tag = tag_next(tag))
 		if (tag->hdr.tag == ATAG_MEM)
 			tag->hdr.tag = ATAG_NONE;
 }
-
+#endif
 
 extern int sw_plat_init(void);
 
@@ -787,10 +823,14 @@ void __init setup_arch(char **cmdline_p)
 	if (mdesc->soft_reboot)
 		reboot_setup("s");
 
-	if (__atags_pointer)
+#ifdef USE_TAG
+	if (__atags_pointer) {
 		tags = phys_to_virt(__atags_pointer);
-	else if (mdesc->boot_params)
+	}
+	else if (mdesc->boot_params) {
 		tags = phys_to_virt(mdesc->boot_params);
+	}
+#endif /*USE_TAG*/
 
 #ifndef CONFIG_CMDLINE_FORCE
         mbp = phys_to_virt(mdesc->boot_params);
@@ -809,6 +849,7 @@ void __init setup_arch(char **cmdline_p)
         printk("User defined parameters:\n%s at %p\n", boot_command_line, mbp);
 #endif
 
+#ifdef USE_TAG
 #if defined(CONFIG_DEPRECATED_PARAM_STRUCT)
 	/*
 	 * If we have the old style parameters, convert them to
@@ -819,16 +860,19 @@ void __init setup_arch(char **cmdline_p)
 #endif
 	if (tags->hdr.tag != ATAG_CORE)
 		tags = (struct tag *)&init_tags;
+#endif /*USE_TAG*/
 
 	if (mdesc->fixup)
 		mdesc->fixup(mdesc, tags, &from, &meminfo);
 
+#ifdef USE_TAG
 	if (tags->hdr.tag == ATAG_CORE) {
 		if (meminfo.nr_banks != 0)
 			squash_mem_tags(tags);
 		save_atags(tags);
 		parse_tags(tags);
 	}
+#endif /*USE_TAG*/
 
 	init_mm.start_code = (unsigned long) _text;
 	init_mm.end_code   = (unsigned long) _etext;

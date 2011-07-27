@@ -1099,6 +1099,9 @@ __s32 Display_Fb_Release(__u32 fb_id)
 
 }
 
+extern unsigned long fb_start;
+extern unsigned long fb_size;
+
 __s32 Fb_Init(void)
 {    
     __disp_fb_create_para_t fb_para;
@@ -1106,9 +1109,8 @@ __s32 Fb_Init(void)
     __s32 i;
 
 #ifdef FB_RESERVED_MEM
-    __inf("CONFIG_SW_SYSMEM_RESERVED_BASE:%x,CONFIG_SW_SYSMEM_RESERVED_SIZE:%d K\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE);
-    
-    disp_create_heap(CONFIG_ANDROID_PMEM_BASE + 0x80000000 - 0x2000000, 0x2000000);
+    pr_info("fbmem: fb_start=%lu, fb_size=%lu\n", fb_start, fb_size);
+    disp_create_heap(fb_start + 0x80000000,  fb_size);
 #endif
 
     for(i=0; i<8; i++)

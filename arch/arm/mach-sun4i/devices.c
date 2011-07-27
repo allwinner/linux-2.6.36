@@ -42,24 +42,17 @@
  */
 static struct android_pmem_platform_data android_pmem_pdata = {
 	.name = "pmem",
-	//.start = CONFIG_ANDROID_PMEM_BASE,
-	//.size = CONFIG_ANDROID_PMEM_SIZE*1024,
 	.no_allocator = 1,
 	.cached = 1,
 	.buffered = 0,
 };
 
-#if 0
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.name = "pmem_adsp",
-	//.start = CONFIG_ANDROID_PMEM_ADSP_BASE,
-	//.size = CONFIG_ANDROID_PMEM_ADSP_SIZE*1024,
 	.no_allocator = 0,
 	.cached = 0,
 	.buffered = 0,
 };
-#endif
-
 
 static struct platform_device android_pmem_device0 = {
 	.name = "android_pmem",
@@ -67,13 +60,11 @@ static struct platform_device android_pmem_device0 = {
 	.dev = {.platform_data = &android_pmem_pdata },
 };
 
-#if 0
 static struct platform_device android_pmem_device1 = {
 	.name = "android_pmem",
 	.id = 1,
 	.dev = {.platform_data = &android_pmem_adsp_pdata },
 };
-#endif
 
 static int __init init_pmem_devs(void)
 {
@@ -90,31 +81,30 @@ static int __init init_pmem_devs(void)
 	return 0;
 }
 
-#endif /* CONFIG_ANDROID_PMEM */
-
 /*
  * All platform devices
  */
 static struct platform_device *aw_pdevs[] __initdata = {
-#ifdef CONFIG_ANDROID_PMEM
 	&android_pmem_device0,
-#endif /* CONFIG_ANDROID_PMEM */
 };
+
+
 
 int __init aw_pdevs_init(void)
 {
 	pr_info("Platform devices init\n");
 
-#ifdef CONFIG_ANDROID_PMEM
 	if (init_pmem_devs()) {
 		return -ENOMEM;
 	}
-#endif
+
 	platform_add_devices(aw_pdevs, ARRAY_SIZE(aw_pdevs));
 
 	return 0;
 }
 arch_initcall(aw_pdevs_init);
+
+#endif /* CONFIG_ANDROID_PMEM */
 
 static int read_chip_sid(char* page, char** start, off_t off, int count,
 	int* eof, void* data)
