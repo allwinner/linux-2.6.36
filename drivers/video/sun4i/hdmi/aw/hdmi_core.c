@@ -24,7 +24,8 @@ HDMI_VIDE_INFO video_timing[] =
 	{HDMI1080I_60      ,  74250000, 0, 1920,  540, 2200, 192,  88, 44, 1125, 20, 2, 5},
 	{HDMI1080P_50      , 148500000, 0, 1920, 1080, 2640, 192, 528, 44, 2250, 41, 4, 5},
 	{HDMI1080P_60      , 148500000, 0, 1920, 1080, 2200, 192,  88, 44, 2250, 41, 4, 5},  
-	{HDMI1080P_24_3D_FP, 148500000, 0, 1920, 2160, 2750, 192, 638, 44, 2250, 41, 4, 5}
+    {HDMI1080P_24_3D_FP, 148500000, 0, 1920, 2160, 2750, 192, 638, 44, 4500, 41, 4, 5},
+	{HDMI1080P_24      ,  74250000, 0, 1920, 1080, 2750, 192, 638, 44, 2250, 41, 4, 5},
 };
 
 __s32 hdmi_core_initial(void)
@@ -198,7 +199,7 @@ __s32 get_audio_info(__s32 sample_rate)
    		 audio_info.CTS =   ((27000000/100) *(audio_info.ACR_N /128)) / (sample_rate/100);
    }
    else if( (video_mode == HDMI720P_50 ) || (video_mode == HDMI720P_60 ) ||
-            (video_mode == HDMI1080I_50) || (video_mode == HDMI1080I_60)  )
+            (video_mode == HDMI1080I_50) || (video_mode == HDMI1080I_60) || (video_mode == HDMI1080P_24) )
    {
    		 audio_info.CTS =   ((74250000/100) *(audio_info.ACR_N /128)) / (sample_rate/100);
    }
