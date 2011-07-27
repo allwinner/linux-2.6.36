@@ -46,7 +46,7 @@
 
 //#define USE_DMA_CONTIG
 
-#define AJUST_DRAM_PRIORITY
+//#define AJUST_DRAM_PRIORITY
 #define REGS_pBASE					(0x01C00000)	 	      // register base addr
 #define SDRAM_REGS_pBASE    (REGS_pBASE + 0x01000)    // SDRAM Controller
 
