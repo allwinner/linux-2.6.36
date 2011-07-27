@@ -78,16 +78,6 @@ struct ft5x_ts_data {
 #endif
 };
 
-static struct i2c_board_info __initdata i2c_info_ft5x_ts[] =  {
-	{
-	    //need to be modify, according the menuconfig 
-		//I2C_BOARD_INFO("ft5x_ts", 0x7e),
-		I2C_BOARD_INFO("ft5x_ts", 0x00),
-		.platform_data	= NULL,
-	},
-};
-
-
 static int ft5x_i2c_rxdata(char *rxdata, int length)
 {
 	int ret;
@@ -609,20 +599,8 @@ static struct i2c_driver ft5x_ts_driver = {
 };
 
 static int __init ft5x_ts_init(void)
-{
-    int status = 0;
-    
+{ 
 	printk("=========ft5x-ts-init============\n");
-
-	if(0 == CONFIG_TOUCHSCREEN_FT5X_TS_SLAVE_ADDR){
-        i2c_info_ft5x_ts[0].addr = 0x7e;
-	}else if(1 == CONFIG_TOUCHSCREEN_FT5X_TS_SLAVE_ADDR){
-        i2c_info_ft5x_ts[0].addr = 0x70;
-	}
-	
-    status = i2c_register_board_info(CONFIG_TOUCHSCREEN_FT5X_TS_BUS_NUM, i2c_info_ft5x_ts, ARRAY_SIZE(i2c_info_ft5x_ts));
-    printk("===============ft5x_ts=============, status = %d ===\n",status);
- 
 	return i2c_add_driver(&ft5x_ts_driver);
 }
 

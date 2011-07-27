@@ -61,12 +61,6 @@ struct hv_keypad_data {
 #define print_status_info(fmt, args...)   //
 #endif
 
-static struct i2c_board_info hv_keyboard_i2c_board_info[] __initdata = {
-	{	I2C_BOARD_INFO("hv_keypad", 0x62),
-		.platform_data	= NULL,	
-	},
-};
-
 static struct i2c_msg tx_msg[] = {{0},};
 static 	struct i2c_msg rx_msgs[] = {{0},{0},};
 
@@ -333,11 +327,7 @@ static struct i2c_driver hv_keypad_driver = {
 
 static int __init hv_keypad_init(void)
 {
-    int status;
-	printk("========HV Inital ===================\n");
-	
-	status = i2c_register_board_info(1, hv_keyboard_i2c_board_info, ARRAY_SIZE(hv_keyboard_i2c_board_info));
-    printk("===============hv_keyboard==============, status = %d ===\n",status);
+	printk("========HV Inital ===================\n");	
 	return i2c_add_driver(&hv_keypad_driver);
 }
 

@@ -1201,6 +1201,25 @@ static struct i2c_board_info __initdata i2c_info_power[] =  {
 	},
 };
 
+#if defined(CONFIG_TOUCHSCREEN_FT5X_TS) || defined(CONFIG_TOUCHSCREEN_FT5X_TS_MODULE)
+static struct i2c_board_info __initdata i2c_info_ft5x_ts[] =  {
+	{
+	    //need to be modify, according the menuconfig 
+		//I2C_BOARD_INFO("ft5x_ts", 0x7e),
+		I2C_BOARD_INFO("ft5x_ts", 0x00),
+		.platform_data	= NULL,
+	},
+};
+#endif
+
+#if defined(CONFIG_KEYBOARD_HV2605_KEYBOARD) || defined(CONFIG_KEYBOARD_HV2605_KEYBOARD_MODULE)
+static struct i2c_board_info hv_keyboard_i2c_board_info[] __initdata = {
+	{	I2C_BOARD_INFO("hv_keypad", 0x62),
+		.platform_data	= NULL,	
+	},
+};
+#endif
+
 /*
 #if defined(CONFIG_TOUCHSCREEN_FT) || defined(CONFIG_TOUCHSCREEN_FT_MODULE)
 static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
@@ -1264,6 +1283,21 @@ static int __init i2c_adap_awxx_init(void)
         status = i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
         printk("===============gsensor===============, status = %d ===\n",status);
     #endif	
+    
+    #if defined(CONFIG_TOUCHSCREEN_FT5X_TS) || defined(CONFIG_TOUCHSCREEN_FT5X_TS_MODULE)
+    	if(0 == CONFIG_TOUCHSCREEN_FT5X_TS_SLAVE_ADDR){
+            i2c_info_ft5x_ts[0].addr = 0x7e;
+    	}else if(1 == CONFIG_TOUCHSCREEN_FT5X_TS_SLAVE_ADDR){
+            i2c_info_ft5x_ts[0].addr = 0x70;
+    	}
+        status = i2c_register_board_info(CONFIG_TOUCHSCREEN_FT5X_TS_BUS_NUM, i2c_info_ft5x_ts, ARRAY_SIZE(i2c_info_ft5x_ts));
+        printk("===============ft5x_ts=============, status = %d ===\n",status);
+    #endif
+    
+    #if defined(CONFIG_KEYBOARD_HV2605_KEYBOARD) || defined(CONFIG_KEYBOARD_HV2605_KEYBOARD_MODULE)
+    	status = i2c_register_board_info(1, hv_keyboard_i2c_board_info, ARRAY_SIZE(hv_keyboard_i2c_board_info));
+        printk("===============hv_keyboard==============, status = %d ===\n",status);
+    #endif
 
 	if(i2c_awxx_get_cfg(0)){
 	    aw_register_device(&aw_twi0_device, &aw_twi0_pdata);
