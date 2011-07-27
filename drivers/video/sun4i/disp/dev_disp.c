@@ -368,9 +368,11 @@ __s32 DRV_DISP_Init(void)
     BSP_disp_init(&para);
     BSP_disp_open();
     Fb_Init();
-    
+
+#if 0
     sys_put_wvalue(0xf1C0129C, 0x00001035);
     sys_put_wvalue(0xf1C012B0, 0x00001035);
+#endif
     
     return 0;        
 }
