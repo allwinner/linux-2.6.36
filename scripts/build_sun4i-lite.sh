@@ -43,7 +43,7 @@ show_help()
 build_standby()
 {
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} KDIR=${LICHEE_KDIR} \
-       -C ${LICHEE_KDIR}/arch/arm/mach-sun4i/pm/standby all
+	-C ${LICHEE_KDIR}/arch/arm/mach-sun4i/pm/standby all
 }
 
 build_kernel()
@@ -81,20 +81,24 @@ build_modules()
 
     make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
-	
+
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
 			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl-debug
+			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl-debug 
 
     #make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
-    #    CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all
-
+    #    CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
     export LANG=en_US.UTF-8
     unset LANGUAGE
 
-    cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali
-    USING_MMU=1 USING_UMP=0 USING_PMM=1 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
+    cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/ump
+    CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
+    cp ump.ko ${LICHEE_MOD_DIR}
+    
+    cd ../mali
+    #cd modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/mali
+    USING_MMU=1 USING_UMP=1 USING_PMM=1 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
     cp mali.ko ${LICHEE_MOD_DIR}
     cd -
 }
@@ -107,13 +111,13 @@ clean_kernel()
 
 clean_modules()
 {
-    #make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
+    make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
     make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} clean
 	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
 			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl-debug
+			INSTALL_DIR=${LICHEE_MOD_DIR} clean 
 }
 
 #####################################################################
@@ -123,10 +127,12 @@ clean_modules()
 #####################################################################
 
 LICHEE_ROOT=`(cd ${LICHEE_KDIR}/..; pwd)`
-
 export PATH=${LICHEE_ROOT}/buildroot/output/external-toolchain/bin:$PATH
 
 case "$1" in
+standby)
+    build_standby
+    ;;
 kernel)
     build_kernel
     ;;
