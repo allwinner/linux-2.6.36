@@ -66,6 +66,9 @@ static int tp_flag = 0;
 #define CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 #define PRINT_SUSPEND_INFO
 
+//#define TP_TEMP_DEBUG
+
+
 #define IRQ_TP                 (29)
 #define TP_BASSADDRESS         (0xf1c25000)
 #define TP_CTRL0               (0x00)
@@ -297,15 +300,22 @@ static int sun4i_ts_resume(struct platform_device *pdev)
 static int  tp_init(void)
 {
     //struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
-    struct sun4i_ts_data *ts_data = mtTsData;	
+//    struct sun4i_ts_data *ts_data = mtTsData;	
     //TP_CTRL0: 0x0027003f
     writel(ADC_CLK_DIVIDER|FS_DIV|T_ACQ, TP_BASSADDRESS + TP_CTRL0);	   
     //TP_CTRL2: 0xc4000000
     writel(TP_SENSITIVE_ADJUST|TP_MODE_SELECT,TP_BASSADDRESS + TP_CTRL2);
     //TP_CTRL3: 0x05
     writel(FILTER_EN|FILTER_TYPE,TP_BASSADDRESS + TP_CTRL3);
-    //TP_INT_FIFOC: 0x00010313
-    writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr + TP_INT_FIFOC);
+    
+    #ifdef TP_TEMP_DEBUG
+        //TP_INT_FIFOC: 0x00010313
+        writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN|0x40000, TP_BASSADDRESS + TP_INT_FIFOC);
+        writel(0x10fff, TP_BASSADDRESS + TP_TPR);
+    #else
+        //TP_INT_FIFOC: 0x00010313
+        writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, TP_BASSADDRESS + TP_INT_FIFOC);
+    #endif
     //TP_CTRL1: 0x00000070 -> 0x00000030
     writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
     
@@ -611,8 +621,38 @@ static irqreturn_t sun4i_isr_tp(int irq, void *dev_id)
     int head_index = (int)(ts_data->buffer_head&(CYCLE_BUFFER_SIZE-1));
     int tail = (int)ts_data->buffer_tail;
 
+#ifdef TP_TEMP_DEBUG
+static unsigned int temp_cnt = 0;
+static unsigned int temp_data = 0;
+#define TOTAL_TIMES            4
+
+#endif
+
 	reg_val  = readl(TP_BASSADDRESS + TP_INT_FIFOS);
 	if(!(reg_val&(TP_DOWN_PENDING | FIFO_DATA_PENDING | TP_UP_PENDING))){
+	    //printk("non tp irq . \n");
+	    #ifdef TP_TEMP_DEBUG
+	    if(reg_val&0x40000)
+		{
+		    writel(reg_val&0x40000,TP_BASSADDRESS + TP_INT_FIFOS);
+			reg_val = readl(TP_BASSADDRESS + TEMP_DATA);
+			if(temp_cnt < (TOTAL_TIMES - 1))
+			{
+				temp_data += reg_val;
+				temp_cnt++;
+			}else{
+				  temp_data += reg_val;
+				  temp_data /= TOTAL_TIMES;
+				  printk("temp = ");
+				  printk("%d\n",temp_data);
+				  temp_data = 0;
+				  temp_cnt  = 0;
+			}
+			
+			return IRQ_HANDLED;
+		}
+	    #endif
+	    
         return IRQ_NONE;
 	}
 
