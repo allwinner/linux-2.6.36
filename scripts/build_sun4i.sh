@@ -72,6 +72,9 @@ build_kernel()
     for file in $(find drivers sound modules crypto block fs security net -name "*.ko"); do
 	cp $file ${LICHEE_MOD_DIR}
     done
+
+    rm -rf output/kernel-source
+    scripts/gen_kernel_src.sh output/kernel-source
 }
 
 build_modules()
