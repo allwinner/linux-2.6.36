@@ -958,7 +958,7 @@ static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
             if(crq->bRequestType == USB_RECIP_DEVICE){
                 if((crq->wValue == USB_DEVICE_TEST_MODE) && (crq->wIndex == 0x0400)){
                     //setup packet包接收完毕
-                    USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+                    USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
 
                     dev->ep0state = EP0_END_XFER;
                     crq_bRequest = USB_REQ_SET_FEATURE;
