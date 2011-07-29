@@ -709,6 +709,9 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
             	layer_para.src_win.y = var->yoffset + y_offset;
             	layer_para.src_win.width = var->xres;
             	layer_para.src_win.height = var->yres / buffer_num;
+
+            	BSP_disp_layer_set_src_window(sel, layer_hdl, &(layer_para.src_win));
+            	DRV_disp_wait_cmd_finish(sel);
             }
             else
             {
@@ -719,11 +722,11 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
 
             	layer_para.scn_win.width = var->xres;
             	layer_para.scn_win.height = var->yres / buffer_num;
-            }
 
-            BSP_disp_layer_set_para(sel, layer_hdl, &layer_para);
-            __inf("fb_id:%d,py:%d,sel:%d,layer_hdl:%d\n", info->node, layer_para.src_win.y, sel, layer_hdl);
-            DRV_disp_wait_cmd_finish(sel);
+                BSP_disp_layer_set_src_window(sel, layer_hdl, &(layer_para.src_win));
+            	BSP_disp_layer_set_screen_window(sel, layer_hdl, &(layer_para.scn_win));
+            	DRV_disp_wait_cmd_finish(sel);
+            }
         }
     }
     

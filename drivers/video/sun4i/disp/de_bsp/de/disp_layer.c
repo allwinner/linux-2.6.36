@@ -883,6 +883,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
         	        BSP_disp_cfg_finish(sel);
         	        return DIS_NO_RES;
         	    }
+        	    DE_SCAL_Start(ret);
 
         	    format = DISP_FORMAT_ARGB8888;
         	    DE_BE_Layer_Set_Format(sel, hid, format,FALSE,DISP_SEQ_ARGB);

@@ -218,7 +218,7 @@ __s32 DRV_lcd_close(__u32 sel)
 
 __s32 DRV_scaler_begin(__u32 sel)
 {
-    long timeout = 5000;//5000ms
+    long timeout = 500;//500ms
 
     g_disp_drv.b_scaler_finished[sel] = 0;
     timeout = wait_event_interruptible_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 1, msecs_to_jiffies(timeout));
