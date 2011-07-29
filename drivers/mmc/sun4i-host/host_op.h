@@ -82,8 +82,14 @@ enum mclk_src {
 #define  sdc_read(addr)         readl(addr)
 
 #ifdef CONFIG_SUN4I_MMC_SW_DBG         
-#define SMC_DBG         1
-#define SMC_DBG_ERR     2
+#define SMC_DBG         (1 << 0)
+#define SMC_DBG_ERR     (1 << 1)
+#define SMC_DBG_INFO	(1 << 2)
+#define awsmc_info(...)  do {                                        \
+                            if(smc_debug&SMC_DBG_INFO) {                 \
+                                printk("[mmc]: "__VA_ARGS__);  \
+                            }                                       \
+                        } while(0)
 #define awsmc_dbg(...)  do {                                        \
                             if(smc_debug&SMC_DBG) {                 \
                                 printk("[mmc]: "__VA_ARGS__);  \
@@ -101,7 +107,7 @@ enum mclk_src {
 #define LEAVE()  do {if(smc_debug&SMC_DBG) printk("[mmc]:-Leave-: %s, %s:%d\n", __FUNCTION__, __FILE__, __LINE__);} while(0)
 
 #else  //#ifdef AWSMC_DBG
-
+#define awsmc_info(...)
 #define awsmc_dbg(...)
 #define awsmc_dbg_err(...) do {                                                        \
                                 printk("[mmc]: %s(L%d): ", __FUNCTION__, __LINE__);  \

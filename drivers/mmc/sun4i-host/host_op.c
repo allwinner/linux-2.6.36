@@ -231,9 +231,9 @@ static void finalize_request(struct awsmc_host *smc_host)
 
     if (smc_host->wait != SDC_WAIT_FINALIZE)
     {
-    printk("nothing finalize\n");
+	    printk("nothing finalize\n");
         return;
-}
+	}
 
     awsmc_dbg("request finalize !!\n");
     smc_host->ops.finalize_requset(smc_host);

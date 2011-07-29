@@ -454,7 +454,7 @@ static void sdxc_send_cmd(struct awsmc_host* smc_host, struct mmc_command* cmd)
     u32 imask;
     u32 cmd_val = SDXC_Start|(cmd->opcode&0x3f);
     
-    imask = SDXC_CmdDone|SDXC_IntErrBit;
+    imask = SDXC_CmdDone|SDXC_IntErrBit|SDXC_WaitPreOver;
     
     if (cmd->opcode == MMC_GO_IDLE_STATE) 
     {
@@ -512,7 +512,7 @@ static void sdxc_send_cmd(struct awsmc_host* smc_host, struct mmc_command* cmd)
     
     sdxc_enable_imask(smc_host, imask);
 	
-	awsmc_dbg("smc %d send cmd %d(%08x), imask = 0x%08x, wait = %d\n", smc_host->pdev->id, cmd_val&0x3f, cmd_val, imask, smc_host->wait);
+	awsmc_info("smc %d send cmd %d(%08x), imask = 0x%08x, wait = %d\n", smc_host->pdev->id, cmd_val&0x3f, cmd_val, imask, smc_host->wait);
     
     sdc_write(SDXC_REG_CARG, cmd->arg);
     sdc_write(SDXC_REG_CMDR, cmd_val);
@@ -651,10 +651,12 @@ static void  sdxc_init_idma_des(struct awsmc_host* smc_host, struct mmc_data* da
             {
                 pdes[des_idx].buf_addr_ptr2 = __pa(&pdes[des_idx+1]);
             }
-            awsmc_dbg("sg %d, frag %d, remain %d, des[%d](%08x): [0] = %08x, [1] = %08x, [2] = %08x, [3] = %08x\n", i, j, remain, 
+			
+            awsmc_info("sg %d, frag %d, remain %d, des[%d](%08x): [0] = %08x, [1] = %08x, [2] = %08x, [3] = %08x\n", i, j, remain, 
                                                                              des_idx, (u32)&pdes[des_idx], 
                                                                              (u32)((u32*)&pdes[des_idx])[0], (u32)((u32*)&pdes[des_idx])[1], 
                                                                              (u32)((u32*)&pdes[des_idx])[2], (u32)((u32*)&pdes[des_idx])[3]);
+																			 
         }
     }
     #else      //fix length skip mode
@@ -722,6 +724,24 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
     sdc_write(SDXC_REG_FTRGL, (2U<<28)|(7<<16)|8);
     
     return 0;
+}
+
+
+static inline int sdxc_wait_for_data_ready(struct awsmc_host* smc_host)
+{
+	u32 status;
+	int times = 0xffffff;
+
+	do {
+		status = sdc_read(SDXC_REG_STAS);
+	} while((status & SDXC_CardDataBusy) && times--);
+
+	if (times <=0 )
+	{
+		awsmc_msg("sdc %d wait card ready timeout !!\n", smc_host->pdev->id);
+		return -1;
+	}
+	return 0;
 }
 
 int sdxc_send_manual_stop(struct awsmc_host* smc_host, struct mmc_request* request)
@@ -866,7 +886,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     msk_int = sdc_read(SDXC_REG_MISTA);
     
     smc_host->int_sum |= raw_int;
-    awsmc_dbg("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
+    awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
     
 	if (msk_int & SDXC_SDIOInt) 
 	{
@@ -1024,7 +1044,12 @@ _out_:
 		awsmc_msg("found data error, need to send stop command !!\n");
 		sdxc_send_manual_stop(smc_host, req);
 	}
-
+	
+	/* check data busy status */
+	if (req->data && (req->data->flags & MMC_DATA_WRITE))
+	{
+		sdxc_wait_for_data_ready(smc_host);
+	}
     return ret;
 }
 
