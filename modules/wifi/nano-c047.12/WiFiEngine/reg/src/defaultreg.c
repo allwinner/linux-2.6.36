@@ -77,7 +77,7 @@ const rRegistry DefaultRegistry = {
          E(qosMaxServicePeriodLength) 0,
          E(linkSupervision) {
             E(enable) TRUE,
-            E(beaconFailCount) 10,
+            E(beaconFailCount) 50,
             E(beaconWarningCount) 5,
             E(beaconTimeout) 0,
             E(TxFailureCount) 20,
@@ -122,7 +122,7 @@ const rRegistry DefaultRegistry = {
       E(delayAfterReset) 0,
       E(automaticFWLoad) TRUE,
       E(enable20MHzSdioClock) FALSE,
-      E(txPktWinSize) 3,
+      E(txPktWinSize) 5,
       E(hmgAutoMode) TRUE,
    }
 };

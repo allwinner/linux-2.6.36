@@ -1724,6 +1724,7 @@ bool_t Mlme_HandleBssPeerStatusInd(m80211_nrp_mlme_peer_status_ind_t *sta_ind_p)
          DE_TRACE_INT(TR_SEVERE, "Unknown PEER_STATUS_IND (%d)\n", sta_ind_p->status);
    }
 #endif
+   printk("NANO:PEER_STATUS_IND (%d)\n", sta_ind_p->status); //20100728 thva: changed for Boxchip disconnect issue
    return TRUE;
 }
 
@@ -2145,7 +2146,7 @@ bool_t Mlme_CreateSetAlignmentReq(hic_message_context_t* msg_ref,
    req->swap            = swap;
    req->hWakeup         = hWakeup;
    req->hForceInterval  = hForceInterval;
-   req->tx_window_size  = tx_window_size;
+   req->tx_window_size  = tx_window_size + 1; //20100728 thva: changed for Boxchip BUG2466
    req->block_mode_bug_workaround_block_size = 0;
    
    WEI_SET_TRANSID(req->trans_id);
