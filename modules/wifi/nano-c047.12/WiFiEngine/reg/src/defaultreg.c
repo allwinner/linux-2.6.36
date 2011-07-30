@@ -77,10 +77,10 @@ const rRegistry DefaultRegistry = {
          E(qosMaxServicePeriodLength) 0,
          E(linkSupervision) {
             E(enable) TRUE,
-            E(beaconFailCount) 50,
+            E(beaconFailCount) 80,
             E(beaconWarningCount) 5,
             E(beaconTimeout) 0,
-            E(TxFailureCount) 20,
+            E(TxFailureCount) 40,
             E(roundtripCount) 0,
             E(roundtripSilent) 0xffffffff,
          },
