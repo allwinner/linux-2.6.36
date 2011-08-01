@@ -20,6 +20,7 @@
 #include <linux/kmod.h>
 #include <linux/ctype.h>
 #include <linux/genhd.h>
+#include <linux/delay.h>
 #include <linux/blktrace_api.h>
 
 #include "check.h"
@@ -159,16 +160,61 @@ static struct parsed_partitions *
 check_partition(struct gendisk *hd, struct block_device *bdev)
 {
 	struct parsed_partitions *state;
-	int i, res, err;
+	int i, res, err, try;
 
+#define MAX_TRY 10
+	try = 0;
+
+retry_1:
 	state = kzalloc(sizeof(struct parsed_partitions), GFP_KERNEL);
-	if (!state)
+	if (!state) {
+		pr_info("check_partiton1: insufficient memory, try after 3 seconds\n");
+		msleep(3000);
+		try++;
+
+		if (try < MAX_TRY) {
+			goto retry_1;
+		}
+	}
+
+	/* try to alloc memory from dma zone */
+	if (!state) {
+		pr_info("check_partiton1: alloc memory from dma zone\n");
+		state = kzalloc(sizeof(struct parsed_partitions), GFP_DMA);
+	}
+
+	/* give up right now */
+	if (!state) {
+		pr_warning("check_partiton1: alloc memory failed\n");
 		return NULL;
+	}
+
+	try = 0;
+
+retry_2:
 	state->pp_buf = (char *)__get_free_page(GFP_KERNEL);
+
 	if (!state->pp_buf) {
+		pr_info("check_partiton2: insufficient memory, try after 3 seconds\n");
+		msleep(3000);
+		try++;
+
+		if (try < MAX_TRY) {
+			goto retry_2;
+		}
+	}
+
+	if (!state->pp_buf) {
+		pr_info("check_partiton2: alloc memory from dma zone\n");
+		state->pp_buf = (char *)__get_free_page(GFP_DMA);
+	}
+
+	if (!state->pp_buf) {
+		pr_warning("check_partiton2: alloc memory failed\n");
 		kfree(state);
 		return NULL;
 	}
+
 	state->pp_buf[0] = '\0';
 
 	state->bdev = bdev;
