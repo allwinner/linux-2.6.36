@@ -730,11 +730,14 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
 static inline int sdxc_wait_for_data_ready(struct awsmc_host* smc_host)
 {
 	u32 status;
-	int times = 0xffffff;
+	int times = 0xfffff;
 
-	do {
+	status = sdc_read(SDXC_REG_STAS);
+	while ((status & SDXC_CardDataBusy) && times--)
+	{
+		udelay(5);
 		status = sdc_read(SDXC_REG_STAS);
-	} while((status & SDXC_CardDataBusy) && times--);
+	}
 
 	if (times <=0 )
 	{
@@ -1045,8 +1048,8 @@ _out_:
 		sdxc_send_manual_stop(smc_host, req);
 	}
 	
-	/* check data busy status */
-	if (req->data && (req->data->flags & MMC_DATA_WRITE))
+	/* check data busy status for sdio card */
+	if (req->cmd->opcode == 53 && req->data && (req->data->flags & MMC_DATA_WRITE))
 	{
 		sdxc_wait_for_data_ready(smc_host);
 	}
