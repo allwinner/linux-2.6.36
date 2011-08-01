@@ -2007,6 +2007,11 @@ restart:
 	 */
 	alloc_flags = gfp_to_alloc_flags(gfp_mask);
 
+	/* 
+	 * by Andrew Barry, COMMIT ID: cfa54a0fcfc1017c6f122b6f21aaba36daa07f71
+	 * mm/page_alloc.c: prevent unending loop in __alloc_pages_slowpath()
+	 */
+rebalance:
 	/* This is the last chance, in general, before the goto nopage. */
 	page = get_page_from_freelist(gfp_mask, nodemask, order, zonelist,
 			high_zoneidx, alloc_flags & ~ALLOC_NO_WATERMARKS,
@@ -2014,7 +2019,6 @@ restart:
 	if (page)
 		goto got_pg;
 
-rebalance:
 	/* Allocate without watermarks if the context allows */
 	if (alloc_flags & ALLOC_NO_WATERMARKS) {
 		page = __alloc_pages_high_priority(gfp_mask, order,
@@ -2101,11 +2105,13 @@ rebalance:
 
 nopage:
 	if (!(gfp_mask & __GFP_NOWARN) && printk_ratelimit()) {
-		printk(KERN_WARNING "%s: page allocation failure."
-			" order:%d, mode:0x%x\n",
+		pr_warning("%s: page allocation failure."
+			" order:%d, mode:0x%x. need re-allocating.\n",
 			p->comm, order, gfp_mask);
+#if 0
 		dump_stack();
 		show_mem();
+#endif
 	}
 	return page;
 got_pg:
