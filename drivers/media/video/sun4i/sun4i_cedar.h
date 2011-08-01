@@ -46,17 +46,26 @@ struct cedarv_env_infomation{
 
 struct __cedarv_task {
 	int task_prio;
-	int task_id;
+	int ID;
+	unsigned long timeout;	
 	unsigned int frametime;
-	unsigned int timeout;
+	unsigned int block_mode;
 };
 
 struct cedarv_engine_task {
-	struct __cedarv_task t;
-
-	wait_queue_head_t wait;
-	struct semaphore mutex_lock;
+	struct __cedarv_task t;	
 	struct list_head list;
+	struct task_struct *task_handle;
+	unsigned int status;
+	unsigned int running;
+	unsigned int is_first_task;
+};
+
+/*利用优先级task_prio查询当前运行task的frametime，和比优先级task_prio高的task可能运行的总时间total_time*/
+struct cedarv_engine_task_info {
+	int task_prio;
+	unsigned int frametime;
+	unsigned int total_time;
 };
 
 /*--------------------------------------------------------------------------------*/
