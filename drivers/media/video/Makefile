@@ -186,11 +186,11 @@ obj-y	+= davinci/
 
 obj-$(CONFIG_ARCH_OMAP)	+= omap/
 
-ifeq ($(CONFIG_VIDEO_SUN4I_CEDAR),y)
+ifdef CONFIG_VIDEO_SUN4I_CEDAR
   obj-$(CONFIG_VIDEO_SUN4I_CEDAR) += sun4i/
 endif
 
-ifeq ($(CONFIG_VIDEO_SUN3I_CEDAR),y)
+ifdef CONFIG_VIDEO_SUN3I_CEDAR
   obj-$(CONFIG_VIDEO_SUN3I_CEDAR) += sun3i/
 endif
 

@@ -26,6 +26,8 @@ static __s32 ACE_EnableModule(__ace_module_type_e module, __u32 mode);
 
 struct clk *hAceMClk, *hDramAceClk, *hAceAhbClk;
 void *       ace_hsram;
+EXPORT_SYMBOL(ace_hsram);
+
 __s32       configTimes = 0;
 
 #define ACE_REGS_BASE ACE_REGS_pBASE
@@ -134,6 +136,7 @@ __s32 ACE_Init(void)
     configTimes = 0;
     return ACE_OK;
 }
+EXPORT_SYMBOL_GPL(ACE_Init);
 
 /*
 *********************************************************************************************************
@@ -155,6 +158,7 @@ __s32 ACE_Exit(void)
     iounmap((void *)ace_hsram);
     return ACE_OK;
 }
+EXPORT_SYMBOL_GPL(ACE_Exit);
 
 /*
 *********************************************************************************************************
@@ -208,7 +212,7 @@ s32 ACE_HwReq(__ace_module_type_e module, __ace_request_mode_e mode, __u32 timeo
 
     return ACE_OK;
 }
-
+EXPORT_SYMBOL_GPL(ACE_HwReq);
 
 /*
 *********************************************************************************************************
@@ -238,6 +242,7 @@ __s32 ACE_HwRel(__ace_module_type_e module)
     return ACE_OK;
     
 }
+EXPORT_SYMBOL_GPL(ACE_HwRel);
 
 /*
 *********************************************************************************************************
@@ -256,6 +261,8 @@ __u32 ACE_GetClk(void)
     temp = esCLK_GetSrcFreq(esCLK_GetMclkSrc(hAceMClk)); 
     return temp;
 }
+EXPORT_SYMBOL_GPL(ACE_GetClk);
+
 
 
 /*
