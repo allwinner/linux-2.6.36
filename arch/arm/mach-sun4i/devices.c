@@ -17,6 +17,11 @@
 #include <linux/proc_fs.h>
 #include <linux/android_pmem.h>
 
+#include <linux/errno.h>
+#include <linux/miscdevice.h>
+#include <linux/sw_sys.h>
+#include <asm/uaccess.h>
+
 #include <asm/clkdev.h>
 #include <asm/system.h>
 #include <asm/irq.h>
@@ -34,6 +39,8 @@
 #include <mach/clkdev.h>
 #include <mach/hardware.h>
 #include <mach/platform.h>
+#include <mach/script_v2.h>
+#include <mach/gpio_v2.h>
 
 
 #ifdef CONFIG_ANDROID_PMEM
@@ -89,7 +96,6 @@ static struct platform_device *aw_pdevs[] __initdata = {
 };
 
 
-
 int __init aw_pdevs_init(void)
 {
 	pr_info("Platform devices init\n");
@@ -105,6 +111,91 @@ int __init aw_pdevs_init(void)
 arch_initcall(aw_pdevs_init);
 
 #endif /* CONFIG_ANDROID_PMEM */
+
+static atomic_t sw_sys_status = ATOMIC_INIT(0);
+
+#define SW_SYS_BUF_SIZE 128
+static struct sw_script_para script_para;
+
+static long sw_sys_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	void __user *argp = (void __user *)arg;
+	int err = -EFAULT;
+
+	pr_debug("sw_sys: ioctl\n");
+	if (copy_from_user(&script_para, argp, sizeof(script_para))) {
+		return -EFAULT;
+	}
+
+	switch (cmd) {
+	case SW_SYS_IOC_GET_TOTAL_MAINKEY:
+		break;
+	case SW_SYS_IOC_GET_TOTAL_SUBKEY:
+		break;
+	case SW_SYS_IOC_GET_KEY_INT:
+		err = script_parser_fetch(script_para.main_name, script_para.sub_name, &script_para.data, sizeof(int));
+		break;
+	case SW_SYS_IOC_GET_KEY_STRING:
+		err = script_parser_fetch(script_para.main_name, script_para.sub_name, (int *)script_para.buf, MAX_BUF_LEN);
+		break;
+	case SW_SYS_IOC_GET_TOTAL_GPIO:
+		break;
+	case SW_SYS_IOC_GET_GPIO_CFG:
+		break;
+	default:
+		break;
+	}
+
+	if (!err) {
+		if (copy_to_user(argp, &script_para, sizeof(script_para))) {
+			pr_err("%s: copy to user failed\n", __func__);
+			return -EFAULT;
+		}
+	}
+
+	return err;
+}
+
+static int sw_sys_open(struct inode *inode, struct file *file)
+{
+	pr_debug("sw_sys: open\n");
+	if (atomic_read(&sw_sys_status) > 0) {
+		pr_info("sw_sys busy\n");
+		return -EBUSY;
+	}
+
+	atomic_set(&sw_sys_status, 1);
+	return 0;
+}
+
+static int sw_sys_release(struct inode *inode, struct file *file)
+{
+	pr_debug("sw_sys: release\n");
+	atomic_set(&sw_sys_status, 0);
+	return 0;
+}
+
+static const struct file_operations sw_sys_fops = {
+	.unlocked_ioctl	= sw_sys_ioctl,
+	.open		= sw_sys_open,
+	.release	= sw_sys_release,
+};
+
+static struct miscdevice sw_sys_dev = {
+	.minor =	MISC_DYNAMIC_MINOR,
+	.name =		"sw_ctl",
+	.fops =		&sw_sys_fops
+};
+
+static int __init sw_sys_init(void)
+{
+	pr_info("sw_sys: init\n");
+	return misc_register(&sw_sys_dev);
+}
+
+/* This module will not be remove */
+module_init(sw_sys_init);
+
 
 static int read_chip_sid(char* page, char** start, off_t off, int count,
 	int* eof, void* data)
