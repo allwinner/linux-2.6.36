@@ -162,6 +162,13 @@ A_STATUS HIFInit(OSDRV_CALLBACKS *callbacks)
 
 }
 
+static int __HIFCheckR1Ready(HIF_DEVICE *device)
+{
+    AR_DEBUG_ASSERT(device != NULL);
+    AR_DEBUG_ASSERT(device->func != NULL);
+    return sdio_check_r1_ready(device->func, 0xffffff);
+}
+
 static A_STATUS
 __HIFReadWrite(HIF_DEVICE *device,
              A_UINT32 address,
@@ -269,6 +276,7 @@ __HIFReadWrite(HIF_DEVICE *device,
                 AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: writeio ret=%d address: 0x%X, len: %d, 0x%X\n",
 						  ret, address, length, *(int *)tbuffer));
             }
+            while(!__HIFCheckR1Ready(device));
         } else if (request & HIF_READ) {
 #if HIF_USE_DMA_BOUNCE_BUFFER
             if (BUFFER_NEEDS_BOUNCE(buffer)) {

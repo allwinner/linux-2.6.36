@@ -95,8 +95,8 @@ static int awsmc_set_src_clk(struct awsmc_host* smc_host)
             name = "hosc";
             break;
         case 1:
-            source_clock = clk_get(&smc_host->pdev->dev, "sata_pll");
-            name = "sata_pll";
+            source_clock = clk_get(&smc_host->pdev->dev, "sata_pll_2");
+            name = "sata_pll_2";
             break;
         case 2:
             source_clock = clk_get(&smc_host->pdev->dev, "sdram_pll_p");
@@ -439,6 +439,12 @@ static void awsmc_enable_sdio_irq(struct mmc_host *mmc, int enable)
     spin_unlock_irqrestore(&smc_host->lock, flags);
 }
 
+static int awsmc_check_r1_ready(struct mmc_host *mmc)
+{
+    struct awsmc_host *smc_host = mmc_priv(mmc);
+    return sdxc_check_r1_ready(smc_host);
+}
+
 static void awsmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
     struct awsmc_host *smc_host = mmc_priv(mmc);
@@ -625,7 +631,7 @@ static int awsmc_proc_read_hostinfo(char *page, char **start, off_t off, int cou
     char *p = page;
     struct awsmc_host *smc_host = (struct awsmc_host *)data;
     struct device* dev = &smc_host->pdev->dev;
-    char* clksrc[] = {"hosc", "satapll", "sdrampll_p", "hosc"};
+    char* clksrc[] = {"hosc", "satapll_2", "sdrampll_p", "hosc"};
     char* cd_mode[] = {"none", "gpio mode", "data3 mode", "always in", "manual"};
 
     p += sprintf(p, "%s controller information:\n", dev_name(dev));
@@ -804,7 +810,8 @@ static struct mmc_host_ops awsmc_ops = {
     .set_ios	     = awsmc_set_ios,
     .get_ro		     = awsmc_get_ro,
     .get_cd		     = awsmc_card_present,
-    .enable_sdio_irq = awsmc_enable_sdio_irq
+    .enable_sdio_irq = awsmc_enable_sdio_irq,
+    .check_r1_ready	 = awsmc_check_r1_ready
 };
 
 static int __devinit awsmc_probe(struct platform_device *pdev)

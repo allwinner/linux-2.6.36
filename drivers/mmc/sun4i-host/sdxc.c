@@ -727,24 +727,9 @@ static int sdxc_prepare_dma(struct awsmc_host* smc_host, struct mmc_data* data)
 }
 
 
-static inline int sdxc_wait_for_data_ready(struct awsmc_host* smc_host)
+int sdxc_check_r1_ready(struct awsmc_host* smc_host)
 {
-	u32 status;
-	int times = 0xfffff;
-
-	status = sdc_read(SDXC_REG_STAS);
-	while ((status & SDXC_CardDataBusy) && times--)
-	{
-		udelay(5);
-		status = sdc_read(SDXC_REG_STAS);
-	}
-
-	if (times <=0 )
-	{
-		awsmc_msg("sdc %d wait card ready timeout !!\n", smc_host->pdev->id);
-		return -1;
-	}
-	return 0;
+    return sdc_read(SDXC_REG_STAS) & SDXC_CardDataBusy ? 0 : 1;
 }
 
 int sdxc_send_manual_stop(struct awsmc_host* smc_host, struct mmc_request* request)
@@ -1048,11 +1033,6 @@ _out_:
 		sdxc_send_manual_stop(smc_host, req);
 	}
 	
-	/* check data busy status for sdio card */
-	if (req->cmd->opcode == 53 && req->data && (req->data->flags & MMC_DATA_WRITE))
-	{
-		sdxc_wait_for_data_ready(smc_host);
-	}
     return ret;
 }
 

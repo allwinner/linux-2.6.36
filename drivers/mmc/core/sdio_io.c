@@ -752,3 +752,31 @@ int sdio_set_host_pm_flags(struct sdio_func *func, mmc_pm_flag_t flags)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sdio_set_host_pm_flags);
+
+/**
+ * sdio_wait_r1_ready_by_host - check R1 ready by host
+ * @func: SDIO function attached to host
+ *
+ * Check R1 ready status by host controller. Some SDIO card maybe 
+ * not check R1 ready status for data transmission, but some hosts
+ * can support this function with hardware. This function is called
+ * by SDIO card driver for detecting data0 busy signal.
+ */
+int sdio_check_r1_ready(struct sdio_func *func, unsigned long timeout)
+{
+    struct mmc_host *host;
+    int ready;
+
+    BUG_ON(!func);
+    BUG_ON(!func->card);
+
+    host = func->card->host;
+
+    do {
+        ready = host->ops->check_r1_ready(host);
+    } while (!ready && time_before(jiffies, timeout));
+
+    return ready;
+}
+EXPORT_SYMBOL_GPL(sdio_check_r1_ready);
+
