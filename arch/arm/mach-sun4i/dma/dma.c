@@ -929,20 +929,27 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 
 		/* free resouces */
 		sw_dma_freebuf(buf);
+		/* modify by yemao, 2011-07-28 
+		 * check load state after call dma callback, because some relative states may be changed
+		 * in callback operation. if there is another buffer loaded in dma queue, run it and 
+		 * change relative state for next transfer.
+		 * waitforload operation must follow dma loading to update dma load state 
+		 */
+		if(chan->load_state == SW_DMALOAD_1LOADED && !((chan->dcon & SW_NDMA_CONF_CONTI)||(chan->dcon & SW_DDMA_CONF_CONTI))){
+			writel(__virt_to_bus(chan->curr->data), chan->addr_reg);
+			dma_wrreg(chan, SW_DMA_DCNT, chan->curr->size);
+			tmp = SW_DCONF_LOADING | chan->dcon;
+			dma_wrreg(chan, SW_DMA_DCONF, tmp);
+			tmp = dma_rdreg(chan, SW_DMA_DCONF);
+			if (sw_dma_waitforload(chan, __LINE__) == 0) {
+				/* flag error? */
+				printk(KERN_ERR "dma%d: timeout waiting for load (%s)\n",
+				       chan->number, __func__);
+				return;
+			}
+		}
 	} else {
 	}
-
-	/*
-	if(chan->load_state == SW_DMALOAD_1LOADED && !((chan->dcon & SW_NDMA_CONF_CONTI)||(chan->dcon & SW_DDMA_CONF_CONTI))){
-
-		writel(__virt_to_bus(chan->curr->data), chan->addr_reg);
-		dma_wrreg(chan, SW_DMA_DCNT, chan->curr->size);
-		tmp = SW_DCONF_LOADING | chan->dcon;
-		dma_wrreg(chan, SW_DMA_DCONF, tmp);
-		tmp = dma_rdreg(chan, SW_DMA_DCONF);
-	}
-	*/
-	
 	/* only reload if the channel is still running... our buffer done
 	 * routine may have altered the state by requesting the dma channel
 	 * to stop or shutdown... */
@@ -962,13 +969,6 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 			break;
 
 		case SW_DMALOAD_1LOADED:
-			if (sw_dma_waitforload(chan, __LINE__) == 0) {
-				/* flag error? */
-				printk(KERN_ERR "dma%d: timeout waiting for load (%s)\n",
-				       chan->number, __func__);
-				return;
-			}
-
 			break;
 
 		case SW_DMALOAD_1LOADED_1RUNNING:
@@ -983,7 +983,6 @@ void exec_pending_chan(int chan_nr, unsigned long pend_bits)
 		local_irq_save(flags);
 		sw_dma_loadbuffer(chan, chan->next);
 		local_irq_restore(flags);
-		//printk("-------\n");
 	} else {
 		sw_dma_lastxfer(chan);
 
