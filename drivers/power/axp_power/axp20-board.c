@@ -119,6 +119,11 @@ static struct regulator_init_data axp_regl_init_data[] = {
 			.min_uV = 1250000,
 			.max_uV = 3300000,
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE | REGULATOR_CHANGE_STATUS,
+			.initial_state = PM_SUSPEND_STANDBY,
+			.state_standby = {
+				.uV = INTLDO4,
+				.enabled = 1,
+			}
 		},
 		.num_consumer_supplies = ARRAY_SIZE(ldo4_data),
 		.consumer_supplies = ldo4_data,
@@ -190,45 +195,29 @@ static struct axp_funcdev_info axp_regldevs[] = {
 static struct power_supply_info battery_data ={
 		.name ="PTI PL336078",
 		.technology = POWER_SUPPLY_TECHNOLOGY_LiFe,
-		.voltage_max_design = 4200000,
-	    .voltage_min_design = 2700000,
+		.voltage_max_design = BATMAXVOL,
+		.voltage_min_design = BATMINVOL,
 		.energy_full_design = BATTERYCAP,
-	    .use_for_apm = 1,
+		.use_for_apm = 1,
 };
 
-static void axp_battery_low(void)
-{
-#if defined(CONFIG_APM_EMULATION)
-	apm_queue_event(APM_LOW_BATTERY);
-#endif
-}
-
-static void axp_battery_critical(void)
-{
-#if defined(CONFIG_APM_EMULATION)
-	apm_queue_event(APM_CRITICAL_SUSPEND);
-#endif
-}
 
 static struct axp_supply_init_data axp_sply_init_data = {
 	.battery_info = &battery_data,
-	.chgcur = 700,
-	.chgvol = 4200,
-	.chgend =  10,
-	.chgen = 1,
-	//.limit_on = 1,
-	.sample_time = 25,
-	.chgpretime = 40,
-	.chgcsttime = 480,
-
-	.battery_low = axp_battery_low,
-	.battery_critical = axp_battery_critical,
+	.chgcur = INTCHGCUR,													
+	.chgvol = INTCHGVOL,													
+	.chgend = INTCHGENDRATE,												
+	.chgen = INTCHGENABLED,													
+	.sample_time = INTADCFREQ,					
+	.chgpretime = INTCHGPRETIME,											
+	.chgcsttime = INTCHGCSTTIME,											
 };
 
 static struct axp_funcdev_info axp_splydev[]={
-   	{   .name = "axp20-supplyer",
-		.id = AXP20_ID_SUPPLY,
-        .platform_data = &axp_sply_init_data,
+   	{   
+   		.name = "axp20-supplyer",
+			.id = AXP20_ID_SUPPLY,
+      .platform_data = &axp_sply_init_data,
     },
 };
 

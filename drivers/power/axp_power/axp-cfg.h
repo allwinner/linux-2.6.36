@@ -10,7 +10,7 @@
 #define	AXP18_I2CBUS		1
 #define	AXP19_I2CBUS		0
 #define	AXP20_I2CBUS		0
-#define BATRDC				240
+#define BATRDC				200 //initial rdc
 
 
 #define	LDO1SET				0  //0: LDO1SET connect AGND, 1: LDO1SET connect AIPS, for axp189 LDOSET bonding to AGND
@@ -49,7 +49,6 @@
 	#define  LDO3MAX		2600
 #endif
 
-//#define THISRDC                       200
 #define AXP18_VOL_MAX		50//1200
 #define AXP18_TIME_MAX		20//100
 #define AXP18_RDC_COUNT		10
@@ -74,7 +73,6 @@
 
 #define BAT_AVER_VOL		3820	//Aver Vol:3.82V
 
-
 #define FUELGUAGE_LOW_VOL	3400	//<3.4v,2%
 #define FUELGUAGE_VOL1		3500    //<3.5v,3%
 #define FUELGUAGE_VOL2		3600
@@ -95,9 +93,23 @@
 #define FUELGUAGE_LEVEL7	93
 #define FUELGUAGE_TOP_LEVEL	100     //>4.16v,100%
 
-#define INIT_RDC				200//initial rdc
-#define TIMER 					20 //axp19 renew capability time
-#define BATTERYCAP         1250 // battery capability
-#define RENEW_TIME       10 //axp20 renew capability time
+#define INTLDO4					2800000								//initial ldo4 voltage
+#define INIT_RDC				200										//initial rdc
+#define TIMER 					20										//axp19 renew capability time
+#define BATTERYCAP      2600									// battery capability
+#define RENEW_TIME      10										//axp20 renew capability time
+#define INTCHGCUR				300000								//set initial charging current limite
+#define SUSCHGCUR				1000000								//set suspend charging current limite
+#define RESCHGCUR				INTCHGCUR							//set resume charging current limite
+#define CLSCHGCUR				SUSCHGCUR							//set shutdown charging current limite
+#define INTCHGVOL				4200000								//set initial charing target voltage	
+#define INTCHGENDRATE		10										//set initial charing end current	rate
+#define INTCHGENABLED		1										  //set initial charing enabled
+#define INTADCFREQ			25										//set initial adc frequency
+#define INTADCFREQC			100										//set initial coulomb adc coufrequency
+#define INTCHGPRETIME		50										//set initial pre-charging time
+#define INTCHGCSTTIME		480										//set initial pre-charging time
+#define BATMAXVOL				4200000								//set battery max design volatge
+#define BATMINVOL				3500000								//set battery min design volatge
 
 #endif

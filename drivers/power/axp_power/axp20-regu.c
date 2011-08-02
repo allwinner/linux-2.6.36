@@ -129,33 +129,22 @@ static int axp_set_ldo4_voltage(struct regulator_dev *rdev,
 	struct axp_regulator_info *info = rdev_get_drvdata(rdev);
 	struct device *axp_dev = to_axp_dev(rdev);
 	uint8_t val, mask;
+	int i;
 	
-
 	if (check_range(info, min_uV, max_uV)) {
 		pr_err("invalid voltage range (%d, %d) uV\n", min_uV, max_uV);
 		return -EINVAL;
 	}
 
-	if(min_uV == 1250000 ){
-		val = 0;
+	for(i = 0,val = 0; i < sizeof(axp20_ldo4_data);i++){
+		if(min_uV <= axp20_ldo4_data[i] * 1000){
+			val = i;
+			break;
+		}
 	}
-	else{
-		val = (min_uV - 1200000 + info->step_uV - 1) / info->step_uV;
-		if(val > 16){
-			val = val - 6;
-		}
-		else if(val > 13){
-			val = val - 5;
-		}
-		else if(val > 12){
-			val = val - 4;
-		}
-		else if(val > 8)
-			val = 8;
-	}
+	
 	val <<= info->vol_shift;
 	mask = ((1 << info->vol_nbits) - 1)  << info->vol_shift;
-
 	return axp_update(axp_dev, info->vol_reg, val, mask);
 }
 
@@ -185,7 +174,7 @@ static int axp_set_suspend_voltage(struct regulator_dev *rdev, int uV)
 	case AXP20_ID_LDO1 ... AXP20_ID_LDO3:
 		return axp_set_voltage(rdev, uV, uV);
 	case AXP20_ID_LDO4:
-		return axp_set_ldo4_voltage(rdev, uV, uV);;
+		return axp_set_ldo4_voltage(rdev, uV, uV);
 	case AXP20_ID_BUCK2 ... AXP20_ID_LDOIO0:
 		return axp_set_voltage(rdev, uV, uV);
 	default:

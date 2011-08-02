@@ -19,7 +19,7 @@
 #define	AXP18_FAULT_LOG_VBAT_LOW			(1 << 6)
 #define	AXP18_FAULT_LOG_VBAT_OVER			(1 << 7)
 
-#define	AXP18_FINISH_CHARGE					(1 << 2)
+#define	AXP18_FINISH_CHARGE					(1 << 2) 
 
 #define	AXP18_ADC_CONTROL					POWER18_ADCSW_CTL
 #define	AXP18_ADC_BATVOL_ENABLE				(1 << 7)
@@ -165,7 +165,7 @@ const unsigned int AXP19_NOTIFIER_ON = 		AXP19_IRQ_USBOV |
 				       						AXP19_IRQ_TEMLO |
 				       						AXP19_IRQ_BATIN |
 				       						AXP19_IRQ_BATRE |
-				       						AXP19_IRQ_PEKLO |
+				       						AXP19_IRQ_PEKLO | 
 				       						AXP19_IRQ_PEKSH ;
 
 
@@ -265,9 +265,21 @@ const unsigned int AXP19_NOTIFIER_ON = 		AXP19_IRQ_USBOV |
 #define AXP20_DATA_BUFFER1					POWER20_DATA_BUFFER2
 #define AXP20_DATA_BUFFER2					POWER20_DATA_BUFFER3
 #define AXP20_DATA_BUFFER3					POWER20_DATA_BUFFER4
+#define AXP20_DATA_BUFFER4					POWER20_DATA_BUFFER5
+#define AXP20_DATA_BUFFER5					POWER20_DATA_BUFFER6
+#define AXP20_DATA_BUFFER6					POWER20_DATA_BUFFER7
+#define AXP20_DATA_BUFFER7					POWER20_DATA_BUFFER8
+#define AXP20_DATA_BUFFER8					POWER20_DATA_BUFFER9
+#define AXP20_DATA_BUFFER9					POWER20_DATA_BUFFERA
+#define AXP20_DATA_BUFFERA					POWER20_DATA_BUFFERB
+#define AXP20_DATA_BUFFERB					POWER20_DATA_BUFFERC
+#define AXP20_IC_TYPE								POWER20_IC_TYPE
+
+#define AXP20_CAP									(0xB9)
 
 #define AXP20_CHARGE_VBUS					POWER20_IPS_SET
-
+#define AXP20_APS_WARNING1				POWER20_APS_WARNING1
+#define AXP20_APS_WARNING2				POWER20_APS_WARNING2
 #define AXP20_TIMER_CTL						POWER20_TIMER_CTL
 
 #define AXP20_INTTEMP							(0x5E)
@@ -283,7 +295,7 @@ const unsigned int AXP20_NOTIFIER_ON = 		AXP20_IRQ_USBOV |
 				       						AXP20_IRQ_TEMLO |
 				       						AXP20_IRQ_BATIN |
 				       						AXP20_IRQ_BATRE |
-				       						AXP20_IRQ_PEKLO |
+				       						AXP20_IRQ_PEKLO | 
 				       						AXP20_IRQ_PEKSH ;
 
 
@@ -312,18 +324,18 @@ struct axp_charger {
 	struct power_supply	ac;
 	struct power_supply	usb;
 	struct power_supply bubatt;
-
+	
 	/*i2c device*/
 	struct device *master;
 
 	/* adc */
 	struct axp_adc_res *adc;
 	unsigned int sample_time;
-
+	
 	/*monitor*/
-	struct delayed_work work;
+	struct delayed_work work;	
 	unsigned int interval;
-
+	
 	/*battery info*/
 	struct power_supply_info *battery_info;
 
@@ -333,11 +345,11 @@ struct axp_charger {
 	unsigned int chgcur;
 	unsigned int chgvol;
 	unsigned int chgend;
-
+	
 	/*charger time */
 	int chgpretime;
 	int chgcsttime;
-
+	
 	/*external charger*/
 	bool chgexten;
 	int chgextcur;
@@ -367,12 +379,12 @@ struct axp_charger {
 	int vusb;
 	int iusb;
 	int ocv;
-
+	
 	/*rest time*/
 	int rest_vol;
 	int base_restvol;
 	int rest_time;
-
+	
 	/*ic temperature*/
 	int ic_temp;
 
@@ -391,7 +403,7 @@ static uint8_t coulomb_flag;
 static int counter = 0;
 static struct axp_charger *axp_charger;
 static int Total_Cap = 0;
-static int i,j;
+static int i = 0;
 static int Bat_Cap_Buffer[AXP20_VOL_MAX];
 
 #endif
