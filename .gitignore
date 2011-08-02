@@ -88,3 +88,5 @@ modules/mali/sun4i/DX910-SW-99002-r2p1-05rel1/src/devicedrv/ump/arch/arch-ca8-vi
 modules/wifi/nano-c047.12/kernel/ic/Module.symvers
 modules/wifi/nano-c047.12/kernel/ksdio/Module.symvers
 output/
+arch/arm/mach-sun4i/pm/standby/standby.code
+modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-debug-2.6.36-android+/
