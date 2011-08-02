@@ -26,7 +26,7 @@
  * right now, before write date, time reg, we need to backup pwm reg
  * after writing, we should restore pwm reg.
  */
-#define BACKUP_PWM
+//#define BACKUP_PWM
 
 /*说明 f23最大变化为63年的时间
 该驱动支持（2010～2073）年的时间*/
@@ -170,10 +170,11 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	unsigned int crystal_data = 0;
 	unsigned int timeout = 0;
 	int leap_year = 0;
-	#ifdef BACKUP_PWM
+
+#ifdef BACKUP_PWM
 	unsigned int pwm_ctrl_reg_backup = 0;
 	unsigned int pwm_ch0_period_backup = 0;
-	#endif
+#endif
     
     //int tm_year; years from 1900
     //int tm_mon; months since jan 0-11 
@@ -218,25 +219,26 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 
 	time_tmp = (TIME_SET_SEC_VALUE(tm->tm_sec)|TIME_SET_MIN_VALUE(tm->tm_min)
                     |TIME_SET_HOUR_VALUE(tm->tm_hour));
-   	#ifdef BACKUP_PWM
+#ifdef BACKUP_PWM
 	    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-	#endif                
+#endif
+
 	writel(time_tmp,  base + AW1623_RTC_TIME_REG);
 	timeout = 0xffff;
 	while((readl(base + AW1623_LOSC_CTRL_REG)&(RTC_HHMMSS_ACCESS))&&(--timeout))
 	if(timeout == 0)
     {       
         dev_err(dev, "fail to set rtc time.\n");
-        #ifdef BACKUP_PWM
+#ifdef BACKUP_PWM
     	    writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
     	    writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 			
 			pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 	    	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 			printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-        #endif
+#endif
         return -1;
     }
     /*  
@@ -268,24 +270,26 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	if(timeout == 0)
     {       
         dev_err(dev, "fail to set rtc date.\n");
-        #ifdef BACKUP_PWM
+#ifdef BACKUP_PWM
             writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
             writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 
 			pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 	    printk("[rtc-pwm] 5 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-        #endif
+#endif
         return -1;
     }  
-    #ifdef BACKUP_PWM
+
+#ifdef BACKUP_PWM
        writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
        writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 		
  		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 	    printk("[rtc-pwm] 6 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-    #endif
+#endif
+
     //wait about 70us to make sure the the time is really written into target.
     udelay(70);
     
@@ -442,12 +446,12 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 	struct rtc_device *rtc;	
 	//struct resource *res;
 	int ret;
-
-	#ifdef BACKUP_PWM
 	unsigned int tmp_data;  
+
+#ifdef BACKUP_PWM
 	unsigned int pwm_ctrl_reg_backup = 0;
 	unsigned int pwm_ch0_period_backup = 0;
-	#endif
+#endif
 
     //marked by young
     /*{
@@ -476,24 +480,24 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
      * on fpga board, internal 32k clk src is the default, and can not be changed                           
      */
     //RTC CLOCK SOURCE internal 32K HZ 
-    #ifdef BACKUP_PWM
+#ifdef BACKUP_PWM
 	    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-	    
-	    tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
-        tmp_data |= (RTC_SOURCE_EXTERNAL | REG_LOSCCTRL_MAGIC); //external     32768hz osc             
-	    writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);        
-	    _dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);  
-    #endif
+#endif
 
-    #ifdef BACKUP_PWM        
+        tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
+        tmp_data |= (RTC_SOURCE_EXTERNAL | REG_LOSCCTRL_MAGIC); //external     32768hz osc             
+        writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);        
+        _dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);  
+
+#ifdef BACKUP_PWM        
         writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
         writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);		
 		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 		pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 		printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-    #endif        
+#endif        
 
 	device_init_wakeup(&pdev->dev, 1);
 
