@@ -7,6 +7,7 @@
 #include <linux/errno.h>
 #include <linux/err.h>
 #include <linux/clk.h>
+#include <linux/spi/spi.h>
 #include <linux/platform_device.h>
 
 #include <linux/spi/spi.h>
@@ -22,6 +23,7 @@
 
 #include "spi_private.h"
 
+#if 0
 static int hex_dump(char* str, void __iomem* buf, u32 len, u32 mode/*0-8bit, 1-16bit, 2-32bit*/)
 {
     u32 i;
@@ -39,6 +41,7 @@ static int hex_dump(char* str, void __iomem* buf, u32 len, u32 mode/*0-8bit, 1-1
     
     return 0;
 }
+#endif
 
 #define SYS_SPI_PIN
 #ifndef SYS_SPI_PIN
@@ -121,7 +124,7 @@ static int aw16xx_get_cfg_csbitmap(int bus_num);
 // flush d-cache
 static void aw16xx_spi_cleanflush_dcache_region(void *addr, __u32 len)
 {
-	__cpuc_flush_dcache_area(adr, bytes + (1 << 5) * 2 - 2);
+	__cpuc_flush_dcache_area(addr, len + (1 << 5) * 2 - 2);
 }
 
 //------------------------------- dma operation start-----------------------------

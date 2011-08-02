@@ -390,8 +390,7 @@ EXPORT_SYMBOL_GPL(spi_new_device);
  * The board info passed can safely be __initdata ... but be careful of
  * any embedded pointers (platform_data, etc), they're copied as-is.
  */
-int __init
-spi_register_board_info(struct spi_board_info const *info, unsigned n)
+int spi_register_board_info(struct spi_board_info const *info, unsigned n)
 {
 	struct boardinfo	*bi;
 
@@ -406,6 +405,7 @@ spi_register_board_info(struct spi_board_info const *info, unsigned n)
 	mutex_unlock(&board_lock);
 	return 0;
 }
+EXPORT_SYMBOL_GPL(spi_register_board_info);
 
 /* FIXME someone should add support for a __setup("spi", ...) that
  * creates board info from kernel command lines
