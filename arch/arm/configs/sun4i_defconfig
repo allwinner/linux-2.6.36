@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Wed Jul 27 14:49:06 2011
+# Tue Aug  2 10:12:37 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -872,17 +872,9 @@ CONFIG_SERIO_LIBPS2=y
 # CONFIG_SUN4I_SERIO_SW_PS2 is not set
 # CONFIG_GAMEPORT is not set
 CONFIG_GSENSOR=y
-# CONFIG_SENSORS_PCF8574 is not set
-# CONFIG_PCF8575 is not set
-# CONFIG_SENSORS_PCA9539 is not set
-# CONFIG_SENSORS_PCF8591 is not set
-# CONFIG_SENSORS_MAX6875 is not set
-# CONFIG_SENSORS_PCA963X is not set
-# CONFIG_SENSORS_MEMSIC is not set
-# CONFIG_SENSORS_MXC6202X is not set
+# CONFIG_MXC_MMA7660 is not set
+CONFIG_MEMSIC_ECOMPASS=m
 CONFIG_SENSORS_MXC622X=m
-# CONFIG_SENSORS_MMC31XX is not set
-# CONFIG_ECOMPASS is not set
 
 #
 # Character devices
