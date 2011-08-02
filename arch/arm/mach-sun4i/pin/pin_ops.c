@@ -330,6 +330,7 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //…Ë±∏…Í«ÎG
 	
 	return (u32)user_gpio_buf;
 }
+EXPORT_SYMBOL_GPL(gpio_request);
 /*
 ************************************************************************************************************
 *
