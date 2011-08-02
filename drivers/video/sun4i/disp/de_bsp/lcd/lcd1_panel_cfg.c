@@ -29,7 +29,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     info->lcd_ht            = 1055;
     info->lcd_vbp           = 34;
     info->lcd_vt            = (2 * 525);
-
+    
 //ÆÁµÄIOÅäÖÃÐÅÏ¢
     info->lcd_io_cfg0             = 0x10000000;
     info->lcd_io_cfg1             = 0x00000000;
@@ -68,14 +68,14 @@ static void LCD_power_off(__u32 sel)
 ////////////////////////////////////////   back light   ////////////////////////////////////////////////////////////////////
 static void LCD_bl_open(__u32 sel)
 {
-    LCD_PWM_EN(sel, 1);
     LCD_BL_EN(sel, 1);
+    LCD_PWM_EN(sel, 1);
 }
 
 static void LCD_bl_close(__u32 sel)
 {
-    LCD_PWM_EN(sel, 0);
     LCD_BL_EN(sel, 0);
+    LCD_PWM_EN(sel, 0);
 }
 
 

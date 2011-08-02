@@ -36,10 +36,11 @@
 #include <mach/script_v2.h>
 #include <mach/clock.h>
 #include <mach/aw_ccu.h>
+#include <mach/gpio_v2.h>
 
 #include "../OSAL/OSAL.h"
 
-#define __wrn(msg...) {printk("[DISP] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
+#define __wrn(msg...) {printk("[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
 #if 1
 #define __inf(msg...) do{}while(0)
 #define __msg(msg...) do{}while(0)
@@ -47,7 +48,7 @@
 #else
 #define __inf(msg...) {printk("[DISP] "); printk(msg);}
 #define __msg(msg...) {printk("[DISP] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-#define __here__      {printk("[HDMI] file:%s,line:%d\n",__FILE__,__LINE__);}
+#define __here__      {printk("[DISP] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
 
 
@@ -225,7 +226,8 @@ typedef enum
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
     DISP_TV_MOD_PAL_NC_CVBS_SVIDEO  = 0x16,
-    DISP_TV_MODE_NUM               = 0x17,
+    DISP_TV_MOD_1080P_24HZ_3D_FP    = 0x17,
+    DISP_TV_MODE_NUM               = 0x18,
 }__disp_tv_mode_t;
 
 typedef enum
@@ -475,20 +477,14 @@ typedef struct
 	__u32   lcd_ttl_datainv_en;
 	__u32   lcd_ttl_datainv_sel;
 
-	__u32   lcd_lvds_ch;
-	__u32   lcd_lvds_even_odd;
-	__u32   lcd_lvds_dir;
-	__u32   lcd_lvds_mode;
-	__u32	lcd_lvds_bitwidth;
-	__u32	lcd_lvds_correct_mode;
+	__u32   lcd_lvds_ch;        // 0: single channel; 1:dual channel
+	__u32   lcd_lvds_mode;      // 0:NS mode; 1:JEIDA mode
+	__u32	lcd_lvds_bitwidth;  // 0:24bit; 1:18bit
+	__u32   lcd_lvds_io_cross;	// 0:normal; 1:pn cross
 	
 	__u32   lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
 	__u32   lcd_cpu_da;
 	__u32   lcd_frm;
-
-	__u32   lvds_channel;// 1: single channel; 2:dual channel
-	__u32   lvds_mode;// 0:NS mode; 1:JEIDA mode
-	__u32   lvds_datawidth;// 0:24bit; 1:18bit
 
 	__u32   lcd_io_cfg0;
 	__u32   lcd_io_cfg1;
@@ -670,7 +666,6 @@ extern __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl
 extern __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright);
 extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
 extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
-extern __s32 BSP_disp_set_bl_not_open(__u32 sel, __bool b_not_open);
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
 extern __s32 LCD_BL_EN(__u32 sel, __bool b_en);
 

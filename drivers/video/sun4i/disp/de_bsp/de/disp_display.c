@@ -173,13 +173,13 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
             break;
         case DISP_REG_LCDC0:
             base = gdisp.init_para.base_lcdc0;
-            size = 0x100;
+            size = 0x330;
             sprintf(str, "lcdc0:\n");
             break;
             
         case DISP_REG_LCDC1:
             base = gdisp.init_para.base_lcdc1;
-            size = 0x100;
+            size = 0x330;
             sprintf(str, "lcdc1:\n");
             break;
             

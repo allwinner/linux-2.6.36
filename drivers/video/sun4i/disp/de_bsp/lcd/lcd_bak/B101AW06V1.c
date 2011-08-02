@@ -6,34 +6,44 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
 {
     memset(info,0,sizeof(__panel_para_t));
 
-//屏的基本信息
-    info->lcd_x                   = 800;
-    info->lcd_y                   = 480;
-    info->lcd_dclk_freq           = 33;  //33MHz
+    //屏的基本信息
+    info->lcd_x                   = 1024;
+    info->lcd_y                   = 600;
+    info->lcd_dclk_freq           = 52;  //MHz
     info->lcd_pwm_freq            = 1;  //KHz
-    info->lcd_srgb                = 0x00202020;
     info->lcd_swap                = 0;
-
-//屏的接口配置信息
-    info->lcd_if                  = 0;//0:HV , 1:8080 I/F, 2:TTL I/F, 3:LVDS
-
-//屏的HV模块相关信息
+    
+    //屏的接口配置信息
+    info->lcd_if                  = 3;//0:HV , 1:8080 I/F, 2:TTL I/F, 3:LVDS
+    
+    //屏的HV模块相关信息
     info->lcd_hv_if               = 0;
+    info->lcd_hv_hspw             = 0;
+    info->lcd_hv_lde_iovalue      = 0;
+    info->lcd_hv_lde_used         = 0;
     info->lcd_hv_smode            = 0;
     info->lcd_hv_syuv_if          = 0;
-    info->lcd_hv_hspw             = 0;
     info->lcd_hv_vspw             = 0;
-
-//屏的HV配置信息
-    info->lcd_hbp           = 215;
-    info->lcd_ht            = 1055;
-    info->lcd_vbp           = 34;
-    info->lcd_vt            = (2 * 525);
     
-//屏的IO配置信息
-    info->lcd_io_cfg0             = 0x10000000;
+    //LVDS屏的配置
+    info->lcd_lvds_ch             = 0;      //single
+    info->lcd_lvds_bitwidth       = 1;      //18bit
+    info->lcd_lvds_mode           = 0;      //
+    info->lcd_lvds_io_cross       = 0x1f;    //
+
+    //屏的HV配置信息
+    info->lcd_hbp           = 20;
+    info->lcd_ht            = 1344;
+    info->lcd_vbp           = 20;
+    info->lcd_vt            = (2 * 635);
+
+    //屏的IO配置信息
+    info->lcd_io_cfg0             = 0x00000000;
     info->lcd_io_cfg1             = 0x00000000;
     info->lcd_io_strength         = 0;
+     
+    //cpu屏幕的配置信息
+    info->lcd_frm 			 = 1;	//0: disable; 1: enable rgb666 dither; 2:enable rgb656 dither
 }
 
 static __s32 LCD_open_flow(__u32 sel)
@@ -57,24 +67,24 @@ static __s32 LCD_close_flow(__u32 sel)
 ////////////////////////////////////////   POWER   ////////////////////////////////////////////////////////////////////
 static void LCD_power_on(__u32 sel)
 {
-    LCD_POWER_EN(sel, 1);
+    //LCD_POWER_EN(sel, 1);
 }
 
 static void LCD_power_off(__u32 sel)
 {
-    LCD_POWER_EN(sel, 0);
+    //LCD_POWER_EN(sel, 0);
 }
 
 ////////////////////////////////////////   back light   ////////////////////////////////////////////////////////////////////
 static void LCD_bl_open(__u32 sel)
 {
-    LCD_BL_EN(sel, 1);
+    //LCD_BL_EN(sel, 1);
     LCD_PWM_EN(sel, 1);
 }
 
 static void LCD_bl_close(__u32 sel)
 {
-    LCD_BL_EN(sel, 0);
+    //LCD_BL_EN(sel, 0);
     LCD_PWM_EN(sel, 0);
 }
 

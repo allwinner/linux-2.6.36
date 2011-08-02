@@ -30,7 +30,7 @@
 #include <linux/drv_display.h>
 #include <linux/drv_hdmi.h>
 
-#define __wrn(msg...) {printk("[HDMI],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
+#define __wrn(msg...) {printk("[HDMI WRN],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
 
 #if 1
 #define __inf(msg...) do{}while(0)

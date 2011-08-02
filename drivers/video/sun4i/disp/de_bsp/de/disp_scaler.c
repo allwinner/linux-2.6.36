@@ -242,11 +242,10 @@ __s32 Scaler_3d_sw_para_to_reg(__u32 type, __u32 mode, __bool b_out_interlace)
     return DIS_FAIL;
 }
 
-#ifdef __MELIS_OSAL__
-__s32 Scaler_event_proc(void *parg)
-#endif
 #ifdef __LINUX_OSAL__
 __s32 Scaler_event_proc(__s32 irq, void *parg)
+#else
+__s32 Scaler_event_proc(void *parg)
 #endif
 {
     __u8 fe_intflags;
@@ -679,6 +678,13 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 	__scal_scan_mod_t out_scan;
     __u32 screen_index;
 
+if(0)
+{
+    scl->in_fb.b_trd_src = 1;
+    scl->in_fb.trd_mode = DISP_3D_SRC_MODE_TB;
+    gdisp.screen[sel].b_trd_out = 0;
+    gdisp.screen[sel].trd_out_mode = DISP_3D_OUT_MODE_FP;
+}
     scaler = &(gdisp.scaler[sel]);
     screen_index = gdisp.scaler[sel].screen_index;
 
@@ -726,6 +732,8 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
         outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
 
+        DE_SCAL_Get_3D_In_Single_Size(sel, inmode, &in_size, &in_size);
+        
     	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));

@@ -13,7 +13,7 @@ __u32 hdmi_clk = 297000000;
 
 HDMI_VIDE_INFO video_timing[] = 
 {
-	//VIC                           PCLK  AVI_PR INPUTX INPUTY     HT   HBP   HFP HPSW    VT VBP VFP VPSW
+	//VIC                           PCLK  AVI_PR INPUTX INPUTY   HT   HBP   HFP HPSW  VT VBP VFP VPSW
 	{HDMI1440_480I     ,  13500000, 1,  720,  240,  858, 119,  19, 62,  525, 18, 4, 3},
 	{HDMI1440_576I     ,  13500000, 1,  720,  288,  864, 132,  12, 63,  625, 22, 2, 3},
 	{HDMI480P          ,  27000000, 0,  720,  480,  858, 122,  16, 62, 1050, 36, 9, 6},

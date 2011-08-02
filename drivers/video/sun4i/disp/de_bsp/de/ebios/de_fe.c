@@ -1532,7 +1532,7 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode
 
 
 //*********************************************************************************************
-// function         : DE_SCAL_Get_3D_InSize(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
+// function         : DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
 //									__scal_src_size_t *singlesize)
 // description     : get single image size according to 3D inmode and full size
 // parameters    :
@@ -1543,7 +1543,7 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode
 // return            : 
 //               success
 //***********************************************************************************************
-__s32 DE_SCAL_Get_3D_InSize(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
+__s32 DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
 									__scal_src_size_t *singlesize)
 {
 	switch(inmode)
@@ -1580,7 +1580,7 @@ __s32 DE_SCAL_Get_3D_InSize(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size
 }
 
 //*********************************************************************************************
-// function         : DE_SCAL_Get_3D_OutSize(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
+// function         : DE_SCAL_Get_3D_Out_Full_Size(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
 //									__scal_out_size_t *fullsize)
 // description     : get 3D output full size according to 3D outmode and left/right image size
 // parameters    :
@@ -1591,7 +1591,7 @@ __s32 DE_SCAL_Get_3D_InSize(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size
 // return            : 
 //               success
 //***********************************************************************************************
-__s32 DE_SCAL_Get_3D_OutSize(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
+__s32 DE_SCAL_Get_3D_Out_Full_Size(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
 									__scal_out_size_t *fullsize)
 {
 	switch(outmode)

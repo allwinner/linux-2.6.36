@@ -355,17 +355,25 @@ __u32 OSAL_CCMU_GetMclkDiv( __hdle hMclk )
 __s32 OSAL_CCMU_MclkOnOff( __hdle hMclk, __s32 bOnOff )
 {
     struct clk* hModClk = (struct clk*)hMclk;
+    __s32 ret = 0;
 
     __inf("OSAL_CCMU_MclkOnOff<%s,%d>\n",hModClk->clk->name,bOnOff);
 
     if(bOnOff)
     {
-        return clk_enable(hModClk);
+        if(!hModClk->enable)
+        {
+            ret = clk_enable(hModClk);
+        }
     }
-
-    clk_disable(hModClk);
-
-    return 0;
+    else
+    {
+        while(hModClk->enable)
+        {
+            clk_disable(hModClk);
+        }
+    }
+    return ret;
 }
 
 __s32 OSAL_CCMU_MclkReset(__hdle hMclk, __s32 bReset)

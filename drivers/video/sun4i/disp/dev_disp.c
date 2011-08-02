@@ -13,6 +13,7 @@ static struct alloc_struct_t boot_heap_head, boot_heap_tail;
 
 static unsigned int gbuffer[4096];
 static __u32 output_type[2] = {0,0};
+static __bool b_in_suspend = 0;
 
 static struct info_mm  g_disp_mm[2];
 static int g_disp_mm_sel = 0;
@@ -368,11 +369,7 @@ __s32 DRV_DISP_Init(void)
     BSP_disp_init(&para);
     BSP_disp_open();
     Fb_Init();
-
-#if 0
-    sys_put_wvalue(0xf1C0129C, 0x00001035);
-    sys_put_wvalue(0xf1C012B0, 0x00001035);
-#endif
+    
     
     return 0;        
 }
@@ -756,6 +753,7 @@ void backlight_early_suspend(struct early_suspend *h)
     }
 
     BSP_disp_clk_off();
+    b_in_suspend = 1;
 }
 
 void backlight_late_resume(struct early_suspend *h)
@@ -783,6 +781,7 @@ void backlight_late_resume(struct early_suspend *h)
             BSP_disp_hdmi_open(i);
         }
     }
+    b_in_suspend = 0;
 }
 
 static struct early_suspend backlight_early_suspend_handler = 
@@ -823,6 +822,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     }
 
     BSP_disp_clk_off();
+    b_in_suspend = 1;
 #endif
     return 0;
 }
@@ -855,6 +855,7 @@ int disp_resume(struct platform_device *pdev)
             BSP_disp_hdmi_open(i);
         }
     }
+    b_in_suspend = 0;
 #endif
 
     return 0;
@@ -885,6 +886,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             __wrn("para err in disp_ioctl, screen id = %d\n", (int)ubuffer[0]);
             return -1;
         }
+    }
+    if(b_in_suspend)
+    {
+        __wrn("display driver in suspend now!\n");
+        return -1;
     }
 
 	//__inf("disp_ioctl,cmd:%x\n",cmd);

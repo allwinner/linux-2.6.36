@@ -12,6 +12,7 @@ static void LCD_bl_close(__u32 sel);//关闭LCD背光
 extern void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
 extern void LCD_CLOSE_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
 extern void LCD_get_reg_bases(__reg_bases_t *para);
+extern void LCD_delay_ms(__u32 ms) ;
 extern void TCON_open(__u32 sel);//打开LCD控制器
 extern void TCON_close(__u32 sel);//关闭LCD控制器
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
@@ -22,14 +23,11 @@ extern void LCD_CPU_WR(__u32 sel, __u32 index, __u32 data);
 extern void LCD_CPU_WR_INDEX(__u32 sel,__u32 index);
 extern void LCD_CPU_WR_DATA(__u32 sel, __u32 data);
 extern void LCD_CPU_AUTO_FLUSH(__u32 sel, __bool en);
-
-//assume cpu runs at 300Mhz,10 clock one cycle
-#define LCD_delay_ms(ms)                               \
-{                                                   \
-    volatile __u32 time;                            \
-    for(time = 0; time < (ms*300*1000/10);time++);  \
-}                                                   \
-
+extern __s32 LCD_GPIO_request(__u32 sel, __u32 io_index);
+extern __s32 LCD_GPIO_release(__u32 sel,__u32 io_index);
+extern __s32 LCD_GPIO_set_attr(__u32 sel,__u32 io_index, __bool b_output);
+extern __s32 LCD_GPIO_read(__u32 sel,__u32 io_index);
+extern __s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data);
 
 #define BIT0          0x00000001  
 #define BIT1		  0x00000002  

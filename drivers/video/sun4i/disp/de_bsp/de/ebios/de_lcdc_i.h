@@ -78,6 +78,17 @@
 #define	LCDC_LVDS_ANA0			(0x220)
 #define	LCDC_LVDS_ANA1			(0x224)
 
+#define	LCDC_3DF_CTL			(0x300)
+#define	LCDC_3DF_A1B			(0x304)
+#define	LCDC_3DF_A1E			(0x308)
+#define	LCDC_3DF_D1				(0x30C)
+#define	LCDC_3DF_A2B			(0x310)
+#define	LCDC_3DF_A2E			(0x314)
+#define	LCDC_3DF_D2				(0x318)
+#define	LCDC_3DF_A3B			(0x31C)
+#define	LCDC_3DF_A3E			(0x320)
+#define	LCDC_3DF_D3				(0x318)
+
 #define LCDC_GAMMA_TABLE_OFF    (0x400)
 
 #define LCDC_GET_REG_BASE(sel)    ((sel)==0?(lcdc_reg_base0):(lcdc_reg_base1))

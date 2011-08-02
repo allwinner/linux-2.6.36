@@ -9,139 +9,132 @@ extern fb_info_t g_fbi;
 #define FBIDTOHAND(ID)  ((ID) + 100)
 
 
-// CONFIG_LYCHEE_DISPLAY_SCREEN0_FB_PIXEL_SEQUENCE
 //              0:ARGB    1:BRGA    2:ABGR    3:RGBA
 //seq           ARGB        BRGA       ARGB       BRGA
 //br_swqp    0              0            1              1      
-
 __s32 parser_disp_init_para(__disp_init_t * init_para)
 {
-    __u32 i = 0;
+    int  value;
+    int  i;
 
     memset(init_para, 0, sizeof(__disp_init_t));
     
-#ifdef CONFIG_LYCHEE_DISPLAY_INIT_CONFIG_SUN4I
-    init_para->b_init = 1;
-
-#ifdef CONFIG_LYCHEE_DISPLAY_SINGLE_SCREEN0
-    init_para->disp_mode = DISP_INIT_MODE_SCREEN0;
-#endif
-
-#ifdef CONFIG_LYCHEE_DISPLAY_SINGLE_SCREEN1
-    init_para->disp_mode = DISP_INIT_MODE_SCREEN1;
-#endif
-
-#ifdef CONFIG_LYCHEE_DISPLAY_DUAL_DIFF_SCREEN
-    init_para->disp_mode = DISP_INIT_MODE_TWO_DIFF_SCREEN;
-#endif
-
-#ifdef CONFIG_LYCHEE_DISPLAY_DUAL_SAME_SCREEN
-    init_para->disp_mode = DISP_INIT_MODE_TWO_SAME_SCREEN;
-#endif
-
-#ifdef CONFIG_LYCHEE_DISPLAY_DUAL_DIFF_SCREEN_SAME_CONTENTS
-    init_para->disp_mode = DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS;
-#endif
-
-
-#ifndef CONFIG_LYCHEE_DISPLAY_SINGLE_SCREEN1
-    switch (CONFIG_LYCHEE_DISPLAY_SCREEN0_OUTPUT_TYPE)
+    if(OSAL_script_parser_fetch("disp_init", "disp_init_enable", &value, 1) < 0)
     {
-        case 0:
-            init_para->output_type[0] = DISP_OUTPUT_TYPE_NONE;
-            break;
-        case 1:
-            init_para->output_type[0] = DISP_OUTPUT_TYPE_LCD;
-            break;
-        case 2:
-            init_para->output_type[0] = DISP_OUTPUT_TYPE_TV;
-            break;
-        case 3:
-            init_para->output_type[0] = DISP_OUTPUT_TYPE_HDMI;
-            break;
-        case 4:
-            init_para->output_type[0] = DISP_OUTPUT_TYPE_VGA;
-            break;
-        default:
-            init_para->output_type[0] = DISP_OUTPUT_TYPE_LCD;
-            break;
+        __wrn("fetch script data disp_init.disp_init_enable fail\n");
+        return -1;
     }
-    init_para->tv_mode[0] = (__disp_tv_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN0_TV_MODE;
-    init_para->vga_mode[0] = (__disp_vga_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN0_VGA_MODE;
-#endif
+    init_para->b_init = value;
 
-#ifndef CONFIG_LYCHEE_DISPLAY_SINGLE_SCREEN0
-    switch (CONFIG_LYCHEE_DISPLAY_SCREEN1_OUTPUT_TYPE)
+    if(OSAL_script_parser_fetch("disp_init", "disp_mode", &value, 1) < 0)
     {
-        case 0:
-            init_para->output_type[1] = DISP_OUTPUT_TYPE_NONE;
-            break;
-        case 1:
-            init_para->output_type[1] = DISP_OUTPUT_TYPE_LCD;
-            break;
-        case 2:
-            init_para->output_type[1] = DISP_OUTPUT_TYPE_TV;
-            break;
-        case 3:
-            init_para->output_type[1] = DISP_OUTPUT_TYPE_HDMI;
-            break;
-        case 4:
-            init_para->output_type[1] = DISP_OUTPUT_TYPE_VGA;
-            break;
-        default:
-            init_para->output_type[1] = DISP_OUTPUT_TYPE_LCD;
-            break;
+        __wrn("fetch script data disp_init.disp_mode fail\n");
+        return -1;
     }
-    init_para->tv_mode[1] = (__disp_tv_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN1_TV_MODE;
-    init_para->vga_mode[1] = (__disp_vga_mode_t)CONFIG_LYCHEE_DISPLAY_SCREEN1_VGA_MODE;
-#endif
+    init_para->disp_mode= value;
 
-    if(init_para->disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN)
+//screen0
+    if(OSAL_script_parser_fetch("disp_init", "screen0_output_type", &value, 1) < 0)
     {
-        init_para->output_type[1] = init_para->output_type[0];
-        init_para->tv_mode[1] = init_para->tv_mode[0];
-        init_para->vga_mode[1] = init_para->vga_mode[0];
+        __wrn("fetch script data disp_init.screen0_output_type fail\n");
+        return -1;
+    }
+    init_para->output_type[0]= value;
+
+    if(OSAL_script_parser_fetch("disp_init", "screen0_output_mode", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.screen0_output_mode fail\n");
+        return -1;
+    }
+    if(init_para->output_type[0] == DISP_OUTPUT_TYPE_TV || init_para->output_type[0] == DISP_OUTPUT_TYPE_HDMI)
+    {
+        init_para->tv_mode[0]= (__disp_tv_mode_t)value;
+    }
+    else if(init_para->output_type[0] == DISP_OUTPUT_TYPE_VGA)
+    {
+        init_para->vga_mode[0]= (__disp_vga_mode_t)value;
     }
 
-    #ifdef CONFIG_LYCHEE_DISPLAY_FB0_DOUBLE_BUFFER
-    init_para->buffer_num[0] = 2;  
-    #else
-    init_para->buffer_num[0] = 1;
-    #endif
-    init_para->fb_width[0] = CONFIG_LYCHEE_DISPLAY_FB0_WIDTH;
-    init_para->fb_height[0] = CONFIG_LYCHEE_DISPLAY_FB0_HEIGHT;
-    init_para->format[0] = CONFIG_LYCHEE_DISPLAY_FB0_FORMAT;
-    init_para->seq[0] = (CONFIG_LYCHEE_DISPLAY_FB0_PIXEL_SEQUENCE==0 || CONFIG_LYCHEE_DISPLAY_FB0_PIXEL_SEQUENCE==2)?DISP_SEQ_ARGB:DISP_SEQ_BGRA;
-    init_para->br_swap[0] = (CONFIG_LYCHEE_DISPLAY_FB0_PIXEL_SEQUENCE==0 || CONFIG_LYCHEE_DISPLAY_FB0_PIXEL_SEQUENCE==1)?0:1;
-#ifdef CONFIG_LYCHEE_DISPLAY_FB0_SCALER_MODE
-    init_para->scaler_mode[0] = 1;
-    init_para->out_width[0] = CONFIG_LYCHEE_DISPLAY_FB0_OUT_WIDTH;
-    init_para->out_height[0] = CONFIG_LYCHEE_DISPLAY_FB0_OUT_HEIGHT;
-#endif
+//screen1
+    if(OSAL_script_parser_fetch("disp_init", "screen1_output_type", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.screen1_output_type fail\n");
+        return -1;
+    }
+    init_para->output_type[1]= value;
 
-#ifdef CONFIG_LYCHEE_DISPLAY_DUAL_DIFF_SCREEN
-    #ifdef CONFIG_LYCHEE_DISPLAY_FB1_UBLE_BUFFER
-    init_para->buffer_num[1] = 2;
-    #else
-    init_para->buffer_num[1] = 1;
-    #endif
-    init_para->fb_width[1] = CONFIG_LYCHEE_DISPLAY_FB1_WIDTH;
-    init_para->fb_height[1] = CONFIG_LYCHEE_DISPLAY_FB1_HEIGHT;
-    init_para->format[1] = CONFIG_LYCHEE_DISPLAY_FB1_FORMAT;
-    init_para->seq[1] = (CONFIG_LYCHEE_DISPLAY_FB1_PIXEL_SEQUENCE==0 || CONFIG_LYCHEE_DISPLAY_FB1_PIXEL_SEQUENCE==2)?DISP_SEQ_ARGB:DISP_SEQ_BGRA;
-    init_para->br_swap[1] = (CONFIG_LYCHEE_DISPLAY_FB1_PIXEL_SEQUENCE==0 || CONFIG_LYCHEE_DISPLAY_FB1_PIXEL_SEQUENCE==1)?0:1;
-#ifdef CONFIG_LYCHEE_DISPLAY_FB1_SCALER_MODE
-    init_para->scaler_mode[1] = 1;
-    init_para->out_width[1] = CONFIG_LYCHEE_DISPLAY_FB1_OUT_WIDTH;
-    init_para->out_height[1] = CONFIG_LYCHEE_DISPLAY_FB1_OUT_HEIGHT;
-#endif
+    if(OSAL_script_parser_fetch("disp_init", "screen1_output_mode", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.screen1_output_mode fail\n");
+        return -1;
+    }
+    if(init_para->output_type[1] == DISP_OUTPUT_TYPE_TV || init_para->output_type[1] == DISP_OUTPUT_TYPE_HDMI)
+    {
+        init_para->tv_mode[1]= (__disp_tv_mode_t)value;
+    }
+    else if(init_para->output_type[1] == DISP_OUTPUT_TYPE_VGA)
+    {
+        init_para->vga_mode[1]= (__disp_vga_mode_t)value;
+    }
 
-#endif
+//fb0
+    if(OSAL_script_parser_fetch("disp_init", "fb0_framebuffer_num", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb0_framebuffer_num fail\n");
+        return -1;
+    }
+    init_para->buffer_num[0]= value;
 
+    if(OSAL_script_parser_fetch("disp_init", "fb0_format", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb0_format fail\n");
+        return -1;
+    }
+    init_para->format[0]= value;
 
-#else
-    init_para->b_init = 0;
-#endif
+    if(OSAL_script_parser_fetch("disp_init", "fb0_pixel_sequence", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb0_pixel_sequence fail\n");
+        return -1;
+    }
+    init_para->seq[0]= value;
+
+    if(OSAL_script_parser_fetch("disp_init", "fb0_scaler_mode_enable", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb0_scaler_mode_enable fail\n");
+        return -1;
+    }
+    init_para->scaler_mode[0]= value;
+
+//fb1
+    if(OSAL_script_parser_fetch("disp_init", "fb1_framebuffer_num", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb1_framebuffer_num fail\n");
+        return -1;
+    }
+    init_para->buffer_num[1]= value;
+
+    if(OSAL_script_parser_fetch("disp_init", "fb1_format", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb1_format fail\n");
+        return -1;
+    }
+    init_para->format[1]= value;
+
+    if(OSAL_script_parser_fetch("disp_init", "fb1_pixel_sequence", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb1_pixel_sequence fail\n");
+        return -1;
+    }
+    init_para->seq[1]= value;
+
+    if(OSAL_script_parser_fetch("disp_init", "fb1_scaler_mode_enable", &value, 1) < 0)
+    {
+        __wrn("fetch script data disp_init.fb1_scaler_mode_enable fail\n");
+        return -1;
+    }
+    init_para->scaler_mode[1]= value;
+
 
     __inf("====display init para begin====\n");
     __inf("b_init:%d\n", init_para->b_init);
@@ -155,16 +148,13 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     for(i=0; i<2; i++)
     {
         __inf("buffer_num[%d]:%d\n", i, init_para->buffer_num[i]);
-        __inf("fb_width[%d]:%d\n", i, init_para->fb_width[i]);
-        __inf("fb_height[%d]:%d\n", i, init_para->fb_height[i]);
         __inf("format[%d]:%d\n", i, init_para->format[i]);
         __inf("seq[%d]:%d\n", i, init_para->seq[i]);
         __inf("br_swap[%d]:%d\n", i, init_para->br_swap[i]);
         __inf("b_scaler_mode[%d]:%d\n", i, init_para->scaler_mode[i]);
-        __inf("out_width[%d]:%d\n", i, init_para->out_width[i]);
-        __inf("out_height[%d]:%d\n\n", i, init_para->out_height[i]);
     }
     __inf("====display init para end====\n");
+
     return 0;
 }
 
@@ -901,12 +891,19 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
 	switch (cmd) 
 	{
     case FBIOGET_LAYER_HDL_0:
-        layer_hdl = g_fbi.layer_hdl[info->node][0];
-        copy_to_user((void __user *)arg, &layer_hdl, sizeof(unsigned long));
+        if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1)
+        {
+            layer_hdl = g_fbi.layer_hdl[info->node][0];
+            copy_to_user((void __user *)arg, &layer_hdl, sizeof(unsigned long));
+        }
+        else
+        {
+            ret = -1;
+        }
         break; 
 
     case FBIOGET_LAYER_HDL_1:
-        if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)
+        if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)
         {
             layer_hdl = g_fbi.layer_hdl[info->node][1];
             copy_to_user((void __user *)arg, &layer_hdl, sizeof(unsigned long));
@@ -918,37 +915,33 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
         break; 
 
     case FBIO_OPEN:
-        BSP_disp_layer_open(sel, g_fbi.layer_hdl[info->node][0]);
-	    DRV_disp_wait_cmd_finish(sel);
-
-	    if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)
+        if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1)
+        {
+            BSP_disp_layer_open(sel, g_fbi.layer_hdl[info->node][0]);
+	        DRV_disp_wait_cmd_finish(sel);
+        }
+	    if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)
 	    {
             BSP_disp_layer_open(sel, g_fbi.layer_hdl[info->node][1]);
     	    DRV_disp_wait_cmd_finish(sel);
 	    }
-	    else
-        {
-            ret = -1;
-        }
         break;
 
     case FBIO_CLOSE:
-        BSP_disp_layer_close(sel, g_fbi.layer_hdl[info->node][0]);
-	    DRV_disp_wait_cmd_finish(sel);
-
-	    if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)
+        if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1)
+        {
+            BSP_disp_layer_close(sel, g_fbi.layer_hdl[info->node][0]);
+	        DRV_disp_wait_cmd_finish(sel);
+        }
+	    if(g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)
 	    {
             BSP_disp_layer_close(sel, g_fbi.layer_hdl[info->node][1]);
     	    DRV_disp_wait_cmd_finish(sel);
 	    }
-	    else
-        {
-            ret = -1;
-        }
         break;
 
    	default:
-   	    __inf("not supported fb io cmd:%x\n", cmd);
+   	    //__inf("not supported fb io cmd:%x\n", cmd);
 		break;
 	}
 	return ret;
@@ -1112,7 +1105,7 @@ __s32 Fb_Init(void)
     __s32 i;
 
 #ifdef FB_RESERVED_MEM
-    pr_info("fbmem: fb_start=%lu, fb_size=%lu\n", fb_start, fb_size);
+    __inf("fbmem: fb_start=%lu, fb_size=%lu\n", fb_start, fb_size);
     disp_create_heap(fb_start + 0x80000000,  fb_size);
 #endif
 
@@ -1230,13 +1223,13 @@ __s32 Fb_Init(void)
                 fb_para.primary_screen_id = 0;
             }
             fb_para.buffer_num= disp_init.buffer_num[i];
-            fb_para.width = disp_init.fb_width[i];
-            fb_para.height = disp_init.fb_height[i];
-            fb_para.output_width = disp_init.out_width[i];
-            fb_para.output_height = disp_init.out_height[i];
+            fb_para.width = BSP_disp_get_screen_width(screen_id);
+            fb_para.height = BSP_disp_get_screen_height(screen_id);
+            fb_para.output_width = BSP_disp_get_screen_width(screen_id);
+            fb_para.output_height = BSP_disp_get_screen_height(screen_id);
             Display_Fb_Request(i, &fb_para);
             
-            fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, disp_init.fb_width[i], disp_init.fb_height[i]*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
+            fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
         }
 
         BSP_disp_print_reg(0, DISP_REG_SCALER0);

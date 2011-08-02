@@ -232,9 +232,9 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	
 	LCDC_WUINT32(sel, LCDC_BASIC0_OFF,((info->lcd_x - 1)<<16) | (info->lcd_y - 1) );
 	
-	LCDC_WUINT32(sel, LCDC_BASIC1_OFF,(info->lcd_ht <<16) | info->lcd_hbp);	
+	LCDC_WUINT32(sel, LCDC_BASIC1_OFF,((info->lcd_ht-1) <<16) | (info->lcd_hbp-1));	
 
-	LCDC_WUINT32(sel, LCDC_BASIC2_OFF,(info->lcd_vt <<16) | info->lcd_vbp);
+	LCDC_WUINT32(sel, LCDC_BASIC2_OFF,(info->lcd_vt <<16) | (info->lcd_vbp-1));
 
 	if(info->lcd_if == LCDC_LCDIF_HV)
 	{
@@ -263,9 +263,9 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	}
 	else if(info->lcd_if == LCDC_LCDIF_LVDS)
 	{
-		LCDC_WUINT32(sel, LCDC_LVDS_OFF,(info->lcd_lvds_ch<<30) |(info->lcd_lvds_even_odd<<29) |
-							 (info->lcd_lvds_dir<<28) | (info->lcd_lvds_mode<<27) | (info->lcd_lvds_bitwidth<<26) |
-							 (info->lcd_lvds_correct_mode<<23) );
+		LCDC_WUINT32(sel, LCDC_LVDS_OFF,(info->lcd_lvds_ch<<30) |(0<<29) |
+							 (0<<28) | (info->lcd_lvds_mode<<27) | (info->lcd_lvds_bitwidth<<26) | (0<<23) );
+	    LCDC_INIT_BIT(sel, LCDC_LVDS_ANA1, 0x1f<<21, info->lcd_lvds_io_cross<<21);
 	}	
 	else
 	{
@@ -643,6 +643,26 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.hspw     = 43;
         cfg.io_pol      = 0x07000000;
         break;
+     case DISP_TV_MOD_1080P_24HZ_3D_FP: 
+        cfg.b_interlace   = 0;
+        cfg.src_x       = 1920;
+        cfg.src_y       = 2160;
+        cfg.scl_x       = 1920;
+        cfg.scl_y       = 2160;
+        cfg.out_x       = 1920;
+        cfg.out_y       = 2160;
+        cfg.ht       = 2749;
+        cfg.hbp      = 191;
+        cfg.vt       = (1125*4);
+        cfg.vbp      = 41;
+        cfg.vspw     = 4;
+        cfg.hspw     = 43;
+        cfg.io_pol      = 0x07000000;        
+        LCDC_WUINT32(sel, LCDC_3DF_A1B,(1125 + 1)<<12);
+        LCDC_WUINT32(sel, LCDC_3DF_A1E,(1125 + 45)<<12);
+        LCDC_WUINT32(sel, LCDC_3DF_D1, 0); 
+        LCDC_SET_BIT(sel, LCDC_3DF_CTL,1<<31);   
+        break;        
     default:
         return 0;
     }
@@ -1203,14 +1223,14 @@ __s32 LCD_LVDS_open(__u32 sel)
 {
 	LCDC_SET_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 
 	LCDC_WUINT32(sel, LCDC_LVDS_ANA0,0x3F710000);
-	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,0x7C1F7C1F);
+	LCDC_INIT_BIT(sel, LCDC_LVDS_ANA1,~(0x1f<<21),0x7C1F7C1F);
     return 0;
 }
 
 __s32 LCD_LVDS_close(__u32 sel)
 {
 	LCDC_WUINT32(sel, LCDC_LVDS_ANA0,0);
-	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,0);
+	LCDC_INIT_BIT(sel, LCDC_LVDS_ANA1,~(0x1f<<21),0);
 	LCDC_CLR_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 	
 	return 0;
 }

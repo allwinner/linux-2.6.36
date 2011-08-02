@@ -64,11 +64,7 @@ typedef struct
     __disp_vga_mode_t       vga_mode[2];
 
     __u32                   buffer_num[2];
-    __u32                   fb_width[2];
-    __u32                   fb_height[2];
     __bool                  scaler_mode[2];
-    __u32                   out_width[2];
-    __u32                   out_height[2];
     __disp_pixel_fmt_t      format[2];
     __disp_pixel_seq_t      seq[2];
     __bool                  br_swap[2];

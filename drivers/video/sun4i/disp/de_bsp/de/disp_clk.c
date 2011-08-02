@@ -639,7 +639,7 @@ __s32 lvds_clk_init(void)
 __s32 lvds_clk_exit(void)
 {
 #ifdef RESET_OSAL
-	OSAL_CCMU_MclkReset(h_lvdsmclk, RST_INVAILD);
+	OSAL_CCMU_MclkReset(h_lvdsmclk, RST_VAILD);
 #endif				
 	OSAL_CCMU_CloseMclk(AW_MOD_CLK_LVDS);
 		

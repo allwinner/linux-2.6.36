@@ -171,7 +171,8 @@ typedef enum
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
     DISP_TV_MOD_PAL_NC_CVBS_SVIDEO  = 0x16,
-    DISP_TV_MODE_NUM               = 0x17,
+    DISP_TV_MOD_1080P_24HZ_3D_FP    = 0x17,
+    DISP_TV_MODE_NUM               = 0x18,
 }__disp_tv_mode_t;
 
 typedef enum
@@ -421,20 +422,14 @@ typedef struct
 	__u32   lcd_ttl_datainv_en;
 	__u32   lcd_ttl_datainv_sel;
 
-	__u32   lcd_lvds_ch;
-	__u32   lcd_lvds_even_odd;
-	__u32   lcd_lvds_dir;
-	__u32   lcd_lvds_mode;
-	__u32	lcd_lvds_bitwidth;
-	__u32	lcd_lvds_correct_mode;
+	__u32   lcd_lvds_ch;        // 0: single channel; 1:dual channel
+	__u32   lcd_lvds_mode;      // 0:NS mode; 1:JEIDA mode
+	__u32	lcd_lvds_bitwidth;  // 0:24bit; 1:18bit
+	__u32   lcd_lvds_io_cross;	// 0:normal; 1:pn cross
 	
 	__u32   lcd_cpu_if;//0:18bit; 1:16bit mode0; 2:16bit mode1; 3:16bit mode2; 4:16bit mode3; 5:9bit; 6:8bit 256K; 7:8bit 65K
 	__u32   lcd_cpu_da;
 	__u32   lcd_frm;
-
-	__u32   lvds_channel;// 1: single channel; 2:dual channel
-	__u32   lvds_mode;// 0:NS mode; 1:JEIDA mode
-	__u32   lvds_datawidth;// 0:24bit; 1:18bit
 
 	__u32   lcd_io_cfg0;
 	__u32   lcd_io_cfg1;

@@ -8,18 +8,7 @@ static __lcd_flow_t         open_flow[2];
 static __lcd_flow_t         close_flow[2];
 __panel_para_t              gpanel_info[2];
 static __lcd_panel_fun_t    lcd_panel_fun[2];
-
-static void panel_tcon_sel(__panel_para_t *panel_info)
-{
-	if(panel_info->lcd_x > 1024 || panel_info->lcd_y > 1024)
-	{
-		panel_info->tcon_index = 1;
-	}
-	else
-	{
-		panel_info->tcon_index = 0;
-	}
-}
+static __hdle gpio_hdl[4];
 
 void LCD_get_reg_bases(__reg_bases_t *para)
 {
@@ -28,6 +17,20 @@ void LCD_get_reg_bases(__reg_bases_t *para)
 	para->base_pioc = gdisp.init_para.base_pioc;
 	para->base_ccmu = gdisp.init_para.base_ccmu;
 	para->base_pwm  = gdisp.init_para.base_pwm;
+}
+
+void LCD_delay_ms(__u32 ms) 
+{
+#ifdef __LINUX_OSAL__
+    __u32 timeout = ms*HZ/1000;
+    
+    set_current_state(TASK_INTERRUPTIBLE);
+    schedule_timeout(timeout);
+#else
+    volatile __u32 time;
+    
+    for(time = 0; time < (ms*700*1000/10);time++);//assume cpu runs at 700Mhz,10 clock one cycle
+#endif
 }
 
 void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay)
@@ -57,10 +60,20 @@ void TCON_open(__u32 sel)
         TCON1_open(sel);
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
     }
+
+    if(gpanel_info[sel].lcd_if == 3)
+    {
+        LCD_LVDS_open(sel);
+    }
 }
 
 void TCON_close(__u32 sel)
 {    
+    if(gpanel_info[sel].lcd_if == 3)
+    {
+        LCD_LVDS_close(sel);
+    }
+
     if(gpanel_info[sel].tcon_index == 0)
     {
         TCON0_close(sel);
@@ -135,81 +148,46 @@ __s32 LCD_BL_EN(__u32 sel, __bool b_en)
     __hdle hdl;
     int  value;
     int  ret;
+    char primary_key[20];
+
+    sprintf(primary_key, "lcd%d_para", sel);
 
     if(gdisp.screen[sel].bl_not_open)
     {
         return 0;
     }
     
-    if(sel == 0)
+    ret = OSAL_script_parser_fetch(primary_key, "LCD_BL_EN_USED", &value, 1);
+    if(ret < 0)
     {
-        ret = OSAL_script_parser_fetch("lcd0_para", "LCD_BL_EN_USED", &value, 1);
-        if(ret < 0)
-        {
-            DE_WRN("fetch script data lcd0_para.LCD_BL_EN_USED fail\n");
-            return -1;
-        }
-        else
-        {
-            DE_INF("lcd0_para.LCD_BL_EN_USED=%d\n",value);
-        }
-
-        if(value == 1)
-        {
-            ret = OSAL_script_parser_fetch("lcd0_para","LCD_BL_EN", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-            if(ret < 0)
-            {
-                DE_WRN("fetch script data lcd0_para.LCD_BL_EN fail\n");
-                return -1;
-            }
-            else
-            {
-                DE_INF("lcd0_para.LCD_BL_EN gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
-            }
-
-            if(!b_en)
-            {
-                gpio_info->data = (gpio_info->data==0)?1:0;
-            }
-
-            hdl = OSAL_GPIO_Request(gpio_info, 1);
-            OSAL_GPIO_Release(hdl, 2);
-        }
+        DE_WRN("fetch script data %s.LCD_BL_EN_USED fail\n", primary_key);
+        return -1;
     }
     else
     {
-        ret = OSAL_script_parser_fetch("lcd1_para", "LCD_BL_EN_USED", &value, 1);
+        DE_INF("%s.LCD_BL_EN_USED=%d\n",primary_key,value);
+    }
+
+    if(value == 1)
+    {
+        ret = OSAL_script_parser_fetch(primary_key,"LCD_BL_EN", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
         if(ret < 0)
         {
-            DE_WRN("fetch script data lcd1_para.LCD_BL_EN_USED fail\n");
+            DE_WRN("fetch script data %s.LCD_BL_EN fail\n", primary_key);
             return -1;
         }
         else
         {
-            DE_INF("lcd1_para.LCD_BL_EN_USED=%d\n",value);
+            DE_INF("%s.LCD_BL_EN gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
         }
 
-        if(value == 1)
+        if(!b_en)
         {
-            ret = OSAL_script_parser_fetch("lcd1_para","LCD_BL_EN", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-            if(ret < 0)
-            {
-                DE_WRN("fetch script data lcd1_para.LCD_BL_EN fail\n");
-                return -1;
-            }
-            else
-            {
-                DE_INF("lcd1_para.LCD_BL_EN gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
-            }
-
-            if(!b_en)
-            {
-                gpio_info->data = (gpio_info->data==0)?1:0;
-            }
-
-            hdl = OSAL_GPIO_Request(gpio_info, 1);
-            OSAL_GPIO_Release(hdl, 2);
+            gpio_info->data = (gpio_info->data==0)?1:0;
         }
+
+        hdl = OSAL_GPIO_Request(gpio_info, 1);
+        OSAL_GPIO_Release(hdl, 2);
     }
     
     return 0;
@@ -221,86 +199,120 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
     __hdle hdl;
     int  value;
     int  ret;
+    char primary_key[20];
 
-    if(sel == 0)
+    sprintf(primary_key, "lcd%d_para", sel);
+
+    ret = OSAL_script_parser_fetch(primary_key, "LCD_POWER_USED", &value, 1);
+    if(ret < 0)
     {
-        ret = OSAL_script_parser_fetch("lcd0_para", "LCD_POWER_USED", &value, 1);
-        if(ret < 0)
-        {
-            DE_WRN("fetch script data lcd0_para.LCD_POWER_USED fail\n");
-            return -1;
-        }
-        else
-        {
-            DE_INF("lcd0_para.LCD_POWER_USED=%d\n",value);
-        }
-
-        if(value == 1)
-        {
-            ret = OSAL_script_parser_fetch("lcd0_para","LCD_POWER", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-            if(ret < 0)
-            {
-                DE_WRN("fetch script data lcd0_para.LCD_POWER fail\n");
-                return -1;
-            }
-            else
-            {
-                DE_INF("lcd0_para.LCD_POWER gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
-            }
-
-            if(!b_en)
-            {
-                gpio_info->data = (gpio_info->data==0)?1:0;
-            }
-
-            hdl = OSAL_GPIO_Request(gpio_info, 1);
-            OSAL_GPIO_Release(hdl, 2);
-        }
+        DE_WRN("fetch script data %s.LCD_POWER_USED fail\n", primary_key);
+        return -1;
     }
     else
     {
-        ret = OSAL_script_parser_fetch("lcd1_para", "LCD_POWER_USED", &value, 1);
+        DE_INF("%s.LCD_POWER_USED=%d\n",primary_key,value);
+    }
+
+    if(value == 1)
+    {
+        ret = OSAL_script_parser_fetch(primary_key,"LCD_POWER", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
         if(ret < 0)
         {
-            DE_WRN("fetch script data lcd1_para.LCD_POWER_USED fail\n");
+            DE_WRN("fetch script data %s.LCD_POWER fail\n", primary_key);
             return -1;
         }
         else
         {
-            DE_INF("lcd1_para.LCD_POWER_USED=%d\n",value);
+            DE_INF("%s.LCD_POWER gpio_port=%d,gpio_port_num:%d, data:%d\n", primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
         }
 
-        if(value == 1)
+        if(!b_en)
         {
-            ret = OSAL_script_parser_fetch("lcd1_para","LCD_POWER", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
-            if(ret < 0)
-            {
-                DE_WRN("fetch script data lcd1_para.LCD_POWER fail\n");
-                return -1;
-            }
-            else
-            {
-                DE_INF("lcd1_para.LCD_POWER gpio_port=%d,gpio_port_num:%d, data:%d\n",gpio_info->port, gpio_info->port_num, gpio_info->data);
-            }
-
-            if(!b_en)
-            {
-                gpio_info->data = (gpio_info->data==0)?1:0;
-            }
-
-            hdl = OSAL_GPIO_Request(gpio_info, 1);
-            OSAL_GPIO_Release(hdl, 2);
+            gpio_info->data = (gpio_info->data==0)?1:0;
         }
+
+        hdl = OSAL_GPIO_Request(gpio_info, 1);
+        OSAL_GPIO_Release(hdl, 2);
     }
     
     return 0;
 }
 
-__s32 BSP_disp_set_bl_not_open(__u32 sel, __bool b_not_open)
-{
-    gdisp.screen[sel].bl_not_open = b_not_open;
 
+__s32 LCD_GPIO_request(__u32 sel, __u32 io_index)
+{
+    user_gpio_set_t  gpio_info[1];
+    int  ret;
+    char primary_key[20],gpio_name[20];
+
+    sprintf(primary_key, "lcd%d_para", sel);
+    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+
+    ret = OSAL_script_parser_fetch(primary_key,gpio_name, (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.%s fail\n",primary_key, gpio_name);
+        return -1;
+    }
+    else
+    {
+        DE_INF("%s.%s gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_name,gpio_info->port, gpio_info->port_num, gpio_info->data);
+    }
+
+    gpio_info->mul_sel = 0;
+    gpio_hdl[io_index] = OSAL_GPIO_Request(gpio_info, 1);
+    
     return 0;
+}
+
+__s32 LCD_GPIO_release(__u32 sel,__u32 io_index)
+{
+    user_gpio_set_t  gpio_info[1];
+    int  ret;
+    char primary_key[20],gpio_name[20];
+
+    sprintf(primary_key, "lcd%d_para", sel);
+    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+
+    ret = OSAL_script_parser_fetch(primary_key,gpio_name, (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.%s fail\n",primary_key, gpio_name);
+        return -1;
+    }
+    else
+    {
+        DE_INF("%s.%s gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_name,gpio_info->port, gpio_info->port_num, gpio_info->data);
+    }
+
+    OSAL_GPIO_Release(gpio_hdl[io_index], 2);
+    
+    return 0;
+}
+
+__s32 LCD_GPIO_set_attr(__u32 sel,__u32 io_index, __bool b_output)
+{
+    char gpio_name[20];
+
+    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    return  OSAL_GPIO_DevSetONEPIN_IO_STATUS(gpio_hdl[io_index], b_output, gpio_name);
+}
+
+__s32 LCD_GPIO_read(__u32 sel,__u32 io_index)
+{
+    char gpio_name[20];
+
+    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    return OSAL_GPIO_DevREAD_ONEPIN_DATA(gpio_hdl[io_index], gpio_name);
+}
+
+__s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data)
+{
+    char gpio_name[20];
+
+    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    return OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_hdl[io_index], data, gpio_name);
 }
 
 //lcd_pwm_div = log2(24000/(16*pwm_freq));
@@ -388,99 +400,126 @@ __s32 Disp_pwm_cfg(__u32 sel)
 __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
 {   
     __u32 tmp = 0;
+    __u32 reg_start = 0;
 
-    if(bon)
+    if(sel == 0)
     {
-        if(sel == 0)
-        {
-            switch(out_type)
-            {
-                case DISP_OUTPUT_TYPE_LCD:
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x22222222);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x22222222);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x22222222);
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff0000;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00002222);
-                    break;
-                case DISP_OUTPUT_TYPE_VGA:
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff00ff;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp | 0x00002200);
-                    break;
-                default:
-                    break;
-            }
-        }
-        else if(sel == 1)
-        {
-            switch(out_type)
-            {
-            case DISP_OUTPUT_TYPE_LCD:
-                sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
-                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff0000;
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002222);
-                break;
-            case DISP_OUTPUT_TYPE_VGA:
-                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff00ff;
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp | 0x00002200);
-                break;
-            default:
-                break;
-            }
-        }
-
+        reg_start = gdisp.init_para.base_pioc+0x6c;
     }
     else
     {
-        if(sel == 0)
+        reg_start = gdisp.init_para.base_pioc+0xfc;
+    }
+
+    if(bon)
+    {
+        switch(out_type)
         {
-            switch(out_type)
-            {
-                case DISP_OUTPUT_TYPE_LCD:
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x6c,0x00000000);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x70,0x00000000);
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x74,0x00000000);
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff0000;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp);
-                    break;
-                case DISP_OUTPUT_TYPE_VGA:
-                    tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x78) & 0xffff00ff;
-                    sys_put_wvalue(gdisp.init_para.base_pioc+0x78,tmp);
-                    break;
-                default:
-                    break;
-            }
-        }
-        else
-        {
-            switch(out_type)
-            {
             case DISP_OUTPUT_TYPE_LCD:
-                sys_put_wvalue(gdisp.init_para.base_pioc+0xfc,0x22222222);
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x100,0x22222222);
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x104,0x22222222);
-                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff0000;
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp);
+                if(gpanel_info[sel].lcd_if == 3)
+                {
+                	if(gpanel_info[sel].lcd_lvds_ch == 0 && gpanel_info[sel].lcd_lvds_bitwidth == 0)
+                	{
+                        sys_put_wvalue(reg_start,0x33333333);
+                        tmp = sys_get_wvalue(reg_start + 0x04) & 0xffffff00;
+                        sys_put_wvalue(reg_start + 0x04,tmp | 0x00000033);
+	                }                    			
+                	else if(gpanel_info[sel].lcd_lvds_ch == 0 && gpanel_info[sel].lcd_lvds_bitwidth == 1)	
+                	{            			
+                        sys_put_wvalue(reg_start,0x33333333);
+	                }
+                	else if(gpanel_info[sel].lcd_lvds_ch == 1 && gpanel_info[sel].lcd_lvds_bitwidth == 0)
+                	{
+                        sys_put_wvalue(reg_start,0x33333333);
+                        sys_put_wvalue(reg_start + 0x04,0x33333333);
+                    	tmp = sys_get_wvalue(reg_start + 0x08) & 0xffff0000;
+                    	sys_put_wvalue(reg_start + 0x08,tmp | 0x00003333); 
+                    }                    			
+                	else
+                	{						     			
+                        sys_put_wvalue(reg_start,0x33333333);
+                    	tmp = sys_get_wvalue(reg_start + 0x04) & 0x000000ff;
+                    	sys_put_wvalue(reg_start + 0x04,tmp | 0x33333300);
+                    	tmp = sys_get_wvalue(reg_start + 0x08) & 0xffffff00;
+                    	sys_put_wvalue(reg_start + 0x08,tmp | 0x00000033); 
+	                }             		                
+                }
+                else
+                {
+                    sys_put_wvalue(reg_start,0x22222222);
+                    sys_put_wvalue(reg_start + 0x04,0x22222222);
+                    sys_put_wvalue(reg_start + 0x08,0x22222222);
+                    tmp = sys_get_wvalue(reg_start + 0x0c) & 0xffff0000;
+                    sys_put_wvalue(reg_start + 0x0c,tmp | 0x00002222);
+                }
                 break;
             case DISP_OUTPUT_TYPE_VGA:
-                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x108) & 0xffff00ff;
-                sys_put_wvalue(gdisp.init_para.base_pioc+0x108,tmp);
+                tmp = sys_get_wvalue(reg_start + 0x0c) & 0xffff00ff;
+                sys_put_wvalue(reg_start + 0x0c,tmp | 0x00002200);
                 break;
             default:
                 break;
-            }
+        }
+    }
+    else
+    {
+        switch(out_type)
+        {
+            case DISP_OUTPUT_TYPE_LCD:
+                if(gpanel_info[sel].lcd_if == 3)
+                {
+                	if(gpanel_info[sel].lcd_lvds_ch == 0 && gpanel_info[sel].lcd_lvds_bitwidth == 0)
+                	{
+                        sys_put_wvalue(reg_start,0x00000000);
+                        tmp = sys_get_wvalue(reg_start + 0x04) & 0xffffff00;
+                        sys_put_wvalue(reg_start + 0x04,tmp);
+	                }                    			
+                	else if(gpanel_info[sel].lcd_lvds_ch == 0 && gpanel_info[sel].lcd_lvds_bitwidth == 1)	
+                	{            			
+                        sys_put_wvalue(reg_start,0x00000000);
+	                }
+                	else if(gpanel_info[sel].lcd_lvds_ch == 1 && gpanel_info[sel].lcd_lvds_bitwidth == 0)
+                	{
+                        sys_put_wvalue(reg_start,0x00000000);
+                        sys_put_wvalue(reg_start + 0x04,0x00000000);
+                    	tmp = sys_get_wvalue(reg_start + 0x08) & 0xffff0000;
+                    	sys_put_wvalue(reg_start + 0x08,tmp); 
+                    }                    			
+                	else
+                	{						     			
+                        sys_put_wvalue(reg_start,0x00000000);
+                    	tmp = sys_get_wvalue(reg_start + 0x04) & 0x000000ff;
+                    	sys_put_wvalue(reg_start + 0x04,tmp);
+                    	tmp = sys_get_wvalue(reg_start + 0x08) & 0xffffff00;
+                    	sys_put_wvalue(reg_start + 0x08,tmp); 
+	                }             		                
+                }
+                else
+                {
+                    sys_put_wvalue(reg_start,0x00000000);
+                    sys_put_wvalue(reg_start + 0x04,0x00000000);
+                    sys_put_wvalue(reg_start + 0x08,0x00000000);
+                    tmp = sys_get_wvalue(reg_start + 0x0c) & 0xffff0000;
+                    sys_put_wvalue(reg_start + 0x0c,tmp);
+                }
+                break;
+            case DISP_OUTPUT_TYPE_VGA:
+                tmp = sys_get_wvalue(reg_start + 0x0c) & 0xffff00ff;
+                sys_put_wvalue(reg_start + 0x0c,tmp);
+                break;
+            default:
+                break;
         }
     }
 
 	return DIS_SUCCESS;
 }
 
-#ifdef __MELIS_OSAL__
-__s32 Disp_lcdc_event_proc(void *parg)
-#endif
+
 #ifdef __LINUX_OSAL__
 __s32 Disp_lcdc_event_proc(int irq, void *parg)
+#else
+__s32 Disp_lcdc_event_proc(void *parg)
 #endif
 {
     __u32  lcdc_flags;
@@ -515,6 +554,7 @@ __s32 Disp_lcdc_event_proc(int irq, void *parg)
 __s32 Disp_lcdc_init(__u32 sel)
 {
     lcdc_clk_init(sel);
+    lvds_clk_init();
     lcdc_clk_on(sel);	//??need to be open
     LCDC_init(sel);
     lcdc_clk_off(sel);
@@ -540,8 +580,7 @@ __s32 Disp_lcdc_init(__u32 sel)
 
     lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
     Disp_pwm_cfg(sel);
-    panel_tcon_sel(&gpanel_info[sel]);
-
+    gpanel_info[sel].tcon_index = 0;
 
     return DIS_SUCCESS;
 }
