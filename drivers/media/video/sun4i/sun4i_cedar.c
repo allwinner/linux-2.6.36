@@ -615,7 +615,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 					clk_set_rate(ve_moduleclk, pll4clk_rate/3);//ve_moduleclk rate is 320khz
 				}else if((arg_rate >= 240) && (arg_rate < 320)){
 					clk_set_rate(ve_moduleclk, pll4clk_rate/4);//ve_moduleclk rate is 240khz
-				}else if((arg_rate >= 240) && (arg_rate < 320)){
+				}else if((arg_rate >= 160) && (arg_rate < 240)){
 					clk_set_rate(ve_moduleclk, pll4clk_rate/6);//ve_moduleclk rate is 160khz
 				}else{
 					printk("IOCTL_SET_VE_FREQ set ve freq error,%s,%d\n", __func__, __LINE__);
