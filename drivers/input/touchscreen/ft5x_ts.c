@@ -52,6 +52,7 @@ static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
 
 static void* __iomem gpio_addr = NULL;
+static int ft5x_i2c_rxdata(char *rxdata, int length);
 
 struct ts_event {
 	u16	x1;
@@ -65,6 +66,12 @@ struct ts_event {
 	u16	x5;
 	u16	y5;
 	u16	pressure;
+	s16 touch_ID1;
+	s16 touch_ID2;
+	s16 touch_ID3;
+	s16 touch_ID4;
+	s16 touch_ID5;
+
     u8  touch_point;
 };
 
@@ -78,19 +85,513 @@ struct ft5x_ts_data {
 #endif
 };
 
+
+/* ---------------------------------------------------------------------
+*
+*   Focal Touch panel upgrade related driver
+*
+*
+----------------------------------------------------------------------*/
+#define CONFIG_SUPPORT_FTS_CTP_UPG
+
+
+#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
+
+typedef enum
+{
+    ERR_OK,
+    ERR_MODE,
+    ERR_READID,
+    ERR_ERASE,
+    ERR_STATUS,
+    ERR_ECC,
+    ERR_DL_ERASE_FAIL,
+    ERR_DL_PROGRAM_FAIL,
+    ERR_DL_VERIFY_FAIL
+}E_UPGRADE_ERR_TYPE;
+
+typedef unsigned char         FTS_BYTE;     //8 bit
+typedef unsigned short        FTS_WORD;    //16 bit
+typedef unsigned int          FTS_DWRD;    //16 bit
+typedef unsigned char         FTS_BOOL;    //8 bit 
+
+#define FTS_NULL                0x0
+#define FTS_TRUE                0x01
+#define FTS_FALSE               0x0
+
+#define I2C_CTPM_ADDRESS       (0x70>>1)
+
+void delay_ms(FTS_WORD  w_ms)
+{
+    //platform related, please implement this function
+    msleep( w_ms );
+}
+
+
+/*
+[function]: 
+    callback: read data from ctpm by i2c interface,implemented by special user;
+[parameters]:
+    bt_ctpm_addr[in]    :the address of the ctpm;
+    pbt_buf[out]        :data buffer;
+    dw_lenth[in]        :the length of the data buffer;
+[return]:
+    FTS_TRUE     :success;
+    FTS_FALSE    :fail;
+*/
+int i2c_read_interface(u8 bt_ctpm_addr, u8* pbt_buf, u16 dw_lenth)
+{
+    int ret;
+    
+    ret=i2c_master_recv(this_client, pbt_buf, dw_lenth);
+
+    if(ret != dw_lenth)
+    {
+        printk("ret = %d. \n", ret);
+        printk("i2c_read_interface error\n");
+        return FTS_FALSE;
+    }
+  
+    return FTS_TRUE;
+}
+
+/*
+[function]: 
+    callback: write data to ctpm by i2c interface,implemented by special user;
+[parameters]:
+    bt_ctpm_addr[in]    :the address of the ctpm;
+    pbt_buf[in]        :data buffer;
+    dw_lenth[in]        :the length of the data buffer;
+[return]:
+    FTS_TRUE     :success;
+    FTS_FALSE    :fail;
+*/
+int i2c_write_interface(u8 bt_ctpm_addr, u8* pbt_buf, u16 dw_lenth)
+{
+    int ret;
+    ret=i2c_master_send(this_client, pbt_buf, dw_lenth);
+    if(ret != dw_lenth)
+    {
+        printk("i2c_write_interface error\n");
+        return FTS_FALSE;
+    }
+
+    return FTS_TRUE;
+}
+
+
+/***************************************************************************************/
+
+/*
+[function]: 
+    read out the register value.
+[parameters]:
+    e_reg_name[in]    :register name;
+    pbt_buf[out]    :the returned register value;
+    bt_len[in]        :length of pbt_buf, should be set to 2;        
+[return]:
+    FTS_TRUE    :success;
+    FTS_FALSE    :io fail;
+*/
+u8 fts_register_read(u8 e_reg_name, u8* pbt_buf, u8 bt_len)
+{
+    u8 read_cmd[3]= {0};
+    u8 cmd_len     = 0;
+
+    read_cmd[0] = e_reg_name;
+    cmd_len = 1;    
+
+    /*call the write callback function*/
+//    if(!i2c_write_interface(I2C_CTPM_ADDRESS, &read_cmd, cmd_len))
+//    {
+//        return FTS_FALSE;
+//    }
+
+
+    if(!i2c_write_interface(I2C_CTPM_ADDRESS, read_cmd, cmd_len))//change by zhengdixu
+    {
+        return FTS_FALSE;
+    }
+
+    /*call the read callback function to get the register value*/        
+    if(!i2c_read_interface(I2C_CTPM_ADDRESS, pbt_buf, bt_len))
+    {
+        return FTS_FALSE;
+    }
+    return FTS_TRUE;
+}
+
+/*
+[function]: 
+    write a value to register.
+[parameters]:
+    e_reg_name[in]    :register name;
+    pbt_buf[in]        :the returned register value;
+[return]:
+    FTS_TRUE    :success;
+    FTS_FALSE    :io fail;
+*/
+int fts_register_write(u8 e_reg_name, u8 bt_value)
+{
+
+    FTS_BYTE write_cmd[2] = {0};
+
+    write_cmd[0] = e_reg_name;
+    write_cmd[1] = bt_value;
+
+    /*call the write callback function*/
+    //return i2c_write_interface(I2C_CTPM_ADDRESS, &write_cmd, 2);
+    return i2c_write_interface(I2C_CTPM_ADDRESS, write_cmd, 2); //change by zhengdixu
+}
+
+/*
+[function]: 
+    send a command to ctpm.
+[parameters]:
+    btcmd[in]        :command code;
+    btPara1[in]    :parameter 1;    
+    btPara2[in]    :parameter 2;    
+    btPara3[in]    :parameter 3;    
+    num[in]        :the valid input parameter numbers, if only command code needed and no parameters followed,then the num is 1;    
+[return]:
+    FTS_TRUE    :success;
+    FTS_FALSE    :io fail;
+*/
+int cmd_write(u8 btcmd,u8 btPara1,u8 btPara2,u8 btPara3,u8 num)
+{
+    FTS_BYTE write_cmd[4] = {0};
+
+    write_cmd[0] = btcmd;
+    write_cmd[1] = btPara1;
+    write_cmd[2] = btPara2;
+    write_cmd[3] = btPara3;
+    //return i2c_write_interface(I2C_CTPM_ADDRESS, &write_cmd, num);
+    return i2c_write_interface(I2C_CTPM_ADDRESS, write_cmd, num);//change by zhengdixu
+}
+
+/*
+[function]: 
+    write data to ctpm , the destination address is 0.
+[parameters]:
+    pbt_buf[in]    :point to data buffer;
+    bt_len[in]        :the data numbers;    
+[return]:
+    FTS_TRUE    :success;
+    FTS_FALSE    :io fail;
+*/
+int byte_write(u8* pbt_buf, u16 dw_len)
+{
+    
+    return i2c_write_interface(I2C_CTPM_ADDRESS, pbt_buf, dw_len);
+}
+
+/*
+[function]: 
+    read out data from ctpm,the destination address is 0.
+[parameters]:
+    pbt_buf[out]    :point to data buffer;
+    bt_len[in]        :the data numbers;    
+[return]:
+    FTS_TRUE    :success;
+    FTS_FALSE    :io fail;
+*/
+int byte_read(u8* pbt_buf, u8 bt_len)
+{
+    return i2c_read_interface(I2C_CTPM_ADDRESS, pbt_buf, bt_len);
+    //ft5x_i2c_rxdata
+}
+
+
+/*
+[function]: 
+    burn the FW to ctpm.
+[parameters]:(ref. SPEC)
+    pbt_buf[in]    :point to Head+FW ;
+    dw_lenth[in]:the length of the FW + 6(the Head length);    
+    bt_ecc[in]    :the ECC of the FW
+[return]:
+    ERR_OK        :no error;
+    ERR_MODE    :fail to switch to UPDATE mode;
+    ERR_READID    :read id fail;
+    ERR_ERASE    :erase chip fail;
+    ERR_STATUS    :status error;
+    ERR_ECC        :ecc error.
+*/
+
+
+#define    FTS_PACKET_LENGTH        2//4//8//16//32//64//128//256
+
+static unsigned char CTPM_FW[]=
+{
+#include "ft_app.i"
+};
+
+E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
+{
+    u8 reg_val[2] = {0};
+    //FTS_BOOL i_ret = 0;
+    u16 i = 0;
+    
+
+    u16  packet_number;
+    u16  j;
+    u16  temp;
+    u16  lenght;
+    u8  packet_buf[FTS_PACKET_LENGTH + 6];
+    u8  auc_i2c_write_buf[10];
+    u8 bt_ecc;
+
+    /*********Step 1:Reset  CTPM *****/
+    /*write 0xaa to register 0xfc*/
+    fts_register_write(0xfc,0xaa);
+    delay_ms(50);
+     /*write 0x55 to register 0xfc*/
+    fts_register_write(0xfc,0x55);
+    printk("Step 1: Reset CTPM test\n");
+
+    delay_ms(30);
+
+    /*********Step 2:Enter upgrade mode *****/
+     auc_i2c_write_buf[0] = 0x55;
+     auc_i2c_write_buf[1] = 0xaa;
+     i = 0;
+     do{
+        i++;
+        i_ret = i2c_write_interface(I2C_CTPM_ADDRESS, auc_i2c_write_buf, 2);
+        printk("Step 2: Enter update mode. \n");
+        delay_ms(5);
+     }while((FTS_FALSE == i_ret) && i<5);
+     
+
+    /*********Step 3:check READ-ID***********************/
+    /*send the opration head*/
+    i = 0;
+    do{
+        if(i > 3)
+        {
+          cmd_write(0x07,0x00,0x00,0x00,1);
+		  return ERR_READID; 
+        }
+        /*read out the CTPM ID*/
+        
+        cmd_write(0x90,0x00,0x00,0x00,4);
+        byte_read(reg_val,2);
+        i++;
+        delay_ms(5);
+        printk("Step 3: CTPM ID,ID1 = 0x%x,ID2 = 0x%x\n",reg_val[0],reg_val[1]);
+    }while(reg_val[1] != 0x03);//while(reg_val[0] != 0x79 || reg_val[1] != 0x03);
+
+     /*********Step 4:erase app*******************************/
+    cmd_write(0x61,0x00,0x00,0x00,1);
+    delay_ms(1500);
+    printk("Step 4: erase. \n");
+
+    /*********Step 5:write firmware(FW) to ctpm flash*********/
+    bt_ecc = 0;
+    printk("Step 5: start upgrade. \n");
+    dw_lenth = dw_lenth - 8;
+    packet_number = (dw_lenth) / FTS_PACKET_LENGTH;
+    packet_buf[0] = 0xbf;
+    packet_buf[1] = 0x00;
+    for (j=0;j<packet_number;j++)
+    {
+        temp = j * FTS_PACKET_LENGTH;
+        packet_buf[2] = (FTS_BYTE)(temp>>8);
+        packet_buf[3] = (FTS_BYTE)temp;
+        lenght = FTS_PACKET_LENGTH;
+        packet_buf[4] = (FTS_BYTE)(lenght>>8);
+        packet_buf[5] = (FTS_BYTE)lenght;
+
+        for (i=0;i<FTS_PACKET_LENGTH;i++)
+        {
+            packet_buf[6+i] = pbt_buf[j*FTS_PACKET_LENGTH + i]; 
+            bt_ecc ^= packet_buf[6+i];
+        }
+        
+        byte_write(&packet_buf[0],FTS_PACKET_LENGTH + 6);
+        delay_ms(FTS_PACKET_LENGTH/6 + 1);
+        if ((j * FTS_PACKET_LENGTH % 1024) == 0)
+        {
+              printk("upgrade the 0x%x th byte.\n", ((unsigned int)j) * FTS_PACKET_LENGTH);
+        }
+    }
+
+    if ((dw_lenth) % FTS_PACKET_LENGTH > 0)
+    {
+        temp = packet_number * FTS_PACKET_LENGTH;
+        packet_buf[2] = (FTS_BYTE)(temp>>8);
+        packet_buf[3] = (FTS_BYTE)temp;
+
+        temp = (dw_lenth) % FTS_PACKET_LENGTH;
+        packet_buf[4] = (FTS_BYTE)(temp>>8);
+        packet_buf[5] = (FTS_BYTE)temp;
+
+        for (i=0;i<temp;i++)
+        {
+            packet_buf[6+i] = pbt_buf[ packet_number*FTS_PACKET_LENGTH + i]; 
+            bt_ecc ^= packet_buf[6+i];
+        }
+
+        byte_write(&packet_buf[0],temp+6);    
+        delay_ms(20);
+    }
+
+    //send the last six byte
+    for (i = 0; i<6; i++)
+    {
+        temp = 0x6ffa + i;
+        packet_buf[2] = (FTS_BYTE)(temp>>8);
+        packet_buf[3] = (FTS_BYTE)temp;
+        temp =1;
+        packet_buf[4] = (FTS_BYTE)(temp>>8);
+        packet_buf[5] = (FTS_BYTE)temp;
+        packet_buf[6] = pbt_buf[ dw_lenth + i]; 
+        bt_ecc ^= packet_buf[6];
+
+        byte_write(&packet_buf[0],7);  
+        delay_ms(20);
+    }
+
+    /*********Step 6: read out checksum***********************/
+    /*send the opration head*/
+    //cmd_write(0xcc,0x00,0x00,0x00,1);//把0xcc当作寄存器地址，去读出一个字节
+   // byte_read(reg_val,1);//change by zhengdixu
+
+	fts_register_read(0xcc, reg_val,1);
+	
+    printk("Step 6:  ecc read 0x%x, new firmware 0x%x. \n", reg_val[0], bt_ecc);
+    if(reg_val[0] != bt_ecc)
+    {
+       cmd_write(0x07,0x00,0x00,0x00,1);
+		return ERR_ECC;
+    }
+
+    /*********Step 7: reset the new FW***********************/
+    cmd_write(0x07,0x00,0x00,0x00,1);
+
+    return ERR_OK;
+}
+
+void getVerNo(u8* buf, int len)
+{
+	u8 start_reg=0x0;
+	int ret = -1;
+	//int status = 0;
+	int i = 0;
+	start_reg = 0xa6;
+
+#if 0
+	printk("read 0xa6 one time. \n");
+	if(FTS_FALSE == fts_register_read(0xa6, buf, len)){
+        return ;
+	}
+	
+	for (i=0; i< len; i++) 
+	{
+		printk("=========buf[%d] = 0x%x \n", i, buf[i]);
+	}
+	
+	printk("read 0xa8. \n");
+	if(FTS_FALSE == fts_register_read(0xa8, buf, len)){
+        return ;
+	}
+	for (i=0; i< len; i++) 
+	{
+		printk("=========buf[%d] = 0x%x \n", i, buf[i]);
+	}
+
+	ft5x_i2c_rxdata(buf, len);
+	
+    for (i=0; i< len; i++) 
+        {
+            printk("=========buf[%d] = 0x%x \n", i, buf[i]);
+        }
+
+    byte_read(buf, len);
+    for (i=0; i< len; i++) 
+    {
+        printk("=========buf[%d] = 0x%x \n", i, buf[i]);
+    }
+          
+#endif
+
+	ret =fts_register_read(0xa6, buf, len);
+	//et = ft5406_read_regs(ft5x0x_ts_data_test->client,start_reg, buf, 2);
+    if (ret < 0) 
+	{
+		printk("%s read_data i2c_rxdata failed: %d\n", __func__, ret);
+		return;
+	}
+	for (i=0; i<2; i++) 
+	{
+		printk("=========buf[%d] = 0x%x \n", i, buf[i]);
+	}
+
+
+	return;
+}
+
+int fts_ctpm_fw_upgrade_with_i_file(void)
+{
+   FTS_BYTE*     pbt_buf = FTS_NULL;
+   int i_ret;
+   u8 a,b;
+#define BUFFER_LEN (2)            //len == 2 
+   unsigned char buf[BUFFER_LEN] = {0};
+   
+	//=========FW upgrade========================*/
+	pbt_buf = CTPM_FW;
+	
+	getVerNo(buf, BUFFER_LEN);
+	a = buf[0];
+	b = pbt_buf[0];
+	printk("buf[0] == %hu, pbt_buf[0] == %hu \n", buf[0], pbt_buf[0]);
+	if (a >= b )
+	{
+		return 0; //强制升级触摸IC  phm 
+	}
+	/*call the upgrade function*/
+	i_ret =  fts_ctpm_fw_upgrade(&pbt_buf[1],sizeof(CTPM_FW)-1);//因为在i文件中在第一个字节插入了定义的版本号，所以要减去1
+
+   if (i_ret != 0)
+   {
+       //error handling ... 
+       //TBD
+   }
+
+   return i_ret;
+}
+
+unsigned char fts_ctpm_get_upg_ver(void)
+{
+    unsigned int ui_sz;
+    ui_sz = sizeof(CTPM_FW);
+    if (ui_sz > 2)
+    {
+        return CTPM_FW[0];
+        
+    }
+    else
+    {
+        //TBD, error handling?
+        return 0xff; //default value
+    }
+}
+#endif
+
 static int ft5x_i2c_rxdata(char *rxdata, int length)
 {
 	int ret;
 
 	struct i2c_msg msgs[] = {
 		{
-			.addr	= this_client->addr>>1,
+			.addr	= this_client->addr,
 			.flags	= 0,
 			.len	= 1,
 			.buf	= rxdata,
 		},
 		{
-			.addr	= this_client->addr>>1,
+			.addr	= this_client->addr,
 			.flags	= I2C_M_RD,
 			.len	= length,
 			.buf	= rxdata,
@@ -190,18 +691,28 @@ static int ft5x_read_data(void)
 		case 5:
 			event->x5 = (s16)(buf[0x1b] & 0x0F)<<8 | (s16)buf[0x1c];
 			event->y5 = (s16)(buf[0x1d] & 0x0F)<<8 | (s16)buf[0x1e];
+			event->x5 = 800 - event->x5;
+			event->touch_ID5=(s16)(buf[0x1D] & 0xF0)>>4;
 		case 4:
 			event->x4 = (s16)(buf[0x15] & 0x0F)<<8 | (s16)buf[0x16];
 			event->y4 = (s16)(buf[0x17] & 0x0F)<<8 | (s16)buf[0x18];
+			event->x4 = 800 - event->x4;
+			event->touch_ID4=(s16)(buf[0x17] & 0xF0)>>4;
 		case 3:
 			event->x3 = (s16)(buf[0x0f] & 0x0F)<<8 | (s16)buf[0x10];
 			event->y3 = (s16)(buf[0x11] & 0x0F)<<8 | (s16)buf[0x12];
+			event->x3 = 800 - event->x3;
+			event->touch_ID3=(s16)(buf[0x11] & 0xF0)>>4;
 		case 2:
 			event->x2 = (s16)(buf[9] & 0x0F)<<8 | (s16)buf[10];
 			event->y2 = (s16)(buf[11] & 0x0F)<<8 | (s16)buf[12];
+			event->x2 = 800 - event->x2;
+		    event->touch_ID2=(s16)(buf[0x0b] & 0xF0)>>4;
 		case 1:
 			event->x1 = (s16)(buf[3] & 0x0F)<<8 | (s16)buf[4];
 			event->y1 = (s16)(buf[5] & 0x0F)<<8 | (s16)buf[6];
+			event->x1 = 800 - event->x1;
+			event->touch_ID1=(s16)(buf[0x05] & 0xF0)>>4;
 		break;
 		default:
 		    return -1;
@@ -230,6 +741,7 @@ static void ft5x_report_value(void)
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 	switch(event->touch_point) {
 		case 5:
+			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID5);	
 			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x5);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y5);
@@ -239,6 +751,7 @@ static void ft5x_report_value(void)
 			    printk("===x5 = %d,y5 = %d ====\n",event->x2,event->y2);
 			#endif
 		case 4:
+			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID4);	
 			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x4);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y4);
@@ -248,6 +761,7 @@ static void ft5x_report_value(void)
 			    printk("===x4 = %d,y4 = %d ====\n",event->x2,event->y2);
 			#endif
 		case 3:
+			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID3);	
 			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x3);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y3);
@@ -257,6 +771,7 @@ static void ft5x_report_value(void)
 			    printk("===x3 = %d,y3 = %d ====\n",event->x2,event->y2);
 			#endif
 		case 2:
+			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID2);	
 			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x2);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y2);
@@ -266,6 +781,7 @@ static void ft5x_report_value(void)
 			    printk("===x2 = %d,y2 = %d ====\n",event->x2,event->y2);
 			#endif
 		case 1:
+			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID1);	
 			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x1);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y1);
@@ -397,7 +913,13 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	struct input_dev *input_dev;
 	int err = 0;
 	int reg_val;
-	
+
+#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
+#define PROBE_BUFFER_LEN  (1)
+	unsigned char up_flg=0;
+	unsigned char buf[PROBE_BUFFER_LEN] = {0};
+#endif	
+
 	printk("=====capacitor touchscreen driver register ================\n");
 	printk("===================ft5x_ts_probe========================\n");
 	
@@ -420,6 +942,8 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	}
 	//printk("touch panel gpio addr: = 0x%x", gpio_addr);
 	this_client = client;
+	this_client->addr = client->addr>>1;
+	
 	i2c_set_clientdata(client, ft5x_ts);
 
 //	printk("==INIT_WORK=\n");
@@ -521,10 +1045,9 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	register_early_suspend(&ft5x_ts->early_suspend);
 #endif
 
-#ifdef    CONFIG_FT5X0X_MULTITOUCH
+#ifdef CONFIG_FT5X0X_MULTITOUCH
     printk("CONFIG_FT5X0X_MULTITOUCH is defined. \n");
 #endif
-
    
 	err = request_irq(SW_INT_IRQNO_PIO, ft5x_ts_interrupt, IRQF_TRIGGER_FALLING | IRQF_SHARED, "ft5x_ts", ft5x_ts);
    
@@ -532,6 +1055,28 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		dev_err(&client->dev, "ft5x_ts_probe: request irq failed\n");
 		goto exit_irq_request_failed;
 	}
+
+#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
+
+#if 0
+        up_flg = fts_ctpm_get_upg_ver();
+        if(FTS_FALSE == fts_register_read(0xa6, buf, PROBE_BUFFER_LEN)){
+            printk("ft5x_ts_probe: fts_register_read failed. \n");
+            goto exit_upgrade_failed;
+        }
+        
+        printk("up_flg == %hu, buf[0] == %hu \n", up_flg, buf[0]);
+        if(FTS_FALSE == fts_register_read(0xa8, buf, PROBE_BUFFER_LEN)){
+            printk("ft5x_ts_probe: fts_register_read failed. \n");
+            goto exit_upgrade_failed;
+        }
+        printk("buf[0] == %hu \n", buf[0]);
+
+#endif
+
+  	fts_ctpm_fw_upgrade_with_i_file();
+
+#endif
 
 	printk("==probe over =\n");
     return 0;
@@ -556,6 +1101,7 @@ exit_ioremap_failed:
     }
 exit_alloc_data_failed:
 exit_check_functionality_failed:
+exit_upgrade_failed:
 	return err;
 }
 
@@ -610,7 +1156,7 @@ static void __exit ft5x_ts_exit(void)
 	i2c_del_driver(&ft5x_ts_driver);
 }
 
-module_init(ft5x_ts_init);
+late_initcall(ft5x_ts_init);
 module_exit(ft5x_ts_exit);
 
 MODULE_AUTHOR("<wenfs@Focaltech-systems.com>");
