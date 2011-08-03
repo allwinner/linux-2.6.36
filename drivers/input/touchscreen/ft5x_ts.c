@@ -16,7 +16,7 @@
  *
  *
  *	note: only support mulititouch	Wenfs 2010-10-01
- *  for this touchscreen to work, it's slave addr must be set to 0x7e
+ *  for this touchscreen to work, it's slave addr must be set to 0x7e | 0x70
  */
 
 #include <linux/i2c.h>
@@ -44,8 +44,6 @@
 #define PRINT_POINT_INFO
 //#define PRINT_INT_INFO
 
-//#define CONFIG_FT5X0X_MULTITOUCH
-
 static struct i2c_client *this_client;
 
 static int gpio_int_hdle = 0;
@@ -71,7 +69,6 @@ struct ts_event {
 	s16 touch_ID3;
 	s16 touch_ID4;
 	s16 touch_ID5;
-
     u8  touch_point;
 };
 
@@ -92,7 +89,7 @@ struct ft5x_ts_data {
 *
 *
 ----------------------------------------------------------------------*/
-#define CONFIG_SUPPORT_FTS_CTP_UPG
+//#define CONFIG_SUPPORT_FTS_CTP_UPG
 
 
 #ifdef CONFIG_SUPPORT_FTS_CTP_UPG
@@ -329,7 +326,7 @@ static unsigned char CTPM_FW[]=
 E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
 {
     u8 reg_val[2] = {0};
-    //FTS_BOOL i_ret = 0;
+    FTS_BOOL i_ret = 0;
     u16 i = 0;
     
 
@@ -361,7 +358,6 @@ E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
         printk("Step 2: Enter update mode. \n");
         delay_ms(5);
      }while((FTS_FALSE == i_ret) && i<5);
-     
 
     /*********Step 3:check READ-ID***********************/
     /*send the opration head*/
@@ -914,11 +910,7 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	int err = 0;
 	int reg_val;
 
-#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
-#define PROBE_BUFFER_LEN  (1)
-	unsigned char up_flg=0;
-	unsigned char buf[PROBE_BUFFER_LEN] = {0};
-#endif	
+
 
 	printk("=====capacitor touchscreen driver register ================\n");
 	printk("===================ft5x_ts_probe========================\n");
@@ -1059,6 +1051,11 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 #ifdef CONFIG_SUPPORT_FTS_CTP_UPG
 
 #if 0
+
+#define PROBE_BUFFER_LEN  (1)
+        unsigned char up_flg=0;
+        unsigned char buf[PROBE_BUFFER_LEN] = {0};
+
         up_flg = fts_ctpm_get_upg_ver();
         if(FTS_FALSE == fts_register_read(0xa6, buf, PROBE_BUFFER_LEN)){
             printk("ft5x_ts_probe: fts_register_read failed. \n");
@@ -1101,7 +1098,6 @@ exit_ioremap_failed:
     }
 exit_alloc_data_failed:
 exit_check_functionality_failed:
-exit_upgrade_failed:
 	return err;
 }
 
