@@ -241,7 +241,7 @@ static int __set_cpufreq_target(struct sun4i_cpu_freq_t *old, struct sun4i_cpu_f
         }
         if((old_freq.pll <= 1200000000) && (new_freq.pll >= 1200000000)) {
             /* set to 1200Mhz (1:3:2:2) */
-           old_freq.pll = 1200000000;
+            old_freq.pll = 1200000000;
             old_freq.div.cpu_div = 1;
             old_freq.div.axi_div = 3;
             old_freq.div.ahb_div = 2;
@@ -687,20 +687,23 @@ static __init int sun4i_cpufreq_initclks(void)
 
 	if (IS_ERR(clk_pll) || IS_ERR(clk_cpu) || IS_ERR(clk_axi) ||
 	    IS_ERR(clk_ahb) || IS_ERR(clk_apb)) {
-		printk(KERN_ERR "%s: could not get clock(s)\n", __func__);
+		CPUFREQ_INF(KERN_ERR "%s: could not get clock(s)\n", __func__);
 		return -ENOENT;
 	}
 
-	printk(KERN_INFO "%s: clocks pll=%lu,cpu=%lu,axi=%lu,ahp=%lu,apb=%lu\n", __func__,
+	CPUFREQ_INF("%s: clocks pll=%lu,cpu=%lu,axi=%lu,ahp=%lu,apb=%lu\n", __func__,
 	       clk_get_rate(clk_pll), clk_get_rate(clk_cpu), clk_get_rate(clk_axi),
 	       clk_get_rate(clk_ahb), clk_get_rate(clk_apb));
 
     #ifdef CONFIG_CPU_FREQ_DVFS
     corevdd = regulator_get(NULL, "axp20_core");
     if(!corevdd) {
-        printk("try to get regulator failed, core vdd will not changed!\n");
+        CPUFREQ_INF("try to get regulator failed, core vdd will not changed!\n");
     }
-    last_vdd = regulator_get_voltage(corevdd) / 1000;
+    else {
+        CPUFREQ_INF("try to get regulator(0x%x) successed.\n", (__u32)corevdd);
+        last_vdd = regulator_get_voltage(corevdd) / 1000;
+    }
     #endif
 
 	return 0;
