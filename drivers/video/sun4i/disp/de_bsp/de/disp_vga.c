@@ -68,6 +68,7 @@ __s32 BSP_disp_vga_close(__u32 sel)
     	lcdc_clk_off(sel);
     	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_VGA, 0);
 
+        gdisp.screen[sel].b_out_interlace = 0;
     	gdisp.screen[sel].status &= VGA_OFF;	
     	gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;
     	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;

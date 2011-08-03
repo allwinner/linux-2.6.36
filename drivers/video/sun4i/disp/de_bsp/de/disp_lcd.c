@@ -104,10 +104,6 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);    
     }
 */
-    if(gdisp.screen[sel].bl_not_open)
-    {
-        return 0;
-    }
     
     if(b_en)
     {
@@ -151,34 +147,29 @@ __s32 LCD_BL_EN(__u32 sel, __bool b_en)
     char primary_key[20];
 
     sprintf(primary_key, "lcd%d_para", sel);
-
-    if(gdisp.screen[sel].bl_not_open)
-    {
-        return 0;
-    }
     
-    ret = OSAL_script_parser_fetch(primary_key, "LCD_BL_EN_USED", &value, 1);
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_bl_en_used", &value, 1);
     if(ret < 0)
     {
-        DE_WRN("fetch script data %s.LCD_BL_EN_USED fail\n", primary_key);
+        DE_WRN("fetch script data %s.lcd_bl_en_used fail\n", primary_key);
         return -1;
     }
     else
     {
-        DE_INF("%s.LCD_BL_EN_USED=%d\n",primary_key,value);
+        DE_INF("%s.lcd_bl_en_used=%d\n",primary_key,value);
     }
 
     if(value == 1)
     {
-        ret = OSAL_script_parser_fetch(primary_key,"LCD_BL_EN", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+        ret = OSAL_script_parser_fetch(primary_key,"lcd_bl_en", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
         if(ret < 0)
         {
-            DE_WRN("fetch script data %s.LCD_BL_EN fail\n", primary_key);
+            DE_WRN("fetch script data %s.lcd_bl_en fail\n", primary_key);
             return -1;
         }
         else
         {
-            DE_INF("%s.LCD_BL_EN gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
+            DE_INF("%s.lcd_bl_en gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
         }
 
         if(!b_en)
@@ -203,28 +194,28 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
 
     sprintf(primary_key, "lcd%d_para", sel);
 
-    ret = OSAL_script_parser_fetch(primary_key, "LCD_POWER_USED", &value, 1);
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_power_used", &value, 1);
     if(ret < 0)
     {
-        DE_WRN("fetch script data %s.LCD_POWER_USED fail\n", primary_key);
+        DE_WRN("fetch script data %s.lcd_power_used fail\n", primary_key);
         return -1;
     }
     else
     {
-        DE_INF("%s.LCD_POWER_USED=%d\n",primary_key,value);
+        DE_INF("%s.lcd_power_used=%d\n",primary_key,value);
     }
 
     if(value == 1)
     {
-        ret = OSAL_script_parser_fetch(primary_key,"LCD_POWER", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
+        ret = OSAL_script_parser_fetch(primary_key,"lcd_power", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
         if(ret < 0)
         {
-            DE_WRN("fetch script data %s.LCD_POWER fail\n", primary_key);
+            DE_WRN("fetch script data %s.lcd_power fail\n", primary_key);
             return -1;
         }
         else
         {
-            DE_INF("%s.LCD_POWER gpio_port=%d,gpio_port_num:%d, data:%d\n", primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
+            DE_INF("%s.lcd_power gpio_port=%d,gpio_port_num:%d, data:%d\n", primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
         }
 
         if(!b_en)
@@ -247,7 +238,7 @@ __s32 LCD_GPIO_request(__u32 sel, __u32 io_index)
     char primary_key[20],gpio_name[20];
 
     sprintf(primary_key, "lcd%d_para", sel);
-    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    sprintf(gpio_name, "lcd_gpio_%d", io_index);
 
     ret = OSAL_script_parser_fetch(primary_key,gpio_name, (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
     if(ret < 0)
@@ -273,7 +264,7 @@ __s32 LCD_GPIO_release(__u32 sel,__u32 io_index)
     char primary_key[20],gpio_name[20];
 
     sprintf(primary_key, "lcd%d_para", sel);
-    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    sprintf(gpio_name, "lcd_gpio_%d", io_index);
 
     ret = OSAL_script_parser_fetch(primary_key,gpio_name, (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
     if(ret < 0)
@@ -295,7 +286,7 @@ __s32 LCD_GPIO_set_attr(__u32 sel,__u32 io_index, __bool b_output)
 {
     char gpio_name[20];
 
-    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    sprintf(gpio_name, "lcd_gpio_%d", io_index);
     return  OSAL_GPIO_DevSetONEPIN_IO_STATUS(gpio_hdl[io_index], b_output, gpio_name);
 }
 
@@ -303,7 +294,7 @@ __s32 LCD_GPIO_read(__u32 sel,__u32 io_index)
 {
     char gpio_name[20];
 
-    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    sprintf(gpio_name, "lcd_gpio_%d", io_index);
     return OSAL_GPIO_DevREAD_ONEPIN_DATA(gpio_hdl[io_index], gpio_name);
 }
 
@@ -311,7 +302,7 @@ __s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data)
 {
     char gpio_name[20];
 
-    sprintf(gpio_name, "LCD_GPIO_%d", io_index);
+    sprintf(gpio_name, "lcd_gpio_%d", io_index);
     return OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_hdl[io_index], data, gpio_name);
 }
 
