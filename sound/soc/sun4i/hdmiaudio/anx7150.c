@@ -23,9 +23,9 @@
 
 #include "anx7150.h"
 
-#define HDMI
+//#define CONFIG_LYCHEE_HDMI_SUN4I
 
-#ifdef HDMI
+#ifdef CONFIG_LYCHEE_HDMI_SUN4I
 extern __s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para);
 extern __s32 Hdmi_Audio_Enable(__u8 mode,  __u8 channel);
 #endif
@@ -62,7 +62,7 @@ static int anx7150_hw_params(struct snd_pcm_substream *substream,
 {
 	hdmi_para.sample_rate = params_rate(params);
 	
-	#ifdef HDMI
+	#ifdef CONFIG_LYCHEE_HDMI_SUN4I
 		Hdmi_Audio_Enable(1, 1);
 		Hdmi_Set_Audio_Para(&hdmi_para);
 	#endif
