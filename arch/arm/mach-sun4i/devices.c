@@ -42,7 +42,6 @@
 #include <mach/script_v2.h>
 #include <mach/gpio_v2.h>
 
-
 #ifdef CONFIG_ANDROID_PMEM
 /*
  *  Android pmem devices
@@ -114,7 +113,6 @@ arch_initcall(aw_pdevs_init);
 
 static atomic_t sw_sys_status = ATOMIC_INIT(0);
 
-#define SW_SYS_BUF_SIZE 128
 static struct sw_script_para script_para;
 
 static long sw_sys_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
@@ -132,12 +130,9 @@ static long sw_sys_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	case SW_SYS_IOC_GET_TOTAL_SUBKEY:
 		break;
-	case SW_SYS_IOC_GET_KEY_INT:
-		err = script_parser_fetch(script_para.main_name, script_para.sub_name, &script_para.data, sizeof(int));
-		break;
-	case SW_SYS_IOC_GET_KEY_STRING:
-		err = script_parser_fetch(script_para.main_name, script_para.sub_name, (int *)script_para.buf, MAX_BUF_LEN);
-		break;
+	case SW_SYS_IOC_GET_KEY_VALUE:
+		pr_debug("sw_sys_ioctl: SW_SYS_IOC_GET_KEY_VALUE\n");
+		err = script_parser_fetch_ex(script_para.main_name, script_para.sub_name, script_para.value, &(script_para.value_type), SW_SCRIPT_PARA_VALUE_BUF_SIZE);
 	case SW_SYS_IOC_GET_TOTAL_GPIO:
 		break;
 	case SW_SYS_IOC_GET_GPIO_CFG:

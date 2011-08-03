@@ -1,23 +1,25 @@
 #ifndef _LINUX_SW_SYS_H_
 #define _LINUX_SW_SYS_H_
 
+#include <mach/script_v2.h>
 
-#define MAX_KEY_NAME_LEN 32
-#define MAX_BUF_LEN 128
+#define SW_SCRIPT_PARA_MAX_NAME_LEN 32
+#define SW_SCRIPT_PARA_VALUE_BUF_SIZE 128
 
-struct sw_script_para {
-	char main_name[MAX_KEY_NAME_LEN];
-	char sub_name[MAX_KEY_NAME_LEN];
-	char buf[MAX_BUF_LEN];
-	int data;
-};
+struct sw_script_para{
+	char main_name[SW_SCRIPT_PARA_MAX_NAME_LEN];
+	char sub_name[SW_SCRIPT_PARA_MAX_NAME_LEN];
+	int value[SW_SCRIPT_PARA_VALUE_BUF_SIZE];
+	script_parser_value_type_t value_type;
+}; 
 
-#define SW_SYS_IOC_GET_TOTAL_MAINKEY     0x01
-#define SW_SYS_IOC_GET_TOTAL_SUBKEY      0x02
-#define SW_SYS_IOC_GET_KEY_INT           0x03
-#define SW_SYS_IOC_GET_KEY_STRING        0x04
-#define SW_SYS_IOC_GET_TOTAL_GPIO        0x05
-#define SW_SYS_IOC_GET_GPIO_CFG          0x06
+typedef struct sw_script_para sw_script_para_t;
+
+#define SW_SYS_IOC_GET_TOTAL_MAINKEY     _IOR('s', 0x01, struct sw_script_para)
+#define SW_SYS_IOC_GET_TOTAL_SUBKEY      _IOR('s', 0x02, struct sw_script_para)
+#define SW_SYS_IOC_GET_KEY_VALUE         _IOR('s', 0x03, struct sw_script_para)
+#define SW_SYS_IOC_GET_TOTAL_GPIO        _IOR('s', 0x04, struct sw_script_para)
+#define SW_SYS_IOC_GET_GPIO_CFG          _IOR('s', 0x05, struct sw_script_para)
 
 
 

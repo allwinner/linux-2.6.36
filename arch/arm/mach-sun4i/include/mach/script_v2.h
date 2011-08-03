@@ -21,10 +21,20 @@
 #ifndef	  __SCRIPT_V2_H__
 #define	  __SCRIPT_V2_H__
 
-#define   DATA_TYPE_SINGLE_WORD  (1)
-#define   DATA_TYPE_STRING       (2)
-#define   DATA_TYPE_MULTI_WORD   (3)
-#define   DATA_TYPE_GPIO_WORD    (4)
+//#define   DATA_TYPE_SINGLE_WORD  (1)
+//#define   DATA_TYPE_STRING       (2)
+//#define   DATA_TYPE_MULTI_WORD   (3)
+//#define   DATA_TYPE_GPIO_WORD    (4)
+
+typedef enum 
+{
+	SCIRPT_PARSER_VALUE_TYPE_INVALID = 0,
+	SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD,
+	SCIRPT_PARSER_VALUE_TYPE_STRING,
+	SCIRPT_PARSER_VALUE_TYPE_MULTI_WORD,
+	SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD	
+}
+script_parser_value_type_t;
 
 #define   SCRIPT_PARSER_OK       (0)
 #define   SCRIPT_PARSER_EMPTY_BUFFER   	   (-1)
@@ -49,6 +59,8 @@ script_gpio_set_t;
 extern  int script_parser_init                  (char *script_buf                                       );
 extern  int script_parser_exit                  (void                                                   );
 extern  int script_parser_fetch                 (char *main_name, char *sub_name, int value[], int count);
+extern  int script_parser_fetch_ex              (char *main_name, char *sub_name, int value[],
+                                                             script_parser_value_type_t *type, int count);
 extern  int script_parser_subkey_count          (char *main_name                                        );
 extern  int script_parser_mainkey_count         (void                                                   );
 extern  int script_parser_mainkey_get_gpio_count(char *main_name                                        );
