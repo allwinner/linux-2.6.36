@@ -31,6 +31,9 @@
 #include <sound/initval.h>
 #include <linux/clk.h>
 #include "sun4i-codec.h"
+#include <mach/gpio_v2.h>
+
+static int gpio_pa_shutdown = 0;
 /*
  * these are the address and sizes used to fill the xmit buffer
  * so we can get a clock in record only mode
@@ -366,8 +369,10 @@ static int codec_capture_open(void)
 {
 	 //enable mic1 pa
 	 codec_wr_control(SW_ADC_ACTL, 0x1, MIC1_EN, 0x1);
+	 //mic1 gain 32dB
+	 codec_wr_control(SW_ADC_ACTL, 0x3,25,0x1);
 	 //enable mic2 pa
-	 codec_wr_control(SW_ADC_ACTL, 0x1, MIC2_EN, 0x1);	 
+	 //codec_wr_control(SW_ADC_ACTL, 0x1, MIC2_EN, 0x1);	 
 	  //enable VMIC
 	 codec_wr_control(SW_ADC_ACTL, 0x1, VMIC_EN, 0x1);
 	 //select mic souce
@@ -1324,8 +1329,14 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	 }
 
 	 kfree(db);
+	 gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
+	 if(!gpio_pa_shutdown) {
+		printk("touch panel tp_wakeup request gpio fail!\n");
+		goto out;
+	}
+	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	 codec_init(); 
-	 	
+	 gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");		
 	 printk("sun4i Audio codec successfully loaded..\n"); 	 
 	 return 0;
 	 
@@ -1344,6 +1355,9 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("enter snd_sw_codec_suspend:%s,%d\n",__func__,__LINE__);
+	printk("====pa shutdown====\n");
+	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
+	msleep(100);
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
@@ -1404,6 +1418,8 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	 mdelay(20);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
 	mdelay(30);
+	printk("====pa turn on===\n");
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
 	/*for clk test*/
 	printk("[codec resume reg]\n");
 	printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
@@ -1425,7 +1441,36 @@ static int __devexit sw_codec_remove(struct platform_device *devptr)
 	return 0;
 }
 
-static struct resource sw_codec_resource[] = {      
+static void sw_codec_shutdown(struct platform_device *devptr)
+{
+	printk("[sw_codec]: shutdown start.\n");
+	printk("====pa shutdown====\n");
+	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
+	msleep(100);
+    //disable dac analog
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
+	mdelay(100);
+	//pa mute
+	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	 mdelay(100);
+	//disable PA
+	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
+	 mdelay(100);
+	//disable headphone direct 
+	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
+ 	mdelay(100);
+	//disable dac to pa
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
+	 mdelay(100);
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
+	 mdelay(100);
+	 
+	clk_disable(codec_moduleclk);
+	printk("[sw_codec]: shutdown end.\n");	
+}
+
+static struct resource sw_codec_resource[] = {
 	[0] = {
     	.start = CODEC_BASSADDRESS,
         .end   = CODEC_BASSADDRESS + 0x40,
@@ -1445,6 +1490,7 @@ static struct platform_device sw_device_codec = {
 static struct platform_driver sw_codec_driver = {
 	.probe		= sw_codec_probe,
 	.remove		= sw_codec_remove,
+	.shutdown   = sw_codec_shutdown,
 #ifdef CONFIG_PM
 	.suspend	= snd_sw_codec_suspend,
 	.resume		= snd_sw_codec_resume,
