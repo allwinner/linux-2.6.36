@@ -36,13 +36,8 @@
 
 #include "core.h"
 
-//#define AW1623_FPGA
-
-#ifdef AW1623_FPGA
-    #define TMR_INTER_VAL   320
-#else
-    #define TMR_INTER_VAL   20
-#endif
+/* set timer period to 20 cycles */
+#define TMR_INTER_VAL   19
 
 /**
  * Global vars definitions
@@ -50,80 +45,80 @@
  */
 static void timer_set_mode(enum clock_event_mode mode, struct clock_event_device *clk)
 {
-	volatile u32 ctrl;
+    volatile u32 ctrl;
 
-	switch (mode) {
-	case CLOCK_EVT_MODE_PERIODIC:
-		printk("timer_set_mode: periodic\n");
-		writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG); /* interval (999+1) */
-		ctrl = readl(SW_TIMER0_CTL_REG);
-		ctrl &= ~(1<<7);    //continuous mode
-                ctrl |= 1;  //enable
-                break;
+    switch (mode) {
+    case CLOCK_EVT_MODE_PERIODIC:
+        printk("timer_set_mode: periodic\n");
+        writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG); /* interval (999+1) */
+        ctrl = readl(SW_TIMER0_CTL_REG);
+        ctrl &= ~(1<<7);    //continuous mode
+        ctrl |= 1;  //enable
+        break;
 
-	case CLOCK_EVT_MODE_ONESHOT:
-		printk("timer_set_mode: oneshot\n");
-		ctrl = readl(SW_TIMER0_CTL_REG);
-		ctrl |= (1<<7);     //single mode
-		break;
-	case CLOCK_EVT_MODE_UNUSED:
-	case CLOCK_EVT_MODE_SHUTDOWN:
-	default:
-		ctrl = readl(SW_TIMER0_CTL_REG);
-		ctrl &= ~(1<<0);    //disable timer 0
-		break;
-	}
+    case CLOCK_EVT_MODE_ONESHOT:
+        printk("timer_set_mode: oneshot\n");
+        ctrl = readl(SW_TIMER0_CTL_REG);
+        ctrl |= (1<<7);     //single mode
+        break;
+    case CLOCK_EVT_MODE_UNUSED:
+    case CLOCK_EVT_MODE_SHUTDOWN:
+    default:
+        ctrl = readl(SW_TIMER0_CTL_REG);
+        ctrl &= ~(1<<0);    //disable timer 0
+        break;
+    }
 
-	writel(ctrl, SW_TIMER0_CTL_REG);
+    writel(ctrl, SW_TIMER0_CTL_REG);
 }
 
 static int timer_set_next_event(unsigned long evt, struct clock_event_device *unused)
 {
-	volatile u32 ctrl;
+    volatile u32 ctrl;
 
-	/* clear any pending before continue */
-	ctrl = readl(SW_TIMER0_CTL_REG);
-	writel(evt, SW_TIMER0_CNTVAL_REG);
+    /* clear any pending before continue */
+    ctrl = readl(SW_TIMER0_CTL_REG);
+    writel(evt, SW_TIMER0_CNTVAL_REG);
     ctrl |= (1<<1);
-	writel(ctrl, SW_TIMER0_CTL_REG);
-	writel(ctrl | 0x1, SW_TIMER0_CTL_REG);
+    writel(ctrl, SW_TIMER0_CTL_REG);
+    writel(ctrl | 0x1, SW_TIMER0_CTL_REG);
 
-	return 0;
+    return 0;
 }
 
 static struct clock_event_device timer0_clockevent = {
-	.name = "timer0",
-	.shift = 32,
-	.features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
-	.set_mode = timer_set_mode,
-	.set_next_event = timer_set_next_event,
+    .name = "timer0",
+    .shift = 32,
+    .features = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
+    .set_mode = timer_set_mode,
+    .set_next_event = timer_set_next_event,
 };
 
 
 static irqreturn_t softwinner_timer_interrupt(int irq, void *dev_id)
 {
-	struct clock_event_device *evt = &timer0_clockevent;
+    struct clock_event_device *evt = &timer0_clockevent;
 
-	writel(0x1, SW_TIMER_INT_STA_REG);
+    writel(0x1, SW_TIMER_INT_STA_REG);
 
-	evt->event_handler(evt);
+    evt->event_handler(evt);
 
-	return IRQ_HANDLED;
+    return IRQ_HANDLED;
 }
 
 static struct irqaction softwinner_timer_irq = {
-	.name = "Softwinner Timer Tick",
-	.flags = IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
-	.handler = softwinner_timer_interrupt,
+    .name = "Softwinner Timer Tick",
+    .flags = IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
+    .handler = softwinner_timer_interrupt,
 };
 
 void softwinner_irq_ack(unsigned int irq)
 {
-    if (irq < 32) {
+    if (irq < 32){
         writel(readl(SW_INT_ENABLE_REG0) & ~(1<<irq), SW_INT_ENABLE_REG0);
         writel(readl(SW_INT_MASK_REG0) | (1 << irq), SW_INT_MASK_REG0);
         writel(readl(SW_INT_IRQ_PENDING_REG0) | (1<<irq), SW_INT_IRQ_PENDING_REG0);
-    } else if(irq < 64) {
+    }else if(irq < 64){
         irq -= 32;
         writel(readl(SW_INT_ENABLE_REG1) & ~(1<<irq), SW_INT_ENABLE_REG1);
         writel(readl(SW_INT_MASK_REG1) | (1 << irq), SW_INT_MASK_REG1);
@@ -142,7 +137,7 @@ static void softwinner_irq_mask(unsigned int irq)
     if(irq < 32){
         writel(readl(SW_INT_ENABLE_REG0) & ~(1<<irq), SW_INT_ENABLE_REG0);
         writel(readl(SW_INT_MASK_REG0) | (1 << irq), SW_INT_MASK_REG0);
-    } else if(irq < 64) {
+    }else if(irq < 64){
         irq -= 32;
         writel(readl(SW_INT_ENABLE_REG1) & ~(1<<irq), SW_INT_ENABLE_REG1);
         writel(readl(SW_INT_MASK_REG1) | (1 << irq), SW_INT_MASK_REG1);
@@ -161,7 +156,7 @@ static void softwinner_irq_unmask(unsigned int irq)
         writel(readl(SW_INT_MASK_REG0) & ~(1 << irq), SW_INT_MASK_REG0);
         if(irq == SW_INT_IRQNO_ENMI) /* must clear pending bit when enabled */
             writel((1 << SW_INT_IRQNO_ENMI), SW_INT_IRQ_PENDING_REG0);
-    } else if(irq < 64){
+    }else if(irq < 64){
         irq -= 32;
         writel(readl(SW_INT_ENABLE_REG1) | (1<<irq), SW_INT_ENABLE_REG1);
         writel(readl(SW_INT_MASK_REG1) & ~(1 << irq), SW_INT_MASK_REG1);
@@ -173,110 +168,110 @@ static void softwinner_irq_unmask(unsigned int irq)
 }
 
 static struct irq_chip sw_f23_sic_chip = {
-	.name   = "SW_F23_SIC",
-	.ack = softwinner_irq_ack,
-	.mask = softwinner_irq_mask,
-	.unmask = softwinner_irq_unmask,
+    .name   = "SW_F23_SIC",
+    .ack    = softwinner_irq_ack,
+    .mask   = softwinner_irq_mask,
+    .unmask = softwinner_irq_unmask,
 };
 
 void __init softwinner_init_irq(void)
 {
-	u32 i = 0;
+    u32 i = 0;
 
-	/* Disable & clear all interrupts */
-	writel(0, SW_INT_ENABLE_REG0);
-	writel(0, SW_INT_ENABLE_REG1);
-	writel(0, SW_INT_ENABLE_REG2);
+    /* Disable & clear all interrupts */
+    writel(0, SW_INT_ENABLE_REG0);
+    writel(0, SW_INT_ENABLE_REG1);
+    writel(0, SW_INT_ENABLE_REG2);
 
-	writel(0xffffffff, SW_INT_MASK_REG0);
-	writel(0xffffffff, SW_INT_MASK_REG1);
-	writel(0xffffffff, SW_INT_MASK_REG2);
+    writel(0xffffffff, SW_INT_MASK_REG0);
+    writel(0xffffffff, SW_INT_MASK_REG1);
+    writel(0xffffffff, SW_INT_MASK_REG2);
 
-	writel(0xffffffff, SW_INT_IRQ_PENDING_REG0);
-	writel(0xffffffff, SW_INT_IRQ_PENDING_REG1);
-	writel(0xffffffff, SW_INT_IRQ_PENDING_REG2);
-	writel(0xffffffff, SW_INT_FIQ_PENDING_REG0);
-	writel(0xffffffff, SW_INT_FIQ_PENDING_REG1);
-	writel(0xffffffff, SW_INT_FIQ_PENDING_REG2);
+    writel(0xffffffff, SW_INT_IRQ_PENDING_REG0);
+    writel(0xffffffff, SW_INT_IRQ_PENDING_REG1);
+    writel(0xffffffff, SW_INT_IRQ_PENDING_REG2);
+    writel(0xffffffff, SW_INT_FIQ_PENDING_REG0);
+    writel(0xffffffff, SW_INT_FIQ_PENDING_REG1);
+    writel(0xffffffff, SW_INT_FIQ_PENDING_REG2);
 
-	/*enable protection mode*/
-	writel(0x01, SW_INT_PROTECTION_REG);
-	/*config the external interrupt source type*/
-	writel(0x00, SW_INT_NMI_CTRL_REG);
+    /*enable protection mode*/
+    writel(0x01, SW_INT_PROTECTION_REG);
+    /*config the external interrupt source type*/
+    writel(0x00, SW_INT_NMI_CTRL_REG);
 
-	for (i = SW_INT_START; i < SW_INT_END; i++) {
-		set_irq_chip(i, &sw_f23_sic_chip);
-		set_irq_handler(i, handle_level_irq);
-		set_irq_flags(i, IRQF_VALID | IRQF_PROBE);
-	}
+    for (i = SW_INT_START; i < SW_INT_END; i++) {
+        set_irq_chip(i, &sw_f23_sic_chip);
+        set_irq_handler(i, handle_level_irq);
+        set_irq_flags(i, IRQF_VALID | IRQF_PROBE);
+    }
 }
 
 static struct map_desc softwinner_io_desc[] __initdata = {
-	{ SW_VA_SRAM_BASE,          __phys_to_pfn(SW_PA_SRAM_BASE),         SZ_32K, MT_MEMORY_ITCM  },
-	{ SW_VA_CCM_IO_BASE,        __phys_to_pfn(SW_PA_CCM_IO_BASE),	    SZ_1K,  MT_DEVICE       },
-	{ SW_VA_SRAM_IO_BASE,       __phys_to_pfn(SW_PA_SRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
-	{ SW_VA_DRAM_IO_BASE,       __phys_to_pfn(SW_PA_DRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
-	{ SW_VA_DMAC_IO_BASE,       __phys_to_pfn(SW_PA_DMAC_IO_BASE),      SZ_4K,  MT_DEVICE       },
-	{ SW_VA_NANDFLASHC_IO_BASE, __phys_to_pfn(SW_PA_NANDFLASHC_IO_BASE),SZ_4K,  MT_DEVICE       },
-	{ SW_VA_INT_IO_BASE,        __phys_to_pfn(SW_PA_INT_IO_BASE),       SZ_1K,  MT_DEVICE       },
-	{ SW_VA_PORTC_IO_BASE,      __phys_to_pfn(SW_PA_PORTC_IO_BASE),     SZ_1K,  MT_DEVICE       },
-	{ SW_VA_TIMERC_IO_BASE,     __phys_to_pfn(SW_PA_TIMERC_IO_BASE),    SZ_1K,  MT_DEVICE       },
-	{ SW_VA_UART0_IO_BASE,      __phys_to_pfn(SW_PA_UART0_IO_BASE),     SZ_1K,  MT_DEVICE       },
-	{ SW_VA_SID_IO_BASE,        __phys_to_pfn(SW_PA_SID_IO_BASE),       SZ_1K,  MT_DEVICE       },
-	{ SW_VA_TP_IO_BASE,         __phys_to_pfn(SW_PA_TP_IO_BASE),        SZ_1K,  MT_DEVICE       },
-	{ SW_VA_LRADC_IO_BASE,      __phys_to_pfn(SW_PA_LRADC_IO_BASE),     SZ_1K,  MT_DEVICE       },
-	{ SW_VA_IR0_IO_BASE,         __phys_to_pfn(SW_PA_IR0_IO_BASE),	    SZ_1K, MT_DEVICE        },
-	{ SW_VA_TWI0_IO_BASE,       __phys_to_pfn(SW_PA_TWI0_IO_BASE),      SZ_1K,  MT_DEVICE       },
-	{ SW_VA_TWI1_IO_BASE,       __phys_to_pfn(SW_PA_TWI1_IO_BASE),      SZ_1K,  MT_DEVICE       },
-	{ SW_VA_TWI2_IO_BASE,       __phys_to_pfn(SW_PA_TWI2_IO_BASE),      SZ_1K,  MT_DEVICE       },
-	{ SW_VA_USB0_IO_BASE,       __phys_to_pfn(SW_PA_USB0_IO_BASE),      SZ_4K,  MT_DEVICE       },
-	{ SW_VA_USB1_IO_BASE,       __phys_to_pfn(SW_PA_USB1_IO_BASE),      SZ_4K,  MT_DEVICE       },
-	{ SW_VA_USB2_IO_BASE,       __phys_to_pfn(SW_PA_USB2_IO_BASE),      SZ_4K,  MT_DEVICE       },
+    { SW_VA_SRAM_BASE,          __phys_to_pfn(SW_PA_SRAM_BASE),         SZ_32K, MT_MEMORY_ITCM  },
+    { SW_VA_CCM_IO_BASE,        __phys_to_pfn(SW_PA_CCM_IO_BASE),        SZ_1K,  MT_DEVICE       },
+    { SW_VA_SRAM_IO_BASE,       __phys_to_pfn(SW_PA_SRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
+    { SW_VA_DRAM_IO_BASE,       __phys_to_pfn(SW_PA_DRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
+    { SW_VA_DMAC_IO_BASE,       __phys_to_pfn(SW_PA_DMAC_IO_BASE),      SZ_4K,  MT_DEVICE       },
+    { SW_VA_NANDFLASHC_IO_BASE, __phys_to_pfn(SW_PA_NANDFLASHC_IO_BASE),SZ_4K,  MT_DEVICE       },
+    { SW_VA_INT_IO_BASE,        __phys_to_pfn(SW_PA_INT_IO_BASE),       SZ_1K,  MT_DEVICE       },
+    { SW_VA_PORTC_IO_BASE,      __phys_to_pfn(SW_PA_PORTC_IO_BASE),     SZ_1K,  MT_DEVICE       },
+    { SW_VA_TIMERC_IO_BASE,     __phys_to_pfn(SW_PA_TIMERC_IO_BASE),    SZ_1K,  MT_DEVICE       },
+    { SW_VA_UART0_IO_BASE,      __phys_to_pfn(SW_PA_UART0_IO_BASE),     SZ_1K,  MT_DEVICE       },
+    { SW_VA_SID_IO_BASE,        __phys_to_pfn(SW_PA_SID_IO_BASE),       SZ_1K,  MT_DEVICE       },
+    { SW_VA_TP_IO_BASE,         __phys_to_pfn(SW_PA_TP_IO_BASE),        SZ_1K,  MT_DEVICE       },
+    { SW_VA_LRADC_IO_BASE,      __phys_to_pfn(SW_PA_LRADC_IO_BASE),     SZ_1K,  MT_DEVICE       },
+    { SW_VA_IR0_IO_BASE,        __phys_to_pfn(SW_PA_IR0_IO_BASE),       SZ_1K,  MT_DEVICE       },
+    { SW_VA_TWI0_IO_BASE,       __phys_to_pfn(SW_PA_TWI0_IO_BASE),      SZ_1K,  MT_DEVICE       },
+    { SW_VA_TWI1_IO_BASE,       __phys_to_pfn(SW_PA_TWI1_IO_BASE),      SZ_1K,  MT_DEVICE       },
+    { SW_VA_TWI2_IO_BASE,       __phys_to_pfn(SW_PA_TWI2_IO_BASE),      SZ_1K,  MT_DEVICE       },
+    { SW_VA_USB0_IO_BASE,       __phys_to_pfn(SW_PA_USB0_IO_BASE),      SZ_4K,  MT_DEVICE       },
+    { SW_VA_USB1_IO_BASE,       __phys_to_pfn(SW_PA_USB1_IO_BASE),      SZ_4K,  MT_DEVICE       },
+    { SW_VA_USB2_IO_BASE,       __phys_to_pfn(SW_PA_USB2_IO_BASE),      SZ_4K,  MT_DEVICE       },
 
 };
 
 void __init softwinner_map_io(void)
 {
-	iotable_init(softwinner_io_desc, ARRAY_SIZE(softwinner_io_desc));
+    iotable_init(softwinner_io_desc, ARRAY_SIZE(softwinner_io_desc));
 }
 
 struct sysdev_class sw_sysclass = {
-	.name = "sw-core",
+    .name = "sw-core",
 };
 
 static struct sys_device sw_sysdev = {
-	.cls = &sw_sysclass,
+    .cls = &sw_sysclass,
 };
 
 static u32 DRAMC_get_dram_size(void)
 {
-        u32 reg_val;
-        u32 dram_size;
-        u32 chip_den;
+    u32 reg_val;
+    u32 dram_size;
+    u32 chip_den;
 
-        reg_val = readl(SW_DRAM_SDR_DCR);
-        chip_den = (reg_val>>3)&0x7;
-        if(chip_den == 0)
-                dram_size = 32;
-        else if(chip_den == 1)
-                dram_size = 64;
-        else if(chip_den == 2)
-                dram_size = 128;
-        else if(chip_den == 3)
-                dram_size = 256;
-        else if(chip_den == 4)
-                dram_size = 512;
-        else
-                dram_size = 1024;
+    reg_val = readl(SW_DRAM_SDR_DCR);
+    chip_den = (reg_val>>3)&0x7;
+    if(chip_den == 0)
+        dram_size = 32;
+    else if(chip_den == 1)
+        dram_size = 64;
+    else if(chip_den == 2)
+        dram_size = 128;
+    else if(chip_den == 3)
+        dram_size = 256;
+    else if(chip_den == 4)
+        dram_size = 512;
+    else
+        dram_size = 1024;
 
-        if( ((reg_val>>1)&0x3) == 0x1)
-                dram_size<<=1;
-        if( ((reg_val>>6)&0x7) == 0x3)
-                dram_size<<=1;
-        if( ((reg_val>>10)&0x3) == 0x1)
-                dram_size<<=1;
+    if( ((reg_val>>1)&0x3) == 0x1)
+        dram_size<<=1;
+    if( ((reg_val>>6)&0x7) == 0x3)
+        dram_size<<=1;
+    if( ((reg_val>>10)&0x3) == 0x1)
+        dram_size<<=1;
 
-        return dram_size;
+    return dram_size;
 }
 
 extern unsigned long fb_start;
@@ -284,86 +279,86 @@ extern unsigned long fb_size;
 
 int sw_plat_init(void)
 {
-	pr_info("SUN4i Platform Init\n");
+    pr_info("SUN4i Platform Init\n");
 
-	
-	memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
-	memblock_reserve(fb_start, fb_size);
 
-	pr_info("reserve: base=0x%08x, size=0x%08x\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
-	pr_info("reserve: base=0x%08x, size=0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
+    memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+    memblock_reserve(fb_start, fb_size);
 
-	return 0;
+    pr_info("reserve: base=0x%08x, size=0x%08x\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+    pr_info("reserve: base=0x%08x, size=0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
+
+    return 0;
 }
 
 static int __init sw_core_init(void)
 {
-	pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
-        return sysdev_class_register(&sw_sysclass);
+    pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
+    return sysdev_class_register(&sw_sysclass);
 }
 core_initcall(sw_core_init);
 
 extern int sw_register_clocks(void);
 void __init softwinner_init(void)
 {
-	sysdev_register(&sw_sysdev);
+    sysdev_register(&sw_sysdev);
 }
 
 static void __init softwinner_timer_init(void)
 {
-        volatile u32  val = 0;
+    volatile u32  val = 0;
 
-        writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG);
-        val = 0;
-        writel(val, SW_TIMER0_CTL_REG);
-        val = readl(SW_TIMER0_CTL_REG); /* 2KHz */
-        val |= (4 << 4);                /* LOSC 16 division */
-        writel(val, SW_TIMER0_CTL_REG);
-        val = readl(SW_TIMER0_CTL_REG);
-        val |= 2;                       /* auto reload      */
-        writel(val, SW_TIMER0_CTL_REG);
-        setup_irq(SW_INT_IRQNO_TIMER0, &softwinner_timer_irq);
+    writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG);
+    val = 0;
+    writel(val, SW_TIMER0_CTL_REG);
+    val = readl(SW_TIMER0_CTL_REG); /* 2KHz */
+    val |= (4 << 4);                /* LOSC 16 division */
+    writel(val, SW_TIMER0_CTL_REG);
+    val = readl(SW_TIMER0_CTL_REG);
+    val |= 2;                       /* auto reload      */
+    writel(val, SW_TIMER0_CTL_REG);
+    setup_irq(SW_INT_IRQNO_TIMER0, &softwinner_timer_irq);
 
-	    /* Enable time0 interrupt */
-        val = readl(SW_TIMER_INT_CTL_REG);
-        val |= (1<<0);
-        writel(val, SW_TIMER_INT_CTL_REG);
+    /* Enable time0 interrupt */
+    val = readl(SW_TIMER_INT_CTL_REG);
+    val |= (1<<0);
+    writel(val, SW_TIMER_INT_CTL_REG);
 
-        timer0_clockevent.mult = div_sc(2048, NSEC_PER_SEC, timer0_clockevent.shift);
-        timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
-        timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &timer0_clockevent);
-        timer0_clockevent.cpumask = cpumask_of(0);
-        clockevents_register_device(&timer0_clockevent);
+    timer0_clockevent.mult = div_sc(2048, NSEC_PER_SEC, timer0_clockevent.shift);
+    timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
+    timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &timer0_clockevent);
+    timer0_clockevent.cpumask = cpumask_of(0);
+    clockevents_register_device(&timer0_clockevent);
 }
 
 static void __init softwinner_fixup(struct machine_desc *desc,
-				  struct tag *tags, char **cmdline,
-				  struct meminfo *mi)
+                  struct tag *tags, char **cmdline,
+                  struct meminfo *mi)
 {
-	u32 size;
-	size = DRAMC_get_dram_size();
-	if( size ) {
-		mi->nr_banks=1;
-		mi->bank[0].start = 0x40000000;
-		mi->bank[0].size = SZ_1M * size;
-	}
-	pr_info("__init softwinner_fixup\n");
+    u32 size;
+    size = DRAMC_get_dram_size();
+    if( size ) {
+        mi->nr_banks=1;
+        mi->bank[0].start = 0x40000000;
+        mi->bank[0].size = SZ_1M * size;
+    }
+    pr_info("__init softwinner_fixup\n");
 }
 
 struct sys_timer softwinner_timer = {
-	.init		= softwinner_timer_init,
+    .init = softwinner_timer_init,
 };
 
 MACHINE_START(SUN4I, "sun4i")
-        /* Maintainer: ARM Ltd/Deep Blue Solutions Ltd */
-        .phys_io        = 0x01c00000,
-        .io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
-        .map_io         = softwinner_map_io,
-        .fixup          = softwinner_fixup,
-        .init_irq       = softwinner_init_irq,
-        .timer          = &softwinner_timer,
-        .init_machine   = softwinner_init,
-        .boot_params = (unsigned long)(0x40000000),
+    /* Maintainer: ARM Ltd/Deep Blue Solutions Ltd */
+    .phys_io        = 0x01c00000,
+    .io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
+    .map_io         = softwinner_map_io,
+    .fixup          = softwinner_fixup,
+    .init_irq       = softwinner_init_irq,
+    .timer          = &softwinner_timer,
+    .init_machine   = softwinner_init,
+    .boot_params    = (unsigned long)(0x40000000),
 MACHINE_END
 
 
