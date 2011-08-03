@@ -23,7 +23,7 @@ static struct resource g2d_resource[2] =
 		.end	= 0x01e8ffff,
 		.flags	= IORESOURCE_MEM,
 	},
-	
+
 	[1] = {
 		.start	= INTC_IRQNO_DE_MIX,
 		.end	= INTC_IRQNO_DE_MIX,
@@ -32,7 +32,7 @@ static struct resource g2d_resource[2] =
 
 };
 
-struct platform_device g2d_device = 
+struct platform_device g2d_device =
 {
 	.name           = "g2d",
 	.id		        = -1,
@@ -44,7 +44,7 @@ struct platform_device g2d_device =
 int drv_g2d_begin(void)
 {
 	int result = 0;
-	
+
 	result = down_interruptible(g2d_ext_hd.g2d_finished_sem);
 	return result;
 }
@@ -54,7 +54,7 @@ int drv_g2d_finish(void)
 	int result = 0;
 
 	up(g2d_ext_hd.g2d_finished_sem);
-	
+
 	return result;
 
 }
@@ -63,7 +63,7 @@ __s32 drv_g2d_init(void)
 {
     g2d_init_para init_para;
     __u32 i = 0;
-	
+
     DBG("drv_g2d_init\n");
     init_para.g2d_base		= (__u32)para.io;
     init_para.g2d_begin		= drv_g2d_begin;
@@ -82,8 +82,8 @@ __s32 drv_g2d_init(void)
     }
     init_waitqueue_head(&g2d_ext_hd.queue);
 	g2d_init(&init_para);
-	
-    return 0;        
+
+    return 0;
 }
 
 __s32 g2d_get_free_mem_index(void)
@@ -103,9 +103,9 @@ __s32 g2d_get_free_mem_index(void)
 int g2d_mem_request(__u32 size)
 {
 	__s32		 sel;
-	struct page	*page;	
+	struct page	*page;
 	unsigned	 map_size = 0;
-	
+
     sel = g2d_get_free_mem_index();
     if(sel < 0)
     {
@@ -115,7 +115,7 @@ int g2d_mem_request(__u32 size)
 
 	map_size = (size + 4095) & 0xfffff000;//4k ¶ÔÆë
 	page = alloc_pages(GFP_KERNEL,get_order(map_size));
-	
+
 	if(page != NULL)
 	{
 		g2d_mem[sel].virt_addr = page_address(page);
@@ -153,7 +153,7 @@ int g2d_mem_release(__u32 sel)
 
 	free_pages((unsigned long)(g2d_mem[sel].virt_addr),get_order(page_size));
 	memset(&g2d_mem[sel],0,sizeof(struct info_mem));
-	
+
 	return 0;
 }
 
@@ -168,11 +168,11 @@ int g2d_mmap(struct file *file, struct vm_area_struct * vma)
         ERR("mem not used in g2d_mmap,%d\n",g2d_mem_sel);
         return -EINVAL;
     }
-    
+
 	physics =  g2d_mem[g2d_mem_sel].phy_addr;
-	mypfn = physics >> PAGE_SHIFT;	
-	
-	if(remap_pfn_range(vma,vma->vm_start,mypfn,vmsize,vma->vm_page_prot))		
+	mypfn = physics >> PAGE_SHIFT;
+
+	if(remap_pfn_range(vma,vma->vm_start,mypfn,vmsize,vma->vm_page_prot))
 		return -EAGAIN;
 
 	return 0;
@@ -192,10 +192,10 @@ static int g2d_release(struct inode *inode, struct file *file)
 
 long g2d_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
-	void		 *kbuffer[1];	
+	void		 *kbuffer[1];
 	unsigned long ubuffer[1];
-	unsigned long karg[2];	
-	unsigned long aux = 0;	
+	unsigned long karg[2];
+	unsigned long aux = 0;
 	__s32		  ret = 0;
 
 	kbuffer[0] = 0;
@@ -206,38 +206,38 @@ long g2d_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	}
 	ubuffer[0]	= *(unsigned long*)karg;
 	aux	= (*(unsigned long*)(karg+1));
-		
+
 	switch (cmd) {
-		
+
 	/* Proceed to the operation */
-	case G2D_CMD_BITBLT:		
+	case G2D_CMD_BITBLT:
 		kbuffer[0] = kmalloc(sizeof(g2d_blt),GFP_KERNEL);
 		if(copy_from_user(kbuffer[0], (void __user *)ubuffer[0],sizeof(g2d_blt)))
 		{
 			kfree(kbuffer[0]);
 			return  -EFAULT;
 		}
-	    ret = g2d_blit((g2d_blt *) kbuffer[0]);		
+	    ret = g2d_blit((g2d_blt *) kbuffer[0]);
     	break;
-    	
-	case G2D_CMD_FILLRECT:	
+
+	case G2D_CMD_FILLRECT:
 		kbuffer[0] = kmalloc(sizeof(g2d_fillrect),GFP_KERNEL);
 		if(copy_from_user(kbuffer[0], (void __user *)ubuffer[0],sizeof(g2d_fillrect)))
 		{
 			kfree(kbuffer[0]);
 			return  -EFAULT;
 		}
-	    ret = g2d_fill((g2d_fillrect *) kbuffer[0]);	
+	    ret = g2d_fill((g2d_fillrect *) kbuffer[0]);
     	break;
-    	
-	case G2D_CMD_STRETCHBLT:		
+
+	case G2D_CMD_STRETCHBLT:
 		kbuffer[0] = kmalloc(sizeof(g2d_stretchblt),GFP_KERNEL);
 		if(copy_from_user(kbuffer[0], (void __user *)ubuffer[0],sizeof(g2d_stretchblt)))
 		{
 			kfree(kbuffer[0]);
 			return  -EFAULT;
 		}
-	    ret = g2d_stretchblit((g2d_stretchblt *) kbuffer[0]);	
+	    ret = g2d_stretchblit((g2d_stretchblt *) kbuffer[0]);
     	break;
 
 	case G2D_CMD_PALETTE_TBL:
@@ -254,15 +254,15 @@ long g2d_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case G2D_CMD_MEM_REQUEST:
 		ret =  g2d_mem_request(ubuffer[0]);
 		break;
-	
+
 	case G2D_CMD_MEM_RELEASE:
 		ret =  g2d_mem_release(ubuffer[0]);
 		break;
-		
-	case G2D_CMD_MEM_SELIDX:	
+
+	case G2D_CMD_MEM_SELIDX:
 		g2d_mem_sel = ubuffer[0];
 		break;
-		
+
 	case G2D_CMD_MEM_GETADR:
 	    if(g2d_mem[ubuffer[0]].b_used)
 	    {
@@ -274,19 +274,19 @@ long g2d_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		    ret = -1;
 		}
 		break;
-			
+
 	/* Invalid IOCTL call */
 	default:
 		return -EINVAL;
 	}
-	
+
 	if(kbuffer[0])
 	{
 		kfree(kbuffer[0]);
 		kbuffer[0] = 0;
 	}
 
-	return ret;	
+	return ret;
 }
 
 static struct file_operations g2d_fops = {
@@ -294,24 +294,24 @@ static struct file_operations g2d_fops = {
 	.open				= g2d_open,
 	.release			= g2d_release,
 	.unlocked_ioctl		= g2d_ioctl,
-	.mmap				= g2d_mmap,	
+	.mmap				= g2d_mmap,
 };
 
 static int g2d_probe(struct platform_device *pdev)
 {
 	int size;
 	int	ret = 0;
-	struct resource	*res;		
+	struct resource	*res;
 	__g2d_info_t	*info = NULL;
 
 	info = &para;
 	info->dev = &pdev->dev;
 	platform_set_drvdata(pdev,info);
-	
+
 	/* get the clk */
 	g2d_openclk();
 //	g2d_clk_on();
-			
+
 	/* get the memory region */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if(res == NULL)
@@ -320,7 +320,7 @@ static int g2d_probe(struct platform_device *pdev)
 			ret = -ENXIO;
 			goto  dealloc_fb;
 		}
-		
+
 	/* reserve the memory */
 	size = (res->end - res->start) + 1;
 	info->mem = request_mem_region(res->start, size, pdev->name);
@@ -328,18 +328,18 @@ static int g2d_probe(struct platform_device *pdev)
 		{
 			ERR("failed to get memory region\n");
 			ret = -ENOENT;
-			goto  relaese_regs;			
+			goto  relaese_regs;
 		}
-		
+
 	/* map the memory */
 	info->io = ioremap(res->start, size);
 	if(info->io == NULL)
 		{
 			ERR("iormap() of register failed\n");
 			ret = -ENXIO;
-			goto  release_mem;				
+			goto  release_mem;
 		}
-		
+
 	/* get the irq */
 	res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
 	if(res == NULL)
@@ -348,7 +348,7 @@ static int g2d_probe(struct platform_device *pdev)
 			ret = -ENXIO;
 			goto relaese_regs;
 		}
-		
+
 	/* request the irq */
 	info->irq = res->start;
 	ret = request_irq(info->irq,g2d_handle_irq,0,g2d_device.name,NULL);
@@ -357,37 +357,37 @@ static int g2d_probe(struct platform_device *pdev)
 			ERR("failed to install irq resource\n");
 			goto relaese_regs;
 		}
-		
+
 	drv_g2d_init();
-	
+
 	return 0;
-	
+
 	relaese_regs:
 		iounmap(info->io);
-	release_mem:	
+	release_mem:
 		release_resource(info->mem);
 		kfree(info->mem);
 	dealloc_fb:
 		platform_set_drvdata(pdev, NULL);
 		kfree(info);
-	
-	return ret;	
+
+	return ret;
 }
 
 static int g2d_remove(struct platform_device *pdev)
 {
 	__g2d_info_t *info = platform_get_drvdata(pdev);
-	
+
 	/* power down */
 	g2d_closeclk();
-	
+
 	free_irq(info->irq, info);
 	iounmap(info->io);
 	release_resource(info->mem);
 	kfree(info->mem);
 
 	platform_set_drvdata(pdev, NULL);
-	
+
 	INFO("Driver unloaded succesfully.\n");
 	return 0;
 }
@@ -396,7 +396,7 @@ static int g2d_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	g2d_clk_off();
 	INFO("g2d_suspend succesfully.\n");
-	
+
 	return 0;
 }
 
@@ -421,7 +421,7 @@ void g2d_late_resume(struct early_suspend *h)
 
 static struct early_suspend g2d_early_suspend_handler =
 {
-    .level   = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
+    .level   = EARLY_SUSPEND_LEVEL_DISABLE_FB,
 	.suspend = g2d_early_suspend,
 	.resume = g2d_late_resume,
 };
@@ -448,7 +448,7 @@ static struct platform_driver g2d_driver = {
 int __init g2d_module_init(void)
 {
 	int ret, err;
-	
+
     alloc_chrdev_region(&devid, 0, 1, "g2d_chrdev");
     g2d_cdev = cdev_alloc();
     cdev_init(g2d_cdev, &g2d_fops);
@@ -458,7 +458,7 @@ int __init g2d_module_init(void)
     {
         ERR("I was assigned major number %d.\n", MAJOR(devid));
         return -1;
-    }    
+    }
 
     g2d_class = class_create(THIS_MODULE, "g2d_class");
     if (IS_ERR(g2d_class))
@@ -466,11 +466,11 @@ int __init g2d_module_init(void)
         ERR("create class error\n");
         return -1;
     }
-    
+
 	device_create(g2d_class, NULL, devid, NULL, "g2d");
 	ret = platform_device_register(&g2d_device);
 	if (ret == 0)
-	{	
+	{
 		ret = platform_driver_register(&g2d_driver);
 	}
 
