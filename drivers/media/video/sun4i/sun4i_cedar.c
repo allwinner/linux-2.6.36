@@ -588,7 +588,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             ve_timeout = (int)arg;
             cedar_devp->irq_value = 0;
             wait_event_interruptible_timeout(wait_ve, cedar_devp->irq_flag, ve_timeout*HZ);
-            printk("%s,%d,ve_timeout:%d,cedar_devp->irq_value:%d\n", __func__, __LINE__, ve_timeout, cedar_devp->irq_value);
+            //printk("%s,%d,ve_timeout:%d,cedar_devp->irq_value:%d\n", __func__, __LINE__, ve_timeout, cedar_devp->irq_value);
 	        cedar_devp->irq_flag = 0;	
 	        /*返回1，表示中断返回，返回0，表示timeout返回*/
 			return cedar_devp->irq_value;
