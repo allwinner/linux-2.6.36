@@ -173,9 +173,7 @@ __s32 standby_clk_plldisable(void)
     CmuReg->Pll2Ctl.PLLEn = 0;
     CmuReg->Pll3Ctl.PLLEn = 0;
     CmuReg->Pll4Ctl.PLLEn = 0;
-    #if 1
     CmuReg->Pll5Ctl.PLLEn = 0;
-    #endif
     CmuReg->Pll6Ctl.PLLEn = 0;
     CmuReg->Pll7Ctl.PLLEn = 0;
 
@@ -200,9 +198,7 @@ __s32 standby_clk_pllenable(void)
     CmuReg->Pll2Ctl.PLLEn = 1;
     CmuReg->Pll3Ctl.PLLEn = 1;
     CmuReg->Pll4Ctl.PLLEn = 1;
-    #if 1
     CmuReg->Pll5Ctl.PLLEn = 1;
-    #endif
     CmuReg->Pll6Ctl.PLLEn = 1;
     CmuReg->Pll7Ctl.PLLEn = 1;
 
@@ -361,6 +357,41 @@ void standby_clk_dramgating(int onoff)
     }
 }
 
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_apb2losc
+*
+* Description: switch apb1 clock to 32k low osc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 standby_clk_apb2losc(void)
+{
+    CmuReg->Apb1ClkDiv.ClkSrc = 2;
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                                     standby_clk_apb2hosc
+*
+* Description: switch apb1 clock to 24M hosc.
+*
+* Arguments  : none
+*
+* Returns    : 0;
+*********************************************************************************************************
+*/
+__s32 standby_clk_apb2hosc(void)
+{
+    CmuReg->Apb1ClkDiv.ClkSrc = 0;
+    return 0;
+}
 
 
 

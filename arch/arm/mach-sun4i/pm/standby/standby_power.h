@@ -83,7 +83,7 @@ struct axp_info {
 #define AXP_WAKEUP_USB          (1<<2)
 #define AXP_WAKEUP_AC           (1<<3)
 
-#define AXP_WAKEUP              (AXP_WAKEUP_KEY | AXP_WAKEUP_USB | AXP_WAKEUP_AC)
+#define AXP_WAKEUP              (AXP_WAKEUP_KEY | AXP_WAKEUP_LOWBATT)
 
 extern __s32 standby_power_init(void);
 extern __s32 standby_power_exit(void);

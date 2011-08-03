@@ -17,8 +17,6 @@
 */
 #include "standby_i.h"
 
-static __u8 AxpIrqEn[5];
-
 
 //==============================================================================
 // POWER CHECK FOR SYSTEM STANDBY
@@ -55,6 +53,9 @@ __s32 standby_power_init(void)
 	twi_byte_rw(TWI_OP_RD, AXP_ADDR,AXP20_IRQEN4, &reg_val);
 	reg_val |= 0x03;
 	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQEN4, &reg_val);
+    /* clear pending */
+	reg_val = 0x03;
+	twi_byte_rw(TWI_OP_WR, AXP_ADDR,AXP20_IRQ4, &reg_val);
     #endif
 
     return 0;

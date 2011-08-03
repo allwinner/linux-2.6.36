@@ -27,7 +27,7 @@ extern char *__bss_end;
 extern char *__standby_start;
 extern char *__standby_end;
 
-static sp_backup;
+static __u32 sp_backup;
 static void standby(void);
 static __u32 dcdc2, dcdc3;
 static struct sun4i_clk_div_t  clk_div;
@@ -184,6 +184,8 @@ static void standby(void)
     tmp_clk_div.ahb_div = 0;
     tmp_clk_div.apb_div = 0;
     standby_clk_setdiv(&tmp_clk_div);
+    /* swtich apb1 to losc */
+    standby_clk_apb2losc();
     standby_mdelay(10);
     /* switch cpu to 32k */
     standby_clk_core2losc();
@@ -204,7 +206,9 @@ static void standby(void)
     standby_clk_hoscenable();
     standby_delay(10);
     #endif
-    /* switch clock to LOSC */
+    /* swtich apb1 to hosc */
+    standby_clk_apb2hosc();
+    /* switch clock to hosc */
     standby_clk_core2hosc();
     /* restore clock division */
     standby_clk_setdiv(&clk_div);
