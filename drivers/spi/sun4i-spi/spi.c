@@ -1470,21 +1470,6 @@ static int aw16xx_get_cfg_csbitmap(int bus_num)
     return value;
 }
 
-static int aw16xx_spi_get_cfg_used(void)
-{
-    int value = 0;
-    int ret   = 0;
-    char *main_name = "spi_global";
-    char *sub_name = "spi_used";
-    
-    ret = script_parser_fetch(main_name, sub_name, &value, sizeof(int));
-    if(ret != SCRIPT_PARSER_OK){
-        spi_wrn("get spi global para failed, err code = %d \n",ret);
-        return 0;
-    }
-    spi_msg("spi0:0x1, spi1:0x2, spi0&1:0x3, spi_used = 0x%x \n", value);
-    return value;
-}
 /* get configuration in the script */
 #define SPI0_USED_MASK 0x1
 #define SPI1_USED_MASK 0x2
@@ -1492,37 +1477,58 @@ static int aw16xx_spi_get_cfg_used(void)
 #define SPI3_USED_MASK 0x8
 static int __init aw16xx_spi_init(void)
 {
+    int spi_used[4] = {0};
     int ret = 0;
-    int config = aw16xx_spi_get_cfg_used();
-    // register for spansion 08a
-    ret = spi_register_board_info(&spansion_08a, 1);
-    spi_msg("spi register board info = %d \n",ret);
     
-    if(SPI0_USED_MASK&config){
-    	ret = platform_device_register(&aw_spi0);
-    	if (ret)
-    		spi_wrn("unable to register device: %d\n", ret);
-	}	
-
-    if(SPI1_USED_MASK&config){
-    	ret = platform_device_register(&aw_spi1);
-    	if (ret)
-    		spi_wrn("unable to register device: %d\n", ret);
+    spi_msg("sw spi init !!\n");
+    ret = script_parser_fetch("spi0_para", "spi_used", &spi_used[0], sizeof(int));
+    if (ret)
+    {
+        printk("sw spi init fetch spi0 uning configuration failed\n");
     }
-
-    if(SPI2_USED_MASK&config){
-    	ret = platform_device_register(&aw_spi2);
-    	if (ret)
-    		spi_wrn("unable to register device: %d\n", ret);		
+    ret = script_parser_fetch("spi1_para", "spi_used", &spi_used[1], sizeof(int));
+    if (ret)
+    {
+        printk("sw spi init fetch spi1 uning configuration failed\n");
     }
-
-    if(SPI3_USED_MASK&config){
-    	ret = platform_device_register(&aw_spi3);
-    	if (ret)
-    		spi_wrn("unable to register device: %d\n", ret);		
+    ret = script_parser_fetch("spi2_para", "spi_used", &spi_used[2], sizeof(int));
+    if (ret)
+    {
+        printk("sw spi init fetch spi2 uning configuration failed\n");
     }
-
-	return platform_driver_register(&aw16xx_spi_driver);	
+    ret = script_parser_fetch("spi3_para", "spi_used", &spi_used[3], sizeof(int));
+    if (ret)
+    {
+        printk("sw spi init fetch spi3 uning configuration failed\n");
+    }
+   
+    // register for spansion 08a
+    //ret = spi_register_board_info(&spansion_08a, 1);
+    //spi_msg("spi register board info = %d \n",ret);
+    
+    if (spi_used[0])
+    {
+        platform_device_register(&aw_spi0);
+    }
+    if (spi_used[1])
+    {
+        platform_device_register(&aw_spi1);
+    }
+    if (spi_used[2])
+    {
+        platform_device_register(&aw_spi2);
+    }
+    if (spi_used[3])
+    {
+        platform_device_register(&aw_spi3);
+    }
+    
+    if (spi_used[0] || spi_used[1] || spi_used[2] || spi_used[3])
+    {
+        return platform_driver_register(&aw16xx_spi_driver);	
+    }
+    else
+        return -1;
 }
 module_init(aw16xx_spi_init);
 

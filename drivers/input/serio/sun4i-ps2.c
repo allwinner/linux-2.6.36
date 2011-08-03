@@ -515,12 +515,12 @@ static int __init sw_ps2_init(void)
     ret = script_parser_fetch("ps2_0_para","ps2_used", &ps2_used[0], sizeof(int));
     if (ret)
     {
-        printk("awsmc_init fetch ps2_0 using configuration failed\n");
+        printk("sw_ps2_init fetch ps2_0 using configuration failed\n");
     }    
     ret = script_parser_fetch("ps2_1_para","ps2_used", &ps2_used[1], sizeof(int));
     if (ret)
     {
-        printk("awsmc_init fetch ps2_1 using onfiguration failed\n");
+        printk("sw_ps2_init fetch ps2_1 using onfiguration failed\n");
     }
     #ifdef AW1623_FPGA
     ps2_used[0] = 1;

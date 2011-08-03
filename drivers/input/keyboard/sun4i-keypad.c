@@ -524,9 +524,22 @@ static struct platform_driver sw_keypad_driver = {
 
 static int __init sw_keypad_init(void)
 {
+    int kp_used = 0;
+    int ret;
+
     swkp_msg("sw keypad init\n");
-    platform_device_register(&sw_device_keypad);
-	return platform_driver_register(&sw_keypad_driver);
+    ret = script_parser_fetch("keypad_para", "ke_used", &kp_used, sizeof(int));
+    if (ret)
+    {
+        printk("sw keypad fetch keypad uning configuration failed\n");
+    }
+    if (kp_used)
+    {
+        platform_device_register(&sw_device_keypad);
+        return platform_driver_register(&sw_keypad_driver);
+    }
+    else
+        return -1;
 }
 module_init(sw_keypad_init);
 
