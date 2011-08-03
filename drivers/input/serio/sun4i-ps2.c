@@ -537,7 +537,10 @@ static int __init sw_ps2_init(void)
     if (ps2_used[0] || ps2_used[1])
         return platform_driver_register(&sw_ps2_driver);
     else
-        return -1;
+    {
+        pr_warning("ps2: cannot find any unsing configuration for 2 ps/2 controller, return directly!\n");
+        return 0;
+    }
 }
 
 static void __exit sw_ps2_exit(void)

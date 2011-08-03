@@ -143,7 +143,6 @@ static int awsmc_resource_request(struct awsmc_host *smc_host)
         #endif
     }
     smc_host->pio_hdle = pio_hdle;
-    smc_syscall_ioremap();
 
     //iomap
     smc_host->smc_base_res  = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1226,8 +1225,15 @@ static int __init awsmc_init(void)
     {
         platform_device_register(&axmmc_device[3]);
     }
-
-    return platform_driver_register(&awsmc_driver);
+    if (sdc_used[0] || sdc_used[1] || sdc_used[2] || sdc_used[3])
+    {
+        return platform_driver_register(&awsmc_driver);
+    }
+    else
+    {
+        awsmc_msg("cannot find any using configuration for controllers, return directly!\n");
+        return 0;
+    }
 }
 
 static void __exit awsmc_exit(void)

@@ -539,7 +539,10 @@ static int __init sw_keypad_init(void)
         return platform_driver_register(&sw_keypad_driver);
     }
     else
-        return -1;
+    {
+        pr_warning("keypad: cannot find using configuration, return without doing anything!\n");
+        return 0;
+    }
 }
 module_init(sw_keypad_init);
 

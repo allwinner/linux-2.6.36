@@ -1528,7 +1528,11 @@ static int __init aw16xx_spi_init(void)
         return platform_driver_register(&aw16xx_spi_driver);	
     }
     else
-        return -1;
+    {
+        pr_warning("spi: cannot find any using configuration for \
+                    all 4 spi controllers, return directly!\n");
+        return 0;
+    }
 }
 module_init(aw16xx_spi_init);
 
