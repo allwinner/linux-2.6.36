@@ -19,6 +19,547 @@ void LCD_get_reg_bases(__reg_bases_t *para)
 	para->base_pwm  = gdisp.init_para.base_pwm;
 }
 
+__s32 LCD_get_panel_para(__u32 sel, __panel_para_t * info)
+{
+    __s32 ret = 0;
+    char primary_key[20];
+    __u32 value = 0;
+
+    sprintf(primary_key, "lcd%d_para", sel);
+
+    memset(info, 0, sizeof(__panel_para_t));
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_x", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_x fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_x = value;
+        DE_INF("lcd_x = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_y", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_y fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_y = value;
+        DE_INF("lcd_y = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_dclk_freq", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_dclk_freq fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_dclk_freq = value;
+        DE_INF("lcd_dclk_freq = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_pwm_freq", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_pwm_freq fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_pwm_freq = value;
+        DE_INF("lcd_pwm_freq = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_pwm_pol", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_pwm_pol fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_pwm_pol = value;
+        DE_INF("lcd_pwm_pol = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_srgb", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_srgb fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_srgb = value;
+        DE_INF("lcd_srgb = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_swap", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_swap fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_swap = value;
+        DE_INF("lcd_swap = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_if", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_if fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_if = value;
+        DE_INF("lcd_if = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hbp", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hbp fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hbp = value;
+        DE_INF("lcd_hbp = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ht", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ht fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ht = value;
+        DE_INF("lcd_ht = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_vbp", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_vbp fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_vbp = value;
+        DE_INF("lcd_vbp = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_vt", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_vt fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_vt = value;
+        DE_INF("lcd_vt = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_if", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_if fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_if = value;
+        DE_INF("lcd_hv_if = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_smode", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_smode fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_smode = value;
+        DE_INF("lcd_hv_smode = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_s888_if", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_s888_if fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_s888_if = value;
+        DE_INF("lcd_hv_s888_if = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_syuv_if", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_syuv_if fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_syuv_if = value;
+        DE_INF("lcd_hv_syuv_if = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_vspw", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_vspw fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_vspw = value;
+        DE_INF("lcd_hv_vspw = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_hspw", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_hspw fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_hspw = value;
+        DE_INF("lcd_hv_hspw = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_lde_used", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_lde_used fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_lde_used = value;
+        DE_INF("lcd_hv_lde_used = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_hv_lde_iovalue", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_hv_lde_iovalue fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_hv_lde_iovalue = value;
+        DE_INF("lcd_hv_lde_iovalue = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_stvh", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_stvh fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_stvh = value;
+        DE_INF("lcd_ttl_stvh = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_stvdl", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_stvdl fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_stvdl = value;
+        DE_INF("lcd_ttl_stvdl = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_stvdp", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_stvdp fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_stvdp = value;
+        DE_INF("lcd_ttl_stvdp = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_ckvt", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_ckvt fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_ckvt = value;
+        DE_INF("lcd_ttl_ckvt = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_ckvh", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_ckvh fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_ckvh = value;
+        DE_INF("lcd_ttl_ckvh = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_ckvd", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_ckvd fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_ckvd = value;
+        DE_INF("lcd_ttl_ckvd = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_oevt", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_oevt fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_oevt = value;
+        DE_INF("lcd_ttl_oevt = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_oevh", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_oevh fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_oevh = value;
+        DE_INF("lcd_ttl_oevh = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_oevd", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_oevd fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_oevd = value;
+        DE_INF("lcd_ttl_oevd = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_sthh", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_sthh fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_sthh = value;
+        DE_INF("lcd_ttl_sthh = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_sthd", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_sthd fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_sthd = value;
+        DE_INF("lcd_ttl_sthd = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_oehh", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_oehh fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_oehh = value;
+        DE_INF("lcd_ttl_oehh = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_oehd", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_oehd fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_oehd = value;
+        DE_INF("lcd_ttl_oehd = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_revd", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_revd fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_revd = value;
+        DE_INF("lcd_ttl_revd = %d\n", value);
+    }
+    
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_datarate", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_datarate fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_datarate = value;
+        DE_INF("lcd_ttl_datarate = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_revsel", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_revsel fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_revsel = value;
+        DE_INF("lcd_ttl_revsel = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_datainv_en", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_datainv_en fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_datainv_en = value;
+        DE_INF("lcd_ttl_datainv_en = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_ttl_datainv_sel", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_ttl_datainv_sel fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_ttl_datainv_sel = value;
+        DE_INF("lcd_ttl_datainv_sel = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_lvds_ch", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_lvds_ch fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_lvds_ch = value;
+        DE_INF("lcd_lvds_ch = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_lvds_mode", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_lvds_mode fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_lvds_mode = value;
+        DE_INF("lcd_lvds_mode = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_lvds_bitwidth", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_lvds_bitwidth fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_lvds_bitwidth = value;
+        DE_INF("lcd_lvds_bitwidth = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_lvds_io_cross", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_lvds_io_cross fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_lvds_io_cross = value;
+        DE_INF("lcd_lvds_io_cross = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_cpu_if", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_cpu_if fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_cpu_if = value;
+        DE_INF("lcd_cpu_if = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_cpu_da", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_cpu_da fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_cpu_da = value;
+        DE_INF("lcd_cpu_da = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_frm", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_frm fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_frm = value;
+        DE_INF("lcd_frm = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_io_cfg0", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_io_cfg0 fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_io_cfg0 = value;
+        DE_INF("lcd_io_cfg0 = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_io_cfg1", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_io_cfg1 fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_io_cfg1 = value;
+        DE_INF("lcd_io_cfg1 = %d\n", value);
+    }
+
+    ret = OSAL_script_parser_fetch(primary_key, "lcd_io_strength", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data %s.lcd_io_strength fail\n", primary_key);
+    }
+    else
+    {
+        info->lcd_io_strength = value;
+        DE_INF("lcd_io_strength = %d\n", value);
+    }
+
+    return 0;
+}
+
 void LCD_delay_ms(__u32 ms) 
 {
 #ifdef __LINUX_OSAL__
@@ -569,7 +1110,8 @@ __s32 Disp_lcdc_init(__u32 sel)
 #endif
     }
 
-    lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
+    //lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
+    LCD_get_panel_para(sel, &gpanel_info[sel]);
     Disp_pwm_cfg(sel);
     gpanel_info[sel].tcon_index = 0;
 
@@ -1055,7 +1597,7 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
         }
     }
     
-    if(gpanel_info[sel].port_index== 0)
+    if(sel == 0)
     {
 	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
         sys_put_wvalue(gdisp.init_para.base_pwm+0x204,(tmp & 0xffff0000) | value);
@@ -1074,7 +1616,7 @@ __s32 BSP_disp_lcd_get_bright(__u32 sel)
     __u32    value;
     __s32	bright = 0;
 
-    if(gpanel_info[sel].port_index== 0)
+    if(sel == 0)
     {
         value = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
         value = value & 0x0000ffff;
