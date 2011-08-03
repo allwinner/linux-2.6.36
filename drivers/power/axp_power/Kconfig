@@ -29,8 +29,11 @@ config AW_AXP20
 endchoice
 
 config AXP_CHARGEINIT
-	bool "AXP init charger set"
-	default n
+	bool "AXP initial charging environment set"
+	default y
 
+config AXP_CHGCHANGE
+	bool "AXP charging current set when suspend\resume\shutdown"
+	default y
 
 endif # !AW_AXP
