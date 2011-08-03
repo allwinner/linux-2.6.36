@@ -94,18 +94,19 @@ int g2d_exit(void)
 	return err;
 }
 
-void g2d_wait_cmd_finish(void)
+int g2d_wait_cmd_finish(void)
 {
 	long timeout = 30; /* 30ms */
 	
 	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, msecs_to_jiffies(timeout));
 	if(timeout == 0)
 	{
-		printk("wait g2d irq pending flag timeout\n");
 		mixer_clear_init();
 		g2d_ext_hd.finish_flag = 1;
 		wake_up(&g2d_ext_hd.queue);
+		return -1;
 	}
+	return 0;
 }
 
 int g2d_blit(g2d_blt * para)
@@ -169,12 +170,12 @@ int g2d_blit(g2d_blt * para)
 	}
 	
 	g2d_ext_hd.finish_flag = 0;
-	err = mixer_blt(para);
-	g2d_wait_cmd_finish();
+	mixer_blt(para);
+	err = g2d_wait_cmd_finish();
 
 	if(err != 0)
    	{
-   		printk("g2d_blit fail\n");
+		printk("wait g2d irq pending flag timeout\n");
    	}
    	
 	return err;
@@ -216,11 +217,11 @@ int g2d_fill(g2d_fillrect * para)
 	}
 	
 	g2d_ext_hd.finish_flag = 0;
-	err = mixer_fillrectangle(para);
-	g2d_wait_cmd_finish();
+	mixer_fillrectangle(para);
+	err = g2d_wait_cmd_finish();
 	if(err != 0)
    	{
-   		printk("g2d_fillrect fail\n");
+		printk("wait g2d irq pending flag timeout\n");
    	}
 	
 	return err;
@@ -285,12 +286,12 @@ int g2d_stretchblit(g2d_stretchblt * para)
 	}
 
 	g2d_ext_hd.finish_flag = 0;
-	err = mixer_stretchblt(para);
-	g2d_wait_cmd_finish();
+	mixer_stretchblt(para);
+	err = g2d_wait_cmd_finish();
 
 	if(err != 0)
    	{
-   		printk("g2d_stretchblt fail\n");
+		printk("wait g2d irq pending flag timeout\n");
    	}
    	
 	return err;
