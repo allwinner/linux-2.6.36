@@ -73,8 +73,8 @@ build_kernel()
 	cp $file ${LICHEE_MOD_DIR}
     done
 
-    rm -rf output/kernel-source
-    scripts/gen_kernel_src.sh output/kernel-source
+    #rm -rf output/kernel-source
+    #scripts/gen_kernel_src.sh output/kernel-source
 }
 
 build_modules()
