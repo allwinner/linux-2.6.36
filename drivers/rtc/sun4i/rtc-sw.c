@@ -28,6 +28,9 @@
  */
 //#define BACKUP_PWM
 
+/* record rtc device handle for platform to restore system time */
+struct rtc_device   *sw_rtc_dev = NULL;
+
 /*说明 f23最大变化为63年的时间
 该驱动支持（2010～2073）年的时间*/
 
@@ -509,7 +512,7 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 		ret = PTR_ERR(rtc);
 		goto err_out;
 	}
-
+    sw_rtc_dev = rtc;
 	platform_set_drvdata(pdev, rtc);
      
 	return 0;
