@@ -41,8 +41,7 @@
 #include <mach/irqs.h>
 
 #define FOR_TSLIB_TEST
-#define PRINT_POINT_INFO
-//#define PRINT_INT_INFO
+//#define PRINT_POINT_INFO
 
 static struct i2c_client *this_client;
 
