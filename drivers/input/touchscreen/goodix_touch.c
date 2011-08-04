@@ -527,11 +527,11 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	switch(on) 
 	{
 		case 0:
-			gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");
+			gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
 			ret = 1;
 			break;
 		case 1:
-		        gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
+		        gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");
 		        ret = 1;
 			break;	
 	}
@@ -628,8 +628,9 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 	}
 	
 	gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
-	mdelay(5);
+	mdelay(100);
 	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");	
+    mdelay(100);
 	
 	i2c_connect_client = client;				//used by Guitar Updating.
 
