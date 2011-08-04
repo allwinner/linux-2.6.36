@@ -461,21 +461,20 @@ void aw_twi_set_clock(unsigned int clk_in, unsigned int sclk_req, void *base_add
     }
 #endif
 
-    if (clk_in < 24000000)
+    if (divider==0)
     {
-        clk_m = 2;
-        clk_n = 1;
+        clk_m = 1;
         goto set_clk;
     }
     // search clk_n and clk_m,from large to small value so that can quickly find suitable m & n.
     while (clk_n < 8) // 3bits max value is 8 
     {
         // (m+1)*2^n = divider -->m = divider/2^n -1;
-        //clk_m = (divider/_2_pow_clk_n) - 1; 
-        clk_m = (divider >> (_2_pow_clk_n>>1))-1;
+        clk_m = (divider/_2_pow_clk_n) - 1; 
+        //clk_m = (divider >> (_2_pow_clk_n>>1))-1;
         while (clk_m < 16) // 4bits max value is 16
         {
-            sclk_real = src_clk/((clk_m + 1)<<(_2_pow_clk_n>>1)); //src_clk/((m+1)*2^n)
+            sclk_real = src_clk/(clk_m + 1)/_2_pow_clk_n; //src_clk/((m+1)*2^n)
             if (sclk_real <= sclk_req)
             {
                 goto set_clk;
@@ -486,7 +485,7 @@ void aw_twi_set_clock(unsigned int clk_in, unsigned int sclk_req, void *base_add
             }
         }
         clk_n++;
-        _2_pow_clk_n <<= 1; // mutilple by 2
+        _2_pow_clk_n *= 2; // mutilple by 2
     }
 
 set_clk:    
