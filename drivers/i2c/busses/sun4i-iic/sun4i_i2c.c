@@ -1275,7 +1275,7 @@ static int __init i2c_adap_awxx_init(void)
 	printk("================power===================, status = %d \n",status);
 	
     #if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)    // bus-0
-	    status = i2c_register_board_info(1, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
+	    status = i2c_register_board_info(2, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
 	    printk("================goodix==============, status = %d \n",status);
     #endif
         
@@ -1295,7 +1295,7 @@ static int __init i2c_adap_awxx_init(void)
     #endif
     
     #if defined(CONFIG_KEYBOARD_HV2605_KEYBOARD) || defined(CONFIG_KEYBOARD_HV2605_KEYBOARD_MODULE)
-    	status = i2c_register_board_info(1, hv_keyboard_i2c_board_info, ARRAY_SIZE(hv_keyboard_i2c_board_info));
+    	status = i2c_register_board_info(2, hv_keyboard_i2c_board_info, ARRAY_SIZE(hv_keyboard_i2c_board_info));
         printk("===============hv_keyboard==============, status = %d ===\n",status);
     #endif
 
