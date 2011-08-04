@@ -294,11 +294,11 @@ void cedardev_insert_task(struct cedarv_engine_task* new_task)
 	if(list_empty(&run_task_list))
 		new_task->is_first_task = 1;
 	
-	/*遍历run_task_list链表，如果插入的任务优先级比链表节点中的任务优先级高，
+	/*遍历run_task_list链表，如果插入的任务优先级比链表节点中的任务优先级高，并且当前插入任务不是第一个插入的任务。
 	 *那么就将优先级高的任务放于前面，队列中的任务采取从高到底的优先级队列排队。
 	 */
 	list_for_each_entry(task_entry, &run_task_list, list) {
-		if (task_entry->t.task_prio < new_task->t.task_prio && (task_entry->running == 0)) {
+		if ((task_entry->is_first_task == 0) && (task_entry->running == 0) && (task_entry->t.task_prio < new_task->t.task_prio)) {
 			break;
 		}
 	}
@@ -352,7 +352,7 @@ int cedardev_check_delay(int check_prio)
 	/*获取总的等待时间*/
 	spin_lock_irqsave(&cedar_spin_lock, flags);
 	list_for_each_entry(task_entry, &run_task_list, list) {
-		if ((task_entry->t.task_prio >= check_prio) || (task_entry->running == 1))							
+		if ((task_entry->t.task_prio >= check_prio) || (task_entry->running == 1) || (task_entry->is_first_task == 1))							
 			timeout_total = timeout_total + task_entry->t.frametime;
 	}
 
