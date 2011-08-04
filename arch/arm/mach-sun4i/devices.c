@@ -191,17 +191,21 @@ static int __init sw_sys_init(void)
 /* This module will not be remove */
 module_init(sw_sys_init);
 
+extern void sw_get_sid(int *a, int *b, int *c, int *d);
+
+int sid_readl(const volatile void __iomem *addr)
+{
+	return readl(addr);
+}
 
 static int read_chip_sid(char* page, char** start, off_t off, int count,
 	int* eof, void* data)
 {
-
-	return sprintf(page, "%08x-%08x-%08x-%08x\n", 
-		readl(SW_VA_SID_IO_BASE + 0x0),
-		readl(SW_VA_SID_IO_BASE + 0x4),
-		readl(SW_VA_SID_IO_BASE + 0x8),
-		readl(SW_VA_SID_IO_BASE + 0xc));
+	int a, b, c, d;
+	sw_get_sid(&a, &b, &c, &d);
+	return sprintf(page, "%08x-%08x-%08x-%08x\n", a, b, c, d);
 }
+
 
 static int __init platform_proc_init(void)
 {
