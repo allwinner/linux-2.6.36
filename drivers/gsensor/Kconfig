@@ -6,13 +6,21 @@ menuconfig GSENSOR
 	bool "Gsensor support"
 
 if GSENSOR
+
+config BOSCH_BMA250
+	tristate "BMA250 acceleration sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Bosch Sensortec's 
+	  acceleration sensors BMA250.
+
 config MXC_MMA7660
-	tristate "Freescale MMA7660 3-Axis Orientation/Motion Detection Sensor Driver"
+	tristate "MMA7660 3-Axis Orientation/Motion Detection Sensor Support"
 	depends on I2C
 	default m
 	help
-	  If you say yes here you get support for the Freescale 3-Axis Orientation/Motion
-	  Detection Sensor.
+	  If you say yes here you get support for the Freescale 3-Axis 
+	  Orientation/Motion Detection Sensor.
 
 config MEMSIC_ECOMPASS
 	tristate "MEMSIC eCompass Driver Support"

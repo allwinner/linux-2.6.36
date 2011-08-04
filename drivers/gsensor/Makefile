@@ -9,6 +9,8 @@ obj-$(CONFIG_SENSORS_MMC31XX)	+= mmc31xx.o
 
 obj-$(CONFIG_SENSORS_MMA7660)	+= mma7660.o
 
+obj-$(CONFIG_BOSCH_BMA250)		+= bma250.o
+
 ifeq ($(CONFIG_I2C_DEBUG_CHIP),y)
 EXTRA_CFLAGS += -DDEBUG
 endif
