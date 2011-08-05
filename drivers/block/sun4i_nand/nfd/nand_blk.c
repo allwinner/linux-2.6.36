@@ -23,6 +23,7 @@
 #include "../src/include/nand_drv_cfg.h"
 #include "nand_blk.h"
 #include <mach/clock.h>
+#include <mach/script_v2.h>
 
 #include "nand_private.h"
 #include "../include/type_def.h"
@@ -1524,6 +1525,21 @@ struct platform_device nand_device =
 static int __init nand_init(void)
 {
 	s32 ret;
+	int nand_used = 0;
+    
+    ret = script_parser_fetch("nand_para","nand_used", &nand_used, sizeof(int));
+    if (ret)
+    {
+    	printk("nand init fetch emac using configuration failed\n");
+ 
+    }
+    
+    if(nand_used == 0)
+    {
+        printk("nand driver is disabled \n");
+        return 0;
+    }
+    
 
 	printk("[NAND]nand driver, init.\n");
 
@@ -1555,6 +1571,22 @@ static int __init nand_init(void)
 
 static void __exit nand_exit(void)
 {
+    s32 ret;
+	int nand_used = 0;
+    
+    ret = script_parser_fetch("nand_para","nand_used", &nand_used, sizeof(int));
+    if (ret)
+    {
+    	printk("nand init fetch emac using configuration failed\n");
+ 
+    }
+    
+    if(nand_used == 0)
+    {
+        printk("nand driver is disabled \n");
+        return ;
+    }
+    
 	printk("[NAND]nand driver : bye bye\n");
 	platform_driver_unregister(&nand_driver);
 	//platform_device_unregister(&nand_device);

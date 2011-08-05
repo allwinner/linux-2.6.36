@@ -44,6 +44,7 @@
 #include "sun4i_wemac.h"
 
 #include <mach/dma.h>
+#include <mach/script_v2.h>
 #include <asm/cacheflush.h>
 
 /* Board/System/Debug information/definition ---------------- */
@@ -2255,6 +2256,22 @@ __setup("mac_addr", mac_addr);
 static int __init
 wemac_init(void)
 {
+    int emac_used = 0;
+    int ret;
+    
+    ret = script_parser_fetch("emac_para","emac_used", &emac_used, sizeof(int));
+    if (ret)
+    {
+    	printk("emac_init fetch emac using configuration failed\n");
+ 
+    }
+    
+    if(emac_used == 0)
+    {
+        printk("emac driver is disabled \n");
+        return 0;
+    }
+    
 	printk(KERN_INFO "%s Ethernet Driver, V%s in file:%s\n", CARDNAME, DRV_VERSION, __FILE__ );
 
 	platform_device_register(&wemac_device);
@@ -2264,6 +2281,22 @@ wemac_init(void)
 static void __exit
 wemac_cleanup(void)
 {
+    int emac_used = 0;
+    int ret;
+    
+    ret = script_parser_fetch("emac_para","emac_used", &emac_used, sizeof(int));
+    if (ret)
+    {
+    	printk("emac_init fetch emac using configuration failed\n");
+ 
+    }
+    
+    if(emac_used == 0)
+    {
+        printk("emac driver is disabled \n");
+        return ;
+    }
+    
 	platform_driver_unregister(&wemac_driver);
 }
 
