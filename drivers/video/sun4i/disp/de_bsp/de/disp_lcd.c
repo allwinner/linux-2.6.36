@@ -646,7 +646,7 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
     }
 */
     
-    if(b_en)
+if (b_en != gpanel_info[sel].lcd_pwm_pol)
     {
         __hdle hdl;
         user_gpio_set_t  gpio_set[1];
