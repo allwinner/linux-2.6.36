@@ -124,6 +124,52 @@ __s32 standby_tmr_set(__u32 second)
 
 
 /*
+*********************************************************************************************************
+*                           standby_tmr_enable_watchdog
+*
+*Description: enable watch-dog.
+*
+*Arguments  : none.
+*
+*Return     : none;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+void standby_tmr_enable_watchdog(void)
+{
+    /* set watch-dog reset, timeout is 2 seconds */
+    TmrReg->DogMode = (2<<3) | (1<<1);
+    /* enable watch-dog */
+    TmrReg->DogMode |= (1<<0);
+}
+
+
+/*
+*********************************************************************************************************
+*                           standby_tmr_disable_watchdog
+*
+*Description: disable watch-dog.
+*
+*Arguments  : none.
+*
+*Return     : none;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+void standby_tmr_disable_watchdog(void)
+{
+    /* disable watch-dog reset */
+    TmrReg->DogMode &= ~(1<<1);
+    /* disable watch-dog */
+    TmrReg->DogMode &= ~(1<<0);
+}
+
+
+/*
 **********************************************************************************************************************
 *                                               standby_tmr_query
 *

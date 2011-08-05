@@ -115,13 +115,16 @@ int main(struct aw_pm_info *arg)
     /* save stack pointer registger, switch stack to sram */
     sp_backup = save_sp();
     /* enable dram enter into self-refresh */
-    dram_enter_selfrefresh();
     dram_power_save_process();
     /* process standby */
     standby();
+    /* enable watch-dog to preserve dram training failed */
+    standby_tmr_enable_watchdog();
     /* restore dram */
-    dram_exit_selfrefresh();
     dram_power_up_process();
+    /* disable watch-dog    */
+    standby_tmr_disable_watchdog();
+
     /* restore stack pointer register, switch stack back to dram */
     restore_sp(sp_backup);
 

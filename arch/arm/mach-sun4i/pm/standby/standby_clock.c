@@ -350,10 +350,10 @@ __s32 standby_clk_getdiv(struct sun4i_clk_div_t  *clk_div)
 void standby_clk_dramgating(int onoff)
 {
     if(onoff) {
-        CmuReg->DramGate.ClkOutputEn = 1;
+        CmuReg->Pll5Ctl.OutputEn = 1;
     }
     else {
-        CmuReg->DramGate.ClkOutputEn = 0;
+        CmuReg->Pll5Ctl.OutputEn = 0;
     }
 }
 

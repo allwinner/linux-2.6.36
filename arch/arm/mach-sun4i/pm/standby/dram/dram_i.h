@@ -6,6 +6,8 @@
 * Descript: dram csp for AW1623 chipset;
 * Update  : date          auther      ver     notes
 *     2011-06-01      			Berg        1.0     create file
+*			2011-07-01			Berg        1.1     add extern function description
+*			2011-08-05			Berg		1.2		add CPU_CFIG_REG in timer module
 *********************************************************************************************************
 */
 #ifndef __DRAM_I_H__
@@ -75,6 +77,11 @@
 #define DRAM_CCM_SDRAM_CLK_REG    (DRAM_CCM_BASE + 0x100)
 
 
+//TIMER register for system
+#define DRAM_TIMER_BASE     SW_VA_TIMERC_IO_BASE
+#define TIMER_CPU_CFG_REG   (DRAM_TIMER_BASE + 0x13c)
+
+
 extern void 	DRAMC_clock_output_en(__u32 on);
 extern void 	DRAMC_set_autorefresh_cycle(__u32 clk);
 extern int  	DRAMC_scan_readpipe(void);
@@ -85,6 +92,7 @@ extern void mctl_itm_enable(void);
 extern void mctl_enable_dll0(void);
 extern void mctl_enable_dllx(void);
 extern void mctl_disable_dll(void);
+extern void DRAMC_hostport_on_off(__u32 port_idx, __u32 on);
 
 #endif  //__DRAM_REG_H__
 

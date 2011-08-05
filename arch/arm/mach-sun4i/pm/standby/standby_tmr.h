@@ -97,6 +97,8 @@ __s32 standby_tmr_init(void);
 __s32 standby_tmr_exit(void);
 __s32 standby_tmr_query(enum tmr_event_type_e type);
 void standby_tmr_mdlay(int ms);
+void standby_tmr_enable_watchdog(void);
+void standby_tmr_disable_watchdog(void);
 
 #endif  //__STANDBY_TMR_H__
 
