@@ -39,8 +39,10 @@
 
 #include <mach/gpio_v2.h>
 #include <mach/irqs.h>
+#include <mach/script_v2.h>
 
 #define FOR_TSLIB_TEST
+#define PRINT_POINT_INFO
 //#define PRINT_POINT_INFO
 
 static struct i2c_client *this_client;
@@ -49,6 +51,16 @@ static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
 
 static void* __iomem gpio_addr = NULL;
+
+static int screen_max_x = 0;
+static int screen_max_y = 0;
+static int revert_x_flag = 0;
+static int revert_y_flag = 0;
+
+#define SCREEN_MAX_X    (screen_max_x)
+#define SCREEN_MAX_Y    (screen_max_y)
+#define PRESS_MAX       255
+
 static int ft5x_i2c_rxdata(char *rxdata, int length);
 
 struct ts_event {
@@ -686,27 +698,52 @@ static int ft5x_read_data(void)
 		case 5:
 			event->x5 = (s16)(buf[0x1b] & 0x0F)<<8 | (s16)buf[0x1c];
 			event->y5 = (s16)(buf[0x1d] & 0x0F)<<8 | (s16)buf[0x1e];
-			event->x5 = 800 - event->x5;
+			if(1 == revert_x_flag){
+                event->x5 = SCREEN_MAX_X - event->x5;
+			}
+			if(1 == revert_y_flag){
+                event->y5 = SCREEN_MAX_Y - event->y5;
+			}
 			event->touch_ID5=(s16)(buf[0x1D] & 0xF0)>>4;
 		case 4:
 			event->x4 = (s16)(buf[0x15] & 0x0F)<<8 | (s16)buf[0x16];
 			event->y4 = (s16)(buf[0x17] & 0x0F)<<8 | (s16)buf[0x18];
-			event->x4 = 800 - event->x4;
+			if(1 == revert_x_flag){
+                event->x4 = SCREEN_MAX_X - event->x4;
+			}
+			if(1 == revert_y_flag){
+                event->y4 = SCREEN_MAX_Y - event->y4;
+			}
 			event->touch_ID4=(s16)(buf[0x17] & 0xF0)>>4;
 		case 3:
 			event->x3 = (s16)(buf[0x0f] & 0x0F)<<8 | (s16)buf[0x10];
 			event->y3 = (s16)(buf[0x11] & 0x0F)<<8 | (s16)buf[0x12];
-			event->x3 = 800 - event->x3;
+			if(1 == revert_x_flag){
+                event->x3 = SCREEN_MAX_X - event->x3;
+			}
+			if(1 == revert_y_flag){
+                event->y3 = SCREEN_MAX_Y - event->y3;
+			}
 			event->touch_ID3=(s16)(buf[0x11] & 0xF0)>>4;
 		case 2:
 			event->x2 = (s16)(buf[9] & 0x0F)<<8 | (s16)buf[10];
 			event->y2 = (s16)(buf[11] & 0x0F)<<8 | (s16)buf[12];
-			event->x2 = 800 - event->x2;
+			if(1 == revert_x_flag){
+                event->x2 = SCREEN_MAX_X - event->x2;
+			}
+			if(1 == revert_y_flag){
+                event->y2 = SCREEN_MAX_Y - event->y2;
+			}
 		    event->touch_ID2=(s16)(buf[0x0b] & 0xF0)>>4;
 		case 1:
 			event->x1 = (s16)(buf[3] & 0x0F)<<8 | (s16)buf[4];
 			event->y1 = (s16)(buf[5] & 0x0F)<<8 | (s16)buf[6];
-			event->x1 = 800 - event->x1;
+			if(1 == revert_x_flag){
+                event->x1 = SCREEN_MAX_X - event->x1;
+			}
+			if(1 == revert_y_flag){
+                event->y1 = SCREEN_MAX_Y - event->y1;
+			}
 			event->touch_ID1=(s16)(buf[0x05] & 0xF0)>>4;
 		break;
 		default:
@@ -875,7 +912,7 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
     ft5x_set_reg(0x3a,PMODE_HIBERNATE);
 	*/
     //suspend 
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");        
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ft5x_ctp_wakeup");        
 }
 
 static void ft5x_ts_resume(struct early_suspend *handler)
@@ -894,9 +931,9 @@ static void ft5x_ts_resume(struct early_suspend *handler)
     //gpio i28 output high
 	printk("==ft5x_ts_resume=\n");
     //wake up
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ft5x_ctp_wakeup");
     mdelay(5);
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ft5x_ctp_wakeup");
 
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
@@ -946,12 +983,12 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_create_singlethread;
 	}
     //config gpio:
-    gpio_int_hdle = gpio_request_ex("tp_para", "tp_int_port");
+    gpio_int_hdle = gpio_request_ex("ft5x_ctp_para", "ft5x_ctp_int_port");
     if(!gpio_int_hdle) {
         pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
         goto exit_gpio_int_request_failed;
     }
-    gpio_wakeup_hdle = gpio_request_ex("tp_para", "tp_wakeup");
+    gpio_wakeup_hdle = gpio_request_ex("ft5x_ctp_para", "ft5x_ctp_wakeup");
     if(!gpio_wakeup_hdle) {
         pr_warning("touch panel tp_wakeup request gpio fail!\n");
         goto exit_gpio_wakeup_request_failed;
@@ -972,9 +1009,9 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
 	    //disable_irq(IRQ_EINT);
 #endif
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ft5x_ctp_wakeup");
     mdelay(5);
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ft5x_ctp_wakeup");
 
 
 	input_dev = input_allocate_device();
@@ -1141,8 +1178,46 @@ static struct i2c_driver ft5x_ts_driver = {
 
 static int __init ft5x_ts_init(void)
 { 
-	printk("=========ft5x-ts-init============\n");
-	return i2c_add_driver(&ft5x_ts_driver);
+    int ret = -1;
+    int ctp_used = -1;
+
+	pr_notice("=========ft5x-ts-init============\n");
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_used", &ctp_used, 1)){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+	}
+	if(1 != ctp_used){
+        pr_err("ft5x_ts: ctp_unused. \n");
+        return 0;
+	}
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_screen_max_x", &screen_max_x, 1)){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+	}
+	pr_debug("ft5x_ts: screen_max_x = %d. \n", screen_max_x);
+
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_screen_max_y", &screen_max_y, 1)){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    pr_debug("ft5x_ts: screen_max_y = %d. \n", screen_max_y);
+
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_revert_x_flag", &revert_x_flag, 1)){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    pr_debug("ft5x_ts: revert_x_flag = %d. \n", revert_x_flag);
+
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_revert_y_flag", &revert_y_flag, 1)){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    pr_debug("ft5x_ts: revert_y_flag = %d. \n", revert_y_flag);
+
+	ret = i2c_add_driver(&ft5x_ts_driver);
+	
+script_parser_fetch_err:
+	return ret;
 }
 
 static void __exit ft5x_ts_exit(void)

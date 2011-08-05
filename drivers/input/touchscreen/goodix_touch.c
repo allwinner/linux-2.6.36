@@ -37,6 +37,7 @@
 
 #include <mach/gpio_v2.h>
 #include <mach/irqs.h>
+#include <mach/script_v2.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
     #include <linux/pm.h>
@@ -78,12 +79,17 @@ static void* __iomem gpio_addr = NULL;
 static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
 #define X_DIFF (800)
+static int screen_max_x;
+static int screen_max_y;
 
 #define FOR_TSLIB_TEST
 //#define PRINT_INT_INFO
 //#define PRINT_POINT_INFO
 #define PRINT_SUSPEND_INFO
 #define TEST_I2C_TRANSFER
+
+#define SCREEN_MAX_HEIGHT	(screen_max_x)
+#define SCREEN_MAX_WIDTH    (screen_max_y)
 
 
 #ifdef PRINT_POINT_INFO 
@@ -527,15 +533,15 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	switch(on) 
 	{
 		case 0:
-			gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
+			gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "goodix_ctp_wakeup");
 			ret = 1;
 			break;
 		case 1:
-		        gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");
+		        gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "goodix_ctp_wakeup");
 		        ret = 1;
 			break;	
 	}
-	dev_dbg(&ts->client->dev, "Set Guitar's Shutdown %s. Ret:%d.\n", on?"HIGH":"LOW", ret);
+	dev_dbg(&ts->client->dev, "Set Guitar's Shutdown %s. Ret:%d.\n", on?"LOW":"HIGH", ret);
 	return ret;
 }
 
@@ -615,21 +621,21 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 #endif
 
 	//config gpio:
-	gpio_int_hdle = gpio_request_ex("tp_para", "tp_int_port");
+	gpio_int_hdle = gpio_request_ex("goodix_ctp_para", "goodix_ctp_int_port");
 	if(!gpio_int_hdle) {
 		pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
 	    goto exit_gpio_int_request_failed;
 	}
 	
-	gpio_wakeup_hdle = gpio_request_ex("tp_para", "tp_wakeup");
+	gpio_wakeup_hdle = gpio_request_ex("goodix_ctp_para", "goodix_ctp_wakeup");
 	if(!gpio_wakeup_hdle) {
 		pr_warning("touch panel tp_wakeup request gpio fail!\n");
 		goto exit_gpio_wakeup_request_failed;
 	}
 	
-	gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "tp_wakeup");
+	gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "goodix_ctp_wakeup");
 	mdelay(100);
-	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "tp_wakeup");	
+	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "goodix_ctp_wakeup");	
     mdelay(100);
 	
 	i2c_connect_client = client;				//used by Guitar Updating.
@@ -809,8 +815,30 @@ static struct i2c_driver goodix_ts_driver = {
 //Çý¶¯¼ÓÔØº¯Êý
 static int __devinit goodix_ts_init(void)
 {
-	int ret;
+	int ret = -1;
+	int ctp_used = -1;
+	
 	pr_info("goodix_ts_init\n");
+	if(SCRIPT_PARSER_OK != script_parser_fetch("goodix_ctp_para", "goodix_ctp_used", &ctp_used, 1)){
+        pr_err("goodix_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+	}
+	if(1 != ctp_used){
+        pr_err("goodix_ts: ctp_unused. \n");
+        return 0;
+	}
+	if(SCRIPT_PARSER_OK != script_parser_fetch("goodix_ctp_para", "goodix_ctp_screen_max_x", &screen_max_x, 1)){
+        pr_err("goodix_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+	}
+    pr_debug("goodix_ts: screen_max_x = %d. \n", screen_max_x);
+    
+	if(SCRIPT_PARSER_OK != script_parser_fetch("goodix_ctp_para", "goodix_ctp_screen_max_y", &screen_max_y, 1)){
+        pr_err("goodix_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+	}
+	pr_debug("goodix_ts: screen_max_y = %d. \n", screen_max_y);
+	
 	goodix_wq = create_singlethread_workqueue("goodix_wq");
 	if (!goodix_wq) {
 		printk(KERN_ALERT "Creat %s workqueue failed.\n", f3x_ts_name);
@@ -818,6 +846,8 @@ static int __devinit goodix_ts_init(void)
 		
 	}
 	ret=i2c_add_driver(&goodix_ts_driver);
+
+script_parser_fetch_err:
 	return ret; 
 }
 

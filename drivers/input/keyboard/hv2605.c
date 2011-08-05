@@ -32,6 +32,8 @@
 #include <linux/ioport.h>
 #include <asm/irq.h>
 #include <asm/io.h>
+#include <mach/script_v2.h>
+
 //#define KEY_DEBUG
 //#define PRINT_STATUS_INFO
 
@@ -327,8 +329,23 @@ static struct i2c_driver hv_keypad_driver = {
 
 static int __init hv_keypad_init(void)
 {
+    int ret = -1; 
+    int hv_keypad_used = -1;
+    
 	printk("========HV Inital ===================\n");	
-	return i2c_add_driver(&hv_keypad_driver);
+	
+	if(SCRIPT_PARSER_OK != script_parser_fetch("hv_keypad_para", "hv_keypad_used", &hv_keypad_used, 1)){
+        pr_err("hv_keypad: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+	}
+	if(1 != hv_keypad_used){
+        pr_err("hv_keypad: hv_keypad_unused. \n");
+        return 0;
+	}
+	ret = i2c_add_driver(&hv_keypad_driver);
+script_parser_fetch_err:
+    return ret;
+
 }
 
 static void __exit hv_keypad_exit(void)

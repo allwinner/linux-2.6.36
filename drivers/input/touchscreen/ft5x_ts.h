@@ -19,9 +19,6 @@
 //#define AW_FPGA_SIM
 #ifdef AW_FPGA_SIM
 #endif
-#define SCREEN_MAX_X    CONFIG_TOUCHSCREEN_FT5X_TS_SCREEN_MAX_X
-#define SCREEN_MAX_Y    CONFIG_TOUCHSCREEN_FT5X_TS_SCREEN_MAX_Y
-#define PRESS_MAX       255
 
 #define FT5X_NAME	"ft5x_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
 #define AW_GPIO_API_ENABLE

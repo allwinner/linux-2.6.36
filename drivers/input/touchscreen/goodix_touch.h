@@ -27,8 +27,7 @@
 #define TOUCH_MAX_HEIGHT 	7680	
 #define TOUCH_MAX_WIDTH	 	5120
 //显示屏的分辨率，根据具体平台更改，与触摸屏映射坐标相关
-#define SCREEN_MAX_HEIGHT	800				
-#define SCREEN_MAX_WIDTH        480
+
 
 // gpio base address
 #define PIO_BASE_ADDRESS             (0x01c20800)
