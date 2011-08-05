@@ -166,11 +166,6 @@ static void report_abs(void)
 	y = (((short)xyz[1]) << 8) >> 8;
 	z = (((short)xyz[2]) << 8) >> 8;
 
-	x = -x;
-	y = -y;
-	//z = -z;
-	//根据gsensor实际位置调整xyz值
-	
 	input_report_abs(mma7660_idev->input, ABS_X, x);
 	input_report_abs(mma7660_idev->input, ABS_Y, y);
 	input_report_abs(mma7660_idev->input, ABS_Z, z);
