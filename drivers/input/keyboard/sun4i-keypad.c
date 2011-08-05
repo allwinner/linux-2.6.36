@@ -102,6 +102,7 @@ static struct sw_keypad_platdata sw_keypad_data = {
         .cols           = 8,
 };
 
+static int kp_used = 0;
 
 static int sw_keypad_gpio_request(struct sw_keypad *keypad)
 {
@@ -524,10 +525,10 @@ static struct platform_driver sw_keypad_driver = {
 
 static int __init sw_keypad_init(void)
 {
-    int kp_used = 0;
     int ret;
 
     swkp_msg("sw keypad init\n");
+    kp_used  = 0;
     ret = script_parser_fetch("keypad_para", "ke_used", &kp_used, sizeof(int));
     if (ret)
     {
@@ -549,7 +550,11 @@ module_init(sw_keypad_init);
 static void __exit sw_keypad_exit(void)
 {
     swkp_msg("sw keypad exit\n");
-	platform_driver_unregister(&sw_keypad_driver);
+    if (kp_used)
+    {
+        kp_used = 0;
+        platform_driver_unregister(&sw_keypad_driver);
+    }
 }
 module_exit(sw_keypad_exit);
 

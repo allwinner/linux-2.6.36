@@ -76,6 +76,7 @@ struct sw_ps2_host {
 };
 
 static struct sw_ps2_host *sw_ps2c_host[2] = {NULL, NULL};
+static int ps2_used[2] = {0};
 
 static int sw_ps2_resource_request(struct sw_ps2_host* ps2_host)
 {
@@ -507,11 +508,11 @@ static struct platform_driver sw_ps2_driver = {
 
 static int __init sw_ps2_init(void)
 {
-    int ps2_used[2] = {0};
     int ret;
     
     swps2_msg("sw_ps2_init\n");
     
+    memset((void*)ps2_used, 0, sizeof(ps2_used));
     ret = script_parser_fetch("ps2_0_para","ps2_used", &ps2_used[0], sizeof(int));
     if (ret)
     {
@@ -547,7 +548,12 @@ static void __exit sw_ps2_exit(void)
 {
     swps2_msg("sw_ps2_exit\n");
     
-    platform_driver_unregister(&sw_ps2_driver);
+    if (ps2_used[0] || ps2_used[1])
+    {
+        ps2_used[0] = 0;
+        ps2_used[1] = 0;
+        platform_driver_unregister(&sw_ps2_driver);
+    }
 }
 
 module_init(sw_ps2_init);

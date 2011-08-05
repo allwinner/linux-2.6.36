@@ -33,6 +33,7 @@
 
 static char* awsmc_hclk_name[4] = {"ahb_sdc0", "ahb_sdc1", "ahb_sdc2", "ahb_sdc3"};
 static char* awsmc_mclk_name[4] = {"sdc0", "sdc1", "sdc2", "sdc3"};
+static struct awsmc_host* sw_host[4] = {NULL, NULL, NULL, NULL};
 
 /* Module parameters */
 /* debug control */
@@ -40,17 +41,16 @@ unsigned int smc_debug = 2;
 EXPORT_SYMBOL_GPL(smc_debug);
 module_param_named(awsmc_debug, smc_debug, int, 0);
 
-unsigned int smc_mclk_source = SMC_MCLK_SRC_DRAMPLL;
-EXPORT_SYMBOL_GPL(smc_mclk_source);
+static unsigned int smc_mclk_source = SMC_MCLK_SRC_DRAMPLL;
 module_param_named(mclk_source, smc_mclk_source, int, 0);
 
-unsigned int smc_io_clock = SMC_MAX_IO_CLOCK;
-EXPORT_SYMBOL_GPL(smc_io_clock);
+static unsigned int smc_io_clock = SMC_MAX_IO_CLOCK;
 module_param_named(io_clock, smc_io_clock, int, 0);
 
-unsigned int smc_mod_clock = SMC_MAX_MOD_CLOCK;
-EXPORT_SYMBOL_GPL(smc_mod_clock);
+static unsigned int smc_mod_clock = SMC_MAX_MOD_CLOCK;
 module_param_named(mod_clock, smc_mod_clock, int, 0);
+
+static int sdc_used[4] = {0};
 
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
@@ -412,11 +412,11 @@ static void awsmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
         if ((ios->power_mode == MMC_POWER_ON) || (ios->power_mode == MMC_POWER_UP))
         {
-        	awsmc_dbg("running at %dkHz (requested: %dkHz).\n", smc_host->real_cclk/1000, ios->clock/1000);
+        	awsmc_msg("running at %dkHz (requested: %dkHz).\n", smc_host->real_cclk/1000, ios->clock/1000);
         }
         else
         {
-        	awsmc_dbg("powered down.\n");
+        	awsmc_msg("powered down.\n");
         }
     }
 
@@ -804,6 +804,64 @@ static inline void awsmc_procfs_remove(struct awsmc_host *smc_host) { }
 
 #endif
 
+int sw_host_insert_card(unsigned id, char* name)
+{
+    struct awsmc_host* smc_host = NULL;
+
+    BUG_ON(id > 3);
+    BUG_ON(sw_host[id] == NULL);
+
+    smc_host = sw_host[id];
+	if (smc_host->cd_mode != CARD_DETECT_BY_FS)
+    {
+        awsmc_msg("card detecet mode is not by manual(mode 4 in config file) !\n");
+        return -1;
+    }
+
+    if (smc_host->present)
+    {
+        awsmc_msg("card is already inserted !\n");
+        return -1;
+    }
+    else
+    {
+        awsmc_msg("card is inserted by %s\n", name);
+        smc_host->present = 1;
+        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(10));
+    }
+    return 0;
+}
+EXPORT_SYMBOL_GPL(sw_host_insert_card);
+
+int sw_host_remove_card(unsigned id, char* name)
+{
+    struct awsmc_host* smc_host = NULL;
+
+    BUG_ON(id > 3);
+    BUG_ON(sw_host[id] == NULL);
+    
+    smc_host = sw_host[id];
+	if (smc_host->cd_mode != CARD_DETECT_BY_FS)
+    {
+        awsmc_msg("card detecet mode is not by manual(mode 4 in config file) !\n");
+        return -1;
+    }
+
+    if (smc_host->present)
+    {
+        awsmc_msg("card is removed by %s\n", name);
+        smc_host->present = 0;
+        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(10));
+    }
+    else
+    {
+        awsmc_msg("card is already removed !\n");
+        return -1;
+    }
+    return 0;
+}
+EXPORT_SYMBOL_GPL(sw_host_remove_card);
+
 static struct mmc_host_ops awsmc_ops = {
     .request	     = awsmc_request,
     .set_ios	     = awsmc_set_ios,
@@ -942,6 +1000,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     {
         mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
     }
+    sw_host[pdev->id] = smc_host;
 
     goto probe_out;
 
@@ -997,8 +1056,10 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
     }
 
     awsmc_resource_release(smc_host);
-
+    
     mmc_free_host(mmc);
+    sw_host[pdev->id] = NULL;
+
     return 0;
 }
 
@@ -1166,11 +1227,11 @@ static struct platform_driver awsmc_driver = {
 
 static int __init awsmc_init(void)
 {
-    int sdc_used[4] = {0};
     int ret;
 
     awsmc_msg("awsmc_init\n");
-
+    
+    memset((void*)sdc_used, 0, sizeof(sdc_used));
     ret = script_parser_fetch("mmc0_para","sdc_used", &sdc_used[0], sizeof(int));
     if (ret)
     {
@@ -1238,7 +1299,14 @@ static int __init awsmc_init(void)
 
 static void __exit awsmc_exit(void)
 {
-    platform_driver_unregister(&awsmc_driver);
+    if (sdc_used[0] || sdc_used[1] || sdc_used[2] || sdc_used[3])
+    {
+        sdc_used[0] = 0;
+        sdc_used[1] = 0;
+        sdc_used[2] = 0;
+        sdc_used[3] = 0;
+        platform_driver_unregister(&awsmc_driver);
+    }
 }
 
 

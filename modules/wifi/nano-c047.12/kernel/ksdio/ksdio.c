@@ -106,6 +106,147 @@
 
 #include "host.h"
 
+#ifdef WINNER_HOST_GPIO_CTRL
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+#define nano_msg(...) printk("[nano]: "__VA_ARGS__)
+
+extern int sw_host_insert_card(unsigned id, char* name);
+extern int sw_host_remove_card(unsigned id, char* name);
+struct {
+    u32 used;
+    char mname[32];
+    u32 sdc_id;
+    u32 pio_hdle;
+} sw_wifi_ctrl;
+
+int sw_host_gpio_allocate(void)
+{
+    int ret;
+    char* wifi_para = "sdio_wifi_para";
+    u32 pio_hdle = 0;
+
+    memset(&sw_wifi_ctrl, 0, sizeof(sw_wifi_ctrl));
+    ret = script_parser_fetch(wifi_para, "sdio_wifi_used", &sw_wifi_ctrl.used, sizeof(unsigned));
+    if (ret)
+    {
+        nano_msg("failed to get sdio wifi used information\n");
+        return -1;
+    }
+    ret = script_parser_fetch(wifi_para, "sdio_wifi_mname", (void*)sw_wifi_ctrl.mname, sizeof(char*));
+    if (ret)
+    {
+        nano_msg("failed to get sdio wifi module name string\n");
+        return -1;
+    }
+    nano_msg("Get wifi info.: %s\n", sw_wifi_ctrl.mname);
+    ret = script_parser_fetch(wifi_para, "sdio_wifi_sdc_id", &sw_wifi_ctrl.sdc_id, sizeof(unsigned));
+    if (ret)
+    {
+        nano_msg("failed to get sdio wifi sdc id\n");
+        return -1;
+    }
+    
+    pio_hdle = gpio_request_ex(wifi_para, NULL);
+    if (!pio_hdle)
+    {
+        nano_msg("Request gpio resource failed\n");
+        return -1;
+    }
+    sw_wifi_ctrl.pio_hdle = pio_hdle;
+    
+    return 0;
+}
+
+int sw_host_gpio_free(void)
+{
+    gpio_release(sw_wifi_ctrl.pio_hdle, 1);
+    memset(&sw_wifi_ctrl, 0, sizeof(sw_wifi_ctrl));
+    return 0;
+}
+
+#ifdef WINNER_POWER_PIN_USED
+int sw_host_power_card(u32 enb)
+{
+    int ret;
+
+    if (enb)
+    {
+        /* enable vcc */
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_vcc_en");
+        if (ret)
+        {
+            nano_msg("Failed to enable VCC3v3 !\n");
+            return -1;
+        }
+        /* delay 100 microseconds */
+        udelay(100);
+        /* enable vcc */
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_vdd_en");
+        if (ret)
+        {
+            nano_msg("Failed to enable VDD1v2 !\n");
+            return -1;
+        }
+    }
+    else
+    {
+        /* disable vdd */
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_vdd_en");
+        if (ret)
+        {
+            nano_msg("Failed to disable VDD1v2 !\n");
+            return -1;
+        }
+
+        /* disable vcc */
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_vcc_en");
+        if (ret)
+        {
+            nano_msg("Failed to disable VCC3v3 !\n");
+            return -1;
+        }
+    }
+    return 0;
+}
+#endif // WINNER_POWER_PIN_USED
+
+#ifdef WINNER_SHUTDOWN_PIN_USED
+int sw_host_hardware_shutdown(u32 shutdown)
+{
+    int ret;
+    if (shutdown)
+    {
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_shdn");
+        if (ret)
+        {
+            nano_msg("Failed to shut down N20S!\n");
+            return -1;
+        }
+        else
+        {
+            nano_msg("N20s shutdown!!\n");
+        }
+    }
+    else
+    {
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_shdn");
+        if (ret)
+        {
+            nano_msg("Failed to start up N20S!\n");
+            return -1;
+        }
+        else
+        {
+            nano_msg("N20s start up!!\n");
+        }
+    }
+    return 0;
+}
+#endif //WINNER_POWER_PIN_USED
+
+#endif //WINNER_HOST_GPIO_CTRL
+
 #undef  PROCFS_HIC
 
 #ifndef KSDIO_SIZE_ALIGN
@@ -931,7 +1072,7 @@ nrx_reset(struct sdio_func *func)
       /* Wait until the chip exits the reset state.
        * The necessary time has been measured to approx 8 ms for NRX600.
        */  
-      mdelay(10);
+      mdelay(13);
    }
 #endif /* KSDIO_HOST_RESET_PIN */
 
@@ -1472,8 +1613,31 @@ static int __init sdio_nrx_init(void)
     * tell the MMC/SD/SDIO driver to look for a new "card"....
     */
 #endif
+    
+#ifdef WINNER_HOST_GPIO_CTRL
+    /* winner's power management for N20's
+     * alloc gpio resource
+     */
+    {
+        int ret;
+        ret = sw_host_gpio_allocate();
+        if (ret)
+        {
+            KDEBUG(ERROR, "Failed to allocate host GPIO (ret: %d)", ret);
+            return -1;
+        }
+        
+        #ifdef WINNER_POWER_PIN_USED
+        sw_host_power_card(1);
+        #endif
 
-   return sdio_register_driver(&sdio_nrx_driver);
+        #ifdef WINNER_SHUTDOWN_PIN_USED
+        sw_host_hardware_shutdown(0);
+        #endif
+    }
+    sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
+#endif
+    return sdio_register_driver(&sdio_nrx_driver);
 }
 
 static void __exit sdio_nrx_exit(void)
@@ -1493,7 +1657,18 @@ static void __exit sdio_nrx_exit(void)
          KDEBUG(ERROR, "Failed to free host GPIO for chip reset (status: %d)", status);
    }
 #endif
+#ifdef WINNER_HOST_GPIO_CTRL
+    sw_host_remove_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
+    #ifdef WINNER_SHUTDOWN_PIN_USED
+    sw_host_hardware_shutdown(1);
+    #endif
 
+    #ifdef WINNER_POWER_PIN_USED
+    sw_host_power_card(0);
+    #endif
+    
+    sw_host_gpio_free();
+#endif
    sdio_unregister_driver(&sdio_nrx_driver);
 }
 

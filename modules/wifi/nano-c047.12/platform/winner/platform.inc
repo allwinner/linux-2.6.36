@@ -23,3 +23,12 @@ PLATFORM_FLAGS+=-DKSDIO_HIC_MIN_SIZE=32
 PLATFORM_FLAGS+=-DUSE_THREAD_RX
 PLATFORM_FLAGS+=-DUSE_THREAD_TX
 PLATFORM_FLAGS+=-DDE_ENABLE_HT_RATES=CFG_ON
+
+#=============================================
+#  winner's private defines & power management
+#=============================================
+PLATFORM_FLAGS+=-DWINNER_HOST_GPIO_CTRL
+PLATFORM_FLAGS+=-DWINNER_SHUTDOWN_PIN_USED
+PLATFORM_FLAGS+=-DWINNER_POWER_PIN_USED
+
+
