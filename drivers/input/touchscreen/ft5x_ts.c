@@ -42,8 +42,9 @@
 #include <mach/script_v2.h>
 
 #define FOR_TSLIB_TEST
-#define PRINT_POINT_INFO
 //#define PRINT_POINT_INFO
+//#define PRINT_POINT_INFO
+#define DEBUG
 
 static struct i2c_client *this_client;
 
@@ -1194,25 +1195,25 @@ static int __init ft5x_ts_init(void)
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}
-	pr_debug("ft5x_ts: screen_max_x = %d. \n", screen_max_x);
+	pr_info("ft5x_ts: screen_max_x = %d. \n", screen_max_x);
 
 	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_screen_max_y", &screen_max_y, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
     }
-    pr_debug("ft5x_ts: screen_max_y = %d. \n", screen_max_y);
+    pr_info("ft5x_ts: screen_max_y = %d. \n", screen_max_y);
 
 	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_revert_x_flag", &revert_x_flag, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
     }
-    pr_debug("ft5x_ts: revert_x_flag = %d. \n", revert_x_flag);
+    pr_info("ft5x_ts: revert_x_flag = %d. \n", revert_x_flag);
 
 	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_revert_y_flag", &revert_y_flag, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
     }
-    pr_debug("ft5x_ts: revert_y_flag = %d. \n", revert_y_flag);
+    pr_info("ft5x_ts: revert_y_flag = %d. \n", revert_y_flag);
 
 	ret = i2c_add_driver(&ft5x_ts_driver);
 	
