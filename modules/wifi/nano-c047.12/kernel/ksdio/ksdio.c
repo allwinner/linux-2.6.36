@@ -179,8 +179,12 @@ int sw_host_power_card(u32 enb)
             nano_msg("Failed to enable VCC3v3 !\n");
             return -1;
         }
+        udelay(5);
+        #ifdef WINNER_SHUTDOWN_PIN_USED
+        sw_host_hardware_shutdown(0);
+        #endif
         /* delay 100 microseconds */
-        udelay(100);
+        udelay(150);
         /* enable vcc */
         ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_vdd_en");
         if (ret)
@@ -1631,10 +1635,7 @@ static int __init sdio_nrx_init(void)
         sw_host_power_card(1);
         #endif
 
-        #ifdef WINNER_SHUTDOWN_PIN_USED
-        sw_host_hardware_shutdown(0);
-        #endif
-    }
+   }
     sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
 #endif
     return sdio_register_driver(&sdio_nrx_driver);
