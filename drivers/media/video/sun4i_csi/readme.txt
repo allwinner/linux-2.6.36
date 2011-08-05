@@ -1,10 +1,10 @@
 ===========================================
 
-Version: v1_10
+Version: v1_20
 
 Author:  raymonxiu
 
-Date:     2011-7-22 11:08:30
+Date:     2011-8-5 10:49:39
 
 Description:
 
@@ -12,6 +12,11 @@ newest module list:(X = 0 or 1)
 insmod sun4i_csiX.ko ccm="ov7670" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gc0308" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
+
+V1_20
+1) Fetch the ccm and i2c_addr from sys_config
+2) Add White Balance, Exposure, Special Effect interface in gc0308 and gt2005
+3) Modify the Power, Standby and Reset control
 
 V1_10
 1) Support Dual Sensor

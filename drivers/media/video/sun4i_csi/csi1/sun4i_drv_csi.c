@@ -30,6 +30,7 @@
 #include <linux/moduleparam.h>
 
 #include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
 #include <mach/clock.h>
 #include <mach/irqs.h>
 
@@ -54,7 +55,7 @@
 #define CSI_OUT_RATE      (24*1000*1000)
 #define CSI_ISP_RATE			(100*1000*1000)
 #define CSI_MAX_FRAME_MEM (32*1024*1024)
-#define TWI_NO		 (1)
+//#define TWI_NO		 (1)
 
 #define MIN_WIDTH  (32)
 #define MIN_HEIGHT (32)
@@ -64,8 +65,8 @@
 static unsigned video_nr = 1;
 static unsigned first_flag = 0;
 
-static char ccm[I2C_NAME_SIZE] = "ov7670";
-static uint i2c_addr = 0x42;
+static char ccm[I2C_NAME_SIZE] = "";
+static uint i2c_addr = 0xff;
 
 module_param_string(ccm, ccm, sizeof(ccm), S_IRUGO|S_IWUSR);
 module_param(i2c_addr,uint, S_IRUGO|S_IWUSR);
@@ -1156,7 +1157,7 @@ static int csi_open(struct file *file)
 	bsp_csi_set_offset(dev,0,0);//h and v offset is initialed to zero
 	
 	
-	ret = v4l2_subdev_call(dev->sd,core, init,0);
+	ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_FULL);
 	if (ret!=0) {
 		csi_err("sensor initial error when csi open!\n");
 	} else {
@@ -1192,7 +1193,7 @@ static int csi_close(struct file *file)
 	dev->opened=0;
 	csi_stop_generating(dev);
 
-	return 0;
+	return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 }
 
 static int csi_mmap(struct file *file, struct vm_area_struct *vma)
@@ -1261,7 +1262,7 @@ static int csi_probe(struct platform_device *pdev)
 	struct video_device *vfd;
 	struct i2c_adapter *i2c_adap;
 	int ret = 0;
-
+	int twi_id;
 	csi_dbg(0,"csi_probe\n");
 
 	/*request mem for dev*/	
@@ -1334,7 +1335,12 @@ static int csi_probe(struct platform_device *pdev)
 	dev_set_drvdata(&(pdev)->dev, (dev));
 
     /* v4l2 subdev register	*/
-	i2c_adap = i2c_get_adapter(TWI_NO);
+	ret = script_parser_fetch("csi1_para","csi_twi_id", &twi_id , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi_twi_id from sys_config failed\n");
+		return -1;
+	}
+	i2c_adap = i2c_get_adapter(twi_id);
 	
 	if (i2c_adap == NULL) {
 		csi_err("request i2c adapter failed\n");
@@ -1347,6 +1353,21 @@ static int csi_probe(struct platform_device *pdev)
 		ret = -ENOMEM;
 	}
 
+	ret = strcmp(ccm,"");
+	if((i2c_addr == 0xff) && (ret == 0))	//when insmod without parm
+	{
+		ret = script_parser_fetch("csi1_para","csi_twi_addr", &i2c_addr , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_twi_addr from sys_config failed\n");
+			return -1;
+		}
+		
+		ret = script_parser_fetch("csi1_para","csi_mname", (int *)&ccm , I2C_NAME_SIZE*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_mname from sys_config failed\n");
+			return -1;
+		}
+	}
 	dev_sensor[0].addr = (unsigned short)(i2c_addr>>1);
 	strcpy(dev_sensor[0].type,ccm);
 
@@ -1375,7 +1396,7 @@ static int csi_probe(struct platform_device *pdev)
 		csi_err("Error when get ccm info,use default!\n");
 	}
 	
-	dev->ccm_info.iocfg	 = 1;
+//	dev->ccm_info.iocfg	 = 1;
 	
 	ret = v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_SET_INFO,&dev->ccm_info);
 	if (ret < 0)
@@ -1428,39 +1449,6 @@ static int csi_probe(struct platform_device *pdev)
 	/* init video dma queues */
 	INIT_LIST_HEAD(&dev->vidq.active);
 	//init_waitqueue_head(&dev->vidq.wq);
-
-#ifdef AJUST_DRAM_PRIORITY
-{
-	void __iomem *regs_dram;
-	volatile unsigned int tmpval = 0;
-	volatile unsigned int tmpval_csi = 0;
-	
-	
-	printk("Warning: we write the DRAM priority directely here, it will be fixed in the next version.");
-	regs_dram = ioremap(SDRAM_REGS_pBASE, 0x2E0);
-	
-	tmpval = readl(regs_dram + 0x250 + 4 * 16);
-	printk("cpu host port: %x\n", tmpval);
-	tmpval |= 3 << 2;
-	printk("cpu priority: %d\n", tmpval);
-	
-	tmpval_csi = readl(regs_dram + 0x250 + 4 * 20);		// csi0
-	printk("csi0 host port: %x\n", tmpval_csi);
-	tmpval_csi |= (!(3<<2));
-	tmpval_csi |= tmpval;
-	writel(tmpval_csi, regs_dram + 0x250 + 4 * 20);
-	printk("csi0 host port(after): %x\n", tmpval_csi);
-	
-	tmpval_csi = readl(regs_dram + 0x250 + 4 * 27);		// csi1
-	printk("csi1 host port: %x\n", tmpval_csi);
-	tmpval_csi |= (!(3<<2));
-	tmpval_csi |= tmpval;
-	writel(tmpval_csi, regs_dram + 0x250 + 4 * 27);
-	printk("csi1 host port(after): %x\n", tmpval_csi);
-	
-	iounmap(regs_dram);
-}
-#endif // AJUST_DRAM_PRIORITY
 
 	return 0;
 
@@ -1533,7 +1521,7 @@ static int csi_suspend(struct platform_device *pdev, pm_message_t state)
 	
 	csi_clk_disable(dev);
 
-	return v4l2_subdev_call(dev->sd,core, s_power,0);//0=off;1=on
+	return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 }
 
 static int csi_resume(struct platform_device *pdev)
@@ -1548,7 +1536,7 @@ static int csi_resume(struct platform_device *pdev)
 	
 		csi_clk_enable(dev);
 
-		ret = v4l2_subdev_call(dev->sd,core, s_power,1);//0=off;1=on
+		ret = v4l2_subdev_call(dev->sd,core, s_power,CSI_SUBDEV_STBY_OFF);
 		if (ret!=0) {
 			csi_err("sensor power on error when resume from suspend!\n");
 			return ret;
@@ -1557,7 +1545,7 @@ static int csi_resume(struct platform_device *pdev)
 			
 		}
 		
-		ret = v4l2_subdev_call(dev->sd,core, init,0);
+		ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_SIMP);
 		if (ret!=0) {
 			csi_err("sensor initial error when resume from suspend!\n");
 			return ret;
@@ -1612,9 +1600,21 @@ static struct platform_device csi_device[] = {
 static int __init csi_init(void)
 {
 	u32 ret;
+	int csi_used;
 	csi_print("Welcome to CSI driver\n");
 	
 	csi_dbg(0,"csi_init\n");
+	ret = script_parser_fetch("csi1_para","csi_used", &csi_used , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi_used from sys_config failed\n");
+		return -1;
+	}
+	
+	if(!csi_used)
+	{
+		csi_err("csi_used=0,csi driver is not enabled!\n");
+		return 0;
+	}
 	
 	ret = platform_device_register(&csi_device[0]);
 	if (ret) {
