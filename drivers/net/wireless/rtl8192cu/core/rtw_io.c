@@ -118,7 +118,7 @@ u32 rtw_read32(_adapter *adapter, u32 addr)
 
 }
 
-void rtw_write8(_adapter *adapter, u32 addr, u8 val)
+void _rtw_write8(_adapter *adapter, u32 addr, u8 val)
 {
 	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;
 	struct io_priv *pio_priv = &adapter->iopriv;
@@ -129,7 +129,7 @@ void rtw_write8(_adapter *adapter, u32 addr, u8 val)
 
 	_write8(pintfhdl, addr, val);
 }
-void rtw_write16(_adapter *adapter, u32 addr, u16 val)
+void _rtw_write16(_adapter *adapter, u32 addr, u16 val)
 {
 	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;
 	struct io_priv *pio_priv = &adapter->iopriv;
@@ -142,7 +142,7 @@ void rtw_write16(_adapter *adapter, u32 addr, u16 val)
 	_func_exit_;
 
 }
-void rtw_write32(_adapter *adapter, u32 addr, u32 val)
+void _rtw_write32(_adapter *adapter, u32 addr, u32 val)
 {
 	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;
 	struct io_priv *pio_priv = &adapter->iopriv;
@@ -155,6 +155,7 @@ void rtw_write32(_adapter *adapter, u32 addr, u32 val)
 	_func_exit_;
 
 }
+
 void rtw_writeN(_adapter *adapter, u32 addr ,u32 length , u8 *pdata)
 {
 	//struct	io_queue  	*pio_queue = (struct io_queue *)adapter->pio_queue;

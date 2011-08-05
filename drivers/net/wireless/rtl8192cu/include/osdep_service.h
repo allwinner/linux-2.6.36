@@ -214,7 +214,7 @@ __inline static void rtw_list_delete(_list *plist)
 	list_del_init(plist);
 }
 
-__inline static void _init_timer(_timer *ptimer,_nic_hdl padapter,void *pfunc,void* cntx)
+__inline static void _init_timer(_timer *ptimer,_nic_hdl nic_hdl,void *pfunc,void* cntx)
 {
 	//setup_timer(ptimer, pfunc,(u32)cntx);	
 	ptimer->function = pfunc;
@@ -232,6 +232,16 @@ __inline static void _cancel_timer(_timer *ptimer,u8 *bcancelled)
 	del_timer_sync(ptimer); 	
 	*bcancelled=  _TRUE;//TRUE ==1; FALSE==0
 }
+
+#ifdef PLATFORM_LINUX
+#define RTW_TIMER_HDL_ARGS void *FunctionContext
+#elif defined(PLATFORM_OS_CE) || defined(PLATFORM_WINDOWS)
+#define RTW_TIMER_HDL_ARGS IN PVOID SystemSpecific1, IN PVOID FunctionContext, IN PVOID SystemSpecific2, IN PVOID SystemSpecific3
+#endif
+
+#define RTW_TIMER_HDL_NAME(name) rtw_##name##_timer_hdl
+#define RTW_DECLARE_TIMER_HDL(name) void RTW_TIMER_HDL_NAME(name)(RTW_TIMER_HDL_ARGS)
+
 
 __inline static void _init_workitem(_workitem *pwork, void *pfunc, PVOID cntx)
 {
@@ -265,7 +275,7 @@ __inline static void _set_workitem(_workitem *pwork)
 	atomic_dec((atomic_t *)&(_MutexCounter));        \
 }
 
-#endif	
+#endif	// PLATFORM_LINUX
 
 
 #ifdef PLATFORM_OS_XP
@@ -382,9 +392,9 @@ __inline static void rtw_list_delete(_list *plist)
 	InitializeListHead(plist);	
 }
 
-__inline static void _init_timer(_timer *ptimer,_nic_hdl padapter,void *pfunc,PVOID cntx)
+__inline static void _init_timer(_timer *ptimer,_nic_hdl nic_hdl,void *pfunc,PVOID cntx)
 {
-	NdisMInitializeTimer(ptimer, padapter, pfunc, cntx);
+	NdisMInitializeTimer(ptimer, nic_hdl, pfunc, cntx);
 }
 
 __inline static void _set_timer(_timer *ptimer,u32 delay_time)
@@ -429,7 +439,7 @@ __inline static void _set_workitem(_workitem *pwork)
     NdisInterlockedDecrement((PULONG)&(_MutexCounter));              \
 }
 
-#endif
+#endif // PLATFORM_OS_XP
 
 
 #ifdef PLATFORM_OS_CE
@@ -505,8 +515,16 @@ extern void	rtw_sleep_schedulable(int ms);
 
 extern void	rtw_msleep_os(int ms);
 extern void	rtw_usleep_os(int us);
+
+#ifdef DBG_DELAY_OS
+#define rtw_mdelay_os(ms) _rtw_mdelay_os((ms), __FUNCTION__, __LINE__)
+#define rtw_udelay_os(ms) _rtw_udelay_os((ms), __FUNCTION__, __LINE__)
+extern void _rtw_mdelay_os(int ms, const char *func, const int line);
+extern void _rtw_udelay_os(int us, const char *func, const int line);
+#else
 extern void	rtw_mdelay_os(int ms);
 extern void	rtw_udelay_os(int us);
+#endif
 
 
 
@@ -629,8 +647,12 @@ __inline static u32 bitshift(u32 bitmask)
 	return i;
 }
 
-#define MAC2STR(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
-#define MACSTR "%02x:%02x:%02x:%02x:%02x:%02x"
+#ifndef MAC_FMT
+#define MAC_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
+#endif
+#ifndef MAC_ARG
+#define MAC_ARG(x) ((u8*)(x))[0],((u8*)(x))[1],((u8*)(x))[2],((u8*)(x))[3],((u8*)(x))[4],((u8*)(x))[5]
+#endif
 
 //#ifdef __GNUC__
 #ifdef PLATFORM_LINUX
@@ -711,15 +733,76 @@ extern void rtw_free_netdev(struct net_device * netdev);
 #endif
 #endif //PLATFORM_LINUX
 
-#ifdef DBG_DELAY_OS
-#define rtw_mdelay_os(ms) _rtw_mdelay_os((ms), __FUNCTION__, __LINE__)
-#define rtw_udelay_os(ms) _rtw_udelay_os((ms), __FUNCTION__, __LINE__)
-extern void _rtw_mdelay_os(int ms, const char *func, const int line);
-extern void _rtw_udelay_os(int us, const char *func, const int line);
-#endif
-
-#endif
-
 extern u64 rtw_modular64(u64 x, u64 y);
 extern u64 rtw_division64(u64 x, u64 y);
+
+
+/* Macros for handling unaligned memory accesses */
+
+#define RTW_GET_BE16(a) ((u16) (((a)[0] << 8) | (a)[1]))
+#define RTW_PUT_BE16(a, val)			\
+	do {					\
+		(a)[0] = ((u16) (val)) >> 8;	\
+		(a)[1] = ((u16) (val)) & 0xff;	\
+	} while (0)
+
+#define RTW_GET_LE16(a) ((u16) (((a)[1] << 8) | (a)[0]))
+#define RTW_PUT_LE16(a, val)			\
+	do {					\
+		(a)[1] = ((u16) (val)) >> 8;	\
+		(a)[0] = ((u16) (val)) & 0xff;	\
+	} while (0)
+
+#define RTW_GET_BE24(a) ((((u32) (a)[0]) << 16) | (((u32) (a)[1]) << 8) | \
+			 ((u32) (a)[2]))			 
+#define RTW_PUT_BE24(a, val)					\
+	do {							\
+		(a)[0] = (u8) ((((u32) (val)) >> 16) & 0xff);	\
+		(a)[1] = (u8) ((((u32) (val)) >> 8) & 0xff);	\
+		(a)[2] = (u8) (((u32) (val)) & 0xff);		\
+	} while (0)
+
+#define RTW_GET_BE32(a) ((((u32) (a)[0]) << 24) | (((u32) (a)[1]) << 16) | \
+			 (((u32) (a)[2]) << 8) | ((u32) (a)[3]))			 
+#define RTW_PUT_BE32(a, val)					\
+	do {							\
+		(a)[0] = (u8) ((((u32) (val)) >> 24) & 0xff);	\
+		(a)[1] = (u8) ((((u32) (val)) >> 16) & 0xff);	\
+		(a)[2] = (u8) ((((u32) (val)) >> 8) & 0xff);	\
+		(a)[3] = (u8) (((u32) (val)) & 0xff);		\
+	} while (0)
+
+#define RTW_GET_LE32(a) ((((u32) (a)[3]) << 24) | (((u32) (a)[2]) << 16) | \
+			 (((u32) (a)[1]) << 8) | ((u32) (a)[0]))			 
+#define RTW_PUT_LE32(a, val)					\
+	do {							\
+		(a)[3] = (u8) ((((u32) (val)) >> 24) & 0xff);	\
+		(a)[2] = (u8) ((((u32) (val)) >> 16) & 0xff);	\
+		(a)[1] = (u8) ((((u32) (val)) >> 8) & 0xff);	\
+		(a)[0] = (u8) (((u32) (val)) & 0xff);		\
+	} while (0)
+
+#define RTW_GET_BE64(a) ((((u64) (a)[0]) << 56) | (((u64) (a)[1]) << 48) | \
+			 (((u64) (a)[2]) << 40) | (((u64) (a)[3]) << 32) | \
+			 (((u64) (a)[4]) << 24) | (((u64) (a)[5]) << 16) | \
+			 (((u64) (a)[6]) << 8) | ((u64) (a)[7]))			 
+#define RTW_PUT_BE64(a, val)				\
+	do {						\
+		(a)[0] = (u8) (((u64) (val)) >> 56);	\
+		(a)[1] = (u8) (((u64) (val)) >> 48);	\
+		(a)[2] = (u8) (((u64) (val)) >> 40);	\
+		(a)[3] = (u8) (((u64) (val)) >> 32);	\
+		(a)[4] = (u8) (((u64) (val)) >> 24);	\
+		(a)[5] = (u8) (((u64) (val)) >> 16);	\
+		(a)[6] = (u8) (((u64) (val)) >> 8);	\
+		(a)[7] = (u8) (((u64) (val)) & 0xff);	\
+	} while (0)
+
+#define RTW_GET_LE64(a) ((((u64) (a)[7]) << 56) | (((u64) (a)[6]) << 48) | \
+			 (((u64) (a)[5]) << 40) | (((u64) (a)[4]) << 32) | \
+			 (((u64) (a)[3]) << 24) | (((u64) (a)[2]) << 16) | \
+			 (((u64) (a)[1]) << 8) | ((u64) (a)[0]))
+
+#endif
+
 

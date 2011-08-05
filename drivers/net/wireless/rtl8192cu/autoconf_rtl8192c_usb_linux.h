@@ -53,7 +53,7 @@
 #ifndef CONFIG_MP_INCLUDED
 #define CONFIG_IPS	1
 #ifdef CONFIG_IPS
-//#define CONFIG_IPS_LEVEL_2	1
+	//#define CONFIG_IPS_LEVEL_2	1 //enable this to set default IPS mode to IPS_LEVEL_2
 #endif
 #define SUPPORT_HW_RFOFF_DETECTED	1
 
@@ -89,15 +89,23 @@
 
 #define CONFIG_SKB_COPY	1//for amsdu
 
+#define CONFIG_LED
+#ifdef CONFIG_LED
+	#define CONFIG_SW_LED
+#endif //CONFIG_LED
+
+#define CONFIG_HANDLE_JOINBSS_ON_ASSOC_RSP
+
 #define USB_INTERFERENCE_ISSUE // this should be checked in all usb interface
 #define CONFIG_GLOBAL_UI_PID
 
 #define CONFIG_LAYER2_ROAMING
 #define CONFIG_LAYER2_ROAMING_RESUME
 //#define CONFIG_ADAPTOR_INFO_CACHING_FILE // now just applied on 8192cu only, should make it general...
-
 //#define CONFIG_RESUME_IN_WORKQUEUE
 //#define CONFIG_SET_SCAN_DENY_TIMER
+#define CONFIG_LONG_DELAY_ISSUE
+#define CONFIG_NEW_SIGNAL_STAT_PROCESS
 
 /*
  * Interface  Related Config
@@ -111,18 +119,18 @@
 
 #define CONFIG_PREALLOC_RECV_SKB	1
 #define CONFIG_REDUCE_USB_TX_INT	1
-#define CONFIG_EASY_REPLACEMENT	1
-#ifndef CONFIG_WISTRON_PLATFORM
-#define CONFIG_DYNAMIC_ALLOCIATE_VENDOR_CMD	1
-#endif
+//#define CONFIG_EASY_REPLACEMENT	1
 
-#ifdef CONFIG_PLATFORM_TI_DM365
-#define CONFIG_SPECIFIC_URB_NUM
-#endif
+/* 
+ * CONFIG_USE_USB_BUFFER_ALLOC_XX uses Linux USB Buffer alloc API and is for Linux platform only now!
+ */
+#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// For TX path
+//#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1	// For RX path
 
-//#define CONFIG_USE_USB_BUFFER_ALLOC 1
-#define CONFIG_USB_VENDOR_REQ_PREALLOC
-//#define CONFIG_USB_SUPPORT_ASYNC_VDN_REQ
+#define CONFIG_USB_VENDOR_REQ_PREALLOC 1
+
+//#define CONFIG_USB_SUPPORT_ASYNC_VDN_REQ 1
+
 
 /*
  * HAL  Related Config
@@ -132,9 +140,7 @@
 
 #define SUPPORTED_BLOCK_IO
 
-#ifdef CONFIG_WISTRON_PLATFORM	
-	#define SILENT_RESET_FOR_SPECIFIC_PLATFOM	1
-#endif
+
 
 #define RTL8192CU_FW_DOWNLOAD_ENABLE	1
 
@@ -160,7 +166,29 @@
 	#define MP_DRIVER 0
 #endif
 
-//#define CONFIG_SPECIAL_SETTING_FOR_FUNAI
+
+/*
+ * Platform  Related Config
+ */
+#ifdef CONFIG_PLATFORM_MN10300
+#define CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
+
+#if	defined (CONFIG_SW_ANTENNA_DIVERSITY)
+	#undef CONFIG_SW_ANTENNA_DIVERSITY
+	#define CONFIG_HW_ANTENNA_DIVERSITY
+#endif
+
+#endif
+
+#ifndef CONFIG_WISTRON_PLATFORM
+//#define CONFIG_DYNAMIC_ALLOCIATE_VENDOR_CMD	1
+#define SILENT_RESET_FOR_SPECIFIC_PLATFOM	1
+#endif
+
+#ifdef CONFIG_PLATFORM_TI_DM365
+#define CONFIG_SPECIFIC_URB_NUM
+#endif
+
 
 /*
  * Debug  Related Config
@@ -172,11 +200,17 @@
 
 #define CONFIG_PROC_DEBUG	1
 
+//#define DBG_IO
+//#define DBG_DELAY_OS
+//#define DBG_MEM_ALLOC
+//#define DBG_IOCTL
+
 //#define DBG_TX
 //#define DBG_XMIT_BUF
 //#define DBG_TX_DROP_FRAME
 
-//#define DBG_MEM_ALLOC
 //#define DBG_RX_DROP_FRAME
 //#define DBG_RX_SEQ
+
+//#define DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE
 

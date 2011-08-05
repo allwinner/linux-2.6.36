@@ -124,10 +124,10 @@
 	// The file name "_2T" is for 92CU, "_1T"  is for 88CU. Modified by tynli. 2009.11.24.
 	#define Rtl819XFwImageArray					Rtl8192DUFwImgArray
 	#define Rtl819XMAC_Array					Rtl8192DUMAC_2TArray
-	#define Rtl819XAGCTAB_Array					Rtl8192DUAGCTAB_Array			
+	#define Rtl819XAGCTAB_Array					Rtl8192DUAGCTAB_Array
 	#define Rtl819XAGCTAB_5GArray				Rtl8192DUAGCTAB_5GArray
 	#define Rtl819XAGCTAB_2GArray				Rtl8192DUAGCTAB_2GArray
-	#define Rtl819XPHY_REG_2TArray				Rtl8192DUPHY_REG_2TArray			
+	#define Rtl819XPHY_REG_2TArray				Rtl8192DUPHY_REG_2TArray
 	#define Rtl819XPHY_REG_1TArray				Rtl8192DUPHY_REG_1TArray
 	#define Rtl819XRadioA_2TArray				Rtl8192DURadioA_2TArray
 	#define Rtl819XRadioA_1TArray				Rtl8192DURadioA_1TArray
@@ -144,7 +144,7 @@
 #endif
 
 #define DRVINFO_SZ	4 // unit is 8bytes
-#define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
+#define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
 
 //
 // Check if FW header exists. We do not consider the lower 4 bits in this case. 
@@ -605,7 +605,7 @@ struct hal_data_8192de
 	u8	RTSInitRate;	 // 2010.11.24.by tynli.
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
-#endif
+#endif //CONFIG_P2P
 };
 
 typedef struct hal_data_8192de HAL_DATA_TYPE, *PHAL_DATA_TYPE;
@@ -789,6 +789,9 @@ struct hal_data_8192du
 
 	u8	FwRsvdPageStartOffset; //2010.06.23. Added by tynli. Reserve page start offset except beacon in TxQ.
 
+	//Query RF by FW
+	BOOLEAN		bReadRFbyFW;
+
 	// For 92C USB endpoint setting
 	//
 
@@ -827,7 +830,7 @@ struct hal_data_8192du
 	u8	RTSInitRate;	 // 2010.11.24.by tynli.
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
-#endif
+#endif //CONFIG_P2P
 };
 
 typedef struct hal_data_8192du HAL_DATA_TYPE, *PHAL_DATA_TYPE;

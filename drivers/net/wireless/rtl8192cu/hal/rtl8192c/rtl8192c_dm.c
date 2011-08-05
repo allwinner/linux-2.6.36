@@ -257,7 +257,7 @@ dm_CtrlInitGainByFA(
 	
 	if(value_IGI > DM_DIG_FA_UPPER)			
 		value_IGI = DM_DIG_FA_UPPER;
-	else if(value_IGI < DM_DIG_FA_LOWER)		
+	if(value_IGI < DM_DIG_FA_LOWER)		
 		value_IGI = DM_DIG_FA_LOWER;
 
 	if(FalseAlmCnt->Cnt_all > 10000)
@@ -269,7 +269,7 @@ dm_CtrlInitGainByFA(
 	
 }
 
-#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
 VOID dm_CtrlInitGainByRssi( IN PADAPTER pAdapter) 
 { 
 
@@ -1225,7 +1225,7 @@ dm_TXPowerTrackingCallback_ThermalMeter_92C(
 	s8			delta_DPK;
 	int 			ele_A, ele_D, TempCCk, X, value32;
 	int			Y, ele_C;
-	s8			OFDM_index[2], CCK_index, OFDM_index_old[2], CCK_index_old, delta_APK;
+	s8			OFDM_index[2], CCK_index = 0, OFDM_index_old[2], CCK_index_old = 0, delta_APK;
 	int			i = 0, CCKSwingNeedUpdate = 0;
 	BOOLEAN		is2T = IS_92C_SERIAL(pHalData->VersionID);
 #if 0	
@@ -3609,7 +3609,7 @@ rtl8192c_dm_RF_Saving(
 			 
 			if(pPSTable->PreRFState == RF_Normal)
 			{
-			#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI
+			#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
 				if(pPSTable->Rssi_val_min >= 50)
 			#else
 				if(pPSTable->Rssi_val_min >= 30)
@@ -3619,7 +3619,7 @@ rtl8192c_dm_RF_Saving(
 					pPSTable->CurRFState = RF_Normal;
 			}
 			else{
-			#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI
+			#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
 				if(pPSTable->Rssi_val_min <= 45)
 			#else
 				if(pPSTable->Rssi_val_min <= 25)
@@ -3870,8 +3870,8 @@ dm_SW_AntennaSwitch(
 	SWAT_T	*pDM_SWAT_Table = &pdmpriv->DM_SWAT_Table;
 	s32			curRSSI=100, RSSI_A, RSSI_B;
 	u64			curTxOkCnt, curRxOkCnt;
-	u64			CurByteCnt, PreByteCnt;	
-	u8		nextAntenna;
+	u64			CurByteCnt = 0, PreByteCnt = 0;	
+	u8		nextAntenna = 0;
 	u8			Score_A=0, Score_B=0;
 	u8			i;
 
@@ -4535,7 +4535,7 @@ rtl8192c_InitHalDm(
 	// Save REG_INIDATA_RATE_SEL value for TXDESC.
 	for(i = 0 ; i<32 ; i++)
 	{
-		pdmpriv->INIDATA_RATE[i] = rtw_read8(Adapter, REG_INIDATA_RATE_SEL+i);
+		pdmpriv->INIDATA_RATE[i] = rtw_read8(Adapter, REG_INIDATA_RATE_SEL+i) & 0x3f;
 	}
 }
 
@@ -4560,7 +4560,7 @@ rtl8192c_HalDmWatchDog(
 	// modifed by thomas. 2011.06.11.
 	if(Adapter->wdinfo.p2p_ps_enable)
 		bFwPSAwake = _FALSE;
-#endif
+#endif //CONFIG_P2P
 
 	// Stop dynamic mechanism when:
 	// 1. RF is OFF. (No need to do DM.)
@@ -4588,7 +4588,7 @@ rtl8192c_HalDmWatchDog(
 		//
 		// Dynamic Initial Gain mechanism.
 		//
-#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI
+#ifdef CONFIG_SPECIAL_SETTING_FOR_FUNAI_TV
 		dm_RSSIMonitorCheck(Adapter);
 #endif
 		dm_FalseAlarmCounterStatistics(Adapter);
@@ -4653,14 +4653,14 @@ rtl8192c_HalDmWatchDog(
 		// Read REG_INIDATA_RATE_SEL value for TXDESC.
 		if(check_fwstate(&Adapter->mlmepriv, WIFI_STATION_STATE) == _TRUE)
 		{
-			pdmpriv->INIDATA_RATE[0] = rtw_read8(Adapter, REG_INIDATA_RATE_SEL);
+			pdmpriv->INIDATA_RATE[0] = rtw_read8(Adapter, REG_INIDATA_RATE_SEL) & 0x3f;
 		}
 		else
 		{
 			u8	i;
 			for(i=1 ; i < (Adapter->stapriv.asoc_sta_count + 1); i++)
 			{
-				pdmpriv->INIDATA_RATE[i] = rtw_read8(Adapter, (REG_INIDATA_RATE_SEL+i));
+				pdmpriv->INIDATA_RATE[i] = rtw_read8(Adapter, (REG_INIDATA_RATE_SEL+i)) & 0x3f;
 			}
 		}
 	}

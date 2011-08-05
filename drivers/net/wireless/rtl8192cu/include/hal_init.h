@@ -107,8 +107,12 @@ typedef enum _HAL_DEF_VARIABLE{
 	HAL_DEF_RX_PACKET_OFFSET,
 	HAL_DEF_DBG_DUMP_RXPKT,//for dbg
 	HAL_DEF_DBG_DM_FUNC,//for dbg
-	
 }HAL_DEF_VARIABLE;
+
+typedef enum _HAL_INTF_PS_FUNC{
+	HAL_USB_SELECT_SUSPEND,
+	HAL_MAX_ID,
+}HAL_INTF_PS_FUNC;
 
 struct hal_ops {
 	u32	(*hal_init)(PADAPTER Adapter);
@@ -162,7 +166,8 @@ struct hal_ops {
 	u8	(*SwAntDivBeforeLinkHandler)(PADAPTER Adapter);
 	void	(*SwAntDivCompareHandler)(PADAPTER Adapter, WLAN_BSSID_EX *dst, WLAN_BSSID_EX *src);
 #endif
-
+	u8	(*interface_ps_func)(PADAPTER Adapter,HAL_INTF_PS_FUNC efunc_id, u8* val);
+	
 	s32	(*hal_xmit)(PADAPTER Adapter, struct xmit_frame *pxmitframe);
 	void	(*mgnt_xmit)(PADAPTER Adapter, struct xmit_frame *pmgntframe);
 
@@ -174,7 +179,6 @@ struct hal_ops {
 #ifdef CONFIG_HOSTAPD_MLME
 	s32	(*hostap_mgnt_xmit_entry)(PADAPTER Adapter, _pkt *pkt);
 #endif
-
 	void (*EfusePowerSwitch)(PADAPTER pAdapter, u8 bWrite, u8 PwrState);
 	void (*ReadEFuse)(PADAPTER Adapter, u8 efuseType, u16 _offset, u16 _size_byte, u8 *pbuf, BOOLEAN bPseudoTest);
 	void (*EFUSEGetEfuseDefinition)(PADAPTER pAdapter, u8 efuseType, u8 type, PVOID *pOut, BOOLEAN bPseudoTest);
@@ -182,6 +186,7 @@ struct hal_ops {
 	int 	(*Efuse_PgPacketRead)(PADAPTER pAdapter, u8 offset, u8 *data, BOOLEAN bPseudoTest);
 	int 	(*Efuse_PgPacketWrite)(PADAPTER pAdapter, u8 offset, u8 word_en, u8 *data, BOOLEAN bPseudoTest);
 	u8	(*Efuse_WordEnableDataWrite)(PADAPTER pAdapter, u16 efuse_addr, u8 word_en, u8 *data, BOOLEAN bPseudoTest);
+	
 #ifdef SILENT_RESET_FOR_SPECIFIC_PLATFOM
 	void (*sreset_init_value)(_adapter *padapter);
 	void (*sreset_reset_value)(_adapter *padapter);		
@@ -249,8 +254,8 @@ typedef struct eeprom_priv EEPROM_EFUSE_PRIV, *PEEPROM_EFUSE_PRIV;
 
 
 void	rtw_dm_init(_adapter *padapter);
-void	rtw_led_init(_adapter *padapter);
-void	rtw_led_deinit(_adapter *padapter);
+void	rtw_sw_led_init(_adapter *padapter);
+void	rtw_sw_led_deinit(_adapter *padapter);
 
 uint	rtw_hal_init(_adapter *padapter);
 uint	rtw_hal_deinit(_adapter *padapter);

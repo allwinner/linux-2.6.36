@@ -600,8 +600,9 @@ struct	xmit_priv	{
 	u8 *pallocated_xmit_extbuf;
 	u8 *pxmit_extbuf;
 	uint free_xmit_extbuf_cnt;
-	
-        u16 nqos_ssn;
+
+	u16	nqos_ssn;
+	ATOMIC_T	HwRdyXmitData; // driver should wait hw setting done for join event callback, only for Data Frame. 1:done 0:not yet.
 };
 
 extern struct xmit_buf *rtw_alloc_xmitbuf_ext(struct xmit_priv *pxmitpriv);

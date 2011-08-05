@@ -113,14 +113,14 @@ void rtw_init_mlme_timer(_adapter *padapter)
 {
 	struct	mlme_priv *pmlmepriv = &padapter->mlmepriv;
 
-	_init_timer(&(pmlmepriv->assoc_timer), padapter->pnetdev, rtw_join_timeout_handler, (pmlmepriv->nic_hdl));
-	//_init_timer(&(pmlmepriv->sitesurveyctrl.sitesurvey_ctrl_timer), padapter->pnetdev, sitesurvey_ctrl_handler, (u8 *)(pmlmepriv->nic_hdl));
-	_init_timer(&(pmlmepriv->scan_to_timer), padapter->pnetdev, _rtw_scan_timeout_handler, (pmlmepriv->nic_hdl));
+	_init_timer(&(pmlmepriv->assoc_timer), padapter->pnetdev, rtw_join_timeout_handler, padapter);
+	//_init_timer(&(pmlmepriv->sitesurveyctrl.sitesurvey_ctrl_timer), padapter->pnetdev, sitesurvey_ctrl_handler, padapter);
+	_init_timer(&(pmlmepriv->scan_to_timer), padapter->pnetdev, _rtw_scan_timeout_handler, padapter);
 
-	_init_timer(&(pmlmepriv->dynamic_chk_timer), padapter->pnetdev, _dynamic_check_timer_handlder, (u8 *)(pmlmepriv->nic_hdl));
+	_init_timer(&(pmlmepriv->dynamic_chk_timer), padapter->pnetdev, _dynamic_check_timer_handlder, padapter);
 
 	#ifdef CONFIG_SET_SCAN_DENY_TIMER
-	_init_timer(&(pmlmepriv->set_scan_deny_timer), padapter->pnetdev, _rtw_set_scan_deny_timer_hdl, (u8 *)(pmlmepriv->nic_hdl));
+	_init_timer(&(pmlmepriv->set_scan_deny_timer), padapter->pnetdev, _rtw_set_scan_deny_timer_hdl, padapter);
 	#endif
 
 #ifdef RTK_DMP_PLATFORM
@@ -173,7 +173,7 @@ void rtw_reset_securitypriv( _adapter *adapter )
 		backupTKIPCountermeasure = adapter->securitypriv.btkip_countermeasure;
 
 		_rtw_memset((unsigned char *)&adapter->securitypriv, 0, sizeof (struct security_priv));
-		_init_timer(&(adapter->securitypriv.tkip_timer),adapter->pnetdev, rtw_use_tkipkey_handler, adapter);
+		//_init_timer(&(adapter->securitypriv.tkip_timer),adapter->pnetdev, rtw_use_tkipkey_handler, adapter);
 
 		// Added by Albert 2009/02/18
 		// Restore the PMK information to securitypriv structure for the following connection.
@@ -629,7 +629,7 @@ static int mgnt_netdev_open(struct net_device *pnetdev)
 {
 	struct hostapd_priv *phostapdpriv = rtw_netdev_priv(pnetdev);
 
-	DBG_8192C("mgnt_netdev_open: MAC Address:" MACSTR "\n", MAC2STR(pnetdev->dev_addr));
+	DBG_8192C("mgnt_netdev_open: MAC Address:" MAC_FMT "\n", MAC_ARG(pnetdev->dev_addr));
 
 
 	init_usb_anchor(&phostapdpriv->anchored);

@@ -577,7 +577,7 @@ u8 rtw_efuse_access(PADAPTER padapter, u8 bWrite, u16 start_addr, u16 cnts, u8 *
 {
 	int i = 0;
 	u16	real_content_len = 0, max_available_size = 0;
-	u8 res;
+	u8 res = _FAIL ;
 	u8 (*rw8)(PADAPTER, u16, u8*);
 
 	EFUSE_GetEfuseDefinition(padapter, EFUSE_WIFI, TYPE_EFUSE_REAL_CONTENT_LEN, (PVOID)&real_content_len, _FALSE);

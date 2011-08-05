@@ -56,13 +56,13 @@ void	rtw_dm_init(_adapter *padapter)
 		padapter->HalFunc.dm_init(padapter);
 }
 
-void	rtw_led_init(_adapter *padapter)
+void	rtw_sw_led_init(_adapter *padapter)
 {
 	if(padapter->HalFunc.InitSwLeds)
 		padapter->HalFunc.InitSwLeds(padapter);
 }
 
-void rtw_led_deinit(_adapter *padapter)
+void rtw_sw_led_deinit(_adapter *padapter)
 {
 	if(padapter->HalFunc.DeInitSwLeds)
 		padapter->HalFunc.DeInitSwLeds(padapter);

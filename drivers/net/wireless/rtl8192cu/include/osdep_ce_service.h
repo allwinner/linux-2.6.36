@@ -122,9 +122,9 @@ __inline static void rtw_list_delete(_list *plist)
 	InitializeListHead(plist);
 }
 
-__inline static void _init_timer(_timer *ptimer,_nic_hdl padapter,void *pfunc,PVOID cntx)
+__inline static void _init_timer(_timer *ptimer,_nic_hdl nic_hdl,void *pfunc,PVOID cntx)
 {
-	NdisMInitializeTimer(ptimer, padapter, pfunc, cntx);
+	NdisMInitializeTimer(ptimer, nic_hdl, pfunc, cntx);
 }
 
 __inline static void _set_timer(_timer *ptimer,u32 delay_time)

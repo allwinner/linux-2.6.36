@@ -118,7 +118,7 @@ typedef	enum _LED_STRATEGY_871x{
 	SW_LED_MODE6, //for 88CU minicard, porting from ce SW_LED_MODE7
 	HW_LED, // HW control 2 LEDs, LED0 and LED1 (there are 4 different control modes, see MAC.CONFIG1 for details.)
 }LED_STRATEGY_871x, *PLED_STRATEGY_871x;
-#endif
+#endif //CONFIG_USB_HCI
 
 #ifdef CONFIG_PCI_HCI
 //================================================================================
@@ -186,7 +186,7 @@ typedef	enum _LED_STRATEGY_871x{
 }LED_STRATEGY_871x, *PLED_STRATEGY_871x;
 
 #define LED_CM8_BLINK_INTERVAL		500	//for QMI
-#endif
+#endif //CONFIG_PCI_HCI
 
 struct led_priv{
 	/* add for led controll */
@@ -198,5 +198,15 @@ struct led_priv{
 	/* add for led controll */
 };
 
-#endif
+#ifdef CONFIG_SW_LED
+#define rtw_led_control(adapter, LedAction) \
+	do { \
+		if((adapter)->ledpriv.LedControlHandler) \
+			(adapter)->ledpriv.LedControlHandler((adapter), (LedAction)); \
+	} while(0)
+#else //CONFIG_SW_LED
+#define rtw_led_control(adapter, LedAction)
+#endif //CONFIG_SW_LED
+
+#endif //__RTW_LED_H_
 

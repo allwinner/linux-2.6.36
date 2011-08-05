@@ -29,6 +29,7 @@
 
 #include <byteorder/swab.h>
 
+#ifndef __constant_htonl
 #define __constant_htonl(x) ___constant_swab32((x))
 #define __constant_ntohl(x) ___constant_swab32((x))
 #define __constant_htons(x) ___constant_swab16((x))
@@ -81,6 +82,7 @@
 #define __be32_to_cpus(x) __swab32s((x))
 #define __cpu_to_be16s(x) __swab16s((x))
 #define __be16_to_cpus(x) __swab16s((x))
+#endif	// __constant_htonl
 
 #include <byteorder/generic.h>
 

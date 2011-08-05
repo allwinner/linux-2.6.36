@@ -155,36 +155,60 @@ struct tx_invite_resp_info{
 	u8					token;	//	Used to record the dialog token of p2p invitation request frame.
 };
 
+struct tx_provdisc_req_info{
+	u16					wps_config_method_request;	//	Used when sending the provisioning request frame
+	u16					peer_channel_num[2];		//	The channel number which the receiver stands.
+	NDIS_802_11_SSID	ssid;
+	u8					peerDevAddr[ ETH_ALEN ];		//	Peer device address
+	u8					peerIFAddr[ ETH_ALEN ];		//	Peer interface address
+	u8					benable;					//	This provision discovery request frame is trigger to send or not
+};
+
+struct rx_provdisc_req_info{	//When peer device issue prov_disc_req first, we should store the following informations
+	u8					peerDevAddr[ ETH_ALEN ];		//	Peer device address
+	u8					strconfig_method_desc_of_prov_disc_req[4];	//	description for the config method located in the provisioning discovery request frame.	
+																	//	The UI must know this information to know which config method the remote p2p device is requiring.
+};
+
+struct tx_nego_req_info{
+	u16					peer_channel_num[2];		//	The channel number which the receiver stands.
+	u8					peerDevAddr[ ETH_ALEN ];		//	Peer device address
+	u8					benable;					//	This negoitation request frame is trigger to send or not
+};
+
 struct wifidirect_info{
 	_adapter*				padapter;
+	_timer					find_phase_timer;
+	_timer					restore_p2p_state_timer;
+	
+	//	Used to do the scanning. After confirming the peer is availalble, the driver transmits the P2P frame to peer.
+	_timer					pre_tx_scan_timer;
+	struct tx_provdisc_req_info	tx_prov_disc_info;
+	struct rx_provdisc_req_info rx_prov_disc_info;
+	struct tx_invite_req_info	invitereq_info;
+	struct profile_info			profileinfo[ P2P_MAX_PERSISTENT_GROUP_NUM ];	//	Store the profile information of persistent group
+	struct tx_invite_resp_info	inviteresp_info;
+	struct tx_nego_req_info	nego_req_info;
+	enum P2P_ROLE			role;
+	enum P2P_STATE			pre_p2p_state;
+	enum P2P_STATE			p2p_state;
 	u8 						device_addr[ETH_ALEN];	//	The device address should be the mac address of this device.
-	u8 interface_addr[ETH_ALEN];
+	u8						interface_addr[ETH_ALEN];
 	u8						social_chan[4];
 	u8						listen_channel;
-	u8 	operating_channel;
+	u8						operating_channel;
 	u8						listen_dwell;		//	This value should be between 1 and 3
-	enum P2P_ROLE			role;
 	u8						support_rate[8];
 	u8						p2p_wildcard_ssid[P2P_WILDCARD_SSID_LEN];
 	u8						intent;		//	should only include the intent value.
-	enum P2P_STATE			pre_p2p_state;
-	enum P2P_STATE			p2p_state;
 	u8						p2p_peer_interface_addr[ ETH_ALEN ];
 	u8						peer_intent;	//	Included the intent value and tie breaker value.
 	u8						device_name[ WPS_MAX_DEVICE_NAME_LEN ];	//	Device name for displaying on searching device screen
 	u8						device_name_len;
-	struct tx_invite_req_info	invitereq_info;
-	struct tx_invite_resp_info	inviteresp_info;
 	u8						profileindex;	//	Used to point to the index of profileinfo array
-	struct profile_info			profileinfo[ P2P_MAX_PERSISTENT_GROUP_NUM ];	//	Store the profile information of persistent group
 	u8						peer_operating_ch;
-	_timer					find_phase_timer;
-	_workitem				find_phase_workitem;
-	u8					find_phase_state_exchange_cnt;
-	u16						wps_config_method_request;	//	Used when sending the provisioning request frame
+	u8						find_phase_state_exchange_cnt;
 	u16						device_password_id_for_nego;	//	The device password ID for group negotation
-	_timer					restore_p2p_state_timer;
-	_workitem				restore_p2p_state_workitem;
 	u8						negotiation_dialog_token;
 	u8						nego_ssid[ WLAN_SSID_MAXLEN ];	//	SSID information for group negotitation
 	u8						nego_ssidlen;
@@ -197,8 +221,6 @@ struct wifidirect_info{
 	u8						channel_cnt;		//	This field is the count number for P2P Channel List attribute of group negotitation response frame.
 	u8						channel_list[13];		//	This field will contain the channel number of P2P Channel List attribute of group negotitation response frame.
 												//	We will use the channel_cnt and channel_list fields when constructing the group negotitation confirm frame.
-	u8						strconfig_method_desc_of_prov_disc_req[4];	//	description for the config method located in the provisioning discovery request frame.
-																		//	The UI must know this information to know which config method the remote p2p device is requiring.
 	u8						p2p_ps_enable;
 	enum P2P_PS				p2p_ps; // indicate p2p ps state
 	u8						noa_index; // Identifies and instance of Notice of Absence timing.
@@ -242,7 +264,6 @@ struct mlme_priv {
 	_timer assoc_timer;
 
 	uint assoc_by_bssid;
-	uint assoc_by_rssi;
 
 	_timer scan_to_timer; // driver itself handles scan_timeout status.
 	u32 scan_start_time; // used to evaluate the time spent in scanning

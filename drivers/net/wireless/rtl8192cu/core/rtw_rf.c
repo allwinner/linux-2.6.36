@@ -59,7 +59,7 @@ int ch_freq_map_num = (sizeof(ch_freq_map) / sizeof(struct ch_freq));
 u32 rtw_ch2freq(u32 channel)
 {
 	u8	i;
-	u32	freq;
+	u32	freq = 0;
 
 	for (i = 0; i < ch_freq_map_num; i++)
 	{
@@ -78,7 +78,7 @@ u32 rtw_ch2freq(u32 channel)
 u32 rtw_freq2ch(u32 freq)
 {
 	u8	i;
-	u32	ch;
+	u32	ch = 0;
 
 	for (i = 0; i < ch_freq_map_num; i++)
 	{

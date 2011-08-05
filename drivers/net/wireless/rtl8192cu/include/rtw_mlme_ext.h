@@ -313,7 +313,7 @@ struct mlme_ext_priv
 	unsigned char	cur_wireless_mode;
 	//unsigned char	channel_set[NUM_CHANNELS];
 	unsigned char	max_chan_nums;
-	RT_CHANNEL_INFO		channel_set[NUM_CHANNELS];
+	RT_CHANNEL_INFO		channel_set[MAX_CHANNEL_NUM];
 	unsigned char	basicrate[NumRates];
 	unsigned char	datarate[NumRates];
 	
@@ -374,7 +374,7 @@ void invalidate_cam_all(_adapter *padapter);
 void CAM_empty_entry(PADAPTER Adapter, u8 ucIndex);
 
 
-int allocate_cam_entry(_adapter *padapter);
+int allocate_fw_sta_entry(_adapter *padapter);
 void flush_all_cam_entry(_adapter *padapter);
 
 BOOLEAN IsLegal5GChannel(PADAPTER Adapter, u8 channel);
@@ -442,7 +442,7 @@ void issue_p2p_GO_request(_adapter *padapter, u8* raddr);
 void issue_probereq_p2p(_adapter *padapter);
 void issue_p2p_invitation_response(_adapter *padapter, u8* raddr, u8 dialogToken, u8 success);
 void issue_p2p_invitation_request(_adapter *padapter, u8* raddr );
-#endif
+#endif //CONFIG_P2P
 #ifdef CONFIG_TDLS
 void issue_nulldata_to_TDLS_peer_STA(_adapter *padapter, struct sta_info *ptdls_sta, unsigned int power_mode);
 extern void TDLS_restore_workitem_callback(struct work_struct *work);
@@ -519,6 +519,17 @@ void addba_timer_hdl(struct sta_info *psta);
 //void reauth_timer_hdl(_adapter *padapter);
 //void reassoc_timer_hdl(_adapter *padapter);
 
+#define set_survey_timer(mlmeext, ms) \
+	do { \
+		/*DBG_871X("%s set_survey_timer(%p, %d)\n", __FUNCTION__, (mlmeext), (ms));*/ \
+		_set_timer(&(mlmeext)->survey_timer, (ms)); \
+	} while(0)
+
+#define set_link_timer(mlmeext, ms) \
+	do { \
+		/*DBG_871X("%s set_link_timer(%p, %d)\n", __FUNCTION__, (mlmeext), (ms));*/ \
+		_set_timer(&(mlmeext)->link_timer, (ms)); \
+	} while(0)
 
 extern int cckrates_included(unsigned char *rate, int ratelen);
 extern int cckratesonly_included(unsigned char *rate, int ratelen);
@@ -530,6 +541,7 @@ extern void correct_TSF(_adapter *padapter, struct mlme_ext_priv *pmlmeext);
 
 #ifdef CONFIG_AP_MODE
 void init_mlme_ap_info(_adapter *padapter);
+void free_mlme_ap_info(_adapter *padapter);
 //void update_BCNTIM(_adapter *padapter);
 void update_beacon(_adapter *padapter, u8 ie_id, u8 *oui, u8 tx);
 void expire_timeout_chk(_adapter *padapter);	
@@ -576,7 +588,6 @@ u8 mlme_evt_hdl(_adapter *padapter, unsigned char *pbuf);
 u8 h2c_msg_hdl(_adapter *padapter, unsigned char *pbuf);
 u8 tx_beacon_hdl(_adapter *padapter, unsigned char *pbuf);
 u8 set_chplan_hdl(_adapter *padapter, unsigned char *pbuf);
-u8 rereg_nd_name_hdl(_adapter *padapter, unsigned char *pbuf);
 
 #define GEN_DRV_CMD_HANDLER(size, cmd)	{size, &cmd ## _hdl},
 #define GEN_MLME_EXT_HANDLER(size, cmd)	{size, cmd},
@@ -647,8 +658,6 @@ struct cmd_hdl wlancmds[] =
 
 	GEN_MLME_EXT_HANDLER(0, h2c_msg_hdl) /*58*/
 	GEN_MLME_EXT_HANDLER(sizeof(struct SetChannelPlan_param), set_chplan_hdl) /*59*/
-	GEN_MLME_EXT_HANDLER(sizeof(struct rereg_nd_name_param), rereg_nd_name_hdl) /*60*/
-
 };
 
 #endif

@@ -91,7 +91,7 @@ void	rtl8192c_Add_RateATid(PADAPTER pAdapter, u32 bitmap, u8 arg);
 u8	rtl8192c_set_FwSelectSuspend_cmd(_adapter*padapter,u8 bfwpoll, u16 period);
 #ifdef CONFIG_P2P
 void	rtl8192c_set_p2p_ps_offload_cmd(_adapter* padapter, u8 p2p_ps_state);
-#endif
+#endif //CONFIG_P2P
 
 #endif
 

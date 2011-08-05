@@ -34,12 +34,6 @@
 
 #endif
 
-#ifdef CONFIG_RESUME_IN_WORKQUEUE
-#include <linux/workqueue.h>
-static struct workqueue_struct *rtw_workqueue;
-static struct work_struct rtw_resume_work;
-#endif
-
 #include <usb_vendor_req.h>
 #include <usb_ops.h>
 #include <usb_osintf.h>
@@ -61,7 +55,6 @@ extern int rtw_ampdu_enable;//for enable tx_ampdu
 #endif
 
 static struct usb_interface *pintf;
-static struct usb_interface  *net_pusb = NULL; // keep usb_interface for resume in workqueue
 
 #ifdef CONFIG_GLOBAL_UI_PID
 int ui_pid[3] = {0, 0, 0};
@@ -71,7 +64,7 @@ int ui_pid[3] = {0, 0, 0};
 extern int pm_netdev_open(struct net_device *pnetdev,u8 bnormal);
 static int rtw_suspend(struct usb_interface *intf, pm_message_t message);
 static int rtw_resume(struct usb_interface *intf);
-static int rtw_resume_process(struct usb_interface *pusb_intf);
+int rtw_resume_process(struct usb_interface *pusb_intf);
 
 
 static int rtw_drv_init(struct usb_interface *pusb_intf,const struct usb_device_id *pdid);
@@ -79,7 +72,7 @@ static void rtw_dev_remove(struct usb_interface *pusb_intf);
 
 #define USB_VENDER_ID_REALTEK		0x0BDA
 
-//DID_USB_V66_20110613
+//DID_USB_V77_20110721
 static struct usb_device_id rtw_usb_id_tbl[] ={
 #ifdef CONFIG_RTL8192C
 	/*=== Realtek demoboard ===*/		
@@ -94,7 +87,8 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x817D)},//8188RU High-power USB Dongle
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8754)},//8188 Combo for BC4
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x817F)},//8188RU
-
+	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x818A)},//8188CUS-VL
+	
 	/****** 8192CUS ********/
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8177)},//8191cu 1*2
 	{USB_DEVICE(USB_VENDER_ID_REALTEK, 0x8178)},//8192cu 2*2
@@ -122,6 +116,7 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 	{USB_DEVICE(0x9846, 0x9041)},//Netgear - Cameo
 	{USB_DEVICE(0x0846, 0x9041)},//Netgear - Cameo
 	{USB_DEVICE(0x2019, 0x4902)},//Planex - Etop
+	{USB_DEVICE(0x2019, 0xAB2E)},//SW-WF02-AD15 -Abocom
 	
 	/****** 8188CE-VAU ********/
 	{USB_DEVICE(0x13D3, 0x3359)},// - Azwave
@@ -131,6 +126,7 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 	{USB_DEVICE(0x04F2, 0xAFF7)},//XAVI - XAVI
 	{USB_DEVICE(0x04F2, 0xAFF9)},//XAVI - XAVI
 	{USB_DEVICE(0x04F2, 0xAFFA)},//XAVI - XAVI
+	{USB_DEVICE(0x2019, 0x1201)},//Planex - Vencer
 
 	/****** 8188CUS Slim Combo ********/
 	{USB_DEVICE(0x04F2, 0xAFF8)},//XAVI - XAVI
@@ -152,6 +148,9 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 	{USB_DEVICE(0x050D, 0x2102)},//Belkin - Sercomm
 	{USB_DEVICE(0x050D, 0x2103)},//Belkin - Edimax
 	{USB_DEVICE(0x20F4, 0x624D)},//TRENDnet
+	{USB_DEVICE(0x0DF6, 0x0061)},//Sitecom - Edimax
+	{USB_DEVICE(0x0B05, 0x17AB)},//ASUS - Edimax
+	{USB_DEVICE(0x0846, 0x9021)},//Netgear - Sercomm
 #endif
 #ifdef CONFIG_RTL8192D
 	/*=== Realtek demoboard ===*/
@@ -165,7 +164,8 @@ static struct usb_device_id rtw_usb_id_tbl[] ={
 	{USB_DEVICE(0x2019, 0xAB2C)},//PCI - Abocm
 	{USB_DEVICE(0x2019, 0x4903)},//PCI - ETOP
 	{USB_DEVICE(0x2019, 0x4904)},//PCI - ETOP
-
+	{USB_DEVICE(0x07B8, 0x8193)},//Abocom - Abocom
+	
 	/****** 8192DU-VS ********/
 	{USB_DEVICE(0x20F4, 0x664B)},//TRENDnet
 
@@ -287,7 +287,6 @@ u8 rtw_deinit_intf_priv(_adapter * padapter)
 		rtw_mfree(padapter->dvobjpriv.usb_alloc_vendor_req_buf,MAX_USB_IO_CTL_SIZE);
 	}
 	
-exit:
 	return rst;
 	
 }
@@ -673,14 +672,13 @@ int rtw_hw_suspend(_adapter *padapter )
 			{
 				_clr_fwstate_(pmlmepriv, _FW_LINKED);
 
-				padapter->ledpriv.LedControlHandler(padapter, LED_CTL_NO_LINK);
+				rtw_led_control(padapter, LED_CTL_NO_LINK);
 
 				rtw_os_indicate_disconnect(padapter);
-				
-#ifdef CONFIG_LPS
+
 				//donnot enqueue cmd
 				rtw_lps_ctrl_wk_cmd(padapter, LPS_CTRL_DISCONNECT, 0);
-#endif
+
 			}
 
 		}
@@ -692,7 +690,7 @@ int rtw_hw_suspend(_adapter *padapter )
 
 		rtw_ips_dev_unload(padapter);			
 
-		pwrpriv->current_rfpwrstate = rf_off;
+		pwrpriv->rf_pwrstate = rf_off;
 		pwrpriv->bips_processing = _FALSE;		
 
 		_exit_pwrlock(&pwrpriv->lock);
@@ -741,7 +739,7 @@ int rtw_hw_resume(_adapter *padapter)
 		pwrpriv->bkeepfwalive = _FALSE;
 		pwrpriv->brfoffbyhw = _FALSE;
 		
-		pwrpriv->current_rfpwrstate = rf_on;
+		pwrpriv->rf_pwrstate = rf_on;
 		pwrpriv->bips_processing = _FALSE;	
 	
 		_exit_pwrlock(&pwrpriv->lock);
@@ -773,16 +771,30 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 	if((!padapter->bup) || (padapter->bDriverStopped)||(padapter->bSurpriseRemoved))
 	{
 		DBG_8192C("padapter->bup=%d bDriverStopped=%d bSurpriseRemoved = %d\n",
-			padapter->bup, padapter->bDriverStopped,padapter->bSurpriseRemoved);		
-		//goto error_exit;
+			padapter->bup, padapter->bDriverStopped,padapter->bSurpriseRemoved);				
 		return 0;
-	}
-	
+	}	
 
 	DBG_8192C("###########  rtw_suspend  #################\n");
 	
 	if(padapter)//system suspend
-	{
+	{	
+		if(pwrpriv->bInternalAutoSuspend )
+		{
+		#ifdef CONFIG_AUTOSUSPEND	
+		#ifdef SUPPORT_HW_RFOFF_DETECTED
+			// The FW command register update must after MAC and FW init ready.
+			if((padapter->bFWReady) && ( padapter->pwrctrlpriv.bHWPwrPindetect ) && (padapter->registrypriv.usbss_enable ))
+			{
+				u8 bOpen = _TRUE;
+				rtw_interface_ps_func(padapter,HAL_USB_SELECT_SUSPEND,&bOpen);
+				//rtl8192c_set_FwSelectSuspend_cmd(padapter,_TRUE ,500);//note fw to support hw power down ping detect
+			}
+		#endif
+		#endif
+		}
+		pwrpriv->bInSuspend = _TRUE;		
+		rtw_cancel_all_timer(padapter);		
 		LeaveAllPowerSaveMode(padapter);
 
 		_enter_pwrlock(&pwrpriv->lock);
@@ -806,11 +818,9 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 		if(check_fwstate(pmlmepriv, WIFI_STATION_STATE) && check_fwstate(pmlmepriv, _FW_LINKED) )
 		{
 			//printk("%s:%d assoc_ssid:%s\n", __FUNCTION__, __LINE__, pmlmepriv->assoc_ssid.Ssid);
-			DBG_871X("%s:%d %s(%02x:%02x:%02x:%02x:%02x:%02x), length:%d assoc_ssid.length:%d\n",__FUNCTION__, __LINE__,
+			DBG_871X("%s:%d %s(" MAC_FMT "), length:%d assoc_ssid.length:%d\n",__FUNCTION__, __LINE__,
 					pmlmepriv->cur_network.network.Ssid.Ssid,
-					pmlmepriv->cur_network.network.MacAddress[0],pmlmepriv->cur_network.network.MacAddress[1],
-					pmlmepriv->cur_network.network.MacAddress[2],pmlmepriv->cur_network.network.MacAddress[3],
-					pmlmepriv->cur_network.network.MacAddress[4],pmlmepriv->cur_network.network.MacAddress[5],
+					MAC_ARG(pmlmepriv->cur_network.network.MacAddress),
 					pmlmepriv->cur_network.network.Ssid.SsidLength,
 					pmlmepriv->assoc_ssid.SsidLength);
 			
@@ -829,7 +839,7 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 
 		rtw_dev_unload(padapter);
 #ifdef CONFIG_AUTOSUSPEND
-		pwrpriv->current_rfpwrstate = rf_off;
+		pwrpriv->rf_pwrstate = rf_off;
 		pwrpriv->bips_processing = _FALSE;
 #endif
 		_exit_pwrlock(&pwrpriv->lock);
@@ -854,24 +864,22 @@ static int rtw_resume(struct usb_interface *pusb_intf)
 	_adapter *padapter = (_adapter*)rtw_netdev_priv(pnetdev);
 	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
 	 int ret = 0;
-	 int ret_queue;
-	 net_pusb = NULL;
  
 	if(pwrpriv->bInternalAutoSuspend ){
  		ret = rtw_resume_process(pusb_intf);
 	} else {
-
 #ifdef CONFIG_RESUME_IN_WORKQUEUE
-		// accquire system's suspend lock preventing from falliing asleep while resume in workqueue
-		rtw_lock_suspend();
-
-		net_pusb  = pusb_intf;
-		ret_queue=queue_work(rtw_workqueue, &rtw_resume_work);
-		DBG_871X("%s:%d queue_work(rtw_workqueue, &rtw_resume_work) return %d\n",__FUNCTION__, __LINE__,ret_queue);
-#else
+		rtw_resume_in_workqueue(pwrpriv);
+#elif defined(CONFIG_HAS_EARLYSUSPEND) || defined(CONFIG_ANDROID_POWER)
+		if(rtw_is_earlysuspend_registered(pwrpriv)) {
+			//jeff: bypass resume here, do in late_resume
+			pwrpriv->do_late_resume = _TRUE;
+		} else {
+			ret = rtw_resume_process(pusb_intf);
+		}
+#else // Normal resume process
 		ret = rtw_resume_process(pusb_intf);
-#endif
-
+#endif //CONFIG_RESUME_IN_WORKQUEUE
 	}
 	
 	return ret;
@@ -879,7 +887,7 @@ static int rtw_resume(struct usb_interface *pusb_intf)
 }
 
 
-static int rtw_resume_process(struct usb_interface *pusb_intf)
+int rtw_resume_process(struct usb_interface *pusb_intf)
 {
 	struct net_device *pnetdev;
 	struct usb_device *usb_dev;
@@ -890,13 +898,7 @@ static int rtw_resume_process(struct usb_interface *pusb_intf)
 
 	DBG_8192C("###########  rtw_resume  #################\n");
 
-	DBG_871X("%s:%d net_pusb:%p, pusb_intf:%p\n"
-		, __FUNCTION__, __LINE__, net_pusb, pusb_intf);
-
-	if(net_pusb) {
-		pnetdev=usb_get_intfdata(pintf);
-		usb_dev = interface_to_usbdev(pintf);
-	} else if(pusb_intf) {
+	if(pusb_intf) {
 		pnetdev=usb_get_intfdata(pusb_intf);
 		usb_dev = interface_to_usbdev(pusb_intf);
 	} else {
@@ -904,25 +906,36 @@ static int rtw_resume_process(struct usb_interface *pusb_intf)
 	}
 
 	padapter = (_adapter*)rtw_netdev_priv(pnetdev);
-	pwrpriv = &padapter->pwrctrlpriv;
-
-	DBG_8192C("bkeepfwalive(%x)\n",pwrpriv->bkeepfwalive);
+	pwrpriv = &padapter->pwrctrlpriv;	
 	
 	if(padapter)//system resume
 	{
 		_enter_pwrlock(&pwrpriv->lock);
 		rtw_reset_drv_sw(padapter);
-
+		pwrpriv->bkeepfwalive = _FALSE;
+		
+		DBG_8192C("bkeepfwalive(%x)\n",pwrpriv->bkeepfwalive);
 		if(pm_netdev_open(pnetdev,_TRUE) != 0)
 			goto error_exit;
 
 		netif_device_attach(pnetdev);	
-		netif_carrier_on(pnetdev);
+		netif_carrier_on(pnetdev);		
+		
 #ifdef CONFIG_AUTOSUSPEND
 		if(pwrpriv->bInternalAutoSuspend )
 		{			
-			pwrpriv->current_rfpwrstate = rf_on;	
-			pwrpriv->bkeepfwalive = _FALSE;
+			#ifdef CONFIG_AUTOSUSPEND	
+			#ifdef SUPPORT_HW_RFOFF_DETECTED
+				// The FW command register update must after MAC and FW init ready.
+			if((padapter->bFWReady) && ( padapter->pwrctrlpriv.bHWPwrPindetect ) && (padapter->registrypriv.usbss_enable ))
+			{
+				//rtl8192c_set_FwSelectSuspend_cmd(padapter,_FALSE ,500);//note fw to support hw power down ping detect
+				u8 bOpen = _FALSE;
+				rtw_interface_ps_func(padapter,HAL_USB_SELECT_SUSPEND,&bOpen);
+			}
+			#endif
+			#endif
+		
 			pwrpriv->bInternalAutoSuspend = _FALSE;
 			pwrpriv->brfoffbyhw = _FALSE;
 			{
@@ -960,8 +973,13 @@ static int rtw_resume_process(struct usb_interface *pusb_intf)
 #ifdef CONFIG_LAYER2_ROAMING_RESUME
 	rtw_roaming(padapter, NULL);
 #endif	
-	printk("###########  rtw_resume  done#################\n");
+	
+	DBG_871X("###########  rtw_resume  done#################\n");
+	
+	#ifdef CONFIG_RESUME_IN_WORKQUEUE
 	rtw_unlock_suspend();
+	#endif //CONFIG_RESUME_IN_WORKQUEUE
+	
 	_func_exit_;
 	
 	return 0;
@@ -969,8 +987,13 @@ error_exit:
 	DBG_8192C("%s, Open net dev failed \n",__FUNCTION__);
 
 	DBG_871X("###########  rtw_resume  done with error#################\n");
+	
+	#ifdef CONFIG_RESUME_IN_WORKQUEUE
 	rtw_unlock_suspend();
+	#endif //CONFIG_RESUME_IN_WORKQUEUE
+	
 	_func_exit_;
+	
 	return (-1);
 }
 
@@ -1017,7 +1040,7 @@ int autoresume_enter(_adapter* padapter)
 	
 	DBG_8192C("====> autoresume_enter \n");
 	
-	if(rf_off == pwrpriv->current_rfpwrstate )
+	if(rf_off == pwrpriv->rf_pwrstate )
 	{
 		pwrpriv->ps_flag = _FALSE;
 		#if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,33))				
@@ -1194,7 +1217,7 @@ static int rtw_drv_init(struct usb_interface *pusb_intf, const struct usb_device
 	rtw_macaddr_cfg(padapter->eeprompriv.mac_addr);
 
 	_rtw_memcpy(pnetdev->dev_addr, padapter->eeprompriv.mac_addr, ETH_ALEN);
-	DBG_8192C("MAC Address from pnetdev->dev_addr= " MACSTR "\n", MAC2STR(pnetdev->dev_addr));	
+	DBG_8192C("MAC Address from pnetdev->dev_addr= " MAC_FMT "\n", MAC_ARG(pnetdev->dev_addr));	
 
 
 	//step 6.
@@ -1368,9 +1391,14 @@ _func_exit_;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
 extern int console_suspend_enabled;
 #endif
+#include <mach/script_v2.h>
+extern int sw_usb_disable_hcd(__u32 usbc_no);
+extern int sw_usb_enable_hcd(__u32 usbc_no);
+static int usb_wifi_host = 2;
 
 static int __init rtw_drv_entry(void)
 {
+//	int ret;
 #ifdef CONFIG_PLATFORM_RTK_DMP
 	u32 tmp;
 	tmp=readl((volatile unsigned int*)0xb801a608);
@@ -1379,23 +1407,22 @@ static int __init rtw_drv_entry(void)
 	writel(tmp,(volatile unsigned int*)0xb801a608);//write dummy register for 1055
 #endif
 
-
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_entry\n"));
+	/* get usbc_init_state */
+/*	ret = script_parser_fetch("usb_config", "usb_wifi_host", (int *)&usb_wifi_host, 64);
+	if(ret != 0){
+		ERR_8192C("ERR: script_parser_fetch usbc_init_state failed\n");
+		ret = -ENOMEM;
+		return ret;
+	}
+*/
+	MSG_8192C("usb_wifi_host = %d\n", usb_wifi_host);
 
+//	sw_usb_enable_hcd(usb_wifi_host);
 	DBG_8192C("\nrtw driver version=%s\n", DRIVERVERSION);		
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,24)) 
 	//console_suspend_enabled=0;
 #endif	
-
-#ifdef CONFIG_RESUME_IN_WORKQUEUE
-	INIT_WORK(&rtw_resume_work, (work_func_t)rtw_resume_process);
-	rtw_workqueue = create_singlethread_workqueue("rtw_workqueue");
-	
-	if (rtw_workqueue == NULL) {
-		printk("%s, %d, create_workqueuen fail\n", __FILE__, __LINE__);
-		return -ENOMEM;
-	}
-#endif
 
 	rtw_suspend_lock_init();
 
@@ -1408,18 +1435,12 @@ static void __exit rtw_drv_halt(void)
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_halt\n"));
 	DBG_8192C("+rtw_drv_halt\n");
 
-#ifdef CONFIG_RESUME_IN_WORKQUEUE
-	if (rtw_workqueue) { 
-		flush_workqueue(rtw_workqueue);
-		destroy_workqueue(rtw_workqueue);
-	}
-#endif
-
 	rtw_suspend_lock_uninit();
-	
+
 	drvpriv.drv_registered = _FALSE;
 	usb_deregister(&drvpriv.rtw_usb_drv);
 	DBG_8192C("-rtw_drv_halt\n");
+//	sw_usb_disable_hcd(usb_wifi_host);
 }
 
 

@@ -1852,8 +1852,7 @@ NDIS_STATUS oid_rt_pro_add_sta_info_hdl(struct oid_par_priv *poid_par_priv)
 	macaddr = (UCHAR *) poid_par_priv->information_buf ;
 
 	RT_TRACE(_module_rtl871x_ioctl_c_,_drv_notice_,
-		 ("OID_RT_PRO_ADD_STA_INFO: addr=%02x:%02x:%02x:%02x:%02x:%02x\n",
-		  macaddr[0],macaddr[1],macaddr[2],macaddr[3],macaddr[4],macaddr[5]));
+		 ("OID_RT_PRO_ADD_STA_INFO: addr="MAC_FMT"\n", MAC_ARG(macaddr) ));
 
 	_irqlevel_changed_(&oldirql, LOWER);
 
@@ -1900,8 +1899,7 @@ NDIS_STATUS oid_rt_pro_dele_sta_info_hdl(struct oid_par_priv *poid_par_priv)
 
 	macaddr = (UCHAR *) poid_par_priv->information_buf ;
 	RT_TRACE(_module_rtl871x_ioctl_c_,_drv_notice_,
-		 ("+OID_RT_PRO_ADD_STA_INFO: addr=%02x:%02x:%02x:%02x:%02x:%02x\n",
-		  macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]));
+		 ("+OID_RT_PRO_ADD_STA_INFO: addr="MAC_FMT"\n", MAC_ARG(macaddr) ));
 
 	psta = rtw_get_stainfo(&Adapter->stapriv, macaddr);
 	if (psta != NULL) {

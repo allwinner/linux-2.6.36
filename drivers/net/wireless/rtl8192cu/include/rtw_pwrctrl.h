@@ -25,6 +25,10 @@
 #include <osdep_service.h>		
 #include <drv_types.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif //CONFIG_HAS_EARLYSUSPEND
+
 
 #define FW_PWR0	0	
 #define FW_PWR1 	1
@@ -193,7 +197,7 @@ struct	pwrctrl_priv {
 	u32	cur_ps_level;
 	u32	reg_rfps_level;
 
-	rt_rf_power_state	rf_pwrstate;//cur power state
+	
 
 #ifdef CONFIG_PCI_HCI
 	//just for PCIE ASPM
@@ -226,6 +230,7 @@ struct	pwrctrl_priv {
 
 
 	u8		bInternalAutoSuspend;
+	u8		bInSuspend;
 	u8		bSupportRemoteWakeup;	
 	_timer 	pwr_state_check_timer;
 	int		pwr_state_check_inverval;
@@ -233,8 +238,9 @@ struct	pwrctrl_priv {
 	uint 		bips_processing;
 
 	int 		ps_flag;
-
-	rt_rf_power_state 	current_rfpwrstate;
+	
+	rt_rf_power_state	rf_pwrstate;//cur power state
+	//rt_rf_power_state 	current_rfpwrstate;
 	rt_rf_power_state	change_rfpwrstate;
 
 	u8		wepkeymask;
@@ -243,6 +249,21 @@ struct	pwrctrl_priv {
 	u8		bkeepfwalive;		
 	u8		brfoffbyhw;
 	unsigned long PS_BBRegBackup[PSBBREG_TOTALCNT];
+	
+	#ifdef CONFIG_RESUME_IN_WORKQUEUE
+	struct workqueue_struct *rtw_workqueue;
+	_workitem resume_work;
+	#endif
+
+	#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+	u8 do_late_resume;
+	#endif //CONFIG_HAS_EARLYSUSPEND
+
+	#ifdef CONFIG_ANDROID_POWER
+	android_early_suspend_t early_suspend;
+	u8 do_late_resume;
+	#endif
 	
 };
 
@@ -254,6 +275,7 @@ struct	pwrctrl_priv {
 
 #define _rtw_set_pwr_state_check_timer(pwrctrlpriv, ms) \
 	do { \
+		/*DBG_871X("%s _rtw_set_pwr_state_check_timer(%p, %d)\n", __FUNCTION__, (pwrctrlpriv), (ms));*/ \
 		_set_timer(&(pwrctrlpriv)->pwr_state_check_timer, (ms)); \
 	} while(0)
 	
@@ -274,8 +296,11 @@ extern void cpwm_int_hdl(_adapter *padapter, struct reportpwrstate_parm *preport
 extern void rtw_set_ps_mode(_adapter * padapter, u8 ps_mode, u8 smart_ps);
 extern void rtw_set_rpwm(_adapter * padapter, u8 val8);
 extern void LeaveAllPowerSaveMode(PADAPTER Adapter);
+#ifdef CONFIG_IPS
 void ips_enter(_adapter * padapter);
 int ips_leave(_adapter * padapter);
+#endif
+
 void rtw_ps_processor(_adapter*padapter);
 
 #ifdef CONFIG_AUTOSUSPEND
@@ -290,5 +315,17 @@ rt_rf_power_state RfOnOffDetect(IN	PADAPTER pAdapter );
 void LPS_Enter(PADAPTER padapter);
 void LPS_Leave(PADAPTER padapter);
 #endif
+
+#ifdef CONFIG_RESUME_IN_WORKQUEUE
+void rtw_resume_in_workqueue(struct pwrctrl_priv *pwrpriv);
+#endif //CONFIG_RESUME_IN_WORKQUEUE
+
+#if defined(CONFIG_HAS_EARLYSUSPEND ) || defined(CONFIG_ANDROID_POWER)
+#define rtw_is_earlysuspend_registered(pwrpriv) (pwrpriv)->early_suspend.suspend
+void rtw_register_early_suspend(struct pwrctrl_priv *pwrpriv);
+void rtw_unregister_early_suspend(struct pwrctrl_priv *pwrpriv);
+#endif //CONFIG_HAS_EARLYSUSPEND || CONFIG_ANDROID_POWER
+
+u8 rtw_interface_ps_func(_adapter *padapter,HAL_INTF_PS_FUNC efunc_id,u8* val);
 
 #endif  //__RTL871X_PWRCTRL_H_

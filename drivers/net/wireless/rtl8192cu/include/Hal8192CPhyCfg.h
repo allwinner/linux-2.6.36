@@ -440,10 +440,10 @@ SetAntennaConfig92C(
 
 /*--------------------------Exported Function prototype---------------------*/
 
-#define PHY_QueryBBReg(Adapter, RegAddr, BitMask) rtl8192c_PHY_QueryBBReg(Adapter, RegAddr, BitMask)
-#define PHY_SetBBReg(Adapter, RegAddr, BitMask, Data) rtl8192c_PHY_SetBBReg(Adapter, RegAddr, BitMask, Data)
-#define PHY_QueryRFReg(Adapter, eRFPath, RegAddr, BitMask) rtl8192c_PHY_QueryRFReg(Adapter, eRFPath, RegAddr, BitMask)
-#define PHY_SetRFReg(Adapter, eRFPath, RegAddr, BitMask, Data) rtl8192c_PHY_SetRFReg(Adapter, eRFPath, RegAddr, BitMask, Data)
+#define PHY_QueryBBReg(Adapter, RegAddr, BitMask) rtl8192c_PHY_QueryBBReg((Adapter), (RegAddr), (BitMask))
+#define PHY_SetBBReg(Adapter, RegAddr, BitMask, Data) rtl8192c_PHY_SetBBReg((Adapter), (RegAddr), (BitMask), (Data))
+#define PHY_QueryRFReg(Adapter, eRFPath, RegAddr, BitMask) rtl8192c_PHY_QueryRFReg((Adapter), (eRFPath), (RegAddr), (BitMask))
+#define PHY_SetRFReg(Adapter, eRFPath, RegAddr, BitMask, Data) rtl8192c_PHY_SetRFReg((Adapter), (eRFPath), (RegAddr), (BitMask), (Data))
 
 #define PHY_SetMacReg	PHY_SetBBReg
 

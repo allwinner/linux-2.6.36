@@ -866,6 +866,11 @@ void rtw_usleep_os(int us)
 #ifdef DBG_DELAY_OS
 void _rtw_mdelay_os(int ms, const char *func, const int line)
 {
+	if(ms>10)
+		DBG_871X("%s:%d %s(%d)\n", func, line, __FUNCTION__, ms);
+		rtw_msleep_os(ms);
+	return;
+
 
 	DBG_871X("%s:%d %s(%d)\n", func, line, __FUNCTION__, ms);
 
@@ -884,7 +889,15 @@ void _rtw_mdelay_os(int ms, const char *func, const int line)
 void _rtw_udelay_os(int us, const char *func, const int line)
 {
 
+	if(us > 1000) {
 	DBG_871X("%s:%d %s(%d)\n", func, line, __FUNCTION__, us);
+		rtw_usleep_os(us);
+		return;
+	}
+
+
+	//DBG_871X("%s:%d %s(%d)\n", func, line, __FUNCTION__, us);
+	
 	
 #if defined(PLATFORM_LINUX)
 
@@ -1235,20 +1248,30 @@ RETURN:
 int rtw_change_ifname(_adapter *padapter, const char *ifname)
 {
 	struct net_device *pnetdev;
-	struct net_device *old_pnetdev = padapter->pnetdev;
+	struct net_device *cur_pnetdev = padapter->pnetdev;
 	int ret;
 
 	if(!padapter)
 		goto error;
 	
+	//free the old_pnetdev
+	if(padapter->old_pnetdev) {
+		free_netdev(padapter->old_pnetdev);
+		padapter->old_pnetdev = NULL;
+	}
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,26))
 	if(!rtnl_is_locked())
-		unregister_netdev(old_pnetdev);
+		unregister_netdev(cur_pnetdev);
 	else
 #endif
-		unregister_netdevice(old_pnetdev);
+		unregister_netdevice(cur_pnetdev);
 
-	rtw_proc_remove_one(old_pnetdev);
+	#ifdef CONFIG_PROC_DEBUG
+	rtw_proc_remove_one(cur_pnetdev);
+	#endif //CONFIG_PROC_DEBUG
+
+	padapter->old_pnetdev=cur_pnetdev;
 
 	pnetdev = rtw_init_netdev(padapter);
 	if (!pnetdev)  {
@@ -1288,11 +1311,10 @@ int rtw_change_ifname(_adapter *padapter, const char *ifname)
 		goto error;
 	}
 
+	#ifdef CONFIG_PROC_DEBUG
 	rtw_proc_init_one(pnetdev);
+	#endif //CONFIG_PROC_DEBUG
 
-
-	//do free_netdev outside	
-		
 	return 0;
 
 error:

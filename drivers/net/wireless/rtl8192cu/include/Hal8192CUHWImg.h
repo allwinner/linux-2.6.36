@@ -24,7 +24,7 @@
 
 #ifdef CONFIG_BT_COEXISTENCE
 #define TSMCImgArrayLength 14964 //Normal v75 2011-06-15
-#else //#ifdef CONFIG_P2P
+#else
 #define TSMCImgArrayLength 15290 //P2P_PS v75 2011-06-15
 #endif
 

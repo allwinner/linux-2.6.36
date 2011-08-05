@@ -41,6 +41,7 @@ u8 process_p2p_presence_req(struct wifidirect_info *pwdinfo, u8 *pframe, uint le
 
 void process_p2p_ps_ie(PADAPTER padapter, u8 *IEs, u32 IELength);
 void p2p_ps_wk_hdl(_adapter *padapter, u8 p2p_ps_state);
+void p2p_protocol_wk_hdl(_adapter *padapter, int intCmdType);
 u8 p2p_ps_wk_cmd(_adapter*padapter, u8 p2p_ps_state, u8 enqueue);
 
 #endif

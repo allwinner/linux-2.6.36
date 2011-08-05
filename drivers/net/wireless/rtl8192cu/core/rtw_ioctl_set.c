@@ -321,8 +321,7 @@ u8 rtw_set_802_11_bssid(_adapter* padapter, u8 *bssid)
 _func_enter_;
 	
 	RT_TRACE(_module_rtl871x_ioctl_set_c_, _drv_notice_,
-		 ("+rtw_set_802_11_bssid: bssid=%02x:%02x:%02x:%02x:%02x:%02x\n",
-		  bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]));
+		 ("+rtw_set_802_11_bssid: bssid="MAC_FMT"\n", MAC_ARG(bssid) ));
 
 	if ((bssid[0]==0x00 && bssid[1]==0x00 && bssid[2]==0x00 && bssid[3]==0x00 && bssid[4]==0x00 &&bssid[5]==0x00) ||
 	    (bssid[0]==0xFF && bssid[1]==0xFF && bssid[2]==0xFF && bssid[3]==0xFF && bssid[4]==0xFF &&bssid[5]==0xFF))
@@ -333,9 +332,6 @@ _func_enter_;
 		
 	_enter_critical_bh(&pmlmepriv->lock, &irqL);
 
-	RT_TRACE(_module_rtl871x_ioctl_set_c_, _drv_info_,
-		 ("\n rtw_set_802_11_bssid: bssid= 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x\n",
-		  bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]));
 
  	if (check_fwstate(pmlmepriv, _FW_UNDER_SURVEY|_FW_UNDER_LINKING) == _TRUE)
 	{
@@ -356,10 +352,8 @@ _func_enter_;
 				goto _Abort_Set_BSSID;//it means driver is in WIFI_ADHOC_MASTER_STATE, we needn't create bss again.
 		} else {
 			RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,("Set BSSID not the same ssid\n"));
-			RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,("set_bssid=%02x:%02x:%02x:%02x:%02x:%02x\n", bssid[0],bssid[1],bssid[2],bssid[3],bssid[4],bssid[5]));
-			RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,("cur_bssid=%02x:%02x:%02x:%02x:%02x:%02x\n",
-				pmlmepriv->cur_network.network.MacAddress[0],pmlmepriv->cur_network.network.MacAddress[1],pmlmepriv->cur_network.network.MacAddress[2],
-				pmlmepriv->cur_network.network.MacAddress[3],pmlmepriv->cur_network.network.MacAddress[4],pmlmepriv->cur_network.network.MacAddress[5]));
+			RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,("set_bssid="MAC_FMT"\n", MAC_ARG(bssid) ));
+			RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_info_,("cur_bssid="MAC_FMT"\n", MAC_ARG(pmlmepriv->cur_network.network.MacAddress) ));
 
 			rtw_disassoc_cmd(padapter);
 
@@ -1177,7 +1171,7 @@ _func_enter_;
 			{
 				padapter->securitypriv.busetkipkey=_FALSE;
 				
-				_set_timer(&padapter->securitypriv.tkip_timer, 50);
+				//_set_timer(&padapter->securitypriv.tkip_timer, 50);
 				
 				RT_TRACE(_module_rtl871x_ioctl_set_c_,_drv_err_,("\n ==========_set_timer\n"));
 				

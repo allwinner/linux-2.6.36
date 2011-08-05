@@ -44,9 +44,19 @@
 #else
 #include <linux/usb/ch9.h>
 #endif
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
+#define rtw_usb_buffer_alloc(dev, size, mem_flags, dma) usb_alloc_coherent((dev), (size), (mem_flags), (dma))
+#define rtw_usb_buffer_free(dev, size, addr, dma) usb_free_coherent((dev), (size), (addr), (dma))
+#else
+#define rtw_usb_buffer_alloc(dev, size, mem_flags, dma) usb_buffer_alloc((dev), (size), (mem_flags), (dma))
+#define rtw_usb_buffer_free(dev, size, addr, dma) usb_buffer_free((dev), (size), (addr), (dma))
 #endif
 
-#endif
+
+#endif //CONFIG_USB_HCI
+
+#endif //PLATFORM_LINUX
 
 
 #define NUM_IOREQ		8
@@ -416,9 +426,43 @@ extern u16 rtw_read16(_adapter *adapter, u32 addr);
 extern u32 rtw_read32(_adapter *adapter, u32 addr);
 extern void rtw_read_mem(_adapter *adapter, u32 addr, u32 cnt, u8 *pmem);
 extern void rtw_read_port(_adapter *adapter, u32 addr, u32 cnt, u8 *pmem);
-extern void rtw_write8(_adapter *adapter, u32 addr, u8 val);
-extern void rtw_write16(_adapter *adapter, u32 addr, u16 val);
-extern void rtw_write32(_adapter *adapter, u32 addr, u32 val);
+
+#ifdef DBG_IO
+#define DBG_IO_WRITE_SNIFF_ADDR_START 0x80 //0x4c //0x4c // the starting address to sniff
+#define DBG_IO_WRITE_SNIFF_ADDR_END 0x80  //0x4c+ 1 // the ending address to sniff
+extern void _rtw_write8(_adapter *adapter, u32 addr, u8 val);
+extern void _rtw_write16(_adapter *adapter, u32 addr, u16 val);
+extern void _rtw_write32(_adapter *adapter, u32 addr, u32 val);
+#define  rtw_write8(adapter, addr, val) \
+	do { \
+		if((u32)(addr) + 1 > DBG_IO_WRITE_SNIFF_ADDR_START && (u32)(addr) <= DBG_IO_WRITE_SNIFF_ADDR_END) { \
+			DBG_871X("DBG_IO %s:%d rtw_write8(0x%04x, 0x%08x)\n", __FUNCTION__, __LINE__ ,(u32)(addr) ,(u8)(val)); \
+		} \
+		_rtw_write8((adapter), (addr), (val)); \
+	} while(0)
+#define  rtw_write16(adapter, addr, val) \
+	do { \
+		if((u32)(addr) + 2 > DBG_IO_WRITE_SNIFF_ADDR_START && (u32)(addr) <= DBG_IO_WRITE_SNIFF_ADDR_END) { \
+			DBG_871X("DBG_IO %s:%d rtw_write16(0x%04x, 0x%08x)\n", __FUNCTION__, __LINE__ ,(u32)(addr) ,(u16)(val)); \
+		} \
+		_rtw_write16((adapter), (addr), (val)); \
+	} while(0)
+#define  rtw_write32(adapter, addr, val)  \
+	do { \
+		if((u32)(addr) + 4 > DBG_IO_WRITE_SNIFF_ADDR_START && (u32)(addr) <= DBG_IO_WRITE_SNIFF_ADDR_END) { \
+			DBG_871X("DBG_IO %s:%d rtw_write32(0x%04x, 0x%08x)\n", __FUNCTION__, __LINE__ ,(u32)(addr) ,(u32)(val)); \
+		} \
+		_rtw_write32((adapter), (addr), (val)); \
+	} while(0)
+#else //DBG_IO
+extern void _rtw_write8(_adapter *adapter, u32 addr, u8 val);
+extern void _rtw_write16(_adapter *adapter, u32 addr, u16 val);
+extern void _rtw_write32(_adapter *adapter, u32 addr, u32 val);
+#define  rtw_write8(adapter, addr, val) _rtw_write8((adapter), (addr), (val))
+#define  rtw_write16(adapter, addr, val) _rtw_write16((adapter), (addr), (val))
+#define  rtw_write32(adapter, addr, val) _rtw_write32((adapter), (addr), (val))
+#endif //DBG_IO
+
 extern void rtw_writeN(_adapter *adapter, u32 addr, u32 length, u8 *pdata);
 
 extern void rtw_write8_async(_adapter *adapter, u32 addr, u8 val);

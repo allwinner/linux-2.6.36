@@ -102,6 +102,8 @@ _func_enter_;
 	_rtw_init_sema(&pxmitpriv->xmit_sema, 0);
 	_rtw_init_sema(&pxmitpriv->terminate_xmitthread_sema, 0);
 
+	ATOMIC_SET(&pxmitpriv->HwRdyXmitData, 1);
+
 	/* 
 	Please insert all the queue initializaiton using _rtw_init_queue below
 	*/
@@ -635,11 +637,10 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 	} else {
 		psta = rtw_get_stainfo(pstapriv, pattrib->ra);
 		if (psta == NULL)	{ // if we cannot get psta => drrp the pkt
-			RT_TRACE(_module_rtl871x_xmit_c_, _drv_alert_, ("\nupdate_attrib => get sta_info fail \n"));
-			RT_TRACE(_module_rtl871x_xmit_c_, _drv_alert_, ("\nra:%x:%x:%x:%x:%x:%x\n", 
-			pattrib->ra[0], pattrib->ra[1],
-			pattrib->ra[2], pattrib->ra[3],
-			pattrib->ra[4], pattrib->ra[5]));
+			RT_TRACE(_module_rtl871x_xmit_c_, _drv_alert_, ("\nupdate_attrib => get sta_info fail, ra:" MAC_FMT"\n", MAC_ARG(pattrib->ra)));
+			#ifdef DBG_TX_DROP_FRAME
+			DBG_871X("DBG_TX_DROP_FRAME %s get sta_info fail, ra:" MAC_FMT"\n", __FUNCTION__, MAC_ARG(pattrib->ra));
+			#endif
 			res =_FAIL;
 			goto exit;
 		}
@@ -653,11 +654,10 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 	else
 	{
 		// if we cannot get psta => drop the pkt
-		RT_TRACE(_module_rtl871x_xmit_c_, _drv_alert_, ("\nupdate_attrib => get sta_info fail\n"));
-		RT_TRACE(_module_rtl871x_xmit_c_, _drv_alert_,
-			 ("\nra:%x:%x:%x:%x:%x:%x\n",
-			  pattrib->ra[0], pattrib->ra[1], pattrib->ra[2],
-			  pattrib->ra[3], pattrib->ra[4], pattrib->ra[5]));
+		RT_TRACE(_module_rtl871x_xmit_c_, _drv_alert_, ("\nupdate_attrib => get sta_info fail, ra:" MAC_FMT "\n", MAC_ARG(pattrib->ra)));
+		#ifdef DBG_TX_DROP_FRAME
+		DBG_871X("DBG_TX_DROP_FRAME %s get sta_info fail, ra:" MAC_FMT"\n", __FUNCTION__, MAC_ARG(pattrib->ra));
+		#endif
 		res = _FAIL;
 		goto exit;
 	}
@@ -691,7 +691,10 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 
 		if((pattrib->ether_type != 0x888e) && (check_fwstate(pmlmepriv, WIFI_MP_STATE) == _FALSE))
 		{
-			RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\npsta->ieee8021x_blocked == _TRUE pattrib->ether_type(%.4x) != 0x888\n",pattrib->ether_type));
+			RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\npsta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n",pattrib->ether_type));
+			#ifdef DBG_TX_DROP_FRAME
+			DBG_871X("DBG_TX_DROP_FRAME %s psta->ieee8021x_blocked == _TRUE,  pattrib->ether_type(%.4x) != 0x888e\n", __FUNCTION__,pattrib->ether_type);
+			#endif
 			res = _FAIL;
 			goto exit;
 		}
@@ -736,6 +739,9 @@ static s32 update_attrib(_adapter *padapter, _pkt *pkt, struct pkt_attrib *pattr
 			if(padapter->securitypriv.busetkipkey==_FAIL)
 			{
 				RT_TRACE(_module_rtl871x_xmit_c_,_drv_err_,("\npadapter->securitypriv.busetkipkey(%d)==_FAIL drop packet\n", padapter->securitypriv.busetkipkey));
+				#ifdef DBG_TX_DROP_FRAME
+				DBG_871X("DBG_TX_DROP_FRAME %s padapter->securitypriv.busetkipkey(%d)==_FAIL drop packet\n", __FUNCTION__, padapter->securitypriv.busetkipkey);
+				#endif
 				res =_FAIL;
 				goto exit;
 			}
@@ -3279,18 +3285,24 @@ s32 rtw_xmit(_adapter *padapter, _pkt *pkt)
 	pxmitframe = rtw_alloc_xmitframe(pxmitpriv);
 	if (pxmitframe == NULL) {
 		RT_TRACE(_module_xmit_osdep_c_, _drv_err_, ("rtw_xmit: no more pxmitframe\n"));
+		#ifdef DBG_TX_DROP_FRAME
+		DBG_871X("DBG_TX_DROP_FRAME %s no more pxmitframe\n", __FUNCTION__);
+		#endif
 		return -1;
 	}
 
 	res = update_attrib(padapter, pkt, &pxmitframe->attrib);
 	if (res == _FAIL) {
 		RT_TRACE(_module_xmit_osdep_c_, _drv_err_, ("rtw_xmit: update attrib fail\n"));
+		#ifdef DBG_TX_DROP_FRAME
+		DBG_871X("DBG_TX_DROP_FRAME %s update attrib fail\n", __FUNCTION__);
+		#endif
 		rtw_free_xmitframe(pxmitpriv, pxmitframe);
 		return -1;
 	}
 	pxmitframe->pkt = pkt;
 
-	padapter->ledpriv.LedControlHandler(padapter, LED_CTL_TX);
+	rtw_led_control(padapter, LED_CTL_TX);
 
 	if (padapter->HalFunc.hal_xmit(padapter, pxmitframe) == _FALSE)
 		return 1;
@@ -3635,6 +3647,11 @@ void wakeup_sta_to_xmit(_adapter *padapter, struct sta_info *psta)
 			rtw_list_delete(&pxmitframe->list);
 
 			psta_bmc->sleepq_len--;
+			if(psta_bmc->sleepq_len>0)
+				pxmitframe->attrib.mdata = 1;
+			else
+				pxmitframe->attrib.mdata = 0;
+			
 
 			pxmitframe->attrib.triggered = 1;
 

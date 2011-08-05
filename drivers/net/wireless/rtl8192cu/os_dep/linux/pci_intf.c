@@ -1674,9 +1674,7 @@ static int rtw_drv_init(struct pci_dev *pdev, const struct pci_device_id *pdid)
 	rtw_macaddr_cfg(padapter->eeprompriv.mac_addr);
 
 	_rtw_memcpy(pnetdev->dev_addr, padapter->eeprompriv.mac_addr, ETH_ALEN);
-	DBG_8192C("MAC Address from pnetdev->dev_addr= %02x:%02x:%02x:%02x:%02x:%02x\n",
-				pnetdev->dev_addr[0], pnetdev->dev_addr[1], pnetdev->dev_addr[2], 
-				pnetdev->dev_addr[3], pnetdev->dev_addr[4], pnetdev->dev_addr[5]);	
+	DBG_8192C("MAC Address from pnetdev->dev_addr= "MAC_FMT"\n", MAC_ARG(pnetdev->dev_addr));	
 
 
 	padapter->HalFunc.disable_interrupt(padapter);

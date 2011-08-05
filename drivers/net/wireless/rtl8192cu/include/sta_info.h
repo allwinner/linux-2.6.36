@@ -26,6 +26,7 @@
 #include <drv_types.h>
 #include <wifi.h>
 
+#define IBSS_START_MAC_ID	2
 #define NUM_STA 32
 #define NUM_ACL 64
 
@@ -212,7 +213,7 @@ struct sta_info {
 	u8 secdev_types_list[32];// 32/8 == 4;
 	u16 dev_name_len;
 	u8 dev_name[32];	
-#endif
+#endif //CONFIG_P2P
 #endif	
 
 	//for DM

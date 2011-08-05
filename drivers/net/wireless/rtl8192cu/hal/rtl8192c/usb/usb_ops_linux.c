@@ -110,10 +110,11 @@ static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 val
 	
 	if (status < 0)
 	{
-		if(status == (-ESHUTDOWN)	|| status == -ENODEV	)
+		if(status == (-ESHUTDOWN)	|| status == (-ENODEV))
 		{			
 			DBG_8192C("reg 0x%x, usb %s  fail ,status:%d value=0x%x\n", value,(requesttype == 0x01)?"read":"write" , status, *(u32*)pdata);					
-			padapter->bDriverStopped=_TRUE;					
+			padapter->bDriverStopped=_TRUE;				
+			padapter->bSurpriseRemoved=_TRUE;			
 		}
 		else{
 			DBG_8192C("reg 0x%x, usb %s  fail ,status:%d value=0x%x\n", value,(requesttype == 0x01)?"read":"write" , status, *(u32*)pdata);		
@@ -129,16 +130,16 @@ static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 val
 	}
 	else if ( status > 0 )   // Success this control transfer.
 	{
-               if ( requesttype == 0x01 )
-               {   // For Control read transfer, we have to copy the read data from pIo_buf to pdata.
-                       _rtw_memcpy( pdata, pIo_buf,  status );
-               }
+             if ( requesttype == 0x01 )
+             {   // For Control read transfer, we have to copy the read data from pIo_buf to pdata.
+             	 _rtw_memcpy( pdata, pIo_buf,  status );
+		}	
 	}
 	_exit_critical_mutex(&pdvobjpriv->usb_vendor_req_mutex, NULL);
 	return status;
 
 }
-#else
+#else	// CONFIG_USB_VENDOR_REQ_PREALLOC
 
 static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 value, u16 index, void *pdata, u16 len, u8 requesttype)
 {
@@ -148,15 +149,9 @@ static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 val
 	u8 reqtype;
 
 
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
-	dma_addr_t dma_addr;
-#else
-
 #ifndef CONFIG_DYNAMIC_ALLOCIATE_VENDOR_CMD
 
 	u8 tmp_buf[MAX_USB_IO_CTL_SIZE];
-#endif
-
 #endif
 	
 	struct usb_device *udev=pdvobjpriv->pusbdev;
@@ -181,24 +176,6 @@ static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 val
 		return(-1);
 	}
 	
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
-	pIo_buf = usb_alloc_coherent(udev, (size_t)len, GFP_ATOMIC, &dma_addr);
-#else
-	pIo_buf = usb_buffer_alloc(udev, (size_t)len, GFP_ATOMIC, &dma_addr);
-#endif	
-
-	if(pIo_buf == NULL)
-	{
-		DBG_8192C( "[%s] Can't alloc memory for vendor request\n", __FUNCTION__);
-		return(-1);
-	}
-
-	_rtw_memset(pIo_buf, 0, len);
-
-#else
-
 #ifdef CONFIG_DYNAMIC_ALLOCIATE_VENDOR_CMD
 	palloc_buf = rtw_malloc( (u32) len + ALIGNMENT_UNIT);
 	tmp_buflen =  (u32)len + ALIGNMENT_UNIT;
@@ -216,8 +193,6 @@ static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 val
 	_rtw_memset(palloc_buf, 0, tmp_buflen);		
 	
 	pIo_buf = palloc_buf + ALIGNMENT_UNIT -((SIZE_PTR)(palloc_buf) & 0x0f );	
-		
-#endif
 
 
 	if (requesttype == 0x01)
@@ -263,26 +238,15 @@ static int usbctrl_vendorreq(struct dvobj_priv  *pdvobjpriv, u8 request, u16 val
                }
 	}
 
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
-
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,35))
-	usb_free_coherent(udev, (size_t)len, pIo_buf, dma_addr);
-#else
-	usb_buffer_free(udev, (size_t)len, pIo_buf, dma_addr);
-#endif
-
-#else
-
 #ifdef CONFIG_DYNAMIC_ALLOCIATE_VENDOR_CMD
 	rtw_mfree( palloc_buf,tmp_buflen);
-#endif
-
 #endif
 
 	return status;
 
 }
-#endif
+#endif	// CONFIG_USB_VENDOR_REQ_PREALLOC
+
 static u8 usb_read8(struct intf_hdl *pintfhdl, u32 addr)
 {
 	u8 request;
@@ -799,15 +763,14 @@ _func_exit_;
 }
 #endif
 
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
+#ifdef CONFIG_USE_USB_BUFFER_ALLOC_RX
 static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 {
 	u8	*pbuf;
-	u8	qos, shift_sz = 0;
+	u8	frag, mf, shift_sz = 0;
 	u16	pkt_cnt, drvinfo_sz;
-	u32	pkt_len, pkt_offset,  tmpaddr = 0;
+	u32	pkt_len, pkt_offset, skb_len, alloc_sz;
 	s32	transfer_len;
-	int	alignment = 0;
 	struct recv_stat	*prxstat;
 	_pkt	*pkt_copy = NULL;	
 	union recv_frame	*precvframe = NULL; 
@@ -838,8 +801,11 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 		pkt_len =  le32_to_cpu(prxstat->rxdw0)&0x00003fff;	
 		
 
-		drvinfo_sz = (le32_to_cpu(prxstat->rxdw0) & 0x000f0000) >> 16;//uint 2^3 = 8 bytes
-		drvinfo_sz = drvinfo_sz << 3;
+		mf = (le32_to_cpu(prxstat->rxdw1) >> 27) & 0x1;//more fragment bit
+		frag = (le32_to_cpu(prxstat->rxdw2) >> 12) & 0xf;//fragmentation number
+
+		drvinfo_sz = (le32_to_cpu(prxstat->rxdw0) & 0x000f0000) >> 16;
+		drvinfo_sz = drvinfo_sz << 3;//uint (2^3) = 8 bytes; REG_RX_DRVINFO_SZ
 		RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("recvbuf2recvframe: DRV_INFO_SIZE=%d\n", drvinfo_sz));
 
 		pkt_offset = pkt_len + drvinfo_sz + RXDESC_SIZE;
@@ -849,16 +815,17 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 			RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("recvbuf2recvframe: pkt_len<=0\n"));
 			goto _exit_recvbuf2recvframe;
 		}		
-	
-#if 0
-		shift_sz = (le32_to_cpu(prxstat->rxdw0) & 0x03000000) >> 24;
-#else
-		//shift_sz deponds on qos bit
-		qos = (le32_to_cpu(prxstat->rxdw0) & 0x00800000) >> 23;
+
 		//	Modified by Albert 20101213
 		//	For 8 bytes IP header alignment.
-		shift_sz = (qos==1) ? 6:0;
-#endif
+		if ( ( le32_to_cpu( prxstat->rxdw0 ) >> 23 ) & 0x01 )	//	Qos data, wireless lan header length is 26
+		{
+			shift_sz = 6;
+		}
+		else
+		{
+			shift_sz = 0;
+		}
 
 		precvframe = rtw_alloc_recvframe(pfree_recv_queue);
 		if(precvframe==NULL)
@@ -871,29 +838,43 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 		precvframe->u.hdr.precvbuf = NULL;	//can't access the precvbuf for new arch.
 		precvframe->u.hdr.len=0;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)) // http://www.mail-archive.com/netdev@vger.kernel.org/msg17214.html
-		pkt_copy = dev_alloc_skb((pkt_offset>1612?pkt_offset:1612) + shift_sz + 8);		
-#else			
-		pkt_copy = netdev_alloc_skb(padapter->pnetdev, (pkt_offset>1612?pkt_offset:1612) + shift_sz + 8);
-#endif		
+		//skb_len = pkt_offset;
+		skb_len = pkt_len;
 
+		// for first fragment packet, driver need allocate 1536+drvinfo_sz+RXDESC_SIZE to defrag packet.
+		// modify alloc_sz for recvive crc error packet by thomas 2011-06-02
+		if((mf ==1)&&(frag == 0)){
+			//alloc_sz = 1664;	//1664 is 128 alignment.
+			if(skb_len <= 1650)
+				alloc_sz = 1664;
+			else
+				alloc_sz = skb_len + 14;
+		}
+		else {
+			alloc_sz = skb_len;
+			//	6 is for IP header 8 bytes alignment in QoS packet case.
+			//	8 is for skb->data 4 bytes alignment.
+			alloc_sz += 14;
+		}
+	
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)) // http://www.mail-archive.com/netdev@vger.kernel.org/msg17214.html
+		pkt_copy = dev_alloc_skb(alloc_sz);
+#else			
+		pkt_copy = netdev_alloc_skb(padapter->pnetdev, alloc_sz);
+#endif		
 		if(pkt_copy)
-		{					
-			tmpaddr = (u32)pkt_copy->data;	
-			alignment = tmpaddr & (7);			
-			skb_reserve(pkt_copy, (8 - alignment));//force pkt_copy->data at 8-byte alignment address
-			
-			skb_reserve(pkt_copy, shift_sz);//force ip_hdr at 8-byte alignment address according to shift_sz.
-			
-			//pkt_copy->dev = padapter->pnetdev;
-			
-			_rtw_memcpy(pkt_copy->data, pbuf, pkt_offset);
+		{
+			pkt_copy->dev = padapter->pnetdev;
 			precvframe->u.hdr.pkt = pkt_copy;
+			skb_reserve( pkt_copy, 8 - ((SIZE_PTR)( pkt_copy->data ) & 7 ));//force pkt_copy->data at 8-byte alignment address
+			skb_reserve( pkt_copy, shift_sz );//force ip_hdr at 8-byte alignment address according to shift_sz.
+			_rtw_memcpy(pkt_copy->data, (pbuf + drvinfo_sz + RXDESC_SIZE), skb_len);
 			precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail = pkt_copy->data;
-			precvframe->u.hdr.rx_end = pkt_copy->data + (pkt_offset>1612?pkt_offset:1612);
+			precvframe->u.hdr.rx_end = pkt_copy->data + alloc_sz;
 		}
 		else
-		{	
+		{
 			DBG_8192C("recvbuf2recvframe:can not allocate memory for skb copy\n");				
 			//precvframe->u.hdr.pkt = skb_clone(pskb, GFP_ATOMIC);	
 			//precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail = pbuf;
@@ -905,10 +886,10 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 			goto _exit_recvbuf2recvframe;
 		}
 
-		recvframe_put(precvframe, pkt_len + drvinfo_sz + RXDESC_SIZE);
-		recvframe_pull(precvframe, drvinfo_sz + RXDESC_SIZE);	
+		recvframe_put(precvframe, skb_len);
+		//recvframe_pull(precvframe, drvinfo_sz + RXDESC_SIZE);	
 
-#if CONFIG_USB_RX_AGGREGATION	
+#ifdef CONFIG_USB_RX_AGGREGATION
 		switch(pHalData->UsbRxAggMode)
 		{
 			case USB_RX_AGG_DMA:
@@ -926,14 +907,13 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 
 		//because the endian issue, driver avoid reference to the rxstat after calling update_recvframe_attrib_from_recvstat();
 		rtl8192cu_update_recvframe_attrib_from_recvstat(precvframe, prxstat);		
-		
+
 		if(rtw_recv_entry(precvframe) != _SUCCESS)
 		{
-			RT_TRACE(_module_rtl871x_recv_c_,_drv_err_,("recvbuf2recvframe: rtw_rtw_recv_entry(precvframe) != _SUCCESS\n"));
+			RT_TRACE(_module_rtl871x_recv_c_,_drv_err_,("recvbuf2recvframe: rtw_recv_entry(precvframe) != _SUCCESS\n"));
 		}
 
 		pkt_cnt--;
-	
 		transfer_len -= pkt_offset;
 		pbuf += pkt_offset;	
 		precvframe = NULL;
@@ -946,8 +926,7 @@ static int recvbuf2recvframe(_adapter *padapter, struct recv_buf *precvbuf)
 
 _exit_recvbuf2recvframe:
 
-	return _SUCCESS;
-	
+	return _SUCCESS;	
 }
 
 void rtl8192cu_recv_tasklet(void *priv)
@@ -1027,7 +1006,14 @@ static void usb_read_port_complete(struct urb *purb, struct pt_regs *regs)
 				padapter->bDriverStopped=_TRUE;			
 				RT_TRACE(_module_hci_ops_os_c_,_drv_err_,("usb_read_port_complete:bDriverStopped=TRUE\n"));
 				break;
-			case -EPROTO:				
+			case -EPROTO:
+				#ifdef SILENT_RESET_FOR_SPECIFIC_PLATFOM	
+				{	
+					HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(padapter);
+					pHalData->srestpriv.Wifi_Error_Status = USB_READ_PORT_FAIL;			
+				}
+				#endif
+				
 				if(ATOMIC_INC_RETURN(&padapter->dvobjpriv.continual_urb_error) > MAX_CONTINUAL_URB_ERR) {
 					DBG_871X("continual_urb_error > %d\n", MAX_CONTINUAL_URB_ERR);
 					break;
@@ -1060,6 +1046,8 @@ static u32 usb_read_port(struct intf_hdl *pintfhdl, u32 addr, u32 cnt, u8 *rmem)
 	struct recv_priv	*precvpriv = &adapter->recvpriv;
 	struct usb_device	*pusbd = pdvobj->pusbdev;
 
+_func_enter_;
+	
 	if(adapter->bDriverStopped || adapter->bSurpriseRemoved ||adapter->pwrctrlpriv.pnp_bstop_trx)
 	{
 		RT_TRACE(_module_hci_ops_os_c_,_drv_err_,("usb_read_port:( padapter->bDriverStopped ||padapter->bSurpriseRemoved ||adapter->pwrctrlpriv.pnp_bstop_trx)!!!\n"));
@@ -1104,11 +1092,12 @@ static u32 usb_read_port(struct intf_hdl *pintfhdl, u32 addr, u32 cnt, u8 *rmem)
 		RT_TRACE(_module_hci_ops_os_c_,_drv_err_,("usb_read_port:precvbuf ==NULL\n"));
 		ret = _FAIL;
 	}
-			
+
+_func_exit_;
+
 	return ret;
-	
 }
-#else
+#else	// CONFIG_USE_USB_BUFFER_ALLOC_RX
 static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 {
 	u8	*pbuf;
@@ -1182,7 +1171,8 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 		precvframe->u.hdr.precvbuf = NULL;	//can't access the precvbuf for new arch.
 		precvframe->u.hdr.len=0;
 
-		skb_len = pkt_offset;
+		//skb_len = pkt_offset;
+		skb_len = pkt_len;
 
 		// for first fragment packet, driver need allocate 1536+drvinfo_sz+RXDESC_SIZE to defrag packet.
 		// modify alloc_sz for recvive crc error packet by thomas 2011-06-02
@@ -1212,20 +1202,27 @@ static int recvbuf2recvframe(_adapter *padapter, _pkt *pskb)
 			precvframe->u.hdr.pkt = pkt_copy;
 			skb_reserve( pkt_copy, 8 - ((SIZE_PTR)( pkt_copy->data ) & 7 ));//force pkt_copy->data at 8-byte alignment address
 			skb_reserve( pkt_copy, shift_sz );//force ip_hdr at 8-byte alignment address according to shift_sz.
-			_rtw_memcpy(pkt_copy->data, pbuf, skb_len);
+			_rtw_memcpy(pkt_copy->data, (pbuf + drvinfo_sz + RXDESC_SIZE), skb_len);
 			precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail = pkt_copy->data;
 			precvframe->u.hdr.rx_end = pkt_copy->data + alloc_sz;
 		}
 		else
-		{	
-			//DBG_8192C("recvbuf2recvframe:can not allocate memory for skb copy\n");				
-			precvframe->u.hdr.pkt = skb_clone(pskb, GFP_ATOMIC);	
-			precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail = pbuf;
-			precvframe->u.hdr.rx_end = pbuf + alloc_sz;
+		{
+			precvframe->u.hdr.pkt = skb_clone(pskb, GFP_ATOMIC);
+			if(pkt_copy)
+			{
+				precvframe->u.hdr.rx_head = precvframe->u.hdr.rx_data = precvframe->u.hdr.rx_tail = pbuf;
+				precvframe->u.hdr.rx_end = pbuf + alloc_sz;
+			}
+			else
+			{
+				DBG_8192C("recvbuf2recvframe: skb_clone fail\n");
+				goto _exit_recvbuf2recvframe;
+			}
 		}
 
 		recvframe_put(precvframe, skb_len);
-		recvframe_pull(precvframe, drvinfo_sz + RXDESC_SIZE);	
+		//recvframe_pull(precvframe, drvinfo_sz + RXDESC_SIZE);	
 
 #ifdef CONFIG_USB_RX_AGGREGATION
 		switch(pHalData->UsbRxAggMode)
@@ -1538,7 +1535,7 @@ _func_exit_;
 
 	return ret;
 }
-#endif
+#endif	// CONFIG_USE_USB_BUFFER_ALLOC_RX
 
 static void usb_read_port_cancel(struct intf_hdl *pintfhdl)
 {
@@ -1553,7 +1550,7 @@ static void usb_read_port_cancel(struct intf_hdl *pintfhdl)
 
 	for(i=0; i < NR_RECVBUFF ; i++)	
 	{
-		precvbuf->reuse == _TRUE;	
+		precvbuf->reuse = _TRUE;	
 		if(precvbuf->purb)	
 		{
 			//DBG_8192C("usb_read_port_cancel : usb_kill_urb \n");
@@ -1623,6 +1620,11 @@ _func_enter_;
 			break;
 		case XMIT_BK_QUEUE:
 			pxmitpriv->bkq_cnt--;			
+			break;
+		case HIGH_QUEUE_INX:
+#ifdef CONFIG_AP_MODE			
+			rtw_chk_hi_queue_cmd(padapter);
+#endif
 			break;
 		default:			
 			break;
@@ -1799,6 +1801,9 @@ _func_enter_;
 			pxmitpriv->bkq_cnt++;
 			pxmitbuf->flags = XMIT_BK_QUEUE;
 			break;
+		case HIGH_QUEUE_INX:
+			pxmitbuf->flags = HIGH_QUEUE_INX;
+			break;
 		default:
 			pxmitbuf->flags = XMIT_VO_QUEUE;
 			break;
@@ -1880,11 +1885,11 @@ _func_enter_;
               			usb_write_port_complete,
               			pxmitbuf);//context is pxmitbuf
               			
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
+#ifdef CONFIG_USE_USB_BUFFER_ALLOC_TX
 	purb->transfer_dma = pxmitbuf->dma_transfer_addr;
 	purb->transfer_flags |= URB_NO_TRANSFER_DMA_MAP;
 	purb->transfer_flags |= URB_ZERO_PACKET;
-#endif
+#endif	// CONFIG_USE_USB_BUFFER_ALLOC_TX
               			
 #if 0
 	if (bwritezero)

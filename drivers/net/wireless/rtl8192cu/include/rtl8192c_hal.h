@@ -185,7 +185,7 @@
 #endif
 
 #define DRVINFO_SZ	4 // unit is 8bytes
-#define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
+#define PageNum_128(_Len)		(u32)(((_Len)>>7) + ((_Len)&0x7F ? 1:0))
 
 #define FW_8192C_SIZE					16384+32//16k
 #define FW_8192C_START_ADDRESS		0x1000
@@ -643,7 +643,7 @@ struct hal_data_8192ce
 	
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
-#endif
+#endif //CONFIG_P2P
 };
 
 typedef struct hal_data_8192ce HAL_DATA_TYPE, *PHAL_DATA_TYPE;
@@ -851,7 +851,7 @@ struct hal_data_8192cu
 
 #ifdef CONFIG_P2P
 	struct P2P_PS_Offload_t	p2p_ps_offload;
-#endif
+#endif //CONFIG_P2P
 };
 
 typedef struct hal_data_8192cu HAL_DATA_TYPE, *PHAL_DATA_TYPE;

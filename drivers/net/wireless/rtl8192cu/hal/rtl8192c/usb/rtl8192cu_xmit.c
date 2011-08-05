@@ -418,15 +418,15 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 	sint	bmcst = IS_MCAST(pattrib->ra);
 #ifdef CONFIG_P2P
 	struct wifidirect_info*	pwdinfo = &padapter->wdinfo;
-#endif
+#endif //CONFIG_P2P
 
-#ifndef CONFIG_USE_USB_BUFFER_ALLOC
+#ifndef CONFIG_USE_USB_BUFFER_ALLOC_TX
 	if(urb_zero_packet_chk(padapter, sz)==0)
 	{
 		ptxdesc = (struct tx_desc *)(pmem+PACKET_OFFSET_SZ);
 		pull = 1;
 	}
-#endif
+#endif	// CONFIG_USE_USB_BUFFER_ALLOC_TX
 
 	_rtw_memset(ptxdesc, 0, sizeof(struct tx_desc));
 
@@ -504,7 +504,7 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 			{
 				ptxdesc->txdw5 |= cpu_to_le32( 0x04 );	//	Use the 6M data rate.
 			}
-#endif			
+#endif //CONFIG_P2P		
 
 		}
 		
@@ -552,7 +552,7 @@ static s32 update_txdesc(struct xmit_frame *pxmitframe, u8 *pmem, s32 sz)
 		{
 			ptxdesc->txdw5 |= cpu_to_le32( 0x04 );	//	Use the 6M data rate.
 		}
-#endif
+#endif //CONFIG_P2P
 		
 	}
 	else if((pxmitframe->frame_tag&0x0f) == TXAGG_FRAMETAG)
@@ -955,7 +955,7 @@ s32 rtl8192cu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 			rtw_issue_addbareq_cmd(padapter, pfirstframe);
 	}
 
-#ifndef CONFIG_USE_USB_BUFFER_ALLOC
+#ifndef CONFIG_USE_USB_BUFFER_ALLOC_TX
 	//3 3. update first frame txdesc
 	if ((pbuf_tail % bulkSize) == 0) {
 		// remove pkt_offset
@@ -963,7 +963,7 @@ s32 rtl8192cu_xmitframe_complete(_adapter *padapter, struct xmit_priv *pxmitpriv
 		pfirstframe->buf_addr += PACKET_OFFSET_SZ;
 		pfirstframe->pkt_offset = 0;
 	}
-#endif	
+#endif	// CONFIG_USE_USB_BUFFER_ALLOC_TX
 	_update_txdesc(pfirstframe, pfirstframe->buf_addr, pfirstframe->attrib.last_txcmdsz);
 
 	//3 4. write xmit buffer to USB FIFO

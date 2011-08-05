@@ -1019,8 +1019,13 @@ phy_ConfigBBWithHeaderFile(
 	{
 		for(i=0;i<PHY_REGArrayLen;i=i+2)
 		{
-			if (Rtl819XPHY_REGArray_Table[i] == 0xfe)
+			if (Rtl819XPHY_REGArray_Table[i] == 0xfe){
+				#ifdef CONFIG_LONG_DELAY_ISSUE
+				rtw_msleep_os(50);
+				#else
 				rtw_mdelay_os(50);
+				#endif
+			}
 			else if (Rtl819XPHY_REGArray_Table[i] == 0xfd)
 				rtw_mdelay_os(5);
 			else if (Rtl819XPHY_REGArray_Table[i] == 0xfc)
@@ -1254,8 +1259,13 @@ phy_ConfigBBWithPgHeaderFile(
 	{
 		for(i=0;i<PHY_REGArrayPGLen;i=i+3)
 		{
-			if (Rtl819XPHY_REGArray_Table_PG[i] == 0xfe)
+			if (Rtl819XPHY_REGArray_Table_PG[i] == 0xfe){
+				#ifdef CONFIG_LONG_DELAY_ISSUE
+				rtw_msleep_os(50);
+				#else
 				rtw_mdelay_os(50);
+				#endif
+			}
 			else if (Rtl819XPHY_REGArray_Table_PG[i] == 0xfd)
 				rtw_mdelay_os(5);
 			else if (Rtl819XPHY_REGArray_Table_PG[i] == 0xfc)
@@ -1433,14 +1443,24 @@ phy_ConfigBBWithMpHeaderFile(
 	{
 		for(i=0;i<PHY_REGArrayMPLen;i=i+2)
 		{
-			if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfe)
+			if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfe) {
+				#ifdef CONFIG_LONG_DELAY_ISSUE
+				rtw_msleep_os(50);
+				#else
 				rtw_mdelay_os(50);
+				#endif
+			}
 			else if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfd)
 				rtw_mdelay_os(5);
 			else if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfc)
 				rtw_mdelay_os(1);
-			else if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfb)
+			else if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfb) {
+				#ifdef CONFIG_LONG_DELAY_ISSUE
+				rtw_msleep_os(50);
+				#else
 				rtw_mdelay_os(50);
+				#endif
+			}
 			else if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xfa)
 				rtw_mdelay_os(5);
 			else if (Rtl8192CPHY_REGArray_Table_MP[i] == 0xf9)
@@ -1996,8 +2016,13 @@ rtl8192c_PHY_ConfigRFWithHeaderFile(
 		case RF90_PATH_A:
 			for(i = 0;i<RadioA_ArrayLen; i=i+2)
 			{
-				if(Rtl819XRadioA_Array_Table[i] == 0xfe)
+				if(Rtl819XRadioA_Array_Table[i] == 0xfe) {
+					#ifdef CONFIG_LONG_DELAY_ISSUE
+					rtw_msleep_os(50);
+					#else
 					rtw_mdelay_os(50);
+					#endif
+				}
 				else if (Rtl819XRadioA_Array_Table[i] == 0xfd)
 					rtw_mdelay_os(5);
 				else if (Rtl819XRadioA_Array_Table[i] == 0xfc)
@@ -2024,9 +2049,17 @@ rtl8192c_PHY_ConfigRFWithHeaderFile(
 				if(Rtl819XRadioB_Array_Table[i] == 0xfe)
 				{ // Deay specific ms. Only RF configuration require delay.												
 #if 0//#ifdef CONFIG_USB_HCI
+					#ifdef CONFIG_LONG_DELAY_ISSUE
+					rtw_msleep_os(1000);
+					#else
 					rtw_mdelay_os(1000);
+					#endif
 #else
+					#ifdef CONFIG_LONG_DELAY_ISSUE
+					rtw_msleep_os(50);
+					#else
 					rtw_mdelay_os(50);
+					#endif
 #endif
 				}
 				else if (Rtl819XRadioB_Array_Table[i] == 0xfd)
@@ -2083,7 +2116,7 @@ PHY_CheckBBAndRFOK(
 {
 	int			rtStatus = _SUCCESS;
 
-	u32				i, CheckTimes = 4,ulRegRead;
+	u32				i, CheckTimes = 4,ulRegRead = 0;
 
 	u32				WriteAddr[4];
 	u32				WriteData[] = {0xfffff027, 0xaa55a02f, 0x00000027, 0x55aa502f};
@@ -3944,7 +3977,7 @@ _PHY_LCCalibrate(
 	)
 {
 	u8	tmpReg;
-	u32 	RF_Amode, RF_Bmode, LC_Cal;
+	u32 	RF_Amode = 0, RF_Bmode = 0, LC_Cal;
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(pAdapter);
 	BOOLEAN	isNormal = IS_NORMAL_CHIP(pHalData->VersionID);
 
@@ -3981,8 +4014,13 @@ _PHY_LCCalibrate(
 	//4. Set LC calibration begin
 	PHY_SetRFReg(pAdapter, RF90_PATH_A, 0x18, bMask12Bits, LC_Cal|0x08000);
 
-	if(isNormal)
+	if(isNormal) {
+		#ifdef CONFIG_LONG_DELAY_ISSUE
+		rtw_msleep_os(100);	
+		#else
 		rtw_mdelay_os(100);		
+		#endif
+	}
 	else
 		rtw_mdelay_os(3);
 
@@ -4398,8 +4436,13 @@ _PHY_APCalibrate(
 					rtw_mdelay_os(3);				
 					PHY_SetBBReg(pAdapter, APK_offset[path], bMaskDWord, APK_value[1]);
 					//RTPRINT(FINIT, INIT_IQK, ("PHY_APCalibrate() offset 0x%x value 0x%x\n", APK_offset[path], PHY_QueryBBReg(pAdapter, APK_offset[path], bMaskDWord)));
-					if(isNormal)
+					if(isNormal) {
+						#ifdef CONFIG_LONG_DELAY_ISSUE
+						rtw_msleep_os(20);
+						#else
 					    rtw_mdelay_os(20);
+						#endif
+					}
 					else
 					    rtw_mdelay_os(3);
 				}
@@ -4680,7 +4723,11 @@ _PHY_DigitalPredistortion(
 		PHY_SetBBReg(pAdapter, 0xb28, bMaskDWord, 0x80047788);
 		rtw_mdelay_os(1);
 		PHY_SetBBReg(pAdapter, 0xb28, bMaskDWord, 0x00047788);
+		#ifdef CONFIG_LONG_DELAY_ISSUE
+		rtw_msleep_os(50);
+		#else
 		rtw_mdelay_os(50);
+		#endif
 	}
 
 	//PA gain = 11 => tx_agc = 1a
@@ -4710,7 +4757,11 @@ _PHY_DigitalPredistortion(
 	PHY_SetBBReg(pAdapter, 0xb28, bMaskDWord, 0x800477c0);
 	rtw_mdelay_os(1);
 	PHY_SetBBReg(pAdapter, 0xb28, bMaskDWord, 0x000477c0);
+	#ifdef CONFIG_LONG_DELAY_ISSUE
+	rtw_msleep_os(50);
+	#else
 	rtw_mdelay_os(50);
+	#endif
 
 	while(RetryCount < DP_RETRY_LIMIT && !pdmpriv->bDPPathAOK)
 	{
@@ -4734,7 +4785,11 @@ _PHY_DigitalPredistortion(
 			PHY_SetBBReg(pAdapter, 0xb28, bMaskDWord, 0x800477c0);
 			rtw_mdelay_os(1);			
 			PHY_SetBBReg(pAdapter, 0xb28, bMaskDWord, 0x000477c0);			
+			#ifdef CONFIG_LONG_DELAY_ISSUE
+			rtw_msleep_os(50);
+			#else
 			rtw_mdelay_os(50);			
+			#endif
 			RetryCount++;			
 			DBG_8192C("path A DPK RetryCount %d 0xbe0[31:16] %x 0xbe8[31:16] %x\n", RetryCount, tmpReg, tmpReg2);
 		}
@@ -4820,7 +4875,11 @@ _PHY_DigitalPredistortion(
 			PHY_SetBBReg(pAdapter, 0xb98, bMaskDWord, 0x80047788);
 			rtw_mdelay_os(1);
 			PHY_SetBBReg(pAdapter, 0xb98, bMaskDWord, 0x00047788);
+			#ifdef CONFIG_LONG_DELAY_ISSUE
+			rtw_msleep_os(50);
+			#else
 			rtw_mdelay_os(50);
+			#endif
 		}
 
 		// PA gain = 11 => tx_agc = 1a	
@@ -4850,7 +4909,11 @@ _PHY_DigitalPredistortion(
 		PHY_SetBBReg(pAdapter, 0xb98, bMaskDWord, 0x800477c0);		
 		rtw_mdelay_os(1);	
 		PHY_SetBBReg(pAdapter, 0xb98, bMaskDWord, 0x000477c0);		
+		#ifdef CONFIG_LONG_DELAY_ISSUE
+		rtw_msleep_os(50);
+		#else
 		rtw_mdelay_os(50);
+		#endif
 		
 		while(RetryCount < DP_RETRY_LIMIT && !pdmpriv->bDPPathBOK)
 		{
@@ -4873,7 +4936,11 @@ _PHY_DigitalPredistortion(
 				PHY_SetBBReg(pAdapter, 0xb98, bMaskDWord, 0x800477c0);
 				rtw_mdelay_os(1);
 				PHY_SetBBReg(pAdapter, 0xb98, bMaskDWord, 0x000477c0);
+				#ifdef CONFIG_LONG_DELAY_ISSUE
+				rtw_msleep_os(50);
+				#else
 				rtw_mdelay_os(50);
+				#endif
 				RetryCount++;
 				DBG_8192C("path B DPK RetryCount %d 0xbf0[31:16] %x, 0xbf8[31:16] %x\n", RetryCount , tmpReg, tmpReg2);
 			}
@@ -5166,8 +5233,15 @@ rtl8192c_PHY_IQCalibrate(
 	}
 	else
 	{
+
+		#if 0
+		DBG_871X("%s do _PHY_ReloadADDARegisters\n");
+		_PHY_ReloadADDARegisters(pAdapter, IQK_BB_REG, pdmpriv->IQK_BB_backup_recover, 9);
+		return;
+		#else
 		pdmpriv->RegE94 = pdmpriv->RegEB4 = 0x100;	//X default value
 		pdmpriv->RegE9C = pdmpriv->RegEBC = 0x0;		//Y default value
+		#endif
 	}
 	
 	if((RegE94 != 0)/*&&(RegEA4 != 0)*/)

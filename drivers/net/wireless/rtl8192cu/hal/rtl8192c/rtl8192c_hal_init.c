@@ -156,6 +156,14 @@ _FWDownloadEnable(
 
 	if(enable)
 	{
+		#ifdef DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE
+		{
+			u8 val;
+			if( (val=rtw_read8(Adapter, REG_MCUFWDL)))
+				DBG_871X("DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE %s:%d REG_MCUFWDL:0x%02x\n", __FUNCTION__, __LINE__, val);
+		}
+		#endif
+	
 		// 8051 enable
 		tmp = rtw_read8(Adapter, REG_SYS_FUNC_EN+1);
 		rtw_write8(Adapter, REG_SYS_FUNC_EN+1, tmp|0x04);
@@ -223,7 +231,7 @@ _BlockWrite(
 	u32			blockSize2  	= sizeof(u8);
 #endif
 	u8*			bufferPtr	= (u8*)buffer;
-	u32			i, offset, offset2, blockCount, remainSize, remainSize2;
+	u32			i, offset = 0, offset2, blockCount, remainSize, remainSize2;
 
 	blockCount = size / blockSize;
 	remainSize = size % blockSize;
@@ -353,6 +361,7 @@ static int _FWFreeToGo(
 {
 	u32			counter = 0;
 	u32			value32;
+	u32	restarted = _FALSE;
 	
 	// polling CheckSum report
 	do{
@@ -371,6 +380,8 @@ static int _FWFreeToGo(
 	value32 &= ~WINTINI_RDY;
 	rtw_write32(Adapter, REG_MCUFWDL, value32);
 	
+
+POLLING_FW_READY:	
 	// polling for FW ready
 	counter = 0;
 	do
@@ -383,6 +394,18 @@ static int _FWFreeToGo(
 	}while(counter++ < POLLING_READY_TIMEOUT_COUNT);
 
 	DBG_8192C("Polling FW ready fail!! REG_MCUFWDL:0x%08x .\n", rtw_read32(Adapter, REG_MCUFWDL));
+
+	if(restarted == _FALSE) {
+		u8 tmp = rtw_read8(Adapter, REG_SYS_FUNC_EN+1);
+		DBG_8192C("Reset 51 write8 REG_SYS_FUNC_EN:0x%04x\n", tmp & ~BIT2);
+		rtw_write8(Adapter, REG_SYS_FUNC_EN+1, tmp & ~BIT2);
+		DBG_8192C("Reset 51 write8 REG_SYS_FUNC_EN:0x%04x\n", tmp|BIT2);
+		rtw_write8(Adapter, REG_SYS_FUNC_EN+1, tmp|BIT2);
+		restarted = _TRUE;
+		goto POLLING_FW_READY;
+	}
+		
+	
 	return _FAIL;
 	
 }
@@ -418,10 +441,17 @@ rtl8192c_FirmwareSelfReset(
 		{
 			DBG_8192C("FirmwareDownload92C():fw reset by itself Fail!!!!!! 0x03 = %x\n", u1bTmp);
 			//RT_ASSERT(FALSE, ("PowerOffAdapter8192CE(): 0x03 = %x\n", u1bTmp));
+			#ifdef DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE
+			{
+				u8 val;
+				if( (val=rtw_read8(Adapter, REG_MCUFWDL)))
+					DBG_871X("DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE %s:%d REG_MCUFWDL:0x%02x\n", __FUNCTION__, __LINE__, val);
+			}
+			#endif
 			rtw_write8(Adapter,REG_SYS_FUNC_EN+1,(rtw_read8(Adapter, REG_SYS_FUNC_EN+1)&~BIT2));
 		}
 
-		DBG_8192C("=====> 8051 reset success (%d) .\n", Delay);
+		DBG_8192C("%s =====> 8051 reset success (%d) .\n", __FUNCTION__ ,Delay);
 	}
 }
 
@@ -440,8 +470,8 @@ int FirmwareDownload92C(
 	s8 			R92CFwImageFileName_UMC[] ={RTL8192C_FW_UMC_IMG};
 	s8 			R92CFwImageFileName_UMC_B[] ={RTL8192C_FW_UMC_B_IMG};
 	//s8 			R8723FwImageFileName_UMC[] ={RTL8723_FW_UMC_IMG};
-	u8*			FwImage;
-	u32			FwImageLen;
+	u8*			FwImage = NULL;
+	u32			FwImageLen = 0;
 	char*		pFwImageFileName;	
 	u8*			pucMappedFile = NULL;
 	//vivi, merge 92c and 92s into one driver, 20090817
@@ -1264,7 +1294,7 @@ ReadEFuse_RTL8723(
 {
 	u8	efuseTbl[EFUSE_MAP_LEN_8723];
 	u16	eFuse_Addr = 0;
-	u8	offset, wden;
+	u8	offset = 0, wden = 0;
 	u16	i, j;
 	u16	eFuseWord[EFUSE_MAX_SECTION_8723][EFUSE_MAX_WORD_UNIT];
 	u16	efuse_utilized = 0;
@@ -1476,7 +1506,7 @@ ReadEFuse_BT(
 {
 	u8  	*efuseTbl;
 	u16 	eFuse_Addr = 0;
-	u8  	offset, wden;
+	u8  	offset = 0, wden = 0;
 	u16	i, j;
 	u16 	**eFuseWord;
 	u16	efuse_utilized = 0;
@@ -3487,8 +3517,8 @@ void rtl8192c_set_hal_ops(struct hal_ops *pHalFunc)
 	pHalFunc->read_bbreg = &rtl8192c_PHY_QueryBBReg;
 	pHalFunc->write_bbreg = &rtl8192c_PHY_SetBBReg;
 	pHalFunc->read_rfreg = &rtl8192c_PHY_QueryRFReg;
-	pHalFunc->write_rfreg = &rtl8192c_PHY_SetRFReg;
-
+	pHalFunc->write_rfreg = &rtl8192c_PHY_SetRFReg;	
+	
 	//Efuse related function
 	pHalFunc->EfusePowerSwitch = &rtl8192c_EfusePowerSwitch;
 	pHalFunc->ReadEFuse = &rtl8192c_ReadEFuse;

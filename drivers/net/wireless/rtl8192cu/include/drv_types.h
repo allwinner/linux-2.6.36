@@ -126,6 +126,7 @@ struct registry_priv
 	u8	adhoc_tx_pwr;
 	u8	soft_ap;
 	u8	power_mgnt;
+	 u8	ips_mode;
 	u8	smart_ps;
 	u8	long_retry_lmt;
 	u8	short_retry_lmt;
@@ -373,7 +374,7 @@ struct _ADAPTER{
 
 #ifdef CONFIG_P2P
 	struct wifidirect_info	wdinfo;
-#endif
+#endif //CONFIG_P2P
 
 	PVOID			HalData;
 	struct hal_ops	HalFunc;
@@ -418,6 +419,7 @@ struct _ADAPTER{
 
 #ifdef PLATFORM_LINUX	
 	_nic_hdl pnetdev;
+	_nic_hdl old_pnetdev; // used for rtw_change_ifname
 	int bup;
 	struct net_device_stats stats;
 	struct iw_statistics iwstats;

@@ -1074,7 +1074,8 @@ struct ADDBA_request
 #define	P2P_FINDPHASE_EX_CNT					3
 
 #define	P2P_PROVISION_TIMEOUT				5000	//	5 seconds timeout for sending the provision discovery request
-#define	P2P_GO_NEGO_TIMEOUT					2000	//	2 seconds timeout for receiving the group negotation response
+#define	P2P_GO_NEGO_TIMEOUT					5000	//	5 seconds timeout for receiving the group negotation response
+#define	P2P_TX_PRESCAN_TIMEOUT				100		//	100ms
 
 #define	P2P_MAX_INTENT						15
 
@@ -1127,6 +1128,12 @@ enum P2P_WPSINFO {
 };
 
 #define	P2P_PRIVATE_IOCTL_SET_LEN		64
+
+enum P2P_PROTO_WK_ID
+{
+	P2P_FIND_PHASE_WK = 0,
+	P2P_RESTORE_STATE_WK = 1,
+};
 
 enum P2P_PS
 {

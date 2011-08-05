@@ -96,6 +96,13 @@ struct smooth_rssi_data {
 	u32	total_val;		//sum of valid elements
 };
 
+struct signal_stat {
+	u8	update_req;		//used to indicate 
+	u8	avg_val;		//avg of valid elements
+	u32	total_num;		//num of valid elements
+	u32	total_val;		//sum of valid elements	
+};
+
 struct rx_pkt_attrib	{
 
 	u8 	amsdu;
@@ -262,9 +269,9 @@ struct recv_priv {
 	struct sk_buff_head free_recv_skb_queue;
 	struct sk_buff_head rx_skb_queue;
 
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
+#ifdef CONFIG_USE_USB_BUFFER_ALLOC_RX
 	_queue	recv_buf_pending_queue;
-#endif
+#endif	// CONFIG_USE_USB_BUFFER_ALLOC_RX
 #endif
 
 	u8 *pallocated_recv_buf;
@@ -287,17 +294,31 @@ struct recv_priv {
 #endif
 
 	//For display the phy informatiom
+	u8 is_signal_dbg;	// for debug
+	u8 signal_strength_dbg;	// for debug
 	s8 rssi;
 	s8 rxpwdb;
 	u8 signal_strength;
 	u8 signal_qual;
 	u8 noise;
 	int RxSNRdB[2];
+
+#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+	_timer signal_stat_timer;
+	u32 signal_stat_sampling_interval;
+	//u32 signal_stat_converging_constant;
+	struct signal_stat signal_qual_data;
+	struct signal_stat signal_strength_data;
+#else //CONFIG_NEW_SIGNAL_STAT_PROCESS
 	struct smooth_rssi_data signal_qual_data;
 	struct smooth_rssi_data signal_strength_data;
+#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 	
 };
 
+#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+#define rtw_set_signal_stat_timer(recvpriv) _set_timer(&(recvpriv)->signal_stat_timer, (recvpriv)->signal_stat_sampling_interval)
+#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 
 struct sta_recv_priv {
     

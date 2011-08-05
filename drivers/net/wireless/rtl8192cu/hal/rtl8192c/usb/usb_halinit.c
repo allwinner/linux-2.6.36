@@ -1355,6 +1355,22 @@ _InitBeaconMaxError(
 #endif
 }
 
+
+#ifdef CONFIG_LED
+static void _InitHWLed(PADAPTER Adapter)
+{
+	struct led_priv *pledpriv = &(Adapter->ledpriv);
+	
+	if( pledpriv->LedStrategy != HW_LED)
+		return;
+	
+// HW led control
+// to do .... 
+//must consider the situation which case of antenna diversity/ commbo card/solo card/mini card
+
+}
+#endif //CONFIG_LED
+
 static VOID
 _InitRDGSetting(
 	IN	PADAPTER Adapter
@@ -1731,8 +1747,8 @@ _InitBeaconParameters(
 
 	// TODO: Remove these magic number
 	rtw_write16(Adapter, REG_TBTT_PROHIBIT,0x6404);// ms
-	rtw_write8(Adapter, REG_DRVERLYINT, DRIVER_EARLY_INT_TIME);//ms
-	rtw_write8(Adapter, REG_BCNDMATIM, BCN_DMA_ATIME_INT_TIME);
+	rtw_write8(Adapter, REG_DRVERLYINT, DRIVER_EARLY_INT_TIME);// 5ms
+	rtw_write8(Adapter, REG_BCNDMATIM, BCN_DMA_ATIME_INT_TIME); // 2ms
 
 	// Suggested by designer timchen. Change beacon AIFS to the largest number
 	// beacause test chip does not contension before sending beacon. by tynli. 2009.11.03
@@ -2157,9 +2173,10 @@ _func_enter_;
 
 	// 2010/08/09 MH We need to check if we need to turnon or off RF after detecting
 	// HW GPIO pin. Before PHY_RFConfig8192C.
-	HalDetectPwrDownMode(Adapter);
+	//HalDetectPwrDownMode(Adapter);
 	// 2010/08/26 MH If Efuse does not support sective suspend then disable the function.
-	HalDetectSelectiveSuspendMode(Adapter);
+	//HalDetectSelectiveSuspendMode(Adapter);
+	
 
 	// Set RF type for BB/RF configuration	
 	_InitRFType(Adapter);//->_ReadRFType()
@@ -2176,11 +2193,7 @@ _func_enter_;
 	}
 #endif
 	// Get Rx PHY status in order to report RSSI and others.
-	{
-		u32 drvinfo_sz;
-		Adapter->HalFunc.GetHalDefVarHandler(Adapter, HAL_DEF_DRVINFO_SZ, &drvinfo_sz);
-		_InitDriverInfoSize(Adapter, drvinfo_sz);
-	}
+	_InitDriverInfoSize(Adapter, DRVINFO_SZ);
 
 	_InitInterrupt(Adapter);
 	_InitID(Adapter);//set mac_address
@@ -2194,6 +2207,10 @@ _func_enter_;
 	_InitOperationMode(Adapter);//todo
 	_InitBeaconParameters(Adapter);
 	_InitBeaconMaxError(Adapter, _TRUE);
+
+#ifdef CONFIG_LED
+	_InitHWLed(Adapter);
+#endif //CONFIG_LED
 
 	//
 	//d. Initialize BB related configurations.
@@ -2264,6 +2281,7 @@ _func_enter_;
 	MPT_InitializeAdapter(Adapter, Adapter->mppriv.channel);
 #else
 
+
 	//
 	// 2010/08/11 MH Merge from 8192SE for Minicard init. We need to confirm current radio status
 	// and then decide to enable RF or not.!!!??? For Selective suspend mode. We may not 
@@ -2274,6 +2292,8 @@ _func_enter_;
 	// is the same as eRfOff, we should change it to eRfOn after we config RF parameters.
 	// Added by tynli. 2010.03.30.
 	pwrctrlpriv->rf_pwrstate = rf_on;
+
+#if 0  //to do
 	RT_CLEAR_PS_LEVEL(pwrctrlpriv, RT_RF_OFF_LEVL_HALT_NIC);
 #if 1 //Todo
 	// 20100326 Joseph: Copy from GPIOChangeRFWorkItemCallBack() function to check HW radio on/off.
@@ -2333,7 +2353,7 @@ _func_enter_;
 		pwrctrlpriv->rfoff_reason = 0; 
 		pwrctrlpriv->b_hw_radio_off = _FALSE;
 		pwrctrlpriv->rf_pwrstate = rf_on;
-		Adapter->ledpriv.LedControlHandler(Adapter, LED_CTL_POWER_ON);
+		rtw_led_control(Adapter, LED_CTL_POWER_ON);		
 
 	}
 
@@ -2361,7 +2381,7 @@ _func_enter_;
 	}
 	//DrvIFIndicateCurrentPhyStatus(Adapter); // 2010/08/17 MH Disable to prevent BSOD.
 #endif
-
+#endif
 	// 2010/08/26 MH Merge from 8192CE.
 	if(pwrctrlpriv->rf_pwrstate == rf_on)
 	{
@@ -2429,7 +2449,7 @@ _func_enter_;
 
 	// 2010/08/23 MH According to Alfred's suggestion, we need to to prevent HW enter
 	// suspend mode automatically.
-	HwSuspendModeEnable92Cu(Adapter, _FALSE);
+	//HwSuspendModeEnable92Cu(Adapter, _FALSE);
 
 	rtw_write8(Adapter, 0x15, 0xe9);//suggest by Johnny for lower temperature
 	//_dbg_dump_macreg(padapter);
@@ -2443,8 +2463,7 @@ _func_enter_;
 			mac_addr[i] = rtw_read8(Adapter, REG_MACID+i);		
 		}
 		
-		DBG_8192C("MAC Address from REG_MACID = %x-%x-%x-%x-%x-%x\n", 
-			mac_addr[0],	mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+		DBG_8192C("MAC Address from REG_MACID = "MAC_FMT"\n", MAC_ARG(mac_addr));
 	}
 
 exit:
@@ -2958,6 +2977,15 @@ _ResetDigitalProcedure1(
 			valu16 = rtw_read16(Adapter, REG_SYS_FUNC_EN)&0x0FFF;	
 			rtw_write16(Adapter, REG_SYS_FUNC_EN, (valu16 |(FEN_HWPDN|FEN_ELDR)));//reset MAC
 			
+			#ifdef DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE
+			{
+				u8 val;
+				if( (val=rtw_read8(Adapter, REG_MCUFWDL)))
+					DBG_871X("DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE %s:%d REG_MCUFWDL:0x%02x\n", __FUNCTION__, __LINE__, val);
+			}
+			#endif
+
+			
 			valu16 = rtw_read16(Adapter, REG_SYS_FUNC_EN);	
 			rtw_write16(Adapter, REG_SYS_FUNC_EN, (valu16 | FEN_CPUEN));//enable MCU ,8051	
 
@@ -2984,7 +3012,7 @@ _ResetDigitalProcedure1(
 				}
 
 				if(retry_cnts >= 100){
-					DBG_8192C("#####=> 8051 reset failed!.........................\n");
+					DBG_8192C("%s #####=> 8051 reset failed!.........................\n", __FUNCTION__);
 					// if 8051 reset fail we trigger GPIO 0 for LA
 					//PlatformEFIOWrite4Byte(	Adapter, 
 					//						REG_GPIO_PIN_CTRL, 
@@ -2993,13 +3021,25 @@ _ResetDigitalProcedure1(
 					rtw_write8(Adapter, REG_SYS_FUNC_EN+1, 0x50);	//Reset MAC and Enable 8051
 					rtw_mdelay_os(10);
 				}
-				//else
-				//	RT_TRACE(COMP_INIT, DBG_LOUD, ("=====> 8051 reset success (%d) .\n",retry_cnts));
+				else {
+					//DBG_871X("%s =====> 8051 reset success (%d) .\n", __FUNCTION__, retry_cnts);
+				}
+			}
+			else {
+				DBG_871X("%s =====> 8051 in RAM but !Adapter->bFWReady\n", __FUNCTION__);	
 			}
 		}
 		else{
-			//RT_TRACE(COMP_INIT, DBG_LOUD, ("=====> 8051 in ROM.\n"));
+			//DBG_871X("%s =====> 8051 in ROM.\n", __FUNCTION__);
 		}	
+		
+		#ifdef DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE
+		{
+			u8 val;
+			if( (val=rtw_read8(Adapter, REG_MCUFWDL)))
+				DBG_871X("DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE %s:%d REG_MCUFWDL:0x%02x\n", __FUNCTION__, __LINE__, val);
+		}
+		#endif
 		
 		rtw_write8(Adapter, REG_SYS_FUNC_EN+1, 0x54);	//Reset MAC and Enable 8051
 	}
@@ -3221,9 +3261,8 @@ u32 rtl8192cu_hal_deinit(PADAPTER Adapter)
  	if(Adapter->pwrctrlpriv.bkeepfwalive)
  	{
 		_ps_close_RF(Adapter);		
-		if(Adapter->pwrctrlpriv.bHWPowerdown)		
+		if((Adapter->pwrctrlpriv.bHWPwrPindetect) && (Adapter->pwrctrlpriv.bHWPowerdown))		
 			rtl8192cu_hw_power_down(Adapter);
-
  	}
 	else
 #endif
@@ -3238,7 +3277,7 @@ u32 rtl8192cu_hal_deinit(PADAPTER Adapter)
 			DBG_8192C("card disble without HWSM...........\n");
 			CardDisableWithoutHWSM(Adapter); // without HW Auto state machine		
 
-			if(Adapter->pwrctrlpriv.bHWPowerdown)		
+			if((Adapter->pwrctrlpriv.bHWPwrPindetect ) && (Adapter->pwrctrlpriv.bHWPowerdown))		
 				rtl8192cu_hw_power_down(Adapter);
 		}
 	}
@@ -3655,9 +3694,7 @@ _ReadMACAddress(
 		//sMacAddr[5] = (u8)GetRandomNumber(1, 254);		
 		_rtw_memcpy(pEEPROM->mac_addr, sMacAddr, ETH_ALEN);	
 	}
-	DBG_8192C("%s MAC Address from EFUSE = %x-%x-%x-%x-%x-%x\n",__FUNCTION__, 
-			pEEPROM->mac_addr[0], pEEPROM->mac_addr[1], pEEPROM->mac_addr[2], 
-			pEEPROM->mac_addr[3], pEEPROM->mac_addr[4], pEEPROM->mac_addr[5]);
+	DBG_8192C("%s MAC Address from EFUSE = "MAC_FMT"\n",__FUNCTION__, MAC_ARG(pEEPROM->mac_addr));
 	//NicIFSetMacAddress(Adapter, Adapter->PermanentAddress);
 	//RT_PRINT_ADDR(COMP_INIT|COMP_EFUSE, DBG_LOUD, "MAC Addr: %s", Adapter->PermanentAddress);
 
@@ -3737,7 +3774,7 @@ _ReadLEDSetting(
 {
 	struct led_priv *pledpriv = &(Adapter->ledpriv);
 	HAL_DATA_TYPE	*pHalData = GET_HAL_DATA(Adapter);
-
+#ifdef CONFIG_SW_LED
 	pledpriv->bRegUseLed = _TRUE;
 
 	//
@@ -3764,6 +3801,9 @@ _ReadLEDSetting(
 		pledpriv->LedStrategy = SW_LED_MODE6;
 	}
 	pHalData->bLedOpenDrain = _TRUE;// Support Open-drain arrangement for controlling the LED. Added by Roger, 2009.10.16.
+#else // HW LED
+	pledpriv->LedStrategy = HW_LED;
+#endif //CONFIG_SW_LED
 }
 
 static VOID
@@ -4220,9 +4260,9 @@ _func_enter_;
 					rtw_write8(Adapter,REG_BCN_CTRL, 0x18);
 				}
 				else if((mode == _HW_STATE_ADHOC_) /*|| (mode == _HW_STATE_AP_)*/)
-				{
+				{					
 					ResumeTxBeacon(Adapter);
-					rtw_write8(Adapter,REG_BCN_CTRL, 0x1a);
+					rtw_write8(Adapter,REG_BCN_CTRL, 0x1a);					
 				}
 				else if(mode == _HW_STATE_AP_)
 				{
@@ -4797,7 +4837,7 @@ _func_enter_;
 				rtl8192c_set_p2p_ps_offload_cmd(Adapter, p2p_ps_state);
 			}
 			break;
-#endif
+#endif //CONFIG_P2P
 		case HW_VAR_INITIAL_GAIN:
 			PHY_SetBBReg(Adapter, rOFDM0_XAAGCCore1, 0x7f, ((u32 *)(val))[0]);
 			PHY_SetBBReg(Adapter, rOFDM0_XBAGCCore1, 0x7f, ((u32 *)(val))[0]);
@@ -4855,9 +4895,7 @@ _func_enter_;
 				//keep sn
 				Adapter->xmitpriv.nqos_ssn = rtw_read16(Adapter,REG_NQOS_SEQ);
 
-#ifdef CONFIG_IPS_LEVEL_2	
 				if(pwrpriv->bkeepfwalive != _TRUE)
-#endif
 				{
 					//RX DMA stop
 					rtw_write32(Adapter,REG_RXPKT_NUM,(rtw_read32(Adapter,REG_RXPKT_NUM)|RW_RELEASE_EN));
@@ -4916,7 +4954,7 @@ _func_enter_;
 				//When we halt NIC, we should check if FW LPS is leave.
 				u32	valRCR;
 				
-				if(Adapter->pwrctrlpriv.current_rfpwrstate == rf_off)
+				if(Adapter->pwrctrlpriv.rf_pwrstate == rf_off)
 				{
 					// If it is in HW/SW Radio OFF or IPS state, we do not check Fw LPS Leave,
 					// because Fw is unload.
@@ -4991,7 +5029,7 @@ GetHalDefVar8192CUsb(
 			break;
 		case HAL_DEF_DBG_DM_FUNC:
 			*(( u8*)pValue) = pHalData->dmpriv.DMFlag;
-			break;
+			break;	
 		default:
 			//RT_TRACE(COMP_INIT, DBG_WARNING, ("GetHalDefVar8192CUsb(): Unkown variable: %d!\n", eVariable));
 			bResult = _FALSE;
@@ -5261,7 +5299,7 @@ void SetBeaconRelatedRegisters8192CUsb(PADAPTER padapter)
 
 	//BCN interval
 	rtw_write16(padapter, REG_BCN_INTERVAL, pmlmeinfo->bcn_interval);
-	rtw_write8(padapter, REG_ATIMWND, 0x02);
+	rtw_write8(padapter, REG_ATIMWND, 0x02);// 2ms
 
 	_InitBeaconParameters(padapter);
 
@@ -5316,7 +5354,25 @@ static void rtl8192cu_init_default_value(_adapter * padapter)
 	for(i = 0; i < HP_THERMAL_NUM; i++)
 		pdmpriv->ThermalValue_HP[i] = 0;
 }
+static u8 rtl8192cu_ps_func(PADAPTER Adapter,HAL_INTF_PS_FUNC efunc_id, u8 *val)
+{	
+	u8 bResult = _TRUE;
+	switch(efunc_id){
 
+		#if defined(CONFIG_AUTOSUSPEND) && defined(SUPPORT_HW_RFOFF_DETECTED)
+		case HAL_USB_SELECT_SUSPEND:
+			{				
+				u8 bfwpoll = *(( u8*)val);
+				rtl8192c_set_FwSelectSuspend_cmd(Adapter,bfwpoll ,500);//note fw to support hw power down ping detect
+			}		
+			break;
+		#endif //CONFIG_AUTOSUSPEND && SUPPORT_HW_RFOFF_DETECTED
+
+		default:
+			break;
+	}
+	return bResult;
+}
 void rtl8192cu_set_hal_ops(_adapter * padapter)
 {
 	struct hal_ops	*pHalFunc = &padapter->HalFunc;
@@ -5342,9 +5398,13 @@ _func_enter_;
 
 	pHalFunc->init_recv_priv = &rtl8192cu_init_recv_priv;
 	pHalFunc->free_recv_priv = &rtl8192cu_free_recv_priv;
-
+#ifdef CONFIG_SW_LED
 	pHalFunc->InitSwLeds = &rtl8192cu_InitSwLeds;
 	pHalFunc->DeInitSwLeds = &rtl8192cu_DeInitSwLeds;
+#else //case of hw led or no led
+	pHalFunc->InitSwLeds = NULL;
+	pHalFunc->DeInitSwLeds = NULL;
+#endif//CONFIG_SW_LED
 
 	//pHalFunc->dm_init = &rtl8192c_init_dm_priv;
 	//pHalFunc->dm_deinit = &rtl8192c_deinit_dm_priv;
@@ -5375,7 +5435,7 @@ _func_enter_;
 
 	pHalFunc->hal_xmit = &rtl8192cu_hal_xmit;
 	pHalFunc->mgnt_xmit = &rtl8192cu_mgnt_xmit;
-
+	
 	//pHalFunc->read_bbreg = &rtl8192c_PHY_QueryBBReg;
 	//pHalFunc->write_bbreg = &rtl8192c_PHY_SetBBReg;
 	//pHalFunc->read_rfreg = &rtl8192c_PHY_QueryRFReg;
@@ -5384,7 +5444,8 @@ _func_enter_;
 #ifdef CONFIG_HOSTAPD_MLME
 	pHalFunc->hostap_mgnt_xmit_entry = &rtl8192cu_hostap_mgnt_xmit_entry;
 #endif
-
+	pHalFunc->interface_ps_func = &rtl8192cu_ps_func;
+	
 	rtl8192c_set_hal_ops(pHalFunc);
 _func_exit_;
 

@@ -92,9 +92,9 @@ int	rtl8192cu_init_recv_priv(_adapter *padapter)
 	//init recv_buf
 	_rtw_init_queue(&precvpriv->free_recv_buf_queue);
 
-#ifdef CONFIG_USE_USB_BUFFER_ALLOC
+#ifdef CONFIG_USE_USB_BUFFER_ALLOC_RX
 	_rtw_init_queue(&precvpriv->recv_buf_pending_queue);
-#endif
+#endif	// CONFIG_USE_USB_BUFFER_ALLOC_RX
 
 	precvpriv->pallocated_recv_buf = rtw_zmalloc(NR_RECVBUFF *sizeof(struct recv_buf) + 4);
 	if(precvpriv->pallocated_recv_buf==NULL){
@@ -313,10 +313,9 @@ void rtl8192cu_update_recvframe_attrib_from_recvstat(union recv_frame *precvfram
 		bPacketMatchBSSID = ((!IsFrameTypeCtrl(precvframe->u.hdr.rx_data)) && !icverr && !crcerr &&
 			_rtw_memcmp(get_hdr_bssid(precvframe->u.hdr.rx_data), get_bssid(&padapter->mlmepriv), ETH_ALEN));
 			
-
 		bPacketToSelf = bPacketMatchBSSID &&  (_rtw_memcmp(get_da(precvframe->u.hdr.rx_data), myid(&padapter->eeprompriv), ETH_ALEN));
 
-		bPacketBeacon =bPacketMatchBSSID && (GetFrameSubType(precvframe->u.hdr.rx_data) ==  WIFI_BEACON);
+		bPacketBeacon = (GetFrameSubType(precvframe->u.hdr.rx_data) ==  WIFI_BEACON);
 	
 
 		pphy_info = (struct phy_stat *)(prxstat+1);
@@ -348,7 +347,7 @@ void rtl8192cu_update_recvframe_attrib_from_recvstat(union recv_frame *precvfram
 				rtl8192c_process_phy_info(padapter, precvframe);
 			}
 		}
-		else if(bPacketToSelf || bPacketBeacon)
+		else if( bPacketToSelf || (bPacketBeacon && bPacketMatchBSSID) )
 		{
 			if(check_fwstate(&padapter->mlmepriv, WIFI_ADHOC_STATE|WIFI_ADHOC_MASTER_STATE) == _TRUE)
 			{

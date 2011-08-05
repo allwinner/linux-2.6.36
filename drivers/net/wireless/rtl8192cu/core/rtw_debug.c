@@ -60,6 +60,21 @@
 #endif
 
 #ifdef CONFIG_PROC_DEBUG
+#include <rtw_version.h>
+
+int proc_get_drv_version(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data)
+{
+	struct net_device *dev = data;
+	
+	int len = 0;
+
+	len += snprintf(page + len, count - len, "%s\n", DRIVERVERSION);
+				
+	*eof = 1;
+	return len;
+}
 
 int proc_get_write_reg(char *page, char **start,
 			  off_t offset, int count,
@@ -305,7 +320,7 @@ int proc_get_ap_info(char *page, char **start,
 		int i;
 		struct recv_reorder_ctrl *preorder_ctrl;
 					
-		len += snprintf(page + len, count - len, "sta's macaddr:" MACSTR "\n", MAC2STR(psta->hwaddr));
+		len += snprintf(page + len, count - len, "sta's macaddr:" MAC_FMT "\n", MAC_ARG(psta->hwaddr));
 		len += snprintf(page + len, count - len, "rtsen=%d, cts2slef=%d\n", psta->rtsen, psta->cts2self);
 		len += snprintf(page + len, count - len, "qos_en=%d, ht_en=%d, init_rate=%d\n", psta->qos_option, psta->htpriv.ht_option, psta->init_rate);	
 		len += snprintf(page + len, count - len, "state=0x%x, aid=%d, macid=%d, raid=%d\n", psta->state, psta->aid, psta->mac_id, psta->raid);	
@@ -325,7 +340,7 @@ int proc_get_ap_info(char *page, char **start,
 	}
 	else
 	{							
-		len += snprintf(page + len, count - len, "can't get sta's macaddr, cur_network's macaddr:" MACSTR "\n", MAC2STR(cur_network->network.MacAddress));
+		len += snprintf(page + len, count - len, "can't get sta's macaddr, cur_network's macaddr:" MAC_FMT "\n", MAC_ARG(cur_network->network.MacAddress));
 	}
 
 	*eof = 1;
@@ -371,6 +386,71 @@ int proc_get_trx_info(char *page, char **start,
 }
 	
 		
+int proc_get_rx_signal(char *page, char **start,
+			  off_t offset, int count,
+			  int *eof, void *data)
+{
+	struct net_device *dev = data;
+	_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
+	struct mlme_priv *pmlmepriv = &(padapter->mlmepriv);
+	
+	int len = 0;
+
+	len += snprintf(page + len, count - len,
+		"rssi:%d\n"
+		"rxpwdb:%d\n"
+		"signal_strength:%u\n"
+		"signal_qual:%u\n"
+		"noise:%u\n", 
+		padapter->recvpriv.rssi,
+		padapter->recvpriv.rxpwdb,
+		padapter->recvpriv.signal_strength,
+		padapter->recvpriv.signal_qual,
+		padapter->recvpriv.noise
+		);
+				
+	*eof = 1;
+	return len;
+}
+
+int proc_set_rx_signal(struct file *file, const char *buffer,
+		unsigned long count, void *data)
+{
+	struct net_device *dev = (struct net_device *)data;
+	_adapter *padapter = (_adapter *)rtw_netdev_priv(dev);
+	char tmp[32];
+	u32 is_signal_dbg, signal_strength;
+
+	if (count < 1)
+		return -EFAULT;
+
+	if (buffer && !copy_from_user(tmp, buffer, sizeof(tmp))) {		
+
+		int num = sscanf(tmp, "%u %u", &is_signal_dbg, &signal_strength);
+
+		is_signal_dbg = is_signal_dbg==0?0:1;
+		
+		if(is_signal_dbg && num!=2)
+			return count;
+			
+		signal_strength = signal_strength>100?100:signal_strength;
+		signal_strength = signal_strength<0?0:signal_strength;
+
+		padapter->recvpriv.is_signal_dbg = is_signal_dbg;
+		padapter->recvpriv.signal_strength_dbg=signal_strength;
+
+		if(is_signal_dbg)
+			DBG_871X("set %s %u\n", "DBG_SIGNAL_STRENGTH", signal_strength);
+		else
+			DBG_871X("set %s\n", "HW_SIGNAL_STRENGTH");
+		
+	}
+	
+	return count;
+	
+}
+
+		
 #ifdef CONFIG_AP_MODE
 
 int proc_get_all_sta_info(char *page, char **start,
@@ -405,7 +485,7 @@ int proc_get_all_sta_info(char *page, char **start,
 
 			//if(extra_arg == psta->aid)
 			{
-				len += snprintf(page + len, count - len, "sta's macaddr:" MACSTR "\n", MAC2STR(psta->hwaddr));
+				len += snprintf(page + len, count - len, "sta's macaddr:" MAC_FMT "\n", MAC_ARG(psta->hwaddr));
 				len += snprintf(page + len, count - len, "rtsen=%d, cts2slef=%d\n", psta->rtsen, psta->cts2self);
 				len += snprintf(page + len, count - len, "qos_en=%d, ht_en=%d, init_rate=%d\n", psta->qos_option, psta->htpriv.ht_option, psta->init_rate);	
 				len += snprintf(page + len, count - len, "state=0x%x, aid=%d, macid=%d, raid=%d\n", psta->state, psta->aid, psta->mac_id, psta->raid);	

@@ -448,7 +448,7 @@ int is_IBSS_empty(_adapter *padapter)
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	
-	for (i = 6; i < NUM_STA; i++)
+	for (i = IBSS_START_MAC_ID; i < NUM_STA; i++)
 	{
 		if (pmlmeinfo->FW_sta_info[i].status == 1)
 		{
@@ -563,23 +563,23 @@ void clear_cam_entry(_adapter *padapter, u8 entry)
 #endif
 }
 
-int allocate_cam_entry(_adapter *padapter)
+int allocate_fw_sta_entry(_adapter *padapter)
 {
-	unsigned int cam_idx;
+	unsigned int mac_id;
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	
-	for (cam_idx = 2; cam_idx < NUM_STA; cam_idx++)
+	for (mac_id = IBSS_START_MAC_ID; mac_id < NUM_STA; mac_id++)
 	{
-		if (pmlmeinfo->FW_sta_info[cam_idx].status == 0)
+		if (pmlmeinfo->FW_sta_info[mac_id].status == 0)
 		{
-			pmlmeinfo->FW_sta_info[cam_idx].status = 1;
-			pmlmeinfo->FW_sta_info[cam_idx].retry = 0;
+			pmlmeinfo->FW_sta_info[mac_id].status = 1;
+			pmlmeinfo->FW_sta_info[mac_id].retry = 0;
 			break;
 		}
 	}
 	
-	return cam_idx;
+	return mac_id;
 }
 
 void flush_all_cam_entry(_adapter *padapter)
@@ -1367,8 +1367,10 @@ void update_IOT_info(_adapter *padapter)
 			Switch_DM_Func(padapter, (~DYNAMIC_FUNC_HP), _FALSE);
 			break;
 		case realtekAP:
-			rtw_write16(padapter, 0x4cc, 0xffff);
-			rtw_write16(padapter, 0x546, 0x01c0);			
+			//rtw_write16(padapter, 0x4cc, 0xffff);
+			//rtw_write16(padapter, 0x546, 0x01c0);
+			//disable high power			
+			Switch_DM_Func(padapter, (~DYNAMIC_FUNC_HP), _FALSE);
 			break;
 		default:
 			pmlmeinfo->turboMode_cts2self = 0;

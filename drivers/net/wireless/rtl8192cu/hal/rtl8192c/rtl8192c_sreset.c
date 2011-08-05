@@ -171,9 +171,11 @@ void rtl8192c_silentreset_for_specific_platform(_adapter *padapter)
 
 	_enter_critical_mutex(&psrtpriv->silentreset_mutex, &irqL);
 	psrtpriv->silent_reset_inprogress = _TRUE;
-	pwrpriv->change_rfpwrstate = rf_off;		
+	pwrpriv->change_rfpwrstate = rf_off;	
+#ifdef CONFIG_IPS
 	ips_enter(padapter);								
 	ips_leave(padapter);
+#endif
 	if(check_fwstate(pmlmepriv, _FW_LINKED)== _TRUE)
 	{
 		_restore_network_status(padapter);
@@ -189,7 +191,7 @@ void rtl8192c_silentreset_for_specific_platform(_adapter *padapter)
 	_set_timer(&padapter->mlmepriv.dynamic_chk_timer, 2000);	
 				
 	if (netif_queue_stopped(padapter->pnetdev))
-		netif_wake_queue(padapter->pnetdev);	
+		netif_wake_queue(padapter->pnetdev);
 }
 
 void rtl8192c_sreset_xmit_status_check(_adapter *padapter)

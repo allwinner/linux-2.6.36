@@ -185,7 +185,7 @@ static s32 signal_scale_mapping(_adapter *padapter, s32 cur_sig )
 }
 
 
-static s32  translate2dbm(_adapter *padapter,u8 signal_strength_idx	)
+static s32  translate2dbm(u8 signal_strength_idx)
 {
 	s32	signal_power; // in dBm.
 
@@ -202,7 +202,7 @@ void rtl8192c_query_rx_phy_status(union recv_frame *prframe, struct phy_stat *pp
 	PHY_STS_OFDM_8192CD_T	*pOfdm_buf;
 	PHY_STS_CCK_8192CD_T	*pCck_buf;
 	u8	i, max_spatial_stream, evm;
-	s8	rx_pwr[4], rx_pwr_all;
+	s8	rx_pwr[4], rx_pwr_all = 0;
 	u8	pwdb_all;
 	u32	rssi,total_rssi=0;
 	u8 	bcck_rate=0, rf_rx_num = 0, cck_highpwr = 0;
@@ -503,10 +503,26 @@ static void process_rssi(_adapter *padapter,union recv_frame *prframe)
 {
 	u32	last_rssi, tmp_val;
 	struct rx_pkt_attrib *pattrib = &prframe->u.hdr.attrib;
+#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+	struct signal_stat * signal_stat = &padapter->recvpriv.signal_strength_data;
+#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 
 	//DBG_8192C("process_rssi=> pattrib->rssil(%d) signal_strength(%d)\n ",pattrib->RecvSignalPower,pattrib->signal_strength);
 	//if(pRfd->Status.bPacketToSelf || pRfd->Status.bPacketBeacon)
 	{
+	
+	#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+		if(signal_stat->update_req) {
+			signal_stat->total_num = 0;
+			signal_stat->total_val = 0;
+			signal_stat->update_req = 0;
+		}
+
+		signal_stat->total_num++;
+		signal_stat->total_val  += pattrib->signal_strength;
+		signal_stat->avg_val = signal_stat->total_val / signal_stat->total_num;		
+	#else //CONFIG_NEW_SIGNAL_STAT_PROCESS
+	
 		//Adapter->RxStats.RssiCalculateCnt++;	//For antenna Test
 		if(padapter->recvpriv.signal_strength_data.total_num++ >= PHY_RSSI_SLID_WIN_MAX)
 		{
@@ -522,10 +538,17 @@ static void process_rssi(_adapter *padapter,union recv_frame *prframe)
 
 
 		tmp_val = padapter->recvpriv.signal_strength_data.total_val/padapter->recvpriv.signal_strength_data.total_num;
-		padapter->recvpriv.signal_strength= tmp_val;
-		padapter->recvpriv.rssi=(s8)translate2dbm( padapter,(u8)tmp_val);
+		
+		if(padapter->recvpriv.is_signal_dbg) {
+			padapter->recvpriv.signal_strength= padapter->recvpriv.signal_strength_dbg;
+			padapter->recvpriv.rssi=(s8)translate2dbm((u8)padapter->recvpriv.signal_strength_dbg);
+		} else {
+			padapter->recvpriv.signal_strength= tmp_val;
+			padapter->recvpriv.rssi=(s8)translate2dbm((u8)tmp_val);
+		}
 
 		RT_TRACE(_module_rtl871x_recv_c_,_drv_info_,("UI RSSI = %d, ui_rssi.TotalVal = %d, ui_rssi.TotalNum = %d\n", tmp_val, padapter->recvpriv.signal_strength_data.total_val,padapter->recvpriv.signal_strength_data.total_num));
+	#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 	}
 
 }// Process_UI_RSSI_8192C
@@ -637,14 +660,33 @@ static void process_link_qual(_adapter *padapter,union recv_frame *prframe)
 {
 	u32	last_evm=0, tmpVal;
  	struct rx_pkt_attrib *pattrib;
+#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+	struct signal_stat * signal_stat;
+#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 
 	if(prframe == NULL || padapter==NULL){
 		return;
 	}
 
 	pattrib = &prframe->u.hdr.attrib;
+#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+	signal_stat = &padapter->recvpriv.signal_qual_data;
+#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 
 	//DBG_8192C("process_link_qual=> pattrib->signal_qual(%d)\n ",pattrib->signal_qual);
+
+#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+	if(signal_stat->update_req) {
+		signal_stat->total_num = 0;
+		signal_stat->total_val = 0;
+		signal_stat->update_req = 0;
+	}
+
+	signal_stat->total_num++;
+	signal_stat->total_val  += pattrib->signal_strength;
+	signal_stat->avg_val = signal_stat->total_val / signal_stat->total_num;
+	
+#else //CONFIG_NEW_SIGNAL_STAT_PROCESS
 	if(pattrib->signal_qual != 0)
 	{
 			//
@@ -673,6 +715,7 @@ static void process_link_qual(_adapter *padapter,union recv_frame *prframe)
 	{
 		RT_TRACE(_module_rtl871x_recv_c_,_drv_err_,(" pattrib->signal_qual =%d\n", pattrib->signal_qual));
 	}
+#endif //CONFIG_NEW_SIGNAL_STAT_PROCESS
 
 }// Process_UiLinkQuality8192S
 

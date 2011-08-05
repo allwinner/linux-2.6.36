@@ -5,8 +5,16 @@ EXTRA_CFLAGS += -O1
 #EXTRA_CFLAGS += -Werror
 #EXTRA_CFLAGS += -pedantic
 #EXTRA_CFLAGS += -Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes 
-EXTRA_CFLAGS += -Wno-unused-variable -Wno-unused-value -Wno-unused-label -Wno-unused-parameter -Wno-uninitialized
-EXTRA_CFLAGS += -Wno-unused -Wno-unused-function
+
+EXTRA_CFLAGS += -Wno-unused-variable 
+EXTRA_CFLAGS += -Wno-unused-value 
+EXTRA_CFLAGS += -Wno-unused-label 
+EXTRA_CFLAGS += -Wno-unused-parameter
+EXTRA_CFLAGS += -Wno-unused-function
+EXTRA_CFLAGS += -Wno-unused
+
+EXTRA_CFLAGS += -Wno-uninitialized
+
 EXTRA_CFLAGS += -I$(src)/include
 
 CONFIG_AUTOCFG_CP = n
@@ -19,14 +27,14 @@ CONFIG_PCI_HCI = n
 CONFIG_SDIO_HCI = n
 
 CONFIG_MP_INCLUDED = n
-CONFIG_POWER_SAVING			=	n
+CONFIG_POWER_SAVING		=	y
 CONFIG_USB_AUTOSUSPEND			=	n
 CONFIG_HW_PWRP_DETECTION		=	n
 CONFIG_WIFI_TEST						=	n
 CONFIG_BT_COEXISTENCE				= n
 CONFIG_RTL8192CU_REDEFINE_1X1 =n
 
-CONFIG_PLATFORM_I386_PC = n
+CONFIG_PLATFORM_I386_PC		=	n
 CONFIG_PLATFORM_ANDROID_X86 = n
 CONFIG_PLATFORM_ARM_S3C2K4 = n
 CONFIG_PLATFORM_ARM_PXA2XX = n
@@ -45,7 +53,9 @@ CONFIG_PLATFORM_ARM_RK2818	=	n
 CONFIG_PLATFORM_MIPS_JZ4760	=	n
 CONFIG_PLATFORM_DMP_PHILIPS = n
 CONFIG_PLATFORM_TI_DM365	=	n
-CONFIG_PLATFORM_ARM_SUN4I	=	y
+CONFIG_PLATFORM_MN10300 = n
+CONFIG_PLATFORM_MSTAR_TITANIA12 = n
+CONFIG_PLATFORM_ARM_SUN4I     =   y
 
 CONFIG_DRVEXT_MODULE = n
 
@@ -227,6 +237,15 @@ MODDESTDIR := /lib/modules/$(KVER)/kernel/drivers/net/wireless/
 INSTALL_PREFIX :=
 endif
 
+ifeq ($(CONFIG_PLATFORM_MSTAR_TITANIA12), y)
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_MSTAR_TITANIA12
+ARCH:=mips
+CROSS_COMPILE:= /work/mstar/mips-4.3/bin/mips-linux-gnu-
+KVER:= 2.6.28.9
+KSRC:= /work/mstar/2.6.28.9/
+endif
+
+
 ifeq ($(CONFIG_PLATFORM_ANDROID_X86), y)
 EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID
 SUBARCH := $(shell uname -m | sed -e s/i.86/i386/)
@@ -369,19 +388,27 @@ CROSS_COMPILE ?= /mnt/sdb5/Ingenic/Umido/mips-4.3/bin/mips-linux-gnu-
 KSRC ?= /mnt/sdb5/Ingenic/Umido/kernel
 endif
 
+#Add setting for MN10300
+ifeq ($(CONFIG_PLATFORM_MN10300), y)
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_MN10300
+ARCH := mn10300
+CROSS_COMPILE := mn10300-linux-
+KVER := 2.6.32.2
+KSRC := /home/winuser/work/Plat_sLD2T_V3010/usr/src/linux-2.6.32.2
+INSTALL_PREFIX :=
+endif
+
 ifeq ($(CONFIG_MP_INCLUDED), y)
 MODULE_NAME := $(MODULE_NAME)_mp
 EXTRA_CFLAGS += -DCONFIG_MP_INCLUDED
 endif
-
 ifeq ($(CONFIG_PLATFORM_ARM_SUN4I), y)
-EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN -DCONFIG_PLATFORM_ANDROID
+EXTRA_CFLAGS += -DCONFIG_LITTLE_ENDIAN
 ARCH := arm
 CROSS_COMPILE := arm-none-linux-gnueabi-
-KVER  := 2.6.36
+KVER  := 2.6.36.4
 KSRC ?= $(src) 
 endif
-
 
 ifneq ($(KERNELRELEASE),)
 
@@ -392,7 +419,7 @@ rtk_core :=	core/rtw_cmd.o \
 		core/rtw_io.o \
 		core/rtw_ioctl_query.o \
 		core/rtw_ioctl_set.o \
-		core/ieee80211.o \
+		core/rtw_ieee80211.o \
 		core/rtw_mlme.o \
 		core/rtw_mlme_ext.o \
 		core/rtw_wlan_util.o \

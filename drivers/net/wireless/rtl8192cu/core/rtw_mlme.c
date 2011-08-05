@@ -648,9 +648,32 @@ _func_enter_;
 	padapter->HalFunc.SwAntDivCompareHandler(padapter, dst, src);
 #endif
 
+	
+	//Update signal strength first. Alwlays using the newest value will cause large vibration of scan result's signal strength 
+	if (check_fwstate(&padapter->mlmepriv, _FW_LINKED) && is_same_network(&(padapter->mlmepriv.cur_network.network), src)) {
+		//Because we've process the rx phy info in rtl8192c_process_phy_info/rtl8192d_process_phy_info,
+		//we can just take the recvpriv's value
+		src->PhyInfo.SignalStrength = padapter->recvpriv.signal_strength;
+		src->PhyInfo.SignalQuality = padapter->recvpriv.signal_qual;
+		src->Rssi= translate_percentage_to_dbm(padapter->recvpriv.signal_strength);
+	}
+	else {
+		src->PhyInfo.SignalStrength = (src->PhyInfo.SignalStrength+dst->PhyInfo.SignalStrength*4)/5;
+		src->PhyInfo.SignalQuality = (src->PhyInfo.SignalQuality+dst->PhyInfo.SignalQuality*4)/5;
+		src->Rssi=(src->Rssi+dst->Rssi*4)/5;
+	}
+
+
 	_rtw_memcpy((u8 *)dst, (u8 *)src, get_WLAN_BSSID_EX_sz(src));
 
-#if 0
+	 #if 0
+	 if(dst->Ssid.Ssid[0]=='j') {
+		DBG_871X("%s %s("MAC_FMT"), SignalStrength:%u, SignalQuality:%u, rssi:%d\n", __FUNCTION__
+			, dst->Ssid.Ssid, MAC_ARG(dst->MacAddress), dst->PhyInfo.SignalStrength, dst->PhyInfo.SignalQuality, (int)dst->Rssi);
+	 }
+	 #endif
+
+#if 0 // old codes, may be useful one day...
 //	DBG_8192C("update_network: rssi=0x%lx dst->Rssi=%d ,dst->Rssi=0x%lx , src->Rssi=0x%lx",(dst->Rssi+src->Rssi)/2,dst->Rssi,dst->Rssi,src->Rssi);
 	if (check_fwstate(&padapter->mlmepriv, _FW_LINKED) && is_same_network(&(padapter->mlmepriv.cur_network.network), src))
 	{
@@ -1033,6 +1056,10 @@ _func_enter_;
 		RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("nic status =%x, survey done event comes too late!\n", get_fwstate(pmlmepriv)));	
 	}	
 	
+	#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+	rtw_set_signal_stat_timer(&adapter->recvpriv);
+	#endif
+	
 	if(pmlmepriv->to_join == _TRUE)
 	{
 		if((check_fwstate(pmlmepriv, WIFI_ADHOC_STATE)==_TRUE) )
@@ -1104,14 +1131,16 @@ _func_enter_;
 				_clr_fwstate_(pmlmepriv, _FW_UNDER_LINKING);
 			}
 		}
-	} else {
+	} 
+	//else
+	{
 		/*
 		*  20110324 Commented by Jeff
 		*  indicate the scan complete event when this scan isn't caused by join
 		*/
 		indicate_wx_scan_complete_event(adapter);
 
-		//DBG_871X("scan in %dms\n",rtw_get_passing_time_ms(pmlmepriv->scan_start_time));
+		//DBG_871X("scan complete in %dms\n",rtw_get_passing_time_ms(pmlmepriv->scan_start_time));
 
 	}
 
@@ -1119,7 +1148,7 @@ _func_enter_;
 
 #ifdef CONFIG_P2P
 	p2p_ps_wk_cmd(adapter, P2P_PS_SCAN_DONE, 0);
-#endif
+#endif //CONFIG_P2P
 
 	rtw_os_xmit_schedule(adapter);
 
@@ -1198,11 +1227,8 @@ _func_enter_;
 
 	pwlan = rtw_find_network(&pmlmepriv->scanned_queue, tgt_network->network.MacAddress);
 	
-	RT_TRACE(_module_rtl871x_mlme_c_, _drv_info_, ("tgt_network->network.MacAddress=%02x:%02x:%02x:%02x:%02x:%02x ssid=%s\n",
-		tgt_network->network.MacAddress[0],tgt_network->network.MacAddress[1],
-		tgt_network->network.MacAddress[2],tgt_network->network.MacAddress[3],
-		tgt_network->network.MacAddress[4],tgt_network->network.MacAddress[5], 
-		tgt_network->network.Ssid.Ssid));
+	RT_TRACE(_module_rtl871x_mlme_c_, _drv_info_, ("tgt_network->network.MacAddress="MAC_FMT" ssid=%s\n",
+		MAC_ARG(tgt_network->network.MacAddress), tgt_network->network.Ssid.Ssid));
 
 	if(check_fwstate( pmlmepriv, WIFI_STATION_STATE|WIFI_AP_STATE))
 	{
@@ -1256,7 +1282,8 @@ _func_exit_;
 */
 void rtw_indicate_connect(_adapter *padapter)
 {
-	struct	mlme_priv *pmlmepriv = &padapter->mlmepriv;
+	struct mlme_priv	*pmlmepriv = &padapter->mlmepriv;
+	struct xmit_priv	*pxmitpriv = &padapter->xmitpriv;
 	
 _func_enter_;
 
@@ -1268,8 +1295,7 @@ _func_enter_;
 #endif
 	set_fwstate(pmlmepriv, _FW_LINKED);
 
-	padapter->ledpriv.LedControlHandler(padapter, LED_CTL_LINK);
-
+	rtw_led_control(padapter, LED_CTL_LINK);	
 
 #ifdef CONFIG_DRVEXT_MODULE
 	if(padapter->drvextpriv.enable_wpa)
@@ -1279,7 +1305,7 @@ _func_enter_;
 	else
 #endif
 	{
-	rtw_os_indicate_connect(padapter);
+		rtw_os_indicate_connect(padapter);
 	}
 
 	#ifdef CONFIG_LAYER2_ROAMING
@@ -1310,7 +1336,7 @@ _func_enter_;
 
 	_clr_fwstate_(pmlmepriv, _FW_LINKED);
 
-	padapter->ledpriv.LedControlHandler(padapter, LED_CTL_NO_LINK);
+	rtw_led_control(padapter, LED_CTL_NO_LINK);
 
 	#ifdef CONFIG_LAYER2_ROAMING
 	if(pmlmepriv->to_roaming<=0)
@@ -1323,7 +1349,7 @@ _func_enter_;
 
 #ifdef CONFIG_P2P
 	p2p_ps_wk_cmd(padapter, P2P_PS_DISABLE, 1);
-#endif
+#endif //CONFIG_P2P
 
 _func_exit_;	
 }
@@ -1338,7 +1364,7 @@ _func_exit_;
 
 
 //#define REJOIN
-#if 1 //#ifdef HANDLE_JOINBSS_ON_ASSOC_RSP
+#ifdef CONFIG_HANDLE_JOINBSS_ON_ASSOC_RSP
 void joinbss_event_prehandle(_adapter *adapter, u8 *pbuf)
 {
 	_irqL irqL,irqL2;
@@ -1493,14 +1519,24 @@ _func_enter_;
 			if(ptarget_wlan)
 			{			
 
-				RT_TRACE(_module_rtl871x_mlme_c_,_drv_info_,("\nfw_state:%x, BSSID:%x:%x:%x:%x:%x:%x\n",get_fwstate(pmlmepriv), 
-						pnetwork->network.MacAddress[0], pnetwork->network.MacAddress[1],
-						pnetwork->network.MacAddress[2], pnetwork->network.MacAddress[3],
-						pnetwork->network.MacAddress[4], pnetwork->network.MacAddress[5]));
+				RT_TRACE(_module_rtl871x_mlme_c_,_drv_info_,("\nfw_state:%x, BSSID:"MAC_FMT"\n"
+					,get_fwstate(pmlmepriv), MAC_ARG(pnetwork->network.MacAddress)));
 
 			
+				// why not use ptarget_wlan??
 				_rtw_memcpy(&cur_network->network, &pnetwork->network, pnetwork->network.Length);
 				cur_network->aid = pnetwork->join_res;
+				
+				#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+				rtw_set_signal_stat_timer(&adapter->recvpriv);
+				#endif
+				adapter->recvpriv.signal_strength = ptarget_wlan->network.PhyInfo.SignalStrength;
+				adapter->recvpriv.signal_qual = ptarget_wlan->network.PhyInfo.SignalQuality;
+				//the ptarget_wlan->network.Rssi is raw data, we use ptarget_wlan->network.PhyInfo.SignalStrength instead (has scaled)
+				adapter->recvpriv.rssi = translate_percentage_to_dbm(ptarget_wlan->network.PhyInfo.SignalStrength);
+				#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+				rtw_set_signal_stat_timer(&adapter->recvpriv);
+				#endif
 				
 				//update fw_state //will clr _FW_UNDER_LINKING here indirectly
 				switch(pnetwork->network.InfrastructureMode)
@@ -1528,7 +1564,10 @@ _func_enter_;
 				//indicate connect
 				if(check_fwstate(pmlmepriv, WIFI_STATION_STATE) == _TRUE)
 				{
-					rtw_indicate_connect(adapter);		
+					struct xmit_priv *pxmitpriv = &adapter->xmitpriv;
+					//Set Value to 0 for prevent xmit data frame without hw setting done.
+					ATOMIC_SET(&pxmitpriv->HwRdyXmitData, 0);
+					rtw_indicate_connect(adapter);
 				}
 				else
 				{
@@ -1608,15 +1647,20 @@ ignore_joinbss_callback:
 void rtw_joinbss_event_callback(_adapter *adapter, u8 *pbuf)
 {
 	struct wlan_network 	*pnetwork	= (struct wlan_network *)pbuf;
+	struct xmit_priv *pxmitpriv = &adapter->xmitpriv;
 
 _func_enter_;
 
 	mlmeext_joinbss_event_callback(adapter, pnetwork->join_res);
 
+	//Set Value to 1 to xmit data frame.
+	ATOMIC_SET(&pxmitpriv->HwRdyXmitData, 1);
+	rtw_os_xmit_schedule(adapter);
+
 _func_exit_;
 }
 
-#else
+#else //CONFIG_HANDLE_JOINBSS_ON_ASSOC_RSP
 void rtw_joinbss_event_callback(_adapter *adapter, u8 *pbuf)
 {
 	_irqL irqL,irqL2;
@@ -1781,6 +1825,17 @@ _func_enter_;
 				_rtw_memcpy(&cur_network->network, &pnetwork->network, pnetwork->network.Length);
 				cur_network->aid = pnetwork->join_res;
 				
+				#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+				rtw_set_signal_stat_timer(&adapter->recvpriv);
+				#endif
+				adapter->recvpriv.signal_strength = ptarget_wlan->network.PhyInfo.SignalStrength;
+				adapter->recvpriv.signal_qual = ptarget_wlan->network.PhyInfo.SignalQuality;
+				//the ptarget_wlan->network.Rssi is raw data, we use ptarget_wlan->network.PhyInfo.SignalStrength instead (has scaled)
+				adapter->recvpriv.rssi = translate_percentage_to_dbm(ptarget_wlan->network.PhyInfo.SignalStrength);
+				#ifdef CONFIG_NEW_SIGNAL_STAT_PROCESS
+				rtw_set_signal_stat_timer(&adapter->recvpriv);
+				#endif
+				
 				//update fw_state //will clr _FW_UNDER_LINKING here indirectly
 				switch(pnetwork->network.InfrastructureMode)
 				{
@@ -1888,7 +1943,7 @@ ignore_joinbss_callback:
 _func_exit_;	
 
 }
-#endif
+#endif //CONFIG_HANDLE_JOINBSS_ON_ASSOC_RSP
 
 void rtw_stassoc_event_callback(_adapter *adapter, u8 *pbuf)
 {
@@ -2164,7 +2219,7 @@ _func_enter_;
 		}
 
 		free_scanqueue(pmlmepriv);//???
-		adapter->ledpriv.LedControlHandler(adapter, LED_CTL_NO_LINK);
+		rtw_led_control(adapter, LED_CTL_NO_LINK);
  	}
 
 	_exit_critical_bh(&pmlmepriv->lock, &irqL);
@@ -2242,7 +2297,9 @@ static void rtw_auto_scan_handler(_adapter *padapter)
 
 void rtw_dynamic_check_timer_handlder(_adapter *adapter)
 {
+#ifdef CONFIG_AP_MODE
 	struct mlme_priv *pmlmepriv = &adapter->mlmepriv;
+#endif //CONFIG_AP_MODE
 	struct registry_priv *pregistrypriv = &adapter->registrypriv;
 
 	if(adapter->hw_init_completed == _FALSE)
@@ -2290,6 +2347,67 @@ void rtw_set_scan_deny(struct mlme_priv *mlmepriv, u32 ms)
 
 
 /*
+* Select a new join candidate from the original @param candidate and @param competitor
+* @return _TRUE: candidate is updated
+* @return _FALSE: candidate is not updated
+*/
+static int rtw_check_join_candidate(struct mlme_priv *pmlmepriv
+	, struct wlan_network **candidate, struct wlan_network *competitor)
+{
+	int updated = _FALSE;
+	_adapter *adapter = container_of(pmlmepriv, _adapter, mlmepriv);
+
+	if(pmlmepriv->assoc_by_bssid==_TRUE) { // associate with bssid
+		if(	(*candidate == NULL ||(*candidate)->network.Rssi<competitor->network.Rssi )
+			&& _rtw_memcmp(competitor->network.MacAddress, pmlmepriv->assoc_bssid, ETH_ALEN)==_TRUE
+		) {
+			*candidate = competitor;
+			updated = _TRUE;
+		}
+	} else  if (pmlmepriv->assoc_ssid.SsidLength == 0 ) { // associate with ssid, but ssidlength is 0
+		if(	(*candidate == NULL ||(*candidate)->network.Rssi<competitor->network.Rssi ) ) {
+			*candidate = competitor;
+			updated = _TRUE;
+		}
+	} else
+#ifdef  CONFIG_LAYER2_ROAMING
+	if(pmlmepriv->to_roaming) { // roaming
+		if(	(*candidate == NULL ||(*candidate)->network.Rssi<competitor->network.Rssi )
+			&& is_same_ess(&competitor->network, &pmlmepriv->cur_network.network) 
+			//&&(!is_same_network(&competitor->network, &pmlmepriv->cur_network.network))
+			&& rtw_get_passing_time_ms((u32)competitor->last_scanned) < 5000
+			&& rtw_is_desired_network(adapter, competitor)
+		) {
+			*candidate = competitor;
+			updated = _TRUE;
+		}
+		
+	} else
+#endif
+	{ // associate with ssid
+		if(	(*candidate == NULL ||(*candidate)->network.Rssi<competitor->network.Rssi )
+			&& (competitor->network.Ssid.SsidLength==pmlmepriv->assoc_ssid.SsidLength)
+			&&((_rtw_memcmp(competitor->network.Ssid.Ssid, pmlmepriv->assoc_ssid.Ssid, pmlmepriv->assoc_ssid.SsidLength)) == _TRUE)
+			&& rtw_is_desired_network(adapter, competitor)
+		) {
+			*candidate = competitor;
+			updated = _TRUE;
+		}
+	}
+
+	if(updated){
+		DBG_871X("new candidate: %s("MAC_FMT") rssi:%d\n",
+			(*candidate)->network.Ssid.Ssid,
+			MAC_ARG((*candidate)->network.MacAddress),
+			(int)(*candidate)->network.Rssi
+		);
+	}
+	
+	return updated;
+}
+
+
+/*
 Calling context:
 The caller of the sub-routine will be in critical section...
 
@@ -2299,6 +2417,96 @@ pmlmepriv->lock
 
 
 */
+#if 1
+int rtw_select_and_join_from_scanned_queue(struct mlme_priv *pmlmepriv )
+{
+	int ret;
+	_list	*phead;
+	_adapter *adapter;	
+	_queue	*queue	= &(pmlmepriv->scanned_queue);
+	struct	wlan_network	*pnetwork = NULL;
+	struct	wlan_network	*candidate = NULL;
+	u8 		bSupportAntDiv = _FALSE;
+_func_enter_;
+
+	phead = get_list_head(queue);		
+	adapter = (_adapter *)pmlmepriv->nic_hdl;
+
+	pmlmepriv->pscanned = get_next( phead );
+
+	while (!rtw_end_of_queue_search(phead, pmlmepriv->pscanned)) {
+
+		pnetwork = LIST_CONTAINOR(pmlmepriv->pscanned, struct wlan_network, list);
+		if(pnetwork==NULL){
+			RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,("%s return _FAIL:(pnetwork==NULL)\n", __FUNCTION__));
+			ret = _FAIL;
+			goto exit;
+		}
+		
+		pmlmepriv->pscanned = get_next(pmlmepriv->pscanned);
+
+		#if 0
+		DBG_871X("MacAddress:"MAC_FMT" ssid:%s\n", MAC_ARG(pnetwork->network.MacAddress), pnetwork->network.Ssid.Ssid);
+		#endif
+
+		rtw_check_join_candidate(pmlmepriv, &candidate, pnetwork);
+ 
+ 	}
+
+	if(candidate == NULL) {
+		DBG_871X("%s: return _FAIL(candidate == NULL)\n", __FUNCTION__);
+		ret = _FAIL;
+		goto exit;
+	} else {
+		DBG_871X("%s: candidate: %s("MAC_FMT")\n", __FUNCTION__,
+			candidate->network.Ssid.Ssid, MAC_ARG(candidate->network.MacAddress));;
+	}
+	
+
+	// check for situation of  _FW_LINKED 
+	if (check_fwstate(pmlmepriv, _FW_LINKED) == _TRUE)
+	{
+		DBG_871X("%s: _FW_LINKED while ask_for_joinbss!!!\n", __FUNCTION__);
+	
+		if(is_same_network(&pmlmepriv->cur_network.network, &candidate->network))
+		{
+			DBG_871X("%s: _FW_LINKED and is same network, it needn't join again\n", __FUNCTION__);
+
+			rtw_indicate_connect(adapter);//rtw_indicate_connect again
+				
+			ret = 2;
+			goto exit;
+		}
+		else
+		{
+			rtw_disassoc_cmd(adapter);
+			rtw_indicate_disconnect(adapter);
+			rtw_free_assoc_resources(adapter);
+		}
+	}
+	
+	#ifdef CONFIG_ANTENNA_DIVERSITY
+	adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_IS_SUPPORT_ANT_DIV, &(bSupportAntDiv));
+	if(_TRUE == bSupportAntDiv)	
+	{
+		u8 CurrentAntenna;
+		adapter->HalFunc.GetHalDefVarHandler(adapter, HAL_DEF_CURRENT_ANTENNA, &(CurrentAntenna));			
+		DBG_8192C("#### Opt_Ant_(%s) , cur_Ant(%s)\n",
+			(2==candidate->network.PhyInfo.Optimum_antenna)?"A":"B",
+			(2==CurrentAntenna)?"A":"B"
+		);
+	}
+	#endif
+
+	ret = rtw_joinbss_cmd(adapter, candidate);
+	
+exit:
+_func_exit_;
+
+	return ret;
+
+}
+#else
 int rtw_select_and_join_from_scanned_queue(struct mlme_priv *pmlmepriv )
 {	
 	_list	*phead;
@@ -2334,11 +2542,7 @@ _func_enter_;
 		pmlmepriv->pscanned = get_next(pmlmepriv->pscanned);
 
 		#if 0
-		DBG_871X("MacAddress:%02x:%02x:%02x:%02x:%02x:%02x ssid:%s\n",
-			pnetwork->network.MacAddress[0],pnetwork->network.MacAddress[1],
-			pnetwork->network.MacAddress[2],pnetwork->network.MacAddress[3],
-			pnetwork->network.MacAddress[4],pnetwork->network.MacAddress[5],
-			pnetwork->network.Ssid.Ssid);
+		DBG_871X("MacAddress:"MAC_FMT" ssid:%s\n", MAC_ARG(pnetwork->network.MacAddress), pnetwork->network.Ssid.Ssid);
 		#endif
 
 		if(pmlmepriv->assoc_by_bssid==_TRUE)
@@ -2391,11 +2595,8 @@ _func_enter_;
 				roaming_candidate = pnetwork;
 				//RT_TRACE(_module_rtl871x_mlme_c_,_drv_err_,
 				DBG_871X
-					("roaming_candidate???: MacAddress:%02x:%02x:%02x:%02x:%02x:%02x ssid:%s\n",
-					roaming_candidate->network.MacAddress[0],roaming_candidate->network.MacAddress[1],
-					roaming_candidate->network.MacAddress[2],roaming_candidate->network.MacAddress[3],
-					roaming_candidate->network.MacAddress[4],roaming_candidate->network.MacAddress[5],
-					roaming_candidate->network.Ssid.Ssid)
+					("roaming_candidate???: %s("MAC_FMT")\n",
+					roaming_candidate->network.Ssid.Ssid, MAC_ARG(roaming_candidate->network.MacAddress) )
 					//)
 					;
 			}
@@ -2464,11 +2665,8 @@ _func_enter_;
 	#ifdef CONFIG_LAYER2_ROAMING
 	if(pmlmepriv->to_roaming>0 && roaming_candidate ){
 		pnetwork=roaming_candidate;
-		DBG_871X("select_and_join_from_scanned_queue: roaming_candidate: MacAddress:%02x:%02x:%02x:%02x:%02x:%02x ssid:%s\n",
-			pnetwork->network.MacAddress[0],pnetwork->network.MacAddress[1],
-			pnetwork->network.MacAddress[2],pnetwork->network.MacAddress[3],
-			pnetwork->network.MacAddress[4],pnetwork->network.MacAddress[5],
-			pnetwork->network.Ssid.Ssid);
+		DBG_871X("select_and_join_from_scanned_queue: roaming_candidate: %s("MAC_FMT")\n",
+			pnetwork->network.Ssid.Ssid, MAC_ARG(pnetwork->network.MacAddress));
 		goto ask_for_joinbss;
 	}
 	#endif
@@ -2476,11 +2674,8 @@ _func_enter_;
 	if((pmlmepriv->assoc_by_rssi==_TRUE)  && (pnetwork_max_rssi!=NULL))
 	{
 		pnetwork = pnetwork_max_rssi;
-		DBG_871X("select_and_join_from_scanned_queue: pnetwork_max_rssi: MacAddress:%02x:%02x:%02x:%02x:%02x:%02x ssid:%s\n",
-			pnetwork->network.MacAddress[0],pnetwork->network.MacAddress[1],
-			pnetwork->network.MacAddress[2],pnetwork->network.MacAddress[3],
-			pnetwork->network.MacAddress[4],pnetwork->network.MacAddress[5],
-			pnetwork->network.Ssid.Ssid);
+		DBG_871X("select_and_join_from_scanned_queue: pnetwork_max_rssi: %s("MAC_FMT")\n",
+			pnetwork->network.Ssid.Ssid, MAC_ARG(pnetwork->network.MacAddress));
 		goto ask_for_joinbss;
 	}
 
@@ -2497,7 +2692,7 @@ _func_exit_;
 	return rtw_joinbss_cmd(adapter, pnetwork);
 
 }
-
+#endif
 
 
 sint rtw_set_auth(_adapter * adapter,struct security_priv *psecuritypriv)
@@ -3451,11 +3646,8 @@ void _rtw_roaming(_adapter *padapter, struct wlan_network *tgt_network)
 		pnetwork = &pmlmepriv->cur_network;
 	
 	if(0 < pmlmepriv->to_roaming) {
-		DBG_871X("roaming from %s(%02x:%02x:%02x:%02x:%02x:%02x), length:%d\n",
-				pnetwork->network.Ssid.Ssid,
-				pnetwork->network.MacAddress[0],pnetwork->network.MacAddress[1],
-				pnetwork->network.MacAddress[2],pnetwork->network.MacAddress[3],
-				pnetwork->network.MacAddress[4],pnetwork->network.MacAddress[5],
+		DBG_871X("roaming from %s("MAC_FMT"), length:%d\n",
+				pnetwork->network.Ssid.Ssid, MAC_ARG(pnetwork->network.MacAddress),
 				pnetwork->network.Ssid.SsidLength);
 		_rtw_memcpy(&pmlmepriv->assoc_ssid, &pnetwork->network.Ssid, sizeof(NDIS_802_11_SSID));
 

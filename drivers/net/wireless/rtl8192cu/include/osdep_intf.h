@@ -116,11 +116,13 @@ void rtw_proc_remove_one(struct net_device *dev);
 #endif
 #endif
 
-#ifdef CONFIG_IPS
+
 void rtw_ips_dev_unload(_adapter *padapter);
+#ifdef CONFIG_IPS
 int rtw_ips_pwr_up(_adapter *padapter);
 void rtw_ips_pwr_down(_adapter *padapter);
 #endif
+
 
 #endif	//_OSDEP_INTF_H_
 
