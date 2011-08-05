@@ -165,6 +165,41 @@ int sw_host_gpio_free(void)
     return 0;
 }
 
+#ifdef WINNER_SHUTDOWN_PIN_USED
+int sw_host_hardware_shutdown(u32 shutdown)
+{
+    int ret;
+    if (shutdown)
+    {
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_shdn");
+        if (ret)
+        {
+            nano_msg("Failed to shut down N20S!\n");
+            return -1;
+        }
+        else
+        {
+            nano_msg("N20s shutdown!!\n");
+        }
+    }
+    else
+    {
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_shdn");
+        if (ret)
+        {
+            nano_msg("Failed to start up N20S!\n");
+            return -1;
+        }
+        else
+        {
+            nano_msg("N20s start up!!\n");
+        }
+    }
+    return 0;
+}
+#endif //WINNER_POWER_PIN_USED
+
+
 #ifdef WINNER_POWER_PIN_USED
 int sw_host_power_card(u32 enb)
 {
@@ -214,40 +249,6 @@ int sw_host_power_card(u32 enb)
     return 0;
 }
 #endif // WINNER_POWER_PIN_USED
-
-#ifdef WINNER_SHUTDOWN_PIN_USED
-int sw_host_hardware_shutdown(u32 shutdown)
-{
-    int ret;
-    if (shutdown)
-    {
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_shdn");
-        if (ret)
-        {
-            nano_msg("Failed to shut down N20S!\n");
-            return -1;
-        }
-        else
-        {
-            nano_msg("N20s shutdown!!\n");
-        }
-    }
-    else
-    {
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_shdn");
-        if (ret)
-        {
-            nano_msg("Failed to start up N20S!\n");
-            return -1;
-        }
-        else
-        {
-            nano_msg("N20s start up!!\n");
-        }
-    }
-    return 0;
-}
-#endif //WINNER_POWER_PIN_USED
 
 #endif //WINNER_HOST_GPIO_CTRL
 
