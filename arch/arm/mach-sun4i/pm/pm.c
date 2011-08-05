@@ -178,6 +178,8 @@ static int aw_pm_enter(suspend_state_t state)
     //move standby code to sram
     memcpy((void *)SRAM_FUNC_START, (void *)&standby_bin_start, (int)&standby_bin_end - (int)&standby_bin_start);
 
+    /* config system wakeup evetn type */
+    standby_info.standby_para.event = SUSPEND_WAKEUP_SRC_EXINT;
 	/* goto sram and run */
 	standby(&standby_info);
 
