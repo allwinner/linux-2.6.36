@@ -74,8 +74,8 @@ build_kernel()
     done
     cp -f Module.symvers modules.* ${LICHEE_MOD_DIR}
 
-    #rm -rf output/kernel-source
-    #scripts/gen_kernel_src.sh output/kernel-source
+    rm -rf output/kernel-source
+    scripts/gen_kernel_src.sh output/kernel-source
 }
 
 build_modules()
