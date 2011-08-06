@@ -165,6 +165,41 @@ int sw_host_gpio_free(void)
     return 0;
 }
 
+#ifdef WINNER_SHUTDOWN_PIN_USED
+int sw_host_hardware_shutdown(u32 shutdown)
+{
+    int ret;
+    if (shutdown)
+    {
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_shdn");
+        if (ret)
+        {
+            nano_msg("Failed to shut down N20S!\n");
+            return -1;
+        }
+        else
+        {
+            nano_msg("N20s shutdown!!\n");
+        }
+    }
+    else
+    {
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_shdn");
+        if (ret)
+        {
+            nano_msg("Failed to start up N20S!\n");
+            return -1;
+        }
+        else
+        {
+            nano_msg("N20s start up!!\n");
+        }
+    }
+    return 0;
+}
+#endif //WINNER_POWER_PIN_USED
+
+
 #ifdef WINNER_POWER_PIN_USED
 int sw_host_power_card(u32 enb)
 {
@@ -214,40 +249,6 @@ int sw_host_power_card(u32 enb)
     return 0;
 }
 #endif // WINNER_POWER_PIN_USED
-
-#ifdef WINNER_SHUTDOWN_PIN_USED
-int sw_host_hardware_shutdown(u32 shutdown)
-{
-    int ret;
-    if (shutdown)
-    {
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_shdn");
-        if (ret)
-        {
-            nano_msg("Failed to shut down N20S!\n");
-            return -1;
-        }
-        else
-        {
-            nano_msg("N20s shutdown!!\n");
-        }
-    }
-    else
-    {
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_shdn");
-        if (ret)
-        {
-            nano_msg("Failed to start up N20S!\n");
-            return -1;
-        }
-        else
-        {
-            nano_msg("N20s start up!!\n");
-        }
-    }
-    return 0;
-}
-#endif //WINNER_POWER_PIN_USED
 
 #endif //WINNER_HOST_GPIO_CTRL
 
@@ -1076,7 +1077,7 @@ nrx_reset(struct sdio_func *func)
       /* Wait until the chip exits the reset state.
        * The necessary time has been measured to approx 8 ms for NRX600.
        */  
-      mdelay(13);
+      mdelay(10);
    }
 #endif /* KSDIO_HOST_RESET_PIN */
 
@@ -1157,7 +1158,7 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
       /* Give fw time to restart. Measured req time for NRX700
        * (orfr 090415) was 3.5 ms with some margin
        */
-      mdelay(10); 
+      mdelay(15); 
 
       err = nrx_enable_irq(nrxdev);
       if (err) {
@@ -1627,16 +1628,21 @@ static int __init sdio_nrx_init(void)
         ret = sw_host_gpio_allocate();
         if (ret)
         {
-            KDEBUG(ERROR, "Failed to allocate host GPIO (ret: %d)", ret);
+            nano_msg("Failed to allocate host GPIO (ret: %d)", ret);
             return -1;
         }
         
         #ifdef WINNER_POWER_PIN_USED
         sw_host_power_card(1);
         #endif
+        ret = sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
+        if (ret)
+        {
+            nano_msg("Failed to insert card\n");
+            return -1;
+        }
+    }
 
-   }
-    sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
 #endif
     return sdio_register_driver(&sdio_nrx_driver);
 }
@@ -1659,16 +1665,22 @@ static void __exit sdio_nrx_exit(void)
    }
 #endif
 #ifdef WINNER_HOST_GPIO_CTRL
-    sw_host_remove_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
-    #ifdef WINNER_SHUTDOWN_PIN_USED
-    sw_host_hardware_shutdown(1);
-    #endif
+    {
+        int ret;
+        ret = sw_host_remove_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
+        if (ret)
+        {
+            nano_msg("Failed to remove card\n");
+        }
+        #ifdef WINNER_SHUTDOWN_PIN_USED
+        sw_host_hardware_shutdown(1);
+        #endif
 
-    #ifdef WINNER_POWER_PIN_USED
-    sw_host_power_card(0);
-    #endif
-    
-    sw_host_gpio_free();
+        #ifdef WINNER_POWER_PIN_USED
+        sw_host_power_card(0);
+        #endif
+        sw_host_gpio_free();
+    }
 #endif
    sdio_unregister_driver(&sdio_nrx_driver);
 }
