@@ -1360,8 +1360,18 @@ static int __init init_blklayer(void)
     NAND_ClearRbInt();
     spin_lock_init(&nand_rb_lock);
 	irqflags = IRQF_DISABLED;
+	
 	if (request_irq(SW_INT_IRQNO_NAND, nand_rb_interrupt, irqflags, mytr.name, &mytr))
-		return -EAGAIN;
+	{
+	    printk("nand interrupte register error\n");
+	    return -EAGAIN;
+	}
+	else
+	{
+	    printk("nand interrupte register ok\n");
+	}
+	
+		
 	ret = PHY_Init();
 	if (ret) {
 		PHY_Exit();

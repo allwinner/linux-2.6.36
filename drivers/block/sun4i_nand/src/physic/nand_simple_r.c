@@ -299,7 +299,6 @@ __s32 _wait_rb_ready_int(__u32 chip)
 {
 	__u32 rb;
 	
-
     rb = _cal_real_rb(chip);
     NFC_SelectRb(rb);
   
@@ -307,13 +306,17 @@ __s32 _wait_rb_ready_int(__u32 chip)
     {
        NAND_WaitRbReady();
     }
+    else
+    {
+        //printk("fast rb ready \n");
+    }
     
     while(NFC_CheckRbReady(rb))
     {
         printk("rb int error!\n");
     }
 	
-	//NAND_ClearRbInt();
+	
 	return 0;
 }
 
@@ -1008,6 +1011,8 @@ __s32 PHY_SynchBank(__u32 nBank, __u32 bMode)
 	/*if support rb irq , last op is erase or write*/
 	if (SUPPORT_RB_IRQ)
 		_pending_rb_irq_sem();
+		
+	_wait_rb_ready_int(chip);
 	
 	NFC_SelectChip(chip);
 	NFC_SelectRb(rb);
