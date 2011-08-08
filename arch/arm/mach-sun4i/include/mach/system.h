@@ -48,9 +48,9 @@ static inline void arch_reset(char mode, const char *cmd)
 }
 
 enum sw_ic_ver {
-	IC_VER_A10_A = 0,
-	IC_VER_A10_B,
-	IC_VER_A10_C
+	MAGIC_VER_A = 0,
+	MAGIC_VER_B,
+	MAGIC_VER_C
 };
 
 enum sw_ic_ver sw_get_ic_ver(void);

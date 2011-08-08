@@ -289,9 +289,11 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //设备申请G
 			func_change = 1;
 		}
 		//根据pull的值决定是否更新pull寄存器
+
+		tmp_val = (port_num - (port_num_pull<<4)) << 1;
+
 		if(tmp_user_gpio_data->pull > 0)
 		{
-			tmp_val              =  (port_num - (port_num_pull<<4)) << 1;
 			tmp_sys_gpio_data->hardware_gpio_status.pull = (tmp_group_pull_data >> tmp_val) & 0x03;
 			if(tmp_user_gpio_data->pull >= 0)
 			{
