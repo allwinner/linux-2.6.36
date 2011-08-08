@@ -1178,22 +1178,6 @@ struct platform_device aw_twi2_device = {
 	.num_resources	= ARRAY_SIZE(aw_twi2_resources),
 };
 
-
-
-// should be in the system initialization.
-/*
-static struct i2c_board_info __initdata i2c_info_hdmi[] =  {
-	{
-		I2C_BOARD_INFO("anx7150_0", 0x76),
-		.platform_data	= NULL,
-	},
-	{
-		I2C_BOARD_INFO("anx7150_1", 0x7e),
-		.platform_data	= NULL,
-	},
-};
-*/
-
 static struct i2c_board_info __initdata i2c_info_power[] =  {
 	{
 		I2C_BOARD_INFO("axp199", 0x68),
@@ -1204,8 +1188,6 @@ static struct i2c_board_info __initdata i2c_info_power[] =  {
 #if defined(CONFIG_TOUCHSCREEN_FT5X_TS) || defined(CONFIG_TOUCHSCREEN_FT5X_TS_MODULE)
 static struct i2c_board_info __initdata i2c_info_ft5x_ts[] =  {
 	{
-	    //need to be modify, according the menuconfig 
-		//I2C_BOARD_INFO("ft5x_ts", 0x7e),
 		I2C_BOARD_INFO("ft5x_ts", 0x00),
 		.platform_data	= NULL,
 	},
@@ -1220,36 +1202,37 @@ static struct i2c_board_info i2c_board_info_hv_keyboard[] __initdata = {
 };
 #endif
 
-/*
-#if defined(CONFIG_TOUCHSCREEN_FT) || defined(CONFIG_TOUCHSCREEN_FT_MODULE)
-static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
-	{
-		I2C_BOARD_INFO("ft5x0x_ts", 0x7e),
-		.platform_data	= NULL,
-	},
-};
-#endif
-*/
-
 #if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)
 static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
 	{
 		I2C_BOARD_INFO("Goodix-TS", 0x55),
-		//.platform_data	= &goodix_data,
-	},//for GT80X of goodix
+		.platform_data	= NULL,
+	},
 };
 #endif
 
 #if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)
 static struct i2c_board_info gsensor_i2c_board_info[] __initdata = {
-	{ I2C_BOARD_INFO("mxc622x", 0x15), },
+	{
+		I2C_BOARD_INFO("mxc622x", 0x15),
+		.platform_data	= NULL,
+	},
+};
+#endif
+
+#if defined(CONFIG_SENSORS_BMA250) || defined(CONFIG_SENSORS_BMA250_MODULE)
+static struct i2c_board_info bma250_i2c_board_info[] __initdata = {
+	{
+		I2C_BOARD_INFO("bma250", 0x18),
+		.platform_data	= NULL,
+	},
 };
 #endif
 
 
 /*
 *    0  not used or error
-*    1 used
+*    1  used
 */
 static int i2c_awxx_get_cfg(int bus_num)
 {
@@ -1274,88 +1257,97 @@ static int __init i2c_adap_awxx_init(void)
     int device_used = 0;
 	int twi_addr = 0;
 	int twi_id = 0;
-	// bus-0
-	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
-	printk("================power===================, status = %d \n",status);
-	
-#if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)    // bus-0
-        if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "goodix_ctp_used", &device_used, 1)){
-            pr_err("goodix_ts: script_parser_fetch err. \n");
-            goto script_parser_fetch_err;
-	    }
-	    if(1 == device_used){
-            if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "goodix_ctp_twi_addr", &twi_addr, 1)){
-                pr_err("goodix_ts: script_parser_fetch err. \n");
-                goto script_parser_fetch_err;
-            }
-            i2c_info_goodix_ts[0].addr = twi_addr;
-            printk("i2c: goodix_ctp_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);
-            
-            if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "goodix_ctp_twi_id", &twi_id, 1)){
-                pr_err("goodix_ts: script_parser_fetch err. \n");
-                goto script_parser_fetch_err;
-            }
-            printk("i2c: goodix_ctp_twi_id is %d. \n", twi_id);
-            
-            status = i2c_register_board_info(twi_id, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));         
-            printk("================goodix==============, twi_id = %d, status = %d \n", twi_id, status);   
 
-	    }	    
+	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
+	pr_info("================power===================, status = %d \n",status);
+	
+#if defined(CONFIG_TOUCHSCREEN_GT801) || defined(CONFIG_TOUCHSCREEN_GT801_MODULE)	// bus-0
+	ret = script_parser_fetch("twi_device_para", "goodix_ctp_used", &device_used, 1);
+
+	if(SCRIPT_PARSER_OK != ret) {
+		pr_err("goodix_ts: device_used script_parser_fetch err. \n");
+		goto script_parser_fetch_err;
+	}
+
+	if(1 == device_used){
+		ret = script_parser_fetch("twi_device_para", "goodix_ctp_twi_addr", &twi_addr, 1);
+		if(SCRIPT_PARSER_OK != ret) {
+			pr_err("goodix_ts: twi_addr script_parser_fetch err. \n");
+			goto script_parser_fetch_err;
+		}
+		i2c_info_goodix_ts[0].addr = twi_addr;
+		pr_info("i2c: goodix_ctp_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);
+
+		ret = script_parser_fetch("twi_device_para", "goodix_ctp_twi_id", &twi_id, 1);
+		if(SCRIPT_PARSER_OK != ret) {
+			pr_err("goodix_ts: goodix_ctp_twi_id script_parser_fetch err. \n");
+			goto script_parser_fetch_err;
+		}
+		pr_info("i2c: goodix_ctp_twi_id is %d. \n", twi_id);
+            
+		status = i2c_register_board_info(twi_id, i2c_info_goodix_ts, ARRAY_SIZE(i2c_info_goodix_ts));
+		pr_info("================goodix==============, twi_id = %d, status = %d \n", twi_id, status);
+
+	}
 #endif
         
-    #if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)   //bus-1
-        status = i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
-        printk("===============gsensor===============, status = %d ===\n",status);
-    #endif	
+#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)		//bus-1
+	status = i2c_register_board_info(1, bma250_i2c_board_info, ARRAY_SIZE(bma250_i2c_board_info));
+	pr_info("===============gsensor===============, status = %d\n",status);
+#endif
     
-#if defined(CONFIG_TOUCHSCREEN_FT5X_TS) || defined(CONFIG_TOUCHSCREEN_FT5X_TS_MODULE)                                    
-    if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "ft5x_ctp_used", &device_used, 1)){          
-        pr_err("ft5x_ts: script_parser_fetch err. \n");                                                     
-        goto script_parser_fetch_err;                                                                         
-    }                                                                                                         
-    if(1 == device_used){                                                                                 
-        if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "ft5x_ctp_twi_addr", &twi_addr, 1)){  
-            pr_err("ft5x_ts: script_parser_fetch err. \n");                                                 
-            goto script_parser_fetch_err;                                                                     
-        }                                                                                                     
-        i2c_info_ft5x_ts[0].addr = twi_addr;                                                                   
-        printk("i2c: ft5x_ctp_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);                               
-                                                                                                              
-        if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "ft5x_ctp_twi_id", &twi_id, 1)){      
-            pr_err("ft5x_ts: script_parser_fetch err. \n");                                                 
-            goto script_parser_fetch_err;                                                                     
-        }                                                                                                     
-        printk("i2c: ft5x_ctp_twi_id is %d. \n", twi_id);                                                   
-                                                                                                              
-        status = i2c_register_board_info(twi_id, i2c_info_ft5x_ts, ARRAY_SIZE(i2c_info_ft5x_ts));         
-        printk("================ft5x==============, twi_id = %d, status = %d \n", twi_id, status);        
-                                                                                                              
+#if defined(CONFIG_TOUCHSCREEN_FT5X_TS) || defined(CONFIG_TOUCHSCREEN_FT5X_TS_MODULE)
+	ret = script_parser_fetch("twi_device_para", "ft5x_ctp_used", &device_used, 1);
+    if(SCRIPT_PARSER_OK != ret){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    if(1 == device_used) {
+		ret = script_parser_fetch("twi_device_para", "ft5x_ctp_twi_addr", &twi_addr, 1);
+        if(SCRIPT_PARSER_OK != ret) {
+            pr_err("ft5x_ts: script_parser_fetch err. \n");
+            goto script_parser_fetch_err;
+        }
+        i2c_info_ft5x_ts[0].addr = twi_addr;
+        pr_info("i2c: ft5x_ctp_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);
+
+		ret = script_parser_fetch("twi_device_para", "ft5x_ctp_twi_id", &twi_id, 1);
+        if(SCRIPT_PARSER_OK != ret) {
+			pr_err("ft5x_ts: script_parser_fetch err. \n");
+			goto script_parser_fetch_err;
+        }
+        printk("i2c: ft5x_ctp_twi_id is %d. \n", twi_id);
+
+        status = i2c_register_board_info(twi_id, i2c_info_ft5x_ts, ARRAY_SIZE(i2c_info_ft5x_ts));
+        printk("================ft5x==============, twi_id = %d, status = %d \n", twi_id, status);
     }                                                                                                                                                                               
 #endif     
     
 #if defined(CONFIG_KEYBOARD_HV2605_KEYBOARD) || defined(CONFIG_KEYBOARD_HV2605_KEYBOARD_MODULE)
-            if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "hv_keyboard_used", &device_used, 1)){          
-                pr_err("hv_keyboard: script_parser_fetch err. \n");                                                     
-                goto script_parser_fetch_err;                                                                         
-            }                                                                                                         
-            if(1 == device_used){                                                                                 
-                if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "hv_keyboard_twi_addr", &twi_addr, 1)){  
-                    pr_err("hv_keyboard: script_parser_fetch err. \n");                                                 
-                    goto script_parser_fetch_err;                                                                     
-                }                                                                                                     
-                i2c_board_info_hv_keyboard[0].addr = twi_addr;                                                                   
-                printk("i2c: hv_keyboard_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);                               
-                                                                                                                      
-                if(SCRIPT_PARSER_OK != script_parser_fetch("twi_device_para", "hv_keyboard_twi_id", &twi_id, 1)){      
-                    pr_err("hv_keyboard: script_parser_fetch err. \n");                                                 
-                    goto script_parser_fetch_err;                                                                     
-                }                                                                                                     
-                printk("i2c: hv_keyboard_twi_id is %d. \n", twi_id);                                                   
-                                                                                                                      
-                status = i2c_register_board_info(twi_id, i2c_board_info_hv_keyboard, ARRAY_SIZE(i2c_board_info_hv_keyboard));         
-                printk("================hv_keyboard==============, twi_id = %d, status = %d \n", twi_id, status);        
-                                                                                                                      
-            }                            
+	ret = script_parser_fetch("twi_device_para", "hv_keyboard_used", &device_used, 1);
+	if(SCRIPT_PARSER_OK != ret) {
+		pr_err("hv_keyboard: script_parser_fetch err. \n");
+		goto script_parser_fetch_err;
+	}
+	if(1 == device_used) {
+		ret = script_parser_fetch("twi_device_para", "hv_keyboard_twi_addr", &twi_addr, 1);
+		if(SCRIPT_PARSER_OK != ret) {
+			pr_err("hv_keyboard: script_parser_fetch err. \n");
+			goto script_parser_fetch_err;
+		}
+		i2c_board_info_hv_keyboard[0].addr = twi_addr;
+		printk("i2c: hv_keyboard_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);
+
+		ret = script_parser_fetch("twi_device_para", "hv_keyboard_twi_id", &twi_id, 1);
+		if(SCRIPT_PARSER_OK != ret) {
+			pr_err("hv_keyboard: script_parser_fetch err. \n");
+			goto script_parser_fetch_err;
+		}
+		printk("i2c: hv_keyboard_twi_id is %d. \n", twi_id);
+
+		status = i2c_register_board_info(twi_id, i2c_board_info_hv_keyboard, ARRAY_SIZE(i2c_board_info_hv_keyboard));
+		printk("================hv_keyboard==============, twi_id = %d, status = %d \n", twi_id, status);
+	}
 #endif
 
 	if(i2c_awxx_get_cfg(0)){
