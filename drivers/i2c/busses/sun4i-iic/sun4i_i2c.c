@@ -1212,7 +1212,7 @@ static struct i2c_board_info __initdata i2c_info_goodix_ts[] =  {
 #endif
 
 #if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)
-static struct i2c_board_info gsensor_i2c_board_info[] __initdata = {
+static struct i2c_board_info mxc622x_i2c_board_info[] __initdata = {
 	{
 		I2C_BOARD_INFO("mxc622x", 0x15),
 		.platform_data	= NULL,
@@ -1291,8 +1291,13 @@ static int __init i2c_adap_awxx_init(void)
 	}
 #endif
         
-#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)		//bus-1
+#if defined(CONFIG_SENSORS_BMA250) || defined(CONFIG_SENSORS_BMA250_MODULE)		//bus-1
 	status = i2c_register_board_info(1, bma250_i2c_board_info, ARRAY_SIZE(bma250_i2c_board_info));
+	pr_info("===============gsensor===============, status = %d\n",status);
+#endif
+    
+#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)		//bus-1
+	status = i2c_register_board_info(1, mxc622x_i2c_board_info, ARRAY_SIZE(mxc622x_i2c_board_info));
 	pr_info("===============gsensor===============, status = %d\n",status);
 #endif
     
