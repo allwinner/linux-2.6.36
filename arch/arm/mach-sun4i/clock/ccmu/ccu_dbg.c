@@ -145,8 +145,10 @@ void clk_dbg_inf(void)
 
     printk("\nAhbGate0 clk infor:\n");
     print_clk_inf(AhbGate0, Usb0Gate    );
-    print_clk_inf(AhbGate0, Usb1Gate    );
-    print_clk_inf(AhbGate0, Usb2Gate    );
+    print_clk_inf(AhbGate0, Ehci0Gate   );
+    print_clk_inf(AhbGate0, Ohci0Gate   );
+    print_clk_inf(AhbGate0, Ehci1Gate   );
+    print_clk_inf(AhbGate0, Ohci1Gate   );
     print_clk_inf(AhbGate0, SsGate      );
     print_clk_inf(AhbGate0, DmaGate     );
     print_clk_inf(AhbGate0, BistGate    );
@@ -574,8 +576,10 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
 
     seq_printf(m, "\nAhbGate0 clk infor:\n");
     sprintf_clk_inf(m, AhbGate0, Usb0Gate    );
-    sprintf_clk_inf(m, AhbGate0, Usb1Gate    );
-    sprintf_clk_inf(m, AhbGate0, Usb2Gate    );
+    sprintf_clk_inf(m, AhbGate0, Ehci0Gate   );
+    sprintf_clk_inf(m, AhbGate0, Ohci0Gate   );
+    sprintf_clk_inf(m, AhbGate0, Ehci1Gate   );
+    sprintf_clk_inf(m, AhbGate0, Ohci1Gate   );
     sprintf_clk_inf(m, AhbGate0, SsGate      );
     sprintf_clk_inf(m, AhbGate0, DmaGate     );
     sprintf_clk_inf(m, AhbGate0, BistGate    );
