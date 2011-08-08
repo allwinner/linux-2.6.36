@@ -411,11 +411,14 @@ __s32 gpio_release(u32 p_handler, __s32 if_release_to_default_status)
 	char               *tmp_buf;                                        //转换成char类型
 	__u32               group_count_max, first_port;                    //最大GPIO个数
 	system_gpio_set_t  *user_gpio_set, *tmp_sys_gpio_data;
-	__u32               tmp_group_func_data;
-	volatile __u32  *tmp_group_func_addr = NULL;
-	__u32               port, port_num, port_num_func;
-	__u32               pre_port = 0x7fffffff, pre_port_num_func = 0x7fffffff;
-	__u32               i;
+	__u32               tmp_group_func_data = 0;
+	__u32               tmp_group_pull_data = 0;
+	__u32               tmp_group_dlevel_data = 0;
+	volatile __u32     *tmp_group_func_addr = NULL,   *tmp_group_pull_addr = NULL;
+	volatile __u32     *tmp_group_dlevel_addr = NULL;
+	__u32               port, port_num, port_num_pull, port_num_func;
+	__u32               pre_port = 0x7fffffff, pre_port_num_func = 0x7fffffff, pre_port_num_pull = 0x7fffffff;
+	__u32               i, tmp_val;
 
 	//检查传进的句柄的有效性
 	if(!p_handler)
@@ -447,9 +450,15 @@ __s32 gpio_release(u32 p_handler, __s32 if_release_to_default_status)
 			continue;
 		}
 		port_num_func = (port_num >> 3);
+		port_num_pull = (port_num >> 4);
+
 		tmp_group_func_addr    = PIO_REG_CFG(port, port_num_func);   //更新功能寄存器地址
-		
+		tmp_group_pull_addr    = PIO_REG_PULL(port, port_num_pull);  //更新pull寄存器
+		tmp_group_dlevel_addr  = PIO_REG_DLEVEL(port, port_num_pull);//更新level寄存器
+
 		tmp_group_func_data    = *tmp_group_func_addr;
+		tmp_group_pull_data    = *tmp_group_pull_addr;
+		tmp_group_dlevel_data  = *tmp_group_dlevel_addr;
 		break;
 	}
 	if(first_port >= group_count_max)
@@ -461,26 +470,56 @@ __s32 gpio_release(u32 p_handler, __s32 if_release_to_default_status)
 		tmp_sys_gpio_data  = user_gpio_set + i;             //tmp_sys_gpio_data指向申请的GPIO空间
 		port     = tmp_sys_gpio_data->port;                 //读出端口数值
 		port_num = tmp_sys_gpio_data->port_num;             //读出端口中的某一个GPIO
-		
+
 		port_num_func = (port_num >> 3);
-		
-		if((pre_port_num_func != port_num_func) || (port != pre_port)) //如果发现当前引脚的端口不一致，或者所在的pull寄存器不一致
+		port_num_pull = (port_num >> 4);
+
+		if((port_num_pull != pre_port_num_pull) || (port != pre_port))    //如果发现当前引脚的端口不一致，或者所在的pull寄存器不一致
 		{
-			*tmp_group_func_addr = tmp_group_func_data;                //回写功能寄存器
-			tmp_group_func_addr  = PIO_REG_CFG(port, port_num_func);   //更新功能寄存器地址
-			
-			tmp_group_func_data = *tmp_group_func_addr;
+			*tmp_group_func_addr   = tmp_group_func_data;    //回写功能寄存器
+			*tmp_group_pull_addr   = tmp_group_pull_data;    //回写pull寄存器
+			*tmp_group_dlevel_addr = tmp_group_dlevel_data;  //回写driver level寄存器
+
+			tmp_group_func_addr    = PIO_REG_CFG(port, port_num_func);   //更新功能寄存器地址
+			tmp_group_pull_addr    = PIO_REG_PULL(port, port_num_pull);   //更新pull寄存器
+			tmp_group_dlevel_addr  = PIO_REG_DLEVEL(port, port_num_pull); //更新level寄存器
+
+			tmp_group_func_data    = *tmp_group_func_addr;
+			tmp_group_pull_data    = *tmp_group_pull_addr;
+			tmp_group_dlevel_data  = *tmp_group_dlevel_addr;
+		}
+		else if(pre_port_num_func != port_num_func)                       //如果发现当前引脚的功能寄存器不一致
+		{
+			*tmp_group_func_addr   = tmp_group_func_data;    			 //则只回写功能寄存器
+			tmp_group_func_addr    = PIO_REG_CFG(port, port_num_func);   //更新功能寄存器地址
+			tmp_group_func_data    = *tmp_group_func_addr;
 		}
 
+		pre_port_num_pull = port_num_pull;
 		pre_port_num_func = port_num_func;
 		pre_port          = port;
 		//更新功能寄存器
 		tmp_group_func_data &= ~(0x07 << ((port_num - (port_num_func<<3)) << 2));
-		//根据pull的值决定是否更新pull寄存器
+		//更新pull状态寄存器
+		tmp_val              =  (port_num - (port_num_pull<<4)) << 1;
+		tmp_group_pull_data &= ~(0x03  << tmp_val);
+		tmp_group_pull_data |= (tmp_sys_gpio_data->hardware_gpio_status.pull & 0x03) << tmp_val;
+		//更新driver状态寄存器
+		tmp_val              =  (port_num - (port_num_pull<<4)) << 1;
+		tmp_group_dlevel_data &= ~(0x03  << tmp_val);
+		tmp_group_dlevel_data |= (tmp_sys_gpio_data->hardware_gpio_status.drv_level & 0x03) << tmp_val;
 	}
 	if(tmp_group_func_addr)                              //只要更新过寄存器地址，就可以对硬件赋值
 	{                                                    //那么把所有的值全部回写到硬件寄存器
 		*tmp_group_func_addr   = tmp_group_func_data;    //回写功能寄存器
+	}
+	if(tmp_group_pull_addr)
+	{
+		*tmp_group_pull_addr   = tmp_group_pull_data;
+	}
+	if(tmp_group_dlevel_addr)
+	{
+		*tmp_group_dlevel_addr = tmp_group_dlevel_data;
 	}
 
 	//free(p_handler);                                //释放内存

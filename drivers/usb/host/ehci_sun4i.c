@@ -308,7 +308,7 @@ static s32 get_usb_cfg(struct sw_hci_hcd *sw_ehci)
 	}
 
 	/* usbc_init_state */
-	ret = script_parser_fetch(usbc_name[sw_ehci->usbc_no], "usbc_init_state", (int *)&(sw_ehci->usbc_init_state), 64);
+	ret = script_parser_fetch(usbc_name[sw_ehci->usbc_no], "usb_host_init_state", (int *)&(sw_ehci->usbc_init_state), 64);
 	if(ret != 0){
 		DMSG_PANIC("ERR: script_parser_fetch usbc_init_state failed\n");
 		return -1;
