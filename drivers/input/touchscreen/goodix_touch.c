@@ -821,42 +821,44 @@ static int __devinit goodix_ts_init(void)
 	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
 	
 	pr_info("goodix_ts_init\n");
-	if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
+	
+    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_used", &ctp_used, 1)){
+        pr_err("goodix_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    if(1 != ctp_used){
+        pr_err("goodix_ts: ctp_unused. \n");
+        return 0;
+    }
+
+    if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
             pr_err("goodix_ts_init: script_parser_fetch err. \n");
             goto script_parser_fetch_err;
-    }
+      }
     if(strcmp(GOODIX_I2C_NAME, name)){
         pr_err("goodix_ts_init: name %s does not match GOODIX_I2C_NAME. \n", name);
         return 0;
     }
     
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_used", &ctp_used, 1)){
+    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_x", &screen_max_x, 1)){
         pr_err("goodix_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
-	}
-	if(1 != ctp_used){
-        pr_err("goodix_ts: ctp_unused. \n");
-        return 0;
-	}
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_x", &screen_max_x, 1)){
-        pr_err("goodix_ts: script_parser_fetch err. \n");
-        goto script_parser_fetch_err;
-	}
+    }
     pr_debug("goodix_ts: screen_max_x = %d. \n", screen_max_x);
     
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_y", &screen_max_y, 1)){
+    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_y", &screen_max_y, 1)){
         pr_err("goodix_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
-	}
-	pr_debug("goodix_ts: screen_max_y = %d. \n", screen_max_y);
-	
-	goodix_wq = create_singlethread_workqueue("goodix_wq");
-	if (!goodix_wq) {
-		printk(KERN_ALERT "Creat %s workqueue failed.\n", f3x_ts_name);
-		return -ENOMEM;
-		
-	}
-	ret=i2c_add_driver(&goodix_ts_driver);
+    }
+    pr_debug("goodix_ts: screen_max_y = %d. \n", screen_max_y);
+
+    goodix_wq = create_singlethread_workqueue("goodix_wq");
+    if (!goodix_wq) {
+    	printk(KERN_ALERT "Creat %s workqueue failed.\n", f3x_ts_name);
+    	return -ENOMEM;
+    	
+    }
+    ret=i2c_add_driver(&goodix_ts_driver);
 
 script_parser_fetch_err:
 	return ret; 
