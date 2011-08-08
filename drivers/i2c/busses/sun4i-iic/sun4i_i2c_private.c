@@ -410,7 +410,7 @@ unsigned int aw_twi_query_irq_status(void *base_addr)
 static void _twi_set_clk(unsigned int clk_n, unsigned int clk_m, void *base_addr)
 {
     unsigned int reg_val = readl(base_addr + TWI_CLK_REG);
-    printk("_twi_set_clk: clk_n = %d, clk_m = %d", clk_n, clk_m);
+    printk("_twi_set_clk: clk_n = %d, clk_m = %d\n", clk_n, clk_m);
     reg_val &= ~(TWI_CLK_DIV_M | TWI_CLK_DIV_N);
     reg_val |= ( clk_n |(clk_m << 3) );
     writel(reg_val, base_addr + TWI_CLK_REG);

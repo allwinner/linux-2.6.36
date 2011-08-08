@@ -7,7 +7,7 @@ menuconfig GSENSOR
 
 if GSENSOR
 
-config BOSCH_BMA250
+config SENSORS_BMA250
 	tristate "BMA250 acceleration sensor support"
 	depends on I2C
 	help

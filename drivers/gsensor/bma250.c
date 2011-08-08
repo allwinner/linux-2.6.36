@@ -26,6 +26,14 @@
 #include <linux/mutex.h>
 #include <linux/earlysuspend.h>
 
+//#define BMA250_DEBUG
+
+#ifdef BMA250_DEBUG
+#define bma_dbg(x...)	printk(x)
+#else
+#define bma_dbg(x...)
+#endif
+
 #define SENSOR_NAME 			"bma250"
 #define GRAVITY_EARTH                   9806550
 #define ABSMIN_2G                       (-GRAVITY_EARTH * 2)
@@ -497,6 +505,7 @@ static void bma250_work_func(struct work_struct *work)
 	input_report_abs(bma250->input, ABS_X, acc.x);
 	input_report_abs(bma250->input, ABS_Y, acc.y);
 	input_report_abs(bma250->input, ABS_Z, acc.z);
+	bma_dbg("acc.x %d, acc.y %d, acc.z %d\n", acc.x, acc.y, acc.z);
 	input_sync(bma250->input);
 	mutex_lock(&bma250->value_mutex);
 	bma250->value = acc;
@@ -514,6 +523,7 @@ static ssize_t bma250_range_show(struct device *dev,
 	if (bma250_get_range(bma250->bma250_client, &data) < 0)
 		return sprintf(buf, "Read error\n");
 
+	bma_dbg("%d, %s\n", data, __FUNCTION__);
 	return sprintf(buf, "%d\n", data);
 }
 
@@ -545,6 +555,7 @@ static ssize_t bma250_bandwidth_show(struct device *dev,
 	if (bma250_get_bandwidth(bma250->bma250_client, &data) < 0)
 		return sprintf(buf, "Read error\n");
 
+	bma_dbg("%d, %s\n", data, __FUNCTION__);
 	return sprintf(buf, "%d\n", data);
 
 }
@@ -578,6 +589,7 @@ static ssize_t bma250_mode_show(struct device *dev,
 	if (bma250_get_mode(bma250->bma250_client, &data) < 0)
 		return sprintf(buf, "Read error\n");
 
+	bma_dbg("%d, %s\n", data, __FUNCTION__);
 	return sprintf(buf, "%d\n", data);
 }
 
@@ -611,6 +623,7 @@ static ssize_t bma250_value_show(struct device *dev,
 	acc_value = bma250->value;
 	mutex_unlock(&bma250->value_mutex);
 
+	bma_dbg("x=%d, y=%d, z=%d ,%s\n", acc_value.x, acc_value.y, acc_value.z, __FUNCTION__);
 	return sprintf(buf, "%d %d %d\n", acc_value.x, acc_value.y,
 			acc_value.z);
 }
@@ -621,6 +634,7 @@ static ssize_t bma250_delay_show(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
+	bma_dbg("%d, %s\n", atomic_read(&bma250->delay), __FUNCTION__);
 	return sprintf(buf, "%d\n", atomic_read(&bma250->delay));
 
 }
@@ -651,6 +665,7 @@ static ssize_t bma250_enable_show(struct device *dev,
 	struct i2c_client *client = to_i2c_client(dev);
 	struct bma250_data *bma250 = i2c_get_clientdata(client);
 
+	bma_dbg("%d, %s\n", atomic_read(&bma250->enable), __FUNCTION__);
 	return sprintf(buf, "%d\n", atomic_read(&bma250->enable));
 
 }
@@ -769,6 +784,7 @@ static int bma250_probe(struct i2c_client *client,
 	int tempvalue;
 	struct bma250_data *data;
 
+	bma_dbg("bma250: probe\n");
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		printk(KERN_INFO "i2c_check_functionality error\n");
 		goto exit;
@@ -800,17 +816,22 @@ static int bma250_probe(struct i2c_client *client,
 	bma250_set_range(client, BMA250_RANGE_SET);
 
 	INIT_DELAYED_WORK(&data->work, bma250_work_func);
+	bma_dbg("bma: INIT_DELAYED_WORK\n");
 	atomic_set(&data->delay, BMA250_MAX_DELAY);
 	atomic_set(&data->enable, 0);
 	err = bma250_input_init(data);
 	if (err < 0)
+	{
+		bma_dbg("bma: bma250_input_init err\n");
 		goto kfree_exit;
-
+	}
 	err = sysfs_create_group(&data->input->dev.kobj,
 						 &bma250_attribute_group);
 	if (err < 0)
+	{
+		bma_dbg("bma: sysfs_create_group err\n");
 		goto error_sysfs;
-
+	}
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	data->early_suspend.suspend = bma250_early_suspend;
@@ -893,6 +914,7 @@ static struct i2c_driver bma250_driver = {
 
 static int __init BMA250_init(void)
 {
+	bma_dbg("bma250: init\n");
 	return i2c_add_driver(&bma250_driver);
 }
 
