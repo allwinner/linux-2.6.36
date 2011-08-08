@@ -16,12 +16,15 @@
 #include <linux/module.h>
 #include <linux/clk.h>
 #include <linux/mutex.h>
-#include <linux/gpio.h>
+//#include <linux/gpio.h>
 
 #include <sound/pcm.h>
 #include <sound/soc.h>
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+#include <linux/io.h>
 
 #include "sun4i-i2s.h"
 #include "sun4i-pcm.h"
@@ -30,7 +33,7 @@
 
 
 static struct clk *xtal;
-
+static int i2s_used = 0;
 static int clk_users;
 static DEFINE_MUTEX(clk_lock);
 
@@ -312,23 +315,43 @@ struct platform_device sun4i_codecchip_device = {
 static int __init sun4i_codecchip_init(void)
 {
 	int ret;
-	ret = platform_driver_register(&sun4i_codecchip_driver);
-	if (ret != 0){
-		goto err;
+	int ret2;
+	ret2 = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
+	
+	if (ret2)
+    {
+        printk("[I2S]sun4i_codecchip_init fetch i2s using configuration failed\n");
+    } 
+    
+    if(i2s_used)
+    {
+		ret = platform_driver_register(&sun4i_codecchip_driver);
+		if (ret != 0){
+			goto err;
+		}
+	
+		ret = platform_device_register(&sun4i_codecchip_device);
+		if (ret != 0){
+			platform_driver_unregister(&sun4i_codecchip_driver);
+		}
+	
+		err:
+			return ret;
 	}
-
-	ret = platform_device_register(&sun4i_codecchip_device);
-	if (ret != 0){
-		platform_driver_unregister(&sun4i_codecchip_driver);
+	else
+	{
+		printk("[I2S]sun4i_codecchip cannot find any using configuration for controllers, return directly!\n");
+        return 0;
 	}
-
-err:
-	return ret;
 }
 
 static void __exit sun4i_codecchip_exit(void)
 {
-	platform_driver_unregister(&sun4i_codecchip_driver);
+	if(i2s_used)
+	{
+		i2s_used = 0;
+		platform_driver_unregister(&sun4i_codecchip_driver);
+	}
 }
 
 

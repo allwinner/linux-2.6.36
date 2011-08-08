@@ -42,78 +42,15 @@
 #define   SW_OHCI_NAME    "sw-ohci"
 static const char ohci_name[]       = SW_OHCI_NAME;
 
-//static char* usbc_name[3] 			= {"usbc0", "usbc1", "usbc2"};
-//static char* usbc_ahb_name[3] 		= {"ahb_usb0", "ahb_usb1", "ahb_usb2"};
-//static char* usbc_phy_gate_name[3] 	= {"usb_phy", "usb_phy", "usb_phy"};
-//static char* usbc_phy_reset_name[3]   = {"usb_phy0", "usb_phy1", "usb_phy2"};
-static char* ohci_phy_gate_name[3]   = {"", "usb_ohci0", "usb_ohci1"};
-
-static u32 usbc_base[3] 			= {SW_VA_USB0_IO_BASE, SW_VA_USB1_IO_BASE, SW_VA_USB2_IO_BASE};
-static u32 ohci_irq_no[2] 			= {SW_INT_SRC_OHCI0, SW_INT_SRC_OHCI1};
-static struct sw_hci_hcd *g_sw_ohci[2];
+static struct sw_hci_hcd *g_sw_ohci[3];
 
 /*.......................................................................................*/
 //                                      º¯ÊýÇø
 /*.......................................................................................*/
 
 extern int usb_disabled(void);
-
-/*
-*******************************************************************************
-*                     ohci_clock_init
-*
-* Description:
-*    void
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-static s32 ohci_clock_init(struct sw_hci_hcd *sw_ohci)
-{
-	sw_ohci->ohci_gate = clk_get(NULL, ohci_phy_gate_name[sw_ohci->usbc_no]);
-	if (IS_ERR(sw_ohci->ohci_gate)){
-		DMSG_PANIC("ERR: get usb%d sie clk failed.\n", sw_ohci->usbc_no);
-		return -1;
-	}
-
-	return 0;
-}
-
-/*
-*******************************************************************************
-*                     ohci_clock_exit
-*
-* Description:
-*    void
-*
-* Parameters:
-*    void
-*
-* Return value:
-*    void
-*
-* note:
-*    void
-*
-*******************************************************************************
-*/
-static s32 ohci_clock_exit(struct sw_hci_hcd *sw_ohci)
-{
-	if(sw_ohci->ohci_gate){
-		clk_put(sw_ohci->ohci_gate);
-		sw_ohci->ohci_gate = NULL;
-	}
-
-	return 0;
-}
+int sw_usb_disable_ohci(__u32 usbc_no);
+int sw_usb_enable_ohci(__u32 usbc_no);
 
 /*
 *******************************************************************************
@@ -135,25 +72,7 @@ static s32 ohci_clock_exit(struct sw_hci_hcd *sw_ohci)
 */
 static int open_ohci_clock(struct sw_hci_hcd *sw_ohci)
 {
- 	DMSG_INFO("[%s%d]: open_ohci_clock\n", SW_OHCI_NAME, sw_ohci->usbc_no);
-
-    if(sw_ohci->ohci_gate){
-        sw_ohci->clk_is_open = 1;
-
-        clk_enable(sw_ohci->ohci_gate);
-        msleep(10);
-
-        /* for A10, SIE clock¡¢phy gate¡¢phy reset is opened by EHCI */
-    }
-
-#ifdef  SW_USB_OHCI_DEBUG
-    DMSG_INFO("[%s%d]: open_ohci_clock, 0x60(0x%x), 0xcc(0x%x)\n",
-              SW_OHCI_NAME, sw_ohci->usbc_no,
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-#endif
-
-	return 0;
+	return sw_ohci->open_clock(sw_ohci, 1);
 }
 
 /*
@@ -176,23 +95,7 @@ static int open_ohci_clock(struct sw_hci_hcd *sw_ohci)
 */
 static int close_ohci_clock(struct sw_hci_hcd *sw_ohci)
 {
- 	DMSG_INFO("[%s%d]: close_ohci_clock\n", SW_OHCI_NAME, sw_ohci->usbc_no);
-
-    if(sw_ohci->ohci_gate){
-    	sw_ohci->clk_is_open = 0;
-	    clk_disable(sw_ohci->ohci_gate);
-    }
-
-    /* for A10, SIE clock¡¢phy gate¡¢phy reset is closed by EHCI */
-
-#ifdef  SW_USB_OHCI_DEBUG
-    DMSG_INFO("[%s%d]: close_ohci_clock, 0x60(0x%x), 0xcc(0x%x)\n",
-              SW_OHCI_NAME, sw_ohci->usbc_no,
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0x60),
-              (u32)USBC_Readl(SW_VA_CCM_IO_BASE + 0xcc));
-#endif
-
-	return 0;
+	return sw_ohci->close_clock(sw_ohci, 1);
 }
 
 /*
@@ -215,24 +118,6 @@ static int close_ohci_clock(struct sw_hci_hcd *sw_ohci)
 */
 static int sw_get_io_resource(struct platform_device *pdev, struct sw_hci_hcd *sw_ohci)
 {
-	sw_ohci->irq_no = ohci_irq_no[sw_ohci->usbc_no - 1];
-
-	sw_ohci->usb_vbase		= (void __iomem	*)usbc_base[sw_ohci->usbc_no];
-	sw_ohci->sram_vbase		= (void __iomem	*)SW_VA_SRAM_IO_BASE;
-	sw_ohci->clock_vbase	= (void __iomem	*)SW_VA_CCM_IO_BASE;
-	sw_ohci->gpio_vbase		= (void __iomem	*)SW_VA_PORTC_IO_BASE;
-	sw_ohci->sdram_vbase	= (void __iomem	*)SW_VA_DRAM_IO_BASE;
-
-#ifdef  SW_USB_OHCI_DEBUG
-	DMSG_INFO("[%s%d]: usb_vbase = 0x%p, sram_vbase = 0x%p, clock_vbase = 0x%p, gpio_vbase = 0x%p, sdram_vbase = 0x%p,get_io_resource_finish\n",
-		   ohci_name, sw_ohci->usbc_no,
-		   sw_ohci->usb_vbase,
-		   sw_ohci->sram_vbase,
-		   sw_ohci->clock_vbase,
-		   sw_ohci->gpio_vbase,
-		   sw_ohci->sdram_vbase);
-#endif
-
 	return 0;
 }
 
@@ -256,15 +141,6 @@ static int sw_get_io_resource(struct platform_device *pdev, struct sw_hci_hcd *s
 */
 static int sw_release_io_resource(struct platform_device *pdev, struct sw_hci_hcd *sw_ohci)
 {
-
-	sw_ohci->irq_no = 0;
-
-	sw_ohci->usb_vbase		= NULL;
-	sw_ohci->sram_vbase		= NULL;
-	sw_ohci->clock_vbase	= NULL;
-	sw_ohci->gpio_vbase		= NULL;
-	sw_ohci->sdram_vbase	= NULL;
-
 	return 0;
 }
 
@@ -291,7 +167,9 @@ static void sw_start_ohc(struct sw_hci_hcd *sw_ohci)
 {
   	open_ohci_clock(sw_ohci);
 
-    /* for A10, OHCI passby is enabled by EHCI */
+    sw_ohci->port_configure(sw_ohci, 1);
+    sw_ohci->usb_passby(sw_ohci, 1);
+    sw_ohci->set_power(sw_ohci, 1);
 
 	return;
 }
@@ -316,8 +194,9 @@ static void sw_start_ohc(struct sw_hci_hcd *sw_ohci)
 */
 static void sw_stop_ohc(struct sw_hci_hcd *sw_ohci)
 {
-
-    /* for A10, OHCI passby is enabled by EHCI */
+    sw_ohci->set_power(sw_ohci, 0);
+    sw_ohci->usb_passby(sw_ohci, 0);
+    sw_ohci->port_configure(sw_ohci, 0);
 
 	close_ohci_clock(sw_ohci);
 
@@ -446,20 +325,11 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 		goto ERR1;
 	}
 
-	memset(sw_ohci, 0, sizeof(struct sw_hci_hcd *));
 	sw_ohci->pdev = pdev;
-	sw_ohci->usbc_no = pdev->id;
-	g_sw_ohci[sw_ohci->usbc_no - 1] = sw_ohci;
+	g_sw_ohci[sw_ohci->usbc_no] = sw_ohci;
 
 	DMSG_INFO("[%s%d]: pdev->name: %s, pdev->id: %d, sw_ohci: 0x%p\n",
 		      ohci_name, sw_ohci->usbc_no, pdev->name, pdev->id, sw_ohci);
-
-	ret = ohci_clock_init(sw_ohci);
-	if(ret != 0){
-		DMSG_PANIC("ERR: ohci_clock_init failed\n");
-		ret = -ENODEV;
-		goto ERR2;
-	}
 
 	/* get io resource */
 	sw_get_io_resource(pdev, sw_ohci);
@@ -471,7 +341,7 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 	if(!hcd){
         DMSG_PANIC("ERR: usb_ohci_create_hcd failed\n");
         ret = -ENOMEM;
-		goto ERR3;
+		goto ERR2;
 	}
 
   	hcd->rsrc_start = (u32)sw_ohci->ohci_base;
@@ -488,14 +358,14 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
     if(ret != 0){
         DMSG_PANIC("ERR: usb_add_hcd failed\n");
         ret = -ENOMEM;
-        goto ERR4;
+        goto ERR3;
     }
 
     platform_set_drvdata(pdev, hcd);
 
 #ifdef  SW_USB_OHCI_DEBUG
-    DMSG_INFO("[%s%d]: probe, clock: 0x60(0x%x), 0xcc(0x%x); usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n",
-              SW_OHCI_NAME, sw_ohci->usbc_no,
+    DMSG_INFO("[%s]: probe, clock: 0x60(0x%x), 0xcc(0x%x); usb: 0x800(0x%x), dram:(0x%x, 0x%x)\n",
+              sw_ohci->hci_name,
               (u32)USBC_Readl(sw_ohci->clock_vbase + 0x60),
               (u32)USBC_Readl(sw_ohci->clock_vbase + 0xcc),
               (u32)USBC_Readl(sw_ohci->usb_vbase + 0x800),
@@ -503,13 +373,16 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
               (u32)USBC_Readl(sw_ohci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
 #endif
 
+	sw_ohci->probe = 1;
+
+    if(sw_ohci->host_init_state == 0){
+        sw_usb_disable_ohci(sw_ohci->usbc_no);
+    }
+
     return 0;
 
-ERR4:
-	usb_put_hcd(hcd);
-
 ERR3:
-    ohci_clock_exit(sw_ohci);
+	usb_put_hcd(hcd);
 
 ERR2:
 	sw_ohci->hcd = NULL;
@@ -517,7 +390,7 @@ ERR2:
 
 ERR1:
 
-return ret;
+    return ret;
 }
 
 /*
@@ -567,6 +440,7 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
 	usb_remove_hcd(hcd);
 
 	sw_stop_ohc(sw_ohci);
+	sw_ohci->probe = 0;
 
 	usb_put_hcd(hcd);
 
@@ -626,13 +500,18 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 		return -1;
 	}
 
+	if(sw_ohci->probe == 0){
+		DMSG_PANIC("ERR: sw_ohci is disable, can not suspend\n");
+		return 0;
+	}
+
 	ohci = hcd_to_ohci(hcd);
 	if(ohci == NULL){
 		DMSG_PANIC("ERR: ohci is null\n");
 		return -1;
 	}
 
- 	DMSG_INFO("[%s%d]: sw_ohci_hcd_suspend\n", SW_OHCI_NAME, sw_ohci->usbc_no);
+ 	DMSG_INFO("[%s]: sw_ohci_hcd_suspend\n", sw_ohci->hci_name);
 
 	/* Root hub was already suspended. Disable irq emission and
 	 * mark HW unaccessible, bail out if RH has been resumed. Use
@@ -644,6 +523,8 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 	 */
 	spin_lock_irqsave(&ohci->lock, flags);
 	if (hcd->state != HC_STATE_SUSPENDED) {
+ 	    DMSG_PANIC("[%s]: hcd->state is not HC_STATE_SUSPENDED, can't suspend\n",
+ 	               sw_ohci->hci_name);
 		rc = -EINVAL;
 		goto fail;
 	}
@@ -702,7 +583,12 @@ static int sw_ohci_hcd_resume(struct device *dev)
 		return -1;
 	}
 
- 	DMSG_INFO("[%s%d]: sw_ohci_hcd_resume\n", SW_OHCI_NAME, sw_ohci->usbc_no);
+	if(sw_ohci->probe == 0){
+		DMSG_PANIC("ERR: sw_ohci is disable, can not resume\n");
+		return 0;
+	}
+
+ 	DMSG_INFO("[%s]: sw_ohci_hcd_resume\n", sw_ohci->hci_name);
 
 	sw_start_ohc(sw_ohci);
 
@@ -735,6 +621,145 @@ static struct platform_driver sw_ohci_hcd_driver = {
 		.pm	    = SW_OHCI_PMOPS,
 	},
 };
+
+/*
+*******************************************************************************
+*                     sw_usb_disable_ohci
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+int sw_usb_disable_ohci(__u32 usbc_no)
+{
+	struct sw_hci_hcd *sw_ohci  = NULL;
+	struct usb_hcd *hcd         = NULL;
+    struct device *dev          = NULL;
+
+	if(usbc_no != 1 && usbc_no != 2){
+		DMSG_PANIC("ERR:Argmen invalid. usbc_no(%d)\n", usbc_no);
+		return -1;
+	}
+
+	sw_ohci = g_sw_ohci[usbc_no];
+	if(sw_ohci == NULL){
+		DMSG_PANIC("ERR: sw_ehci is null\n");
+		return -1;
+	}
+
+	if(sw_ohci->host_init_state){
+		DMSG_PANIC("ERR: not support sw_usb_disable_ohci\n");
+		return -1;
+	}
+
+	if(sw_ohci->probe == 0){
+		DMSG_PANIC("ERR: sw_ohci is disable, can not suspend\n");
+		return 0;
+	}
+
+	hcd = sw_ohci->hcd;
+	if(hcd == NULL){
+		DMSG_PANIC("ERR: hcd is null\n");
+		return -1;
+	}
+
+	dev = &sw_ohci->pdev->dev;
+	if(hcd == NULL){
+		DMSG_PANIC("ERR: hcd is null\n");
+		return -1;
+	}
+
+	DMSG_INFO("[%s]: sw_usb_disable_ohci\n", sw_ohci->hci_name);
+
+#ifdef CONFIG_PM
+	ohci_bus_suspend(hcd);
+	udelay(1000);
+	sw_ohci_hcd_suspend(dev);
+	udelay(1000);
+#endif
+
+    return 0;
+}
+EXPORT_SYMBOL(sw_usb_disable_ohci);
+
+/*
+*******************************************************************************
+*                     sw_usb_enable_ohci
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+int sw_usb_enable_ohci(__u32 usbc_no)
+{
+	struct sw_hci_hcd *sw_ohci = NULL;
+	struct usb_hcd *hcd = NULL;
+    struct device *dev = NULL;
+
+	if(usbc_no != 1 && usbc_no != 2){
+		DMSG_PANIC("ERR:Argmen invalid. usbc_no(%d)\n", usbc_no);
+		return -1;
+	}
+
+	sw_ohci = g_sw_ohci[usbc_no];
+	if(sw_ohci == NULL){
+		DMSG_PANIC("ERR: sw_ohci is null\n");
+		return -1;
+	}
+
+	if(sw_ohci->host_init_state){
+		DMSG_PANIC("ERR: not support sw_usb_enable_ohci\n");
+		return -1;
+	}
+
+	if(sw_ohci->probe == 0){
+		DMSG_PANIC("ERR: sw_ohci is disable, can not suspend\n");
+		return -1;
+	}
+
+	hcd = sw_ohci->hcd;
+	if(hcd == NULL){
+		DMSG_PANIC("ERR: hcd is null\n");
+		return -1;
+	}
+
+	dev = &sw_ohci->pdev->dev;
+	if(hcd == NULL){
+		DMSG_PANIC("ERR: hcd is null\n");
+		return -1;
+	}
+
+	DMSG_INFO("[%s]: sw_usb_enable_ohci\n", sw_ohci->hci_name);
+
+#ifdef CONFIG_PM
+	sw_ohci_hcd_resume(dev);
+	ohci_bus_resume(hcd);
+#endif
+
+	return 0;
+}
+EXPORT_SYMBOL(sw_usb_enable_ohci);
+
 
 
 

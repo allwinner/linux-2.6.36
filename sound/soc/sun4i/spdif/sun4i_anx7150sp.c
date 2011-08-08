@@ -16,12 +16,15 @@
 #include <linux/module.h>
 #include <linux/clk.h>
 #include <linux/mutex.h>
-#include <linux/gpio.h>
+//#include <linux/gpio.h>
 
 #include <sound/pcm.h>
 #include <sound/soc.h>
 #include <sound/pcm_params.h>
 #include <sound/soc-dapm.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+#include <linux/io.h>
 
 #include "sun4i_spdif.h"
 #include "sun4i_spdma.h"
@@ -29,7 +32,7 @@
 #include "anx7150sp.h"
 
 
-
+static int spdif_used = 0;
 static struct clk *xtal;
 static int clk_users;
 static DEFINE_MUTEX(clk_lock);
@@ -261,24 +264,43 @@ struct platform_device sun4i_anx7150sp_device = {
 static int __init sun4i_anx7150sp_init(void)
 {
 	int ret;
-	ret = platform_driver_register(&sun4i_anx7150sp_driver);
-	if (ret != 0){
-		goto err;
+	int ret2;
+	
+	ret2 = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
+	if (ret2)
+    {
+        printk("[SPDIF]sun4i_anx7150sp_init fetch spdif using configuration failed\n");
+    } 
+    
+    if (spdif_used)
+    {
+		ret = platform_driver_register(&sun4i_anx7150sp_driver);
+		if (ret != 0){
+			goto err;
+		}
+	
+	
+		ret = platform_device_register(&sun4i_anx7150sp_device);
+		if (ret != 0){
+			platform_driver_unregister(&sun4i_anx7150sp_driver);
+		}
+	
+		err:
+			return ret;
+	}else
+	{
+		printk("[SPDIF]sun4i_anx7150sp cannot find any using configuration for controllers, return directly!\n");
+        return 0;
 	}
-
-
-	ret = platform_device_register(&sun4i_anx7150sp_device);
-	if (ret != 0){
-		platform_driver_unregister(&sun4i_anx7150sp_driver);
-	}
-
-err:
-	return ret;
 }
 
 static void __exit sun4i_anx7150sp_exit(void)
 {
-	platform_driver_unregister(&sun4i_anx7150sp_driver);
+	if(spdif_used)
+	{
+		spdif_used = 0;
+		platform_driver_unregister(&sun4i_anx7150sp_driver);
+	}
 }
 
 

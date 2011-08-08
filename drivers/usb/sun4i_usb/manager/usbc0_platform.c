@@ -48,10 +48,7 @@
 //---------------------------------------------------------------
 //  device ÐÅÏ¢ÃèÊö
 //---------------------------------------------------------------
-static struct sw_udc_mach_info sw_udc_cfg = {
-	.vbus_pin		    = 0,
-	.vbus_pin_inverted	= 0,
-};
+static struct sw_udc_mach_info sw_udc_cfg;
 
 static u64 sw_udc_dmamask = 0xffffffffUL;
 
@@ -130,10 +127,32 @@ static struct platform_device sw_hcd_device = {
 *
 *******************************************************************************
 */
-__s32 usbc0_platform_device_init(void)
+__s32 usbc0_platform_device_init(struct usb_port_info *port_info)
 {
-    platform_device_register(&sw_udc_device);
-    platform_device_register(&sw_hcd_device);
+    /* device */
+    sw_udc_cfg.port_info = port_info;
+    sw_udc_cfg.usbc_base = SW_VA_USB0_IO_BASE;
+
+    /* host */
+    sw_hcd_config.port_info = port_info;
+
+    switch(port_info->port_type){
+        case USB_PORT_TYPE_DEVICE:
+            platform_device_register(&sw_udc_device);
+        break;
+
+        case USB_PORT_TYPE_HOST:
+            platform_device_register(&sw_hcd_device);
+        break;
+
+        case USB_PORT_TYPE_OTG:
+            platform_device_register(&sw_udc_device);
+            platform_device_register(&sw_hcd_device);
+        break;
+
+        default:
+            DMSG_PANIC("ERR: unkown port_type(%d)\n", port_info->port_type);
+    }
 
     return 0;
 }
@@ -156,10 +175,25 @@ __s32 usbc0_platform_device_init(void)
 *
 *******************************************************************************
 */
-__s32 usbc0_platform_device_exit(void)
+__s32 usbc0_platform_device_exit(struct usb_port_info *info)
 {
-    platform_device_unregister(&sw_udc_device);
-    platform_device_unregister(&sw_hcd_device);
+    switch(info->port_type){
+        case USB_PORT_TYPE_DEVICE:
+            platform_device_unregister(&sw_udc_device);
+        break;
+
+        case USB_PORT_TYPE_HOST:
+            platform_device_unregister(&sw_hcd_device);
+        break;
+
+        case USB_PORT_TYPE_OTG:
+            platform_device_unregister(&sw_udc_device);
+            platform_device_unregister(&sw_hcd_device);
+        break;
+
+        default:
+            DMSG_PANIC("ERR: unkown port_type(%d)\n", info->port_type);
+    }
 
     return 0;
 }

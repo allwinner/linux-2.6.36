@@ -459,6 +459,7 @@ static __u32 USBC_Phy_GetCsr(__u32 usbc_no)
 *
 *******************************************************************************
 */
+#if 0
 static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
 {
 	__u32 temp = 0, ret = 0;
@@ -482,6 +483,7 @@ static __u32 USBC_Phy_TpRead(__u32 usbc_no, __u32 addr, __u32 len)
 
 	return ret;
 }
+#endif
 
 /*
 *******************************************************************************
@@ -553,10 +555,12 @@ static __u32 USBC_Phy_TpWrite(__u32 usbc_no, __u32 addr, __u32 data, __u32 len)
 *
 *******************************************************************************
 */
+#if 0
 static __u32 USBC_Phy_Read(__u32 usbc_no, __u32 addr, __u32 len)
 {
 	return USBC_Phy_TpRead(usbc_no, addr, len);
 }
+#endif
 
 /*
 *******************************************************************************

@@ -41,7 +41,7 @@
 
 
 static int regsave[8];
-
+static int i2s_used = 0;
 static struct sw_dma_client sun4i_dma_client_out = {
 	.name = "I2S PCM Stereo out"
 };
@@ -434,7 +434,7 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 	if (sun4i_iis.regs == NULL)
 		return -ENXIO;
 		
-		i2s_handle = gpio_request_ex("i2s_para", NULL);
+		
 
 	//i2s apbclk
 		i2s_apbclk = clk_get(NULL, "apb_i2s");
@@ -576,26 +576,49 @@ EXPORT_SYMBOL_GPL(sun4i_iis_dai);
 
 static int __init sun4i_i2s_init(void)
 {
-	return snd_soc_register_dai(&sun4i_iis_dai);
+	int ret;
+	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
+	
+	if (ret)
+    {
+    	
+        printk("[I2S]sun4i_i2s_init fetch i2s using configuration failed\n");
+    } 
+    
+    if(i2s_used)
+    {
+    	i2s_handle = gpio_request_ex("i2s_para", NULL);
+		return snd_soc_register_dai(&sun4i_iis_dai);
+	}
+	else
+	{
+		printk("[I2S]sun4i_i2s cannot find any using configuration for controllers, return directly!\n");
+        return 0;
+	}
 }
 module_init(sun4i_i2s_init);
 
 static void __exit sun4i_i2s_exit(void)
 {	
-	//release the module clock
-	clk_disable(i2s_moduleclk);
-
-	//release pllx8clk
-	clk_put(i2s_pllx8);
+	if(i2s_used)
+	{
+		i2s_used = 0;
+		
+		//release the module clock
+		clk_disable(i2s_moduleclk);
 	
-	//release pll2clk
-	clk_put(i2s_pll2clk);
-
-	//release apbclk
-	clk_put(i2s_apbclk);
-
-	gpio_release(i2s_handle, 2);
-	snd_soc_unregister_dai(&sun4i_iis_dai);
+		//release pllx8clk
+		clk_put(i2s_pllx8);
+		
+		//release pll2clk
+		clk_put(i2s_pll2clk);
+	
+		//release apbclk
+		clk_put(i2s_apbclk);
+	
+		gpio_release(i2s_handle, 2);
+		snd_soc_unregister_dai(&sun4i_iis_dai);
+	}
 }
 module_exit(sun4i_i2s_exit);
 

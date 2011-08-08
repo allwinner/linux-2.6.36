@@ -33,6 +33,7 @@
 #include <mach/clkdev.h>
 #include <mach/hardware.h>
 #include <mach/platform.h>
+#include <mach/system.h>
 
 #include "core.h"
 
@@ -348,6 +349,20 @@ static void __init softwinner_fixup(struct machine_desc *desc,
 struct sys_timer softwinner_timer = {
     .init = softwinner_timer_init,
 };
+
+enum sw_ic_ver sw_get_ic_ver(void)
+{
+	volatile u32 val = readl(SW_VA_TIMERC_IO_BASE + 0x13c);
+	val = (val >> 5) & 0x3;
+
+	if (val == 0x3) {
+		return IC_VER_A10_B;
+	}
+
+	return IC_VER_A10_A;
+}
+EXPORT_SYMBOL(sw_get_ic_ver);
+
 
 MACHINE_START(SUN4I, "sun4i")
     /* Maintainer: ARM Ltd/Deep Blue Solutions Ltd */

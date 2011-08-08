@@ -199,7 +199,7 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 
 		sw_hcd_io->clk_is_open = 1;
 	}else{
-		DMSG_INFO("ERR: open usb clock failed, (0x%p, 0x%p, 0x%p, %d)\n", 
+		DMSG_INFO("ERR: open usb clock failed, (0x%p, 0x%p, 0x%p, %d)\n",
 			      sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->phy0_clk, sw_hcd_io->clk_is_open);
 	}
 
@@ -243,7 +243,7 @@ static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 	    clk_disable(sw_hcd_io->sie_clk);
 		sw_hcd_io->clk_is_open = 0;
 	}else{
-		DMSG_INFO("ERR: close usb clock failed, (0x%p, 0x%p, 0x%p, %d)\n", 
+		DMSG_INFO("ERR: close usb clock failed, (0x%p, 0x%p, 0x%p, %d)\n",
 			      sw_hcd_io->sie_clk, sw_hcd_io->phy_clk, sw_hcd_io->phy0_clk, sw_hcd_io->clk_is_open);
 	}
 
@@ -308,7 +308,7 @@ static u32  open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 	reg_value |= (1 << 0);          //disable reset
 	USBC_Writel(reg_value, (ccmu_base + 0xcc));
 
-	//delay some time 
+	//delay some time
 	reg_value = 10000;
 	while(reg_value--);
 
@@ -599,15 +599,15 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 		goto io_failed1;
 	}
 
-	/* get usbc_init_state */
-	ret = script_parser_fetch(SET_USB0, KEY_USBC_INIT_STATE, (int *)&(sw_hcd_io->usbc_init_state), 64);
+	/* get usb_host_init_state */
+	ret = script_parser_fetch(SET_USB0, KEY_USB_HOST_INIT_STATE, (int *)&(sw_hcd_io->host_init_state), 64);
 	if(ret != 0){
-		DMSG_PANIC("ERR: script_parser_fetch usbc_init_state failed\n");
+		DMSG_PANIC("ERR: script_parser_fetch host_init_state failed\n");
 		ret = -ENOMEM;
 		goto io_failed2;
 	}
 
-	DMSG_INFO("[sw_hcd0]: usbc_init_state = %d\n", sw_hcd_io->usbc_init_state);
+	DMSG_INFO("[sw_hcd0]: host_init_state = %d\n", sw_hcd_io->host_init_state);
 
 	return 0;
 
@@ -1207,6 +1207,11 @@ static struct sw_hcd *allocate_instance(struct device *dev,
 #ifndef  CONFIG_USB_SW_SUN4I_USB0_OTG
 	g_sw_hcd0 = sw_hcd;
 	sw_hcd->enable = 1;
+#else
+    if(sw_hcd->config->port_info->port_type == USB_PORT_TYPE_HOST){
+        g_sw_hcd0 = sw_hcd;
+    	sw_hcd->enable = 1;
+    }
 #endif
 
 	strcpy(sw_hcd->driver_name, sw_hcd_driver_name);
@@ -1456,8 +1461,6 @@ fail:
 	return status;
 }
 
-#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
-
 /*
 *******************************************************************************
 *                     sw_usb_host0_enable
@@ -1609,7 +1612,7 @@ EXPORT_SYMBOL(sw_usb_host0_disable);
 
 /*
 *******************************************************************************
-*                     sw_hcd_probe
+*                     sw_hcd_probe_otg
 *
 * Description:
 *    all implementations (PCI bridge to FPGA, VLYNQ, etc) should just
@@ -1626,7 +1629,7 @@ EXPORT_SYMBOL(sw_usb_host0_disable);
 *
 *******************************************************************************
 */
-static int sw_hcd_probe(struct platform_device *pdev)
+static int sw_hcd_probe_otg(struct platform_device *pdev)
 {
 	struct device   *dev    = &pdev->dev;
 	int             irq     = SW_INTC_IRQNO_USB0; //platform_get_irq(pdev, 0);
@@ -1669,7 +1672,7 @@ end:
 
 /*
 *******************************************************************************
-*                     sw_hcd_remove
+*                     sw_hcd_remove_otg
 *
 * Description:
 *    void
@@ -1685,7 +1688,7 @@ end:
 *
 *******************************************************************************
 */
-static int __devexit sw_hcd_remove(struct platform_device *pdev)
+static int sw_hcd_remove_otg(struct platform_device *pdev)
 {
 	struct sw_hcd *sw_hcd = dev_to_sw_hcd(&pdev->dev);
 
@@ -1706,11 +1709,9 @@ static int __devexit sw_hcd_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#else
-
 /*
 *******************************************************************************
-*                     sw_hcd_probe
+*                     sw_hcd_probe_host_only
 *
 * Description:
 *    all implementations (PCI bridge to FPGA, VLYNQ, etc) should just
@@ -1727,7 +1728,7 @@ static int __devexit sw_hcd_remove(struct platform_device *pdev)
 *
 *******************************************************************************
 */
-static int __init sw_hcd_probe(struct platform_device *pdev)
+static int sw_hcd_probe_host_only(struct platform_device *pdev)
 {
 	struct device   *dev        = &pdev->dev;
 	int             irq         = SW_INTC_IRQNO_USB0; //platform_get_irq(pdev, 0);
@@ -1753,11 +1754,93 @@ static int __init sw_hcd_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	if(!g_sw_hcd_io.usbc_init_state){
+	if(!g_sw_hcd_io.host_init_state){
 		sw_usb_disable_hcd0();
 	}
 
     return 0;
+}
+
+/*
+*******************************************************************************
+*                     sw_hcd_remove_host_only
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static int sw_hcd_remove_host_only(struct platform_device *pdev)
+{
+	struct sw_hcd     *sw_hcd = dev_to_sw_hcd(&pdev->dev);
+
+    sw_hcd_shutdown(pdev);
+    if (sw_hcd->board_mode == SW_HCD_HOST){
+		usb_remove_hcd(sw_hcd_to_hcd(sw_hcd));
+	}
+
+	sw_hcd->enable = 0;
+	g_sw_hcd0 = NULL;
+
+    sw_hcd_free(sw_hcd);
+	device_init_wakeup(&pdev->dev, 0);
+
+	pdev->dev.dma_mask = 0;
+
+	sw_hcd_io_exit(usbc_no, pdev, &g_sw_hcd_io);
+
+	return 0;
+}
+
+/*
+*******************************************************************************
+*                     sw_hcd_probe
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static int __init sw_hcd_probe(struct platform_device *pdev)
+{
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
+	struct sw_hcd_platform_data	*pdata = pdev->dev.platform_data;
+
+    switch(pdata->config->port_info->port_type){
+        case USB_PORT_TYPE_HOST:
+            return sw_hcd_probe_host_only(pdev);
+        //break;
+
+        case USB_PORT_TYPE_OTG:
+            return sw_hcd_probe_otg(pdev);
+        //break;
+
+        default:
+            DMSG_PANIC("ERR: unkown port_type(%d)\n", pdata->config->port_info->port_type);
+    }
+
+    return 0;
+#else
+    return sw_hcd_probe_host_only(pdev);
+#endif
 }
 
 /*
@@ -1780,27 +1863,27 @@ static int __init sw_hcd_probe(struct platform_device *pdev)
 */
 static int __devexit sw_hcd_remove(struct platform_device *pdev)
 {
-	struct sw_hcd     *sw_hcd = dev_to_sw_hcd(&pdev->dev);
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
+	struct sw_hcd_platform_data	*pdata = pdev->dev.platform_data;
 
-    sw_hcd_shutdown(pdev);
-    if (sw_hcd->board_mode == SW_HCD_HOST){
-		usb_remove_hcd(sw_hcd_to_hcd(sw_hcd));
-	}
+    switch(pdata->config->port_info->port_type){
+        case USB_PORT_TYPE_HOST:
+            return sw_hcd_remove_host_only(pdev);
+        //break;
 
-	sw_hcd->enable = 0;
-	g_sw_hcd0 = NULL;
+        case USB_PORT_TYPE_OTG:
+            return sw_hcd_remove_otg(pdev);
+        //break;
 
-    sw_hcd_free(sw_hcd);
-	device_init_wakeup(&pdev->dev, 0);
+        default:
+            DMSG_PANIC("ERR: unkown port_type(%d)\n", pdata->config->port_info->port_type);
+    }
 
-	pdev->dev.dma_mask = 0;
-
-	sw_hcd_io_exit(usbc_no, pdev, &g_sw_hcd_io);
-
-	return 0;
-}
-
+    return 0;
+#else
+    return sw_hcd_remove_host_only(pdev);
 #endif
+}
 
 /*
 *******************************************************************************
@@ -1941,6 +2024,19 @@ int sw_usb_disable_hcd0(void)
 	pdev   = to_platform_device(dev);
 	sw_hcd = dev_to_sw_hcd(&pdev->dev);
 
+	if(sw_hcd == NULL){
+		DMSG_PANIC("ERR: sw_hcd is null\n");
+		return 0;
+	}
+
+	if(sw_hcd->config->port_info->port_type != USB_PORT_TYPE_HOST
+	  || sw_hcd->config->port_info->host_init_state){
+        DMSG_PANIC("ERR: only host mode support sw_usb_disable_hcd, (%d, %d)\n",
+                   sw_hcd->config->port_info->port_type,
+                   sw_hcd->config->port_info->host_init_state);
+		return 0;
+	}
+
 	if(!sw_hcd->enable){
 		DMSG_PANIC("WRN: hcd is disable, can not enter to disable again\n");
 		return 0;
@@ -2003,6 +2099,19 @@ int sw_usb_enable_hcd0(void)
 	dev    = g_sw_hcd0->controller;
 	pdev   = to_platform_device(dev);
 	sw_hcd = dev_to_sw_hcd(&pdev->dev);
+
+	if(sw_hcd == NULL){
+		DMSG_PANIC("ERR: sw_hcd is null\n");
+		return 0;
+	}
+
+	if(sw_hcd->config->port_info->port_type != USB_PORT_TYPE_HOST
+	  || sw_hcd->config->port_info->host_init_state){
+        DMSG_PANIC("ERR: only host mode support sw_usb_enable_hcd, (%d, %d)\n",
+                   sw_hcd->config->port_info->port_type,
+                   sw_hcd->config->port_info->host_init_state);
+		return 0;
+	}
 
 	if(!sw_hcd->enable){
 		DMSG_PANIC("WRN: hcd is disable, can not enter to enable hcd0\n");

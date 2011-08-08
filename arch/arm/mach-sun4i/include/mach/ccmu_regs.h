@@ -241,10 +241,10 @@ typedef struct __CCMU_AXICLK_GATE_REG005c
 typedef struct __CCMU_AHBCLK_GATE0_REG0060
 {
     __u32   Usb0Gate:1;         //bit0,  gating AHB clock for USB0, 0-mask, 1-pass
-    __u32   Usb1Gate:1;         //bit1,  gating AHB clock for USB1, 0-mask, 1-pass
-    __u32   reserved0:1;        //bit2,  reserved
-    __u32   Usb2Gate:1;         //bit3,  gating AHB clock for USB2, 0-mask, 1-pass
-    __u32   reserved1:1;        //bit4,  reserved
+    __u32   Ehci0Gate:1;        //bit1,  gating AHB clock for EHCI0, 0-mask, 1-pass
+    __u32   Ohci0Gate:1;        //bit2,  gating AHB clock for OHCI0, 0-mask, 1-pass
+    __u32   Ehci1Gate:1;        //bit3,  gating AHB clock for EHCI1, 0-mask, 1-pass
+    __u32   Ohci1Gate:1;        //bit4,  gating AHB clock for OHCI1, 0-mask, 1-pass
     __u32   SsGate:1;           //bit5,  gating AHB clock for SS, 0-mask, 1-pass
     __u32   DmaGate:1;          //bit6,  gating AHB clock for DMA, 0-mask, 1-pass
     __u32   BistGate:1;         //bit7,  gating AHB clock for BIST, 0-mask, 1-pass

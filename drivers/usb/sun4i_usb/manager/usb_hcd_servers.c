@@ -49,9 +49,17 @@ int sw_usb_disable_hcd(__u32 usbc_no)
 #if defined(USB_SW_SUN4I_EHCI0)
 		sw_usb_disable_ehci(usbc_no);
 #endif
+
+#if defined(USB_SW_SUN4I_OHCI0)
+		sw_usb_disable_ohci(usbc_no);
+#endif
 	}else if(usbc_no == 2){
 #if defined(USB_SW_SUN4I_EHCI1)
-		sw_usb_disable_hcd2(usbc_no);
+		sw_usb_disable_ehci(usbc_no);
+#endif
+
+#if defined(USB_SW_SUN4I_OHCI1)
+		sw_usb_disable_ohci(usbc_no);
 #endif
 	}else{
 		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);
@@ -90,9 +98,17 @@ int sw_usb_enable_hcd(__u32 usbc_no)
 #if defined(USB_SW_SUN4I_EHCI0)
 		sw_usb_enable_ehci(usbc_no);
 #endif
+
+#if defined(USB_SW_SUN4I_OHCI0)
+		sw_usb_enable_ohci(usbc_no);
+#endif
 	}else if(usbc_no == 2){
 #if defined(USB_SW_SUN4I_EHCI1)
 		sw_usb_enable_ehci(usbc_no);
+#endif
+
+#if defined(USB_SW_SUN4I_OHCI1)
+		sw_usb_enable_ohci(usbc_no);
 #endif
 	}else{
 		DMSG_PANIC("ERR: unkown usbc_no(%d)\n", usbc_no);

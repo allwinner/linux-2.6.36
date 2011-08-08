@@ -95,8 +95,8 @@ static __aw_ccu_clk_t aw_ccu_mod_clk[] =
     make_mod_clk_inf(AW_MOD_CLK_UART7       , "uart7"       ),
     make_mod_clk_inf(AW_MOD_CLK_AXI_DRAM    , "axi_dram"    ),
     make_mod_clk_inf(AW_MOD_CLK_AHB_USB0    , "ahb_usb0"    ),
-    make_mod_clk_inf(AW_MOD_CLK_AHB_USB1    , "ahb_usb1"    ),
-    make_mod_clk_inf(AW_MOD_CLK_AHB_USB2    , "ahb_usb2"    ),
+    make_mod_clk_inf(AW_MOD_CLK_AHB_EHCI0   , "ahb_ehci0"   ),
+    make_mod_clk_inf(AW_MOD_CLK_AHB_OHCI0   , "ahb_ohci0"   ),
     make_mod_clk_inf(AW_MOD_CLK_AHB_SS      , "ahb_ss"      ),
     make_mod_clk_inf(AW_MOD_CLK_AHB_DMA     , "ahb_dma"     ),
     make_mod_clk_inf(AW_MOD_CLK_AHB_BIST    , "ahb_bist"    ),
@@ -168,6 +168,8 @@ static __aw_ccu_clk_t aw_ccu_mod_clk[] =
     make_mod_clk_inf(AW_MOD_CLK_SDRAM_DEBE1 , "sdram_de_image1"),
     make_mod_clk_inf(AW_MOD_CLK_SDRAM_DEMP  , "sdram_de_mix"),
     make_mod_clk_inf(AW_MOD_CLK_SDRAM_ACE   , "sdram_ace"   ),
+    make_mod_clk_inf(AW_MOD_CLK_AHB_EHCI1   , "ahb_ehci1"   ),
+    make_mod_clk_inf(AW_MOD_CLK_AHB_OHCI1   , "ahb_ohci1"   ),
 
 };
 
@@ -737,10 +739,14 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_mod_clk_e id)
             return aw_ccu_reg->AxiGate.SdramGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_AHB_USB0:
             return aw_ccu_reg->AhbGate0.Usb0Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_MOD_CLK_AHB_USB1:
-            return aw_ccu_reg->AhbGate0.Usb1Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
-        case AW_MOD_CLK_AHB_USB2:
-            return aw_ccu_reg->AhbGate0.Usb2Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_AHB_EHCI0:
+            return aw_ccu_reg->AhbGate0.Ehci0Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_AHB_OHCI0:
+            return aw_ccu_reg->AhbGate0.Ohci0Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_AHB_EHCI1:
+            return aw_ccu_reg->AhbGate0.Ehci1Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_AHB_OHCI1:
+            return aw_ccu_reg->AhbGate0.Ohci1Gate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_AHB_SS:
             return aw_ccu_reg->AhbGate0.SsGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_AHB_DMA:
@@ -1652,11 +1658,17 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
         case AW_MOD_CLK_AHB_USB0:
             aw_ccu_reg->AhbGate0.Usb0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
-        case AW_MOD_CLK_AHB_USB1:
-            aw_ccu_reg->AhbGate0.Usb1Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+        case AW_MOD_CLK_AHB_EHCI0:
+            aw_ccu_reg->AhbGate0.Ehci0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
-        case AW_MOD_CLK_AHB_USB2:
-            aw_ccu_reg->AhbGate0.Usb2Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+        case AW_MOD_CLK_AHB_OHCI0:
+            aw_ccu_reg->AhbGate0.Ohci0Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            return 0;
+        case AW_MOD_CLK_AHB_EHCI1:
+            aw_ccu_reg->AhbGate0.Ehci1Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            return 0;
+        case AW_MOD_CLK_AHB_OHCI1:
+            aw_ccu_reg->AhbGate0.Ohci1Gate = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         case AW_MOD_CLK_AHB_SS:
             aw_ccu_reg->AhbGate0.SsGate = (status == AW_CCU_CLK_OFF)? 0 : 1;

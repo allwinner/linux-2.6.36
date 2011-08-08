@@ -21,10 +21,12 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
-
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+#include <linux/io.h>
 #include "anx7150sp.h"
 
-
+static int spdif_used = 0;
 #define ANX7150SP_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
 #define ANX7150SP_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
 
@@ -147,13 +149,33 @@ EXPORT_SYMBOL_GPL(soc_codec_dev_anx7150sp);
 
 static int __init anx7150sp_init(void)
 {
-	return snd_soc_register_dai(&anx7150sp_dai);
+	int ret;
+	
+	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
+	if (ret)
+    {
+        printk("[SPDIF]anx7150sp_init fetch spdif using configuration failed\n");
+    } 
+	 
+	if (spdif_used) 
+	{
+		return snd_soc_register_dai(&anx7150sp_dai);
+	}else
+    {
+        printk("[SPDIF]anx7150sp cannot find any using configuration for controllers, return directly!\n");
+        return 0;
+    }
+	
 }
 module_init(anx7150sp_init);
 
 static void __exit anx7150sp_exit(void)
 {
-	snd_soc_unregister_dai(&anx7150sp_dai);
+	if(spdif_used)
+	{	
+		spdif_used = 0;
+		snd_soc_unregister_dai(&anx7150sp_dai);
+	}
 }
 module_exit(anx7150sp_exit);
 

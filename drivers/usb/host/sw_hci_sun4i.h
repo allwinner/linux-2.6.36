@@ -33,6 +33,12 @@
 #define  DMSG_PRINT(stuff...)		printk(stuff)
 #define  DMSG_ERR(...)        		(DMSG_PRINT("WRN:L%d(%s):", __LINE__, __FILE__), DMSG_PRINT(__VA_ARGS__))
 
+#if 0
+    #define DMSG_DEBUG         		DMSG_PRINT
+#else
+    #define DMSG_DEBUG(...)
+#endif
+
 #if 1
     #define DMSG_INFO         		DMSG_PRINT
 #else
@@ -159,6 +165,10 @@
 
 
 struct sw_hci_hcd{
+	__u32 usbc_no;						/* usb controller number */
+	__u32 irq_no;						/* interrupt number 	*/
+	char hci_name[32];                  /* hci name             */
+
 	struct resource	*usb_base_res;   	/* USB  resources 		*/
 	struct resource	*usb_base_req;   	/* USB  resources 		*/
 	void __iomem	*usb_vbase;			/* USB  base address 	*/
@@ -201,12 +211,20 @@ struct sw_hci_hcd{
 	struct clk	*ohci_gate;			    /* ohci clock handle 	*/
 	__u32 clk_is_open;					/* is usb clock open 	*/
 
-	__u32 irq_no;						/* interrupt number 	*/
-	__u32 usbc_no;						/* usb controller number */
 
-	unsigned Drv_vbus_Handle;
+	u32 drv_vbus_Handle;
 	user_gpio_set_t drv_vbus_gpio_set;
-	__u32 usbc_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
+	__u32 power_flag;                   /* flag. 是否供电       */
+
+    __u32 used;                         /* flag. 控制器是否被使用 */
+	__u32 probe;                        /* 控制器初始化 */
+	__u32 host_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
+
+	int (* open_clock)(struct sw_hci_hcd *sw_hci, u32 ohci);
+	int (* close_clock)(struct sw_hci_hcd *sw_hci, u32 ohci);
+    void (* set_power)(struct sw_hci_hcd *sw_hci, int is_on);
+	void (* port_configure)(struct sw_hci_hcd *sw_hci, u32 enable);
+	void (* usb_passby)(struct sw_hci_hcd *sw_hci, u32 enable);
 };
 
 

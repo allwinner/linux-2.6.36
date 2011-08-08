@@ -162,8 +162,8 @@ typedef enum __AW_CCU_MOD_CLK
 
     /* clock gating for hang to AHB bus */
     AW_MOD_CLK_AHB_USB0,    /* "ahb_usb0"       */
-    AW_MOD_CLK_AHB_USB1,    /* "ahb_usb1"       */
-    AW_MOD_CLK_AHB_USB2,    /* "ahb_usb2"       */
+    AW_MOD_CLK_AHB_EHCI0,   /* "ahb_ehci0"      */
+    AW_MOD_CLK_AHB_OHCI0,   /* "ahb_ohci0"      */
     AW_MOD_CLK_AHB_SS,      /* "ahb_ss"         */
     AW_MOD_CLK_AHB_DMA,     /* "ahb_dma"        */
     AW_MOD_CLK_AHB_BIST,    /* "ahb_bist"       */
@@ -239,6 +239,9 @@ typedef enum __AW_CCU_MOD_CLK
     AW_MOD_CLK_SDRAM_DEBE1, /* "sdram_de_image1"    */
     AW_MOD_CLK_SDRAM_DEMP,  /* "sdram_de_mix"       */
     AW_MOD_CLK_SDRAM_ACE,   /* "sdram_ace"          */
+
+    AW_MOD_CLK_AHB_EHCI1,   /* "ahb_ehci1"          */
+    AW_MOD_CLK_AHB_OHCI1,   /* "ahb_ohci1"          */
 
     AW_MOD_CLK_CNT
 

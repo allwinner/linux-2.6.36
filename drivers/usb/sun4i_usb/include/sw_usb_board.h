@@ -34,14 +34,14 @@
 #define  KEY_USB_GLOBAL_ENABLE		"usb_global_enable"
 #define  KEY_USBC_NUM				"usbc_num"
 
-#define  KEY_USB_ENABLE				"usb_enable"
+#define  KEY_USB_ENABLE				"usb_used"
 #define  KEY_USB_PORT_TYPE			"usb_port_type"
 #define  KEY_USB_DETECT_TYPE		"usb_detect_type"
 #define  KEY_USB_ID_GPIO			"usb_id_gpio"
 #define  KEY_USB_DETVBUS_GPIO		"usb_det_vbus_gpio"
 #define  KEY_USB_DRVVBUS_GPIO		"usb_drv_vbus_gpio"
 
-#define  KEY_USBC_INIT_STATE		"usbc_init_state"
+#define  KEY_USB_HOST_INIT_STATE    "usb_host_init_state"
 
 //---------------------------------------------------
 //
@@ -84,7 +84,7 @@ typedef struct usb_port_info{
 	usb_gpio_t id;						/* usb id pin信息 		*/
 	usb_gpio_t det_vbus;				/* usb vbus pin信息 	*/
 	usb_gpio_t drv_vbus;				/* usb drv_vbus pin信息	*/
-	__u32 usbc_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
+	__u32 host_init_state;				/* usb 控制器的初始化状态。0 : 不工作. 1 : 工作 */
 }usb_port_info_t;
 
 typedef struct usb_cfg{
