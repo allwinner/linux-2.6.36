@@ -54,12 +54,15 @@
 
 #define SMC_MAX_MOD_CLOCK		(42000000)
 #define SMC_MAX_IO_CLOCK		(42000000)
+
 enum mclk_src {
 	SMC_MCLK_SRC_HOSC,
 	SMC_MCLK_SRC_SATAPLL,
 	SMC_MCLK_SRC_DRAMPLL
 };
-
+#define SMC_3_MAX_MOD_CLOCK     90000000
+#define SMC_3_MAX_IO_CLOCK      45000000
+#define SMC_3_MOD_CLK_SRC       SMC_MCLK_SRC_DRAMPLL
 
 #define CARD_DETECT_BY_GPIO     (1)
 #define CARD_DETECT_BY_DATA3    (2)        /* mmc detected by status of data3 */

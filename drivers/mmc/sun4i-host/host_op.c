@@ -906,7 +906,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     }
 
     smc_host->cclk  = 400000;
-    smc_host->mod_clk   = pdev->id == 3 ? 100000000 : smc_mod_clock;
+    smc_host->mod_clk   = pdev->id == 3 ? SMC_3_MAX_MOD_CLOCK : smc_mod_clock;
     smc_host->clk_source = smc_mclk_source;
     smc_host->ops.send_request = sdxc_request;
     smc_host->ops.finalize_requset = sdxc_request_done;
@@ -924,7 +924,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->ocr_avail	= MMC_VDD_32_33 | MMC_VDD_33_34;
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
-    mmc->f_max 	    = pdev->id == 3 ? 50000000 :  smc_io_clock;
+    mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
 
     mmc->max_blk_count	= 0xffff;
     mmc->max_blk_size	= 0xffff;
