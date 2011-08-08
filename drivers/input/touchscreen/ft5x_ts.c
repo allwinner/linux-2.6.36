@@ -913,7 +913,7 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
     ft5x_set_reg(0x3a,PMODE_HIBERNATE);
 	*/
     //suspend 
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ft5x_ctp_wakeup");        
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");        
 }
 
 static void ft5x_ts_resume(struct early_suspend *handler)
@@ -932,9 +932,9 @@ static void ft5x_ts_resume(struct early_suspend *handler)
     //gpio i28 output high
 	printk("==ft5x_ts_resume=\n");
     //wake up
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ft5x_ctp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
     mdelay(5);
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ft5x_ctp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
 
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
@@ -984,12 +984,12 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_create_singlethread;
 	}
     //config gpio:
-    gpio_int_hdle = gpio_request_ex("ft5x_ctp_para", "ft5x_ctp_int_port");
+    gpio_int_hdle = gpio_request_ex("ctp_para", "ctp_int_port");
     if(!gpio_int_hdle) {
         pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
         goto exit_gpio_int_request_failed;
     }
-    gpio_wakeup_hdle = gpio_request_ex("ft5x_ctp_para", "ft5x_ctp_wakeup");
+    gpio_wakeup_hdle = gpio_request_ex("ctp_para", "ctp_wakeup");
     if(!gpio_wakeup_hdle) {
         pr_warning("touch panel tp_wakeup request gpio fail!\n");
         goto exit_gpio_wakeup_request_failed;
@@ -1010,9 +1010,9 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
 	    //disable_irq(IRQ_EINT);
 #endif
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ft5x_ctp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
     mdelay(5);
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ft5x_ctp_wakeup");
+    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
 
 
 	input_dev = input_allocate_device();
@@ -1181,9 +1181,20 @@ static int __init ft5x_ts_init(void)
 { 
     int ret = -1;
     int ctp_used = -1;
+    char name[I2C_NAME_SIZE];
+	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
 
-	pr_notice("=========ft5x-ts-init============\n");
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_used", &ctp_used, 1)){
+	pr_notice("=========ft5x-ts-init============\n");	
+
+	if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
+            pr_err("ft5x_ts_init: script_parser_fetch err. \n");
+            goto script_parser_fetch_err;
+    }
+    if(strcmp(FT5X_NAME, name)){
+        pr_err("ft5x_ts_init: name %s does not match FT5X_NAME. \n", name);
+        return 0;
+    }
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_used", &ctp_used, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}
@@ -1191,25 +1202,25 @@ static int __init ft5x_ts_init(void)
         pr_err("ft5x_ts: ctp_unused. \n");
         return 0;
 	}
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_screen_max_x", &screen_max_x, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_x", &screen_max_x, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}
 	pr_info("ft5x_ts: screen_max_x = %d. \n", screen_max_x);
 
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_screen_max_y", &screen_max_y, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_y", &screen_max_y, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
     }
     pr_info("ft5x_ts: screen_max_y = %d. \n", screen_max_y);
 
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_revert_x_flag", &revert_x_flag, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_revert_x_flag", &revert_x_flag, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
     }
     pr_info("ft5x_ts: revert_x_flag = %d. \n", revert_x_flag);
 
-	if(SCRIPT_PARSER_OK != script_parser_fetch("ft5x_ctp_para", "ft5x_ctp_revert_y_flag", &revert_y_flag, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_revert_y_flag", &revert_y_flag, 1)){
         pr_err("ft5x_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
     }

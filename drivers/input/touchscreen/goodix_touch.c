@@ -533,11 +533,11 @@ static int goodix_ts_power(struct goodix_ts_data * ts, int on)
 	switch(on) 
 	{
 		case 0:
-			gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "goodix_ctp_wakeup");
+			gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
 			ret = 1;
 			break;
 		case 1:
-		        gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "goodix_ctp_wakeup");
+		        gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
 		        ret = 1;
 			break;	
 	}
@@ -621,21 +621,21 @@ static int goodix_ts_probe(struct i2c_client *client, const struct i2c_device_id
 #endif
 
 	//config gpio:
-	gpio_int_hdle = gpio_request_ex("goodix_ctp_para", "goodix_ctp_int_port");
+	gpio_int_hdle = gpio_request_ex("ctp_para", "ctp_int_port");
 	if(!gpio_int_hdle) {
 		pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
 	    goto exit_gpio_int_request_failed;
 	}
 	
-	gpio_wakeup_hdle = gpio_request_ex("goodix_ctp_para", "goodix_ctp_wakeup");
+	gpio_wakeup_hdle = gpio_request_ex("ctp_para", "ctp_wakeup");
 	if(!gpio_wakeup_hdle) {
 		pr_warning("touch panel tp_wakeup request gpio fail!\n");
 		goto exit_gpio_wakeup_request_failed;
 	}
 	
-	gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "goodix_ctp_wakeup");
+	gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
 	mdelay(100);
-	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "goodix_ctp_wakeup");	
+	gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");	
     mdelay(100);
 	
 	i2c_connect_client = client;				//used by Guitar Updating.
@@ -817,9 +817,20 @@ static int __devinit goodix_ts_init(void)
 {
 	int ret = -1;
 	int ctp_used = -1;
+	char name[I2C_NAME_SIZE];
+	script_parser_value_type_t type = SCIRPT_PARSER_VALUE_TYPE_STRING;
 	
 	pr_info("goodix_ts_init\n");
-	if(SCRIPT_PARSER_OK != script_parser_fetch("goodix_ctp_para", "goodix_ctp_used", &ctp_used, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
+            pr_err("goodix_ts_init: script_parser_fetch err. \n");
+            goto script_parser_fetch_err;
+    }
+    if(strcmp(GOODIX_I2C_NAME, name)){
+        pr_err("goodix_ts_init: name %s does not match GOODIX_I2C_NAME. \n", name);
+        return 0;
+    }
+    
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_used", &ctp_used, 1)){
         pr_err("goodix_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}
@@ -827,13 +838,13 @@ static int __devinit goodix_ts_init(void)
         pr_err("goodix_ts: ctp_unused. \n");
         return 0;
 	}
-	if(SCRIPT_PARSER_OK != script_parser_fetch("goodix_ctp_para", "goodix_ctp_screen_max_x", &screen_max_x, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_x", &screen_max_x, 1)){
         pr_err("goodix_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}
     pr_debug("goodix_ts: screen_max_x = %d. \n", screen_max_x);
     
-	if(SCRIPT_PARSER_OK != script_parser_fetch("goodix_ctp_para", "goodix_ctp_screen_max_y", &screen_max_y, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_screen_max_y", &screen_max_y, 1)){
         pr_err("goodix_ts: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}

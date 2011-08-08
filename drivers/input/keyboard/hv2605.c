@@ -334,7 +334,7 @@ static int __init hv_keypad_init(void)
     
 	printk("========HV Inital ===================\n");	
 	
-	if(SCRIPT_PARSER_OK != script_parser_fetch("hv_keypad_para", "hv_keypad_used", &hv_keypad_used, 1)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_used", &hv_keypad_used, 1)){
         pr_err("hv_keypad: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
 	}
