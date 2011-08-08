@@ -20,9 +20,13 @@
 #include <sound/soc.h>
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+#include <linux/io.h>
 
 #include "codecchip.h"
 
+static int i2s_used = 0;
 #define codecchip_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
 #define codecchip_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
 		                     SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_S20_3LE)
@@ -151,13 +155,33 @@ EXPORT_SYMBOL_GPL(soc_codec_dev_codecchip);
 
 static int __init codecchip_init(void)
 {
-	return snd_soc_register_dai(&codecchip_dai);
+	int ret;
+	ret = script_parser_fetch("i2s_para","i2s_used", &i2s_used, sizeof(int));
+	
+	if (ret)
+    {
+        printk("[I2S]codecchip_init fetch i2s using configuration failed\n");
+    } 
+    
+    if(i2s_used)
+    {
+		return snd_soc_register_dai(&codecchip_dai);
+	}
+	else
+	{
+		printk("[I2S]codecchip cannot find any using configuration for controllers, return directly!\n");
+        return 0;
+	}
 }
 module_init(codecchip_init);
 
 static void __exit codecchip_exit(void)
 {
-	snd_soc_unregister_dai(&codecchip_dai);
+	if(i2s_used)
+	{
+		i2s_used = 0;
+		snd_soc_unregister_dai(&codecchip_dai);
+	}
 }
 module_exit(codecchip_exit);
 

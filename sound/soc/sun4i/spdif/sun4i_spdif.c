@@ -40,7 +40,7 @@
 #include "sun4i_spdif.h"
 
 static int regsave[6];
-
+static int spdif_used = 0;
 
 static struct sw_dma_client sun4i_dma_client_out = {
 	.name = "SPDIF out"
@@ -404,7 +404,7 @@ static int sun4i_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *d
 		if(sun4i_spdif.regs == NULL)
 			return -ENXIO;
 			
-		spdif_handle = gpio_request_ex("spdif_para", NULL);
+		
 	
 		//spdif apbclk
 		spdif_apbclk = clk_get(NULL, "apb_spdif");
@@ -546,26 +546,47 @@ EXPORT_SYMBOL_GPL(sun4i_spdif_dai);
 
 static int __init sun4i_spdif_init(void)
 {
-	return snd_soc_register_dai(&sun4i_spdif_dai);
+	int ret;
+	
+	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
+	if (ret)
+    {
+        printk("[SPDIF]sun4i_spdif_init fetch spdif using configuration failed\n");
+    } 
+	 
+	if (spdif_used) 
+	{	
+		spdif_handle = gpio_request_ex("spdif_para", NULL);
+		return snd_soc_register_dai(&sun4i_spdif_dai);
+	}else
+    {
+        printk("[SPDIF]sun4i-spdif cannot find any using configuration for controllers, return directly!\n");
+        return 0;
+    }
+	
 }
 module_init(sun4i_spdif_init);
 
 static void __exit sun4i_spdif_exit(void)
 {	
-	//release the module clock
-	clk_disable(spdif_moduleclk);
-
-	//release pllx8clk
-	clk_put(spdif_pllx8);
+	if(spdif_used)
+	{
+		spdif_used = 0;
+		//release the module clock
+		clk_disable(spdif_moduleclk);
 	
-	//release pll2clk
-	clk_put(spdif_pll2clk);
-
-	//release apbclk
-	clk_put(spdif_apbclk);
+		//release pllx8clk
+		clk_put(spdif_pllx8);
+		
+		//release pll2clk
+		clk_put(spdif_pll2clk);
 	
-	gpio_release(spdif_handle, 2);
-	snd_soc_unregister_dai(&sun4i_spdif_dai);
+		//release apbclk
+		clk_put(spdif_apbclk);
+		
+		gpio_release(spdif_handle, 2);
+		snd_soc_unregister_dai(&sun4i_spdif_dai);
+	}
 }
 module_exit(sun4i_spdif_exit);
 
