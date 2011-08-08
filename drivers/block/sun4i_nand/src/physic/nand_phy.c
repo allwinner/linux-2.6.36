@@ -22,7 +22,8 @@ extern __s32 _read_status(__u32 cmd_value, __u32 nBank);
 extern __s32 _write_signle_page (struct boot_physical_param *writeop,__u32 program1,__u32 program2,__u8 dma_wait_mode, __u8 rb_wait_mode); 
 extern __s32 _read_single_page(struct boot_physical_param * readop,__u8 dma_wait_mode);
 extern void _pending_dma_irq_sem(void);
-extern __s32 _wait_rb_ready(__u32 rb);
+extern __s32 _wait_rb_ready(__u32 chip);
+extern __s32 _wait_rb_ready_int(__u32 chip);
 extern __u8 _cal_real_chip(__u32 global_bank);
 extern __u8 _cal_real_rb(__u32 chip);
 extern __u32 _cal_random_seed(__u32 page);
@@ -284,7 +285,7 @@ __s32  PHY_BlockErase(struct __PhysicOpPara_t *pBlkAdr)
 	for(i = 0; i < list_len - 1; i++){
 		cmd_list[i].next = &(cmd_list[i+1]);
 	}
-	_wait_rb_ready(chip);
+	_wait_rb_ready_int(chip);
 	NFC_SelectChip(chip);
 	NFC_SelectRb(rb);
 
@@ -965,7 +966,9 @@ __s32  PHY_PageWrite(struct __PhysicOpPara_t  *pPageAdr)
 	//_wait_rb_ready(chip);
 	 
 	for (i = 0; i < plane_cnt; i++){
-		
+		if(i == 0)
+			_wait_rb_ready_int(chip);
+		else
 		_wait_rb_ready(chip);
 		
 		/*init single page operation param*/

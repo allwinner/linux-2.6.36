@@ -11,6 +11,7 @@
 #include <linux/semaphore.h>
 #include <linux/platform_device.h>
 #include <linux/clk.h>
+#include <linux/interrupt.h>
 #include <asm/uaccess.h>
 //#include <linux/devfs_fs_kernel.h>
 #include <linux/timer.h>
@@ -21,6 +22,7 @@
 
 #include "../src/include/nand_type.h"
 #include "../src/include/nand_drv_cfg.h"
+#include "../nfc/nfc_i.h"
 #include "nand_blk.h"
 #include <mach/clock.h>
 #include <mach/script_v2.h>
@@ -31,6 +33,9 @@
 #include "../nandtest/nand_test.h"
 //#include "../include/nand_reg_def.h"
 
+#include "nand_private.h"
+#include <linux/wait.h>
+#include <linux/sched.h>
 extern struct __NandStorageInfo_t  NandStorageInfo;
 extern struct __NandDriverGlobal_t NandDriverInfo;
 
@@ -101,6 +106,24 @@ static struct clk *ahb_nand_clk = NULL;
 static struct clk *mod_nand_clk = NULL;
 
 static int nand_flush(struct nand_blk_dev *dev);
+
+spinlock_t     nand_rb_lock;
+
+static irqreturn_t nand_rb_interrupt(int irq, void *dev_id)
+{
+    unsigned long iflags;
+    
+    //printk("rb int start \n");
+    spin_lock_irqsave(&nand_rb_lock, iflags);
+    NAND_RbInterrupt();
+    spin_unlock_irqrestore(&nand_rb_lock, iflags);
+	//printk("end\n");
+	
+	return IRQ_HANDLED;
+}
+
+
+
 
 #if USE_BIO_MERGE==0
 static int cache_align_page_request(struct nand_blk_ops * nandr, struct nand_blk_dev * dev, struct request * req)
@@ -1289,6 +1312,7 @@ __u32 nand_get_module_clk(void)
 static int __init init_blklayer(void)
 {
 	int ret;
+	unsigned long irqflags;
 
 	#ifndef USE_SYS_CLK
 		__u32 cmu_clk;
@@ -1333,6 +1357,11 @@ static int __init init_blklayer(void)
 	clear_NAND_ZI();
 
 	printk("[NAND] nand driver version: 0x%x 0x%x \n", NAND_VERSION_0,NAND_VERSION_1);
+    NAND_ClearRbInt();
+    spin_lock_init(&nand_rb_lock);
+	irqflags = IRQF_DISABLED;
+	if (request_irq(SW_INT_IRQNO_NAND, nand_rb_interrupt, irqflags, mytr.name, &mytr))
+		return -EAGAIN;
 	ret = PHY_Init();
 	if (ret) {
 		PHY_Exit();

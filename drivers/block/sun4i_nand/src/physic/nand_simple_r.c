@@ -13,6 +13,7 @@
 #include "../include/nand_physic.h"
 #include "../include/nand_simple.h"
 #include "../../nfc/nfc.h"
+#include "../../nfc/nfc_i.h"
 
 #include <linux/io.h>
 
@@ -293,6 +294,30 @@ __s32 _wait_rb_ready(__u32 chip)
 		
 	return 0;
 }
+
+__s32 _wait_rb_ready_int(__u32 chip)
+{
+	__u32 rb;
+	
+
+    rb = _cal_real_rb(chip);
+    NFC_SelectRb(rb);
+  
+    if(NFC_CheckRbReady(rb))
+    {
+       NAND_WaitRbReady();
+    }
+    
+    while(NFC_CheckRbReady(rb))
+    {
+        printk("rb int error!\n");
+    }
+	
+	//NAND_ClearRbInt();
+	return 0;
+}
+
+
 
 void _pending_dma_irq_sem(void)
 {

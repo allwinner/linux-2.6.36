@@ -930,6 +930,7 @@ static __s32 _GetBlkLogicInfo(struct __ScanDieInfo_t *pDieInfo)
     __s32   i;
     __s16   tmpPageNum[4];
     __u16   tmpLogicInfo;
+    __u32   spare_bitmap;
     struct  __NandUserData_t tmpSpare[2];
 
 
@@ -985,7 +986,9 @@ static __s32 _GetBlkLogicInfo(struct __ScanDieInfo_t *pDieInfo)
 
                 //calculate the number of the page in the super block to get spare data
                 tmpPage = tmpPageNum[i] * INTERLEAVE_BANK_CNT + tmpBnkNum;
-                _VirtualPageRead(pDieInfo->nDie, tmpBlkNum, tmpPage, LOGIC_INFO_BITMAP, FORMAT_PAGE_BUF, (void *)&tmpSpare);
+                //_VirtualPageRead(pDieInfo->nDie, tmpBlkNum, tmpPage, LOGIC_INFO_BITMAP, FORMAT_PAGE_BUF, (void *)&tmpSpare);
+                 spare_bitmap = (SUPPORT_MULTI_PROGRAM ? (0x3 | (0x3 << SECTOR_CNT_OF_SINGLE_PAGE)) : 0x3);
+                _VirtualPageRead(pDieInfo->nDie, tmpBlkNum, tmpPage, spare_bitmap, FORMAT_PAGE_BUF, (void *)&tmpSpare);
 
 				//check if the block is a bad block
                 if((tmpSpare[0].BadBlkFlag != 0xff) || (SUPPORT_MULTI_PROGRAM && (tmpSpare[1].BadBlkFlag != 0xff)))
