@@ -1331,7 +1331,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	 kfree(db);
 	 gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
 	 if(!gpio_pa_shutdown) {
-		printk("touch panel tp_wakeup request gpio fail!\n");
+		printk("audio codec_wakeup request gpio fail!\n");
 		goto out;
 	}
 	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
