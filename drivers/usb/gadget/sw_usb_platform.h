@@ -52,17 +52,17 @@
 //---------------------------------------------------------------
 
 /* 厂商名, 产品名, 产品序列号 */
-#define  SW_USB_MANUFACTURER_NAME      "SoftWinner"
-#define  SW_USB_PRODUCT_NAME           "Android"
-#define  SW_USB_SERIAL_NUMBER          "20080411"
+#define  SW_USB_MANUFACTURER_NAME           "USB Developer"
+#define  SW_USB_PRODUCT_NAME                "Android"
+#define  SW_USB_SERIAL_NUMBER               "20080411"
 
 //---------------------------------------------------------------
 //  usb_mass_storage
 //---------------------------------------------------------------
 /* 厂商名, 产品名, 产品发布版本号 */
-#define  SW_USB_MASS_STORAGE_VENDOR_NAME   "USB Developer"
-#define  SW_USB_MASS_STORAGE_PRODUCT_NAME  "Mass Storage Device"
-#define  SW_USB_MASS_STORAGE_RELEASE       100
+#define  SW_USB_MASS_STORAGE_VENDOR_NAME    "USB 2.0"
+#define  SW_USB_MASS_STORAGE_PRODUCT_NAME   "USB Flash Driver"
+#define  SW_USB_MASS_STORAGE_RELEASE        100
 
 /* 逻辑单元个数， 即PC上能够看见的U盘盘符的个数 */
 #define  SW_USB_NLUNS               3

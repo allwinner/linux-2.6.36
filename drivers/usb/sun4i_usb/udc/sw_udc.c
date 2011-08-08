@@ -771,24 +771,30 @@ static int sw_udc_read_fifo_crq(struct usb_ctrlrequest *crq)
 *
 *******************************************************************************
 */
-#if 0
 static int sw_udc_get_status(struct sw_udc *dev, struct usb_ctrlrequest *crq)
 {
 	u16 status  = 0;
+	u8 	buf[8];
 	u8  ep_num  = crq->wIndex & 0x7F;
 	u8  is_in   = crq->wIndex & USB_DIR_IN;
+	u32 fifo = 0;
 
 	switch (crq->bRequestType & USB_RECIP_MASK) {
     	case USB_RECIP_INTERFACE:
+			buf[0] = 0x00;
+			buf[1] = 0x00;
     	break;
 
 	    case USB_RECIP_DEVICE:
 		    status = dev->devstatus;
+			buf[0] = 0x01;
+			buf[1] = 0x00;
 		break;
 
     	case USB_RECIP_ENDPOINT:
-    		if (ep_num > 4 || crq->wLength > 2)
+    		if (ep_num > 4 || crq->wLength > 2){
     			return 1;
+    		}
 
             USBC_SelectActiveEp(g_sw_udc_io.usb_bsp_hdle, ep_num);
     		if (ep_num == 0) {
@@ -800,26 +806,34 @@ static int sw_udc_get_status(struct sw_udc *dev, struct usb_ctrlrequest *crq)
     				status = USBC_Dev_IsEpStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_RX);
     			}
     		}
-
     		status = status ? 1 : 0;
+			if (status) {
+				buf[0] = 0x01;
+				buf[1] = 0x00;
+			} else {
+				buf[0] = 0x00;
+				buf[1] = 0x00;
+			}
 		break;
 
     	default:
-    		return 1;
+    	return 1;
 	}
 
 	/* Seems to be needed to get it working. ouch :( */
 	udelay(5);
-
 	USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
+
+	fifo = USBC_SelectFIFO(g_sw_udc_io.usb_bsp_hdle, 0);
+	USBC_WritePacket(g_sw_udc_io.usb_bsp_hdle, fifo, crq->wLength, buf);
+	USBC_Dev_WriteDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
 
 	return 0;
 }
-#endif
 
 static int sw_udc_set_halt(struct usb_ep *_ep, int value);
 
-
+#if 0
 /*
 *******************************************************************************
 *                     sw_udc_handle_ep0_idle
@@ -1032,6 +1046,241 @@ static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
 
 	return;
 }
+
+#else
+
+/*
+*******************************************************************************
+*                     sw_udc_handle_ep0_idle
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
+					struct sw_udc_ep *ep,
+					struct usb_ctrlrequest *crq,
+					u32 ep0csr)
+{
+	int len = 0, ret = 0, tmp = 0;
+
+	/* start control request? */
+	if (!USBC_Dev_IsReadDataReady(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0)){
+	    DMSG_WRN("ERR: data is ready, can not read data.\n");
+		return;
+    }
+
+	sw_udc_nuke(dev, ep, -EPROTO);
+
+	len = sw_udc_read_fifo_crq(crq);
+	if (len != sizeof(*crq)) {
+		DMSG_PANIC("setup begin: fifo READ ERROR"
+			" wanted %d bytes got %d. Stalling out...\n",
+			sizeof(*crq), len);
+
+		USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
+		USBC_Dev_EpSendStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0);
+
+		return;
+	}
+
+	DMSG_DBG_UDC("ep0: bRequest = %d bRequestType %d wLength = %d\n",
+		crq->bRequest, crq->bRequestType, crq->wLength);
+
+	/* cope with automagic for some standard requests. */
+	dev->req_std        = ((crq->bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD);
+	dev->req_config     = 0;
+	dev->req_pending    = 1;
+    printk("sw_udc_handle_ep0_idle crq->bRequest = %d\n",crq->bRequest);
+	switch (crq->bRequest) {
+    	case USB_REQ_SET_CONFIGURATION:
+    		DMSG_DBG_UDC("USB_REQ_SET_CONFIGURATION ... \n");
+
+    		if (crq->bRequestType == USB_RECIP_DEVICE) {
+    			dev->req_config = 1;
+    		}
+		break;
+
+    	case USB_REQ_SET_INTERFACE:
+    		DMSG_DBG_UDC("USB_REQ_SET_INTERFACE ... \n");
+
+    		if (crq->bRequestType == USB_RECIP_INTERFACE) {
+    			dev->req_config = 1;
+    		}
+		break;
+
+    	case USB_REQ_SET_ADDRESS:
+    		DMSG_DBG_UDC("USB_REQ_SET_ADDRESS ... \n");
+
+    		if (crq->bRequestType == USB_RECIP_DEVICE) {
+    			tmp = crq->wValue & 0x7F;
+    			dev->address = tmp;
+
+    			//rx接收完毕、dataend、tx_pakect准备就绪
+				USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+
+				dev->ep0state = EP0_END_XFER;
+
+				crq_bRequest = USB_REQ_SET_ADDRESS;
+
+    			return;
+    		}
+		break;
+
+    	case USB_REQ_GET_STATUS:
+    		DMSG_DBG_UDC("USB_REQ_GET_STATUS ... \n");
+    		if (dev->req_std) {
+    			if (!sw_udc_get_status(dev, crq)) {
+    				return;
+    			}
+    		}
+		break;
+
+		case USB_REQ_CLEAR_FEATURE:
+			//--<1>--数据方向必须为 host to device
+			if(x_test_bit(crq->bRequestType, 7) == 1){
+				DMSG_PANIC("USB_REQ_CLEAR_FEATURE: data is not host to device\n");
+				break;
+			}
+
+			USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+
+			//--<3>--数据阶段
+			if(crq->bRequestType == USB_RECIP_DEVICE){
+				/* wValue 0-1 */
+				if(crq->wValue){
+					dev->devstatus &= ~(1 << USB_DEVICE_REMOTE_WAKEUP);
+				}else{
+					int k = 0;
+					for(k = 0;k < SW_UDC_ENDPOINTS;k++){
+						sw_udc_set_halt(&dev->ep[k].ep, 0);
+					}
+				}
+
+			}else if(crq->bRequestType == USB_RECIP_INTERFACE){
+				//--<2>--令牌阶段结束
+
+				//不处理
+
+			}else if(crq->bRequestType == USB_RECIP_ENDPOINT){
+				//--<3>--解除禁用ep
+				//sw_udc_set_halt(&dev->ep[crq->wIndex & 0x7f].ep, 0);
+				//dev->devstatus &= ~(1 << USB_DEVICE_REMOTE_WAKEUP);
+				/* wValue 0-1 */
+				if(crq->wValue){
+					dev->devstatus &= ~(1 << USB_DEVICE_REMOTE_WAKEUP);
+				}else{
+					sw_udc_set_halt(&dev->ep[crq->wIndex & 0x7f].ep, 0);
+				}
+
+			}else{
+				DMSG_PANIC("PANIC : nonsupport set feature request. (%d)\n", crq->bRequestType);
+				USBC_Dev_EpSendStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0);
+			}
+			//--<4>--
+			dev->ep0state = EP0_IDLE;
+
+			return;
+		//break;
+
+        case USB_REQ_SET_FEATURE:
+            //--<1>--数据方向必须为 host to device
+            if(x_test_bit(crq->bRequestType, 7) == 1){
+                DMSG_PANIC("USB_REQ_SET_FEATURE: data is not host to device\n");
+                break;
+            }
+            //--<3>--数据阶段
+            if(crq->bRequestType == USB_RECIP_DEVICE){
+                if((crq->wValue == USB_DEVICE_TEST_MODE) && (crq->wIndex == 0x0400)){
+                    //setup packet包接收完毕
+                    USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+
+                    dev->ep0state = EP0_END_XFER;
+                    crq_bRequest = USB_REQ_SET_FEATURE;
+
+                    return;
+                }
+
+				USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+				dev->devstatus |= (1 << USB_DEVICE_REMOTE_WAKEUP);
+
+            }else if(crq->bRequestType == USB_RECIP_INTERFACE){
+                //--<2>--令牌阶段结束
+                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+                //不处理
+
+            }else if(crq->bRequestType == USB_RECIP_ENDPOINT){
+                //--<3>--禁用ep
+                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+				sw_udc_set_halt(&dev->ep[crq->wIndex & 0x7f].ep, 1);
+            }else{
+                DMSG_PANIC("PANIC : nonsupport set feature request. (%d)\n", crq->bRequestType);
+
+                USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+                USBC_Dev_EpSendStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0);
+            }
+            //--<4>--
+            dev->ep0state = EP0_IDLE;
+
+			return;
+        //break;
+
+    	default:
+			/* 只收setup数据包，不能置DataEnd */
+			USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 0);
+    		break;
+	}
+
+	if(crq->bRequestType & USB_DIR_IN){
+		dev->ep0state = EP0_IN_DATA_PHASE;
+	}else{
+		dev->ep0state = EP0_OUT_DATA_PHASE;
+    }
+
+	ret = dev->driver->setup(&dev->gadget, crq);
+	if (ret < 0) {
+		if (dev->req_config) {
+			DMSG_PANIC("ERR: config change %02x fail %d?\n", crq->bRequest, ret);
+			return;
+		}
+
+		if(ret == -EOPNOTSUPP){
+			DMSG_PANIC("ERR: Operation not supported\n");
+		}else{
+			DMSG_PANIC("ERR: dev->driver->setup failed. (%d)\n", ret);
+        }
+
+		udelay(5);
+
+		USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+		USBC_Dev_EpSendStall(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0);
+
+		dev->ep0state = EP0_IDLE;
+		/* deferred i/o == no response yet */
+	} else if (dev->req_pending) {
+//		DMSG_PANIC("ERR: dev->req_pending... what now?\n");
+		dev->req_pending=0;
+	}
+
+	if(crq->bRequest == USB_REQ_SET_CONFIGURATION || crq->bRequest == USB_REQ_SET_INTERFACE){
+		//rx_packet包接收完毕
+		USBC_Dev_ReadDataStatus(g_sw_udc_io.usb_bsp_hdle, USBC_EP_TYPE_EP0, 1);
+	}
+
+	return;
+}
+
+#endif
 
 /*
 *******************************************************************************
@@ -2919,8 +3168,6 @@ static struct sw_udc sw_udc = {
 	},
 };
 
-#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
-
 int sw_usb_device_enable(void)
 {
 	struct platform_device *pdev = g_udc_pdev;
@@ -3042,7 +3289,7 @@ EXPORT_SYMBOL(sw_usb_device_disable);
 
 /*
 *******************************************************************************
-*                     sw_udc_probe
+*                     sw_udc_probe_otg
 *
 * Description:
 *    void
@@ -3058,9 +3305,9 @@ EXPORT_SYMBOL(sw_usb_device_disable);
 *
 *******************************************************************************
 */
-static int __init sw_udc_probe(struct platform_device *pdev)
+static int sw_udc_probe_otg(struct platform_device *pdev)
 {
-	struct sw_udc  	*udc    = &sw_udc;
+	struct sw_udc  	*udc = &sw_udc;
 
 	g_udc_pdev = pdev;
 
@@ -3080,7 +3327,7 @@ static int __init sw_udc_probe(struct platform_device *pdev)
 
 /*
 *******************************************************************************
-*                     sw_udc_remove
+*                     sw_udc_remove_otg
 *
 * Description:
 *    void
@@ -3096,7 +3343,7 @@ static int __init sw_udc_probe(struct platform_device *pdev)
 *
 *******************************************************************************
 */
-static int __devexit sw_udc_remove(struct platform_device *pdev)
+static int sw_udc_remove_otg(struct platform_device *pdev)
 {
 	struct sw_udc *udc 	= NULL;
 
@@ -3111,11 +3358,9 @@ static int __devexit sw_udc_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#else
-
 /*
 *******************************************************************************
-*                     sw_udc_probe
+*                     sw_udc_probe_device_only
 *
 * Description:
 *    void
@@ -3131,7 +3376,7 @@ static int __devexit sw_udc_remove(struct platform_device *pdev)
 *
 *******************************************************************************
 */
-static int __init sw_udc_probe(struct platform_device *pdev)
+static int sw_udc_probe_device_only(struct platform_device *pdev)
 {
 	struct sw_udc  	*udc    = &sw_udc;
 //	struct device       *dev    = &pdev->dev;
@@ -3197,7 +3442,7 @@ err:
 
 /*
 *******************************************************************************
-*                     sw_udc_remove
+*                     sw_udc_remove_device_only
 *
 * Description:
 *    void
@@ -3213,7 +3458,7 @@ err:
 *
 *******************************************************************************
 */
-static int __devexit sw_udc_remove(struct platform_device *pdev)
+static int sw_udc_remove_device_only(struct platform_device *pdev)
 {
 	struct sw_udc *udc 	= platform_get_drvdata(pdev);
 
@@ -3235,7 +3480,71 @@ static int __devexit sw_udc_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/*
+*******************************************************************************
+*                     sw_udc_probe
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static int __init sw_udc_probe(struct platform_device *pdev)
+{
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
+	struct sw_udc_mach_info *udc_cfg = pdev->dev.platform_data;
+
+    switch(udc_cfg->port_info->port_type){
+        case USB_PORT_TYPE_DEVICE:
+            return sw_udc_probe_device_only(pdev);
+        //break;
+
+        case USB_PORT_TYPE_OTG:
+            return sw_udc_probe_otg(pdev);
+        //break;
+
+        default:
+            DMSG_PANIC("ERR: unkown port_type(%d)\n", udc_cfg->port_info->port_type);
+    }
+
+    return 0;
+#else
+    return sw_udc_probe_device_only(pdev);
 #endif
+}
+
+static int __devexit sw_udc_remove(struct platform_device *pdev)
+{
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_OTG
+	struct sw_udc_mach_info *udc_cfg = pdev->dev.platform_data;
+
+    switch(udc_cfg->port_info->port_type){
+        case USB_PORT_TYPE_DEVICE:
+            return sw_udc_remove_device_only(pdev);
+        //break;
+
+        case USB_PORT_TYPE_OTG:
+            return sw_udc_remove_otg(pdev);
+        //break;
+
+        default:
+            DMSG_PANIC("ERR: unkown port_type(%d)\n", udc_cfg->port_info->port_type);
+    }
+
+    return 0;
+#else
+    return sw_udc_remove_device_only(pdev);
+#endif
+}
 
 /*
 *******************************************************************************

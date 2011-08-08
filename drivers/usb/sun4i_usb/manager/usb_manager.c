@@ -125,18 +125,6 @@ static __s32 usb_script_parse(struct usb_cfg *cfg)
 	u32 i = 0;
 	char *set_usbc = NULL;
 
-	/* usb_global_enable */
-	ret = script_parser_fetch(SET_USB_PARA, KEY_USB_GLOBAL_ENABLE, (int *)&(cfg->usb_global_enable), 64);
-	if(ret != 0){
-		DMSG_PANIC("ERR: get usbc0(usb_global_enable) id failed\n");
-	}
-
-	/* usbc_num */
-	ret = script_parser_fetch(SET_USB_PARA, KEY_USBC_NUM, (int *)&(cfg->usbc_num), 64);
-	if(ret != 0){
-		DMSG_PANIC("ERR: get usbc_num failed\n");
-	}
-
 	for(i = 0; i < cfg->usbc_num; i++){
 		if(i == 0){
 			set_usbc = SET_USB0;
@@ -243,6 +231,91 @@ static void modify_usb_borad_info(struct usb_cfg *cfg)
 	return;
 }
 
+/*
+*******************************************************************************
+*                     check_usb_board_info
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+static __s32 check_usb_board_info(struct usb_cfg *cfg)
+{
+    //-------------------------------------
+    // USB0
+    //-------------------------------------
+    if(cfg->port[0].enable){
+        /* 检查port的使用类型是否合法 */
+        if(cfg->port[0].port_type != USB_PORT_TYPE_DEVICE
+           && cfg->port[0].port_type != USB_PORT_TYPE_HOST
+           && cfg->port[0].port_type != USB_PORT_TYPE_OTG){
+            DMSG_PANIC("ERR: usbc0 port_type(%d) is unkown\n", cfg->port[0].port_type);
+    	    goto err;
+        }
+
+        /* 检查USB的插拔检测方式是否合法 */
+        if(cfg->port[0].detect_type != USB_DETECT_TYPE_DP_DM
+           && cfg->port[0].detect_type != USB_DETECT_TYPE_VBUS_ID){
+            DMSG_PANIC("ERR: usbc0 detect_type(%d) is unkown\n", cfg->port[0].detect_type);
+    	    goto err;
+        }
+
+        /* 如果用VBUS/ID检测方式，就必须检查id/vbus pin 的有效性 */
+        if(cfg->port[0].detect_type == USB_DETECT_TYPE_VBUS_ID){
+            if(cfg->port[0].id.valid == 0){
+                DMSG_PANIC("ERR: id pin is invaild\n");
+    		    goto err;
+            }
+
+            if(cfg->port[0].det_vbus.valid == 0){
+                DMSG_PANIC("ERR: det_vbus pin is invaild\n");
+    		    goto err;
+            }
+        }
+    }
+
+    //-------------------------------------
+    // USB1
+    //-------------------------------------
+
+    //-------------------------------------
+    // USB2
+    //-------------------------------------
+
+    return 0;
+
+err:
+    return -1;
+}
+
+/*
+*******************************************************************************
+*                     print_gpio_set
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
 static void print_gpio_set(user_gpio_set_t *gpio_set)
 {
 	DMSG_INFO_MANAGER("gpio_name            = %s\n", gpio_set->gpio_name);
@@ -342,6 +415,12 @@ static __s32 get_usb_cfg(struct usb_cfg *cfg)
 
 	print_usb_cfg(cfg);
 
+    ret = check_usb_board_info(cfg);
+	if(ret != 0){
+		DMSG_PANIC("ERR: check_usb_board_info failed\n");
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -387,11 +466,18 @@ static int __init usb_manager_init(void)
 #endif
 
 	memset(&g_usb_cfg, 0, sizeof(struct usb_cfg));
+	g_usb_cfg.usb_global_enable = 1;
+    g_usb_cfg.usbc_num = 3;
 
 	ret = get_usb_cfg(&g_usb_cfg);
 	if(ret != 0){
 		DMSG_PANIC("ERR: get_usb_cfg failed\n");
 		return -1;
+	}
+
+	if(g_usb_cfg.port[0].enable == 0){
+		DMSG_PANIC("wrn: usb0 is disable\n");
+		return 0;
 	}
 
     memset(&usbc, 0, sizeof(bsp_usbc_t));
@@ -419,20 +505,23 @@ static int __init usb_manager_init(void)
 	usbc.sram_base = SW_VA_SRAM_IO_BASE;
 	USBC_init(&usbc);
 
-    usbc0_platform_device_init();
+    usbc0_platform_device_init(&g_usb_cfg.port[0]);
 
 #ifdef CONFIG_USB_SW_SUN4I_USB0_OTG
-	usb_hw_scan_init(&g_usb_cfg);
+    if(g_usb_cfg.port[0].port_type == USB_PORT_TYPE_OTG
+       && g_usb_cfg.port[0].detect_type == USB_DETECT_TYPE_VBUS_ID){
+    	usb_hw_scan_init(&g_usb_cfg);
 
-	thread_run_flag = 1;
-	thread_stopped_flag = 0;
-	th = kthread_create(usb_hardware_scan_thread, &g_usb_cfg, "usb-hardware-scan");
-	if(IS_ERR(th)){
-		DMSG_PANIC("ERR: kthread_create failed\n");
-		return -1;
+    	thread_run_flag = 1;
+    	thread_stopped_flag = 0;
+    	th = kthread_create(usb_hardware_scan_thread, &g_usb_cfg, "usb-hardware-scan");
+    	if(IS_ERR(th)){
+    		DMSG_PANIC("ERR: kthread_create failed\n");
+    		return -1;
+    	}
+
+    	wake_up_process(th);
 	}
-
-	wake_up_process(th);
 #endif
 
     DMSG_INFO_MANAGER("[sw usb]: usb_manager_init end\n");
@@ -475,19 +564,28 @@ static void __exit usb_manager_exit(void)
 	return;
 #endif
 
+	if(g_usb_cfg.port[0].enable == 0){
+		DMSG_PANIC("wrn: usb0 is disable\n");
+		return ;
+	}
+
     memset(&usbc, 0, sizeof(bsp_usbc_t));
 	USBC_exit(&usbc);
 
 #ifdef CONFIG_USB_SW_SUN4I_USB0_OTG
-	thread_run_flag = 0;
-	while(!thread_stopped_flag){
-		DMSG_INFO("waitting for usb_hardware_scan_thread stop\n");
-	}
+    if(g_usb_cfg.port[0].port_type == USB_PORT_TYPE_OTG
+       && g_usb_cfg.port[0].detect_type == USB_DETECT_TYPE_VBUS_ID){
+    	thread_run_flag = 0;
+    	while(!thread_stopped_flag){
+    		DMSG_INFO("waitting for usb_hardware_scan_thread stop\n");
+    		msleep(10);
+    	}
 
-	usb_hw_scan_exit(&g_usb_cfg);
+    	usb_hw_scan_exit(&g_usb_cfg);
+    }
 #endif
 
-    usbc0_platform_device_exit();
+    usbc0_platform_device_exit(&g_usb_cfg.port[0]);
 
     return;
 }

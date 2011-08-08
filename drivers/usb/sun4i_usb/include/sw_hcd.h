@@ -63,6 +63,7 @@ typedef struct sw_hcd_config {
 	u32		ram_size;	    /* ram address size */
 
 	struct sw_hcd_eps_bits *eps_bits;
+	struct usb_port_info *port_info;
 }sw_hcd_config_t;
 
 typedef struct sw_hcd_platform_data {

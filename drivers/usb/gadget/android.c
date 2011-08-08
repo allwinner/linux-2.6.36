@@ -502,18 +502,17 @@ static char *sw_usb_functions_all[] = {
 
 static struct android_usb_product sw_usb_products[] = {
 	{  /* usb_mass_storage */
-	.vendor_id      = SW_USB_VENDOR_ID,
-	.product_id     = SW_USB_UMS_PRODUCT_ID,
-	.num_functions  = ARRAY_SIZE(sw_usb_functions_ums),
+    	.vendor_id      = SW_USB_VENDOR_ID,
+    	.product_id     = SW_USB_UMS_PRODUCT_ID,
+    	.num_functions  = ARRAY_SIZE(sw_usb_functions_ums),
     	.functions   	= sw_usb_functions_ums,
 	},
 
 	{  /* adb */
-	.vendor_id      = SW_USB_VENDOR_ID,
-	.product_id     = SW_USB_ADB_PRODUCT_ID,
-    .num_functions  = ARRAY_SIZE(sw_usb_functions_ums_adb),
-    .functions      = sw_usb_functions_ums_adb,
-
+    	.vendor_id      = SW_USB_VENDOR_ID,
+    	.product_id     = SW_USB_ADB_PRODUCT_ID,
+        .num_functions  = ARRAY_SIZE(sw_usb_functions_ums_adb),
+        .functions      = sw_usb_functions_ums_adb,
 	},
 };
 
@@ -527,7 +526,7 @@ static struct android_usb_platform_data sw_usb_android_pdata = {
 	.serial_number      = SW_USB_SERIAL_NUMBER,
 
 	.num_products       = ARRAY_SIZE(sw_usb_products),
-	.products	    = sw_usb_products,
+	.products	        = sw_usb_products,
 
 	.num_functions      = ARRAY_SIZE(sw_usb_functions_all),
 	.functions          = sw_usb_functions_all,
@@ -558,6 +557,186 @@ static struct platform_device sw_usb_ums_device = {
 		.platform_data = &sw_usb_ums_pdata,
 	},
 };
+
+struct usb_msc_config{
+    /* usb feature */
+    u32 vendor_id;
+    u32 mass_storage_id;
+    u32 adb_id;
+
+    char usb_manufacturer_name[64];
+    char usb_product_name[64];
+    char usb_serial_number[64];
+
+    /* usb_mass_storage feature */
+    char msc_vendor_name[64];
+    char msc_product_name[64];
+    u32 msc_release;
+    u32 luns;
+};
+
+#include <mach/script_v2.h>
+
+static s32 get_msc_config(struct usb_msc_config *config)
+{
+    s32 ret = 0;
+
+    //----------------------------------------
+    //  usb_feature
+    //----------------------------------------
+
+    /* vendor_id */
+    ret = script_parser_fetch("usb_feature", "vendor_id", (int *)&(config->vendor_id), 64);
+	if(ret != 0){
+	    printk("ERR: get usb_feature vendor_id failed\n");
+	}
+
+    /* mass_storage_id */
+    ret = script_parser_fetch("usb_feature", "mass_storage_id", (int *)&(config->mass_storage_id), 64);
+	if(ret != 0){
+	    printk("ERR: get usb_feature mass_storage_id failed\n");
+	}
+
+    /* adb_id */
+    ret = script_parser_fetch("usb_feature", "adb_id", (int *)&(config->adb_id), 64);
+	if(ret != 0){
+	    printk("ERR: get usb_feature adb_id failed\n");
+	}
+
+	/* manufacturer_name */
+    ret = script_parser_fetch("usb_feature", "manufacturer_name", (int *)config->usb_manufacturer_name, 64);
+	if(ret != 0){
+	    printk("ERR: get usb_feature manufacturer_name failed\n");
+	}
+
+	/* product_name */
+    ret = script_parser_fetch("usb_feature", "product_name", (int *)config->usb_product_name, 64);
+	if(ret != 0){
+	    printk("ERR: get usb_feature product_name failed\n");
+	}
+
+	/* serial_number */
+    ret = script_parser_fetch("usb_feature", "serial_number", (int *)config->usb_serial_number, 64);
+	if(ret != 0){
+	    printk("ERR: get usb_feature serial_number failed\n");
+	}
+
+    //----------------------------------------
+    //  msc_feature
+    //----------------------------------------
+
+	/* vendor_name */
+    ret = script_parser_fetch("msc_feature", "vendor_name", (int *)config->msc_vendor_name, 64);
+	if(ret != 0){
+	    printk("ERR: get msc_feature vendor_name failed\n");
+	}
+
+	/* product_name */
+    ret = script_parser_fetch("msc_feature", "product_name", (int *)config->msc_product_name, 64);
+	if(ret != 0){
+	    printk("ERR: get msc_feature product_name failed\n");
+	}
+
+	/* release */
+    ret = script_parser_fetch("msc_feature", "release", (int *)&(config->msc_release), 64);
+	if(ret != 0){
+	    printk("ERR: get msc_feature release failed\n");
+	}
+
+	/* luns */
+    ret = script_parser_fetch("msc_feature", "luns", (int *)&(config->luns), 64);
+	if(ret != 0){
+	    printk("ERR: get msc_feature luns failed\n");
+	}
+
+    return 0;
+}
+
+static void print_msc_config(struct usb_msc_config *config)
+{
+    printk("------print_msc_config-----\n");
+    printk("vendor_id             = 0x%x\n", config->vendor_id);
+    printk("mass_storage_id       = 0x%x\n", config->mass_storage_id);
+    printk("adb_id                = 0x%x\n", config->adb_id);
+
+    printk("usb_manufacturer_name = %s\n", config->usb_manufacturer_name);
+    printk("usb_product_name      = %s\n", config->usb_product_name);
+    printk("usb_serial_number     = %s\n", config->usb_serial_number);
+
+    printk("msc_vendor_name       = %s\n", config->msc_vendor_name);
+    printk("msc_product_name      = %s\n", config->msc_product_name);
+    printk("msc_release           = %d\n", config->msc_release);
+    printk("luns                  = %d\n", config->luns);
+    printk("---------------------------\n");
+}
+
+static struct usb_msc_config g_usb_msc_config;
+
+static s32 modify_device_data(struct android_usb_platform_data *android_pdata,
+                       struct usb_mass_storage_platform_data *ums_pdata)
+{
+    struct usb_msc_config *config = &g_usb_msc_config;
+
+    memset(config, 0, sizeof(struct usb_msc_config));
+
+    get_msc_config(config);
+
+    print_msc_config(config);
+
+    //----------------------------------------
+    //  android
+    //----------------------------------------
+
+    if(config->vendor_id){
+        android_pdata->vendor_id = config->vendor_id;
+        android_pdata->products[0].vendor_id = config->vendor_id;
+        android_pdata->products[1].vendor_id = config->vendor_id;
+    }
+
+    if(config->mass_storage_id){
+        android_pdata->product_id = config->mass_storage_id;
+        android_pdata->products[0].product_id = config->mass_storage_id;
+    }
+
+    if(config->adb_id){
+        android_pdata->products[1].product_id = config->adb_id;
+    }
+
+    if(config->usb_manufacturer_name[0] != 0){
+        android_pdata->manufacturer_name = config->usb_manufacturer_name;
+    }
+
+    if(config->usb_product_name[0] != 0){
+        android_pdata->product_name = config->usb_product_name;
+    }
+
+    if(config->usb_serial_number[0] != 0){
+        android_pdata->serial_number = config->usb_serial_number;
+    }
+
+    //----------------------------------------
+    //  usb_mass_storage
+    //----------------------------------------
+
+    if(config->msc_vendor_name[0] != 0){
+        ums_pdata->vendor = config->msc_vendor_name;
+    }
+
+    if(config->msc_product_name[0] != 0){
+        ums_pdata->product = config->msc_product_name;
+    }
+
+    if(config->msc_release){
+        ums_pdata->release = config->msc_release;
+    }
+
+    if(config->luns){
+        ums_pdata->nluns = config->luns;
+    }
+
+    return 0;
+}
+
 /* by Cesc - end */
 
 static struct platform_driver android_platform_driver = {
@@ -577,9 +756,12 @@ static int __init init(void)
 
 	/* device register */
 	printk(KERN_INFO "android-platform_device_register\n");
+
+	modify_device_data(&sw_usb_android_pdata, &sw_usb_ums_pdata);
+
 	platform_device_register(&sw_usb_android_device);
 	platform_device_register(&sw_usb_ums_device);
-    
+
 	/* set default values, which should be overridden by platform data */
 	dev->product_id = PRODUCT_ID;
 	_android_dev = dev;

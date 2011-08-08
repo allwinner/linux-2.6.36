@@ -191,10 +191,7 @@ enum sw_udc_cmd_e {
 };
 
 typedef struct sw_udc_mach_info {
-	void	(*udc_command)(enum sw_udc_cmd_e);
- 	void	(*vbus_draw)(unsigned int ma);
-	unsigned int vbus_pin;
-	unsigned char vbus_pin_inverted;
+	struct usb_port_info *port_info;
 	unsigned int usbc_base;
 }sw_udc_mach_info_t;
 
