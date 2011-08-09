@@ -834,7 +834,7 @@ static int __devinit goodix_ts_init(void)
     if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
             pr_err("goodix_ts_init: script_parser_fetch err. \n");
             goto script_parser_fetch_err;
-      }
+    }
     if(strcmp(GOODIX_I2C_NAME, name)){
         pr_err("goodix_ts_init: name %s does not match GOODIX_I2C_NAME. \n", name);
         return 0;
