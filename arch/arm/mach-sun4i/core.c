@@ -356,10 +356,10 @@ enum sw_ic_ver sw_get_ic_ver(void)
 	val = (val >> 5) & 0x3;
 
 	if (val == 0x3) {
-		return IC_VER_A10_B;
+		return MAGIC_VER_B;
 	}
 
-	return IC_VER_A10_A;
+	return MAGIC_VER_A;
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
 
