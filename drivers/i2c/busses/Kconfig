@@ -819,6 +819,12 @@ config SUN4I_IIC
 	depends on ARM_AMBA && ARCH_SUN4I
 	help
 	  "SUN4I i2c bus driver"
+	  
+config SUN4I_IIC_PRINT_TRANSFER_INFO
+	tristate "SUN4I_IIC_PRINT_TRANSFER_INFO"
+	depends on SUN4I_IIC
+	help
+	  "SUN4I i2c bus driver"
 
 
 endmenu

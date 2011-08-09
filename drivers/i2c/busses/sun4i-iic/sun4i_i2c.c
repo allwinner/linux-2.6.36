@@ -32,7 +32,9 @@
 #include "sun4i_i2c_private.h"
 #include "sun4i_i2c.h"
 
-//#define PRINT_TRANSFER_INFO
+#ifdef CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO 
+#define PRINT_TRANSFER_INFO
+#endif
 
 static unsigned int i2c_debug = 0;
 
@@ -453,7 +455,8 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
     state = aw_twi_query_irq_status(base_addr);
 
     #ifdef PRINT_TRANSFER_INFO
-    printk(" 1 state = %x\n", state);
+    printk("awxx_i2c->bus_num = %d, awxx_i2c->msg->addr = (0x%x) state = (0x%x)\n",\
+               i2c->bus_num, i2c->msg->addr, state);
     #endif
 
     switch(state)
@@ -1323,6 +1326,7 @@ static int __init i2c_adap_awxx_init(void)
 	    pr_err("i2c_adap_awxx_init: script_parser_fetch err. \n");
 	    goto script_parser_fetch_err;
 	}
+	printk("ctp_used == %d. \n", device_used);
 	if(1 == device_used){
 	    if(SCRIPT_PARSER_OK != script_parser_fetch_ex("ctp_para", "ctp_name", (int *)(&name), &type, sizeof(name)/sizeof(int))){
 	        pr_err("i2c_adap_awxx_init: script_parser_fetch err. \n");
