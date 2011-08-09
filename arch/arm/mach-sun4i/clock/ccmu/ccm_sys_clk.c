@@ -267,18 +267,18 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
                 }
             }
             else if(chip_ver == MAGIC_VER_B){
-                /* chip is version B, FactorN=79, PreDiv=21, PostDiv=4,
-                    output=24*79/21/4=22.571mhz, 44.1k series fs     */
+                /* chip is version B:
+                    FactorN=79, PreDiv=21, PostDiv=4, output=24*79/21/4=22.571mhz, 44.1k series fs
+                    FactorN=86, PreDiv=21, PostDiv=4, output=24*86/21/4=24.571mhz, 48k series fs */
+
                 __u32   tmpReg;
 
                 tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
-
-
-                if((tmpReg & (0x7f<<8)) == 79)
+                if(((tmpReg>>8) & 0x7f) == 79)
                 {
                     return 22579200;
                 }
-                else if((tmpReg & (0x7f<<8)) == 86)
+                else if(((tmpReg>>8) & 0x7f) == 86)
                 {
                     return 24576000;
                 }
