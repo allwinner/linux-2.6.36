@@ -23,7 +23,6 @@
 
         .macro  get_irqnr_and_base, irqnr, irqstat, base, tmp
         ldr \irqstat, [\base, #0x10]    @ get pending status
-        bic     \irqstat, \irqstat, #1
         mov \irqnr, #0
         teq \irqstat, #0
         beq 1003f
