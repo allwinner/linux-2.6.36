@@ -487,7 +487,7 @@ static int ccmu_stats_show(struct seq_file *m, void *unused)
     sprintf_clk_inf(m, Pll1Ctl, VCORstIn     );
     sprintf_clk_inf(m, Pll1Ctl, PLLEn        );
 
-    seq_printf(m, "\nPLL2 infor:\n");
+    seq_printf(m, "\nPLL2 infor(0x%x):\n", *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl);
     sprintf_clk_inf(m, Pll2Ctl, VCOBias      );
     sprintf_clk_inf(m, Pll2Ctl, FactorN      );
     sprintf_clk_inf(m, Pll2Ctl, PLLBias      );
