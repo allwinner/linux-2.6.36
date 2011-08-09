@@ -41,6 +41,7 @@
 static const char ehci_name[] 		= SW_EHCI_NAME;
 
 static struct sw_hci_hcd *g_sw_ehci[3];
+static u32 ehci_first_probe[3] = {1, 1, 1};
 
 /*.......................................................................................*/
 //                                      º¯ÊıÇø
@@ -49,6 +50,30 @@ static struct sw_hci_hcd *g_sw_ehci[3];
 extern int usb_disabled(void);
 int sw_usb_disable_ehci(__u32 usbc_no);
 int sw_usb_enable_ehci(__u32 usbc_no);
+
+void print_ehci_info(struct sw_hci_hcd *sw_ehci)
+{
+    DMSG_INFO("----------print_ehci_info---------\n");
+	DMSG_INFO("hci_name             = %s\n", sw_ehci->hci_name);
+	DMSG_INFO("irq_no               = %d\n", sw_ehci->irq_no);
+	DMSG_INFO("usbc_no              = %d\n", sw_ehci->usbc_no);
+
+	DMSG_INFO("usb_vbase            = 0x%p\n", sw_ehci->usb_vbase);
+	DMSG_INFO("sram_vbase           = 0x%p\n", sw_ehci->sram_vbase);
+	DMSG_INFO("clock_vbase          = 0x%p\n", sw_ehci->clock_vbase);
+	DMSG_INFO("sdram_vbase          = 0x%p\n", sw_ehci->sdram_vbase);
+
+	DMSG_INFO("clock: AHB(0x%x), USB(0x%x)\n",
+	          (u32)USBC_Readl(sw_ehci->clock_vbase + 0x60),
+              (u32)USBC_Readl(sw_ehci->clock_vbase + 0xcc));
+
+	DMSG_INFO("USB: 0x%x\n",(u32)USBC_Readl(sw_ehci->usb_vbase + SW_USB_PMU_IRQ_ENABLE));
+	DMSG_INFO("DRAM: USB1(0x%x), USB2(0x%x)\n",
+	          (u32)USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB1),
+	          (u32)USBC_Readl(sw_ehci->sdram_vbase + SW_SDRAM_REG_HPCR_USB2));
+
+	DMSG_INFO("----------------------------------\n");
+}
 
 /*
 *******************************************************************************
@@ -370,7 +395,7 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 	sw_ehci->pdev = pdev;
 	g_sw_ehci[sw_ehci->usbc_no] = sw_ehci;
 
-	DMSG_INFO("[%s%d]: pdev->name: %s, pdev->id: %d, sw_ehci: 0x%p\n",
+	DMSG_INFO("[%s%d]: probe, pdev->name: %s, pdev->id: %d, sw_ehci: 0x%p\n",
 		      ehci_name, sw_ehci->usbc_no, pdev->name, pdev->id, sw_ehci);
 
 	/* get io resource */
@@ -423,7 +448,10 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
     sw_ehci->probe = 1;
 
     if(sw_ehci->host_init_state == 0){
-        sw_usb_disable_ehci(sw_ehci->usbc_no);
+        if(ehci_first_probe[sw_ehci->usbc_no]){
+            sw_usb_disable_ehci(sw_ehci->usbc_no);
+            ehci_first_probe[sw_ehci->usbc_no]--;
+        }
     }
 
 	return 0;
@@ -480,7 +508,7 @@ static int sw_ehci_hcd_remove(struct platform_device *pdev)
 		return -1;
 	}
 
-	DMSG_INFO("[%s%d]: pdev->name: %s, pdev->id: %d, sw_ehci: 0x%p\n",
+	DMSG_INFO("[%s%d]: remove, pdev->name: %s, pdev->id: %d, sw_ehci: 0x%p\n",
 		      ehci_name, sw_ehci->usbc_no, pdev->name, pdev->id, sw_ehci);
 
 	usb_remove_hcd(hcd);
@@ -493,7 +521,10 @@ static int sw_ehci_hcd_remove(struct platform_device *pdev)
     sw_ehci->probe = 0;
 
 	sw_ehci->hcd = NULL;
-	g_sw_ehci[sw_ehci->usbc_no] = NULL;
+
+    if(sw_ehci->host_init_state){
+    	g_sw_ehci[sw_ehci->usbc_no] = NULL;
+    }
 
 	platform_set_drvdata(pdev, NULL);
 
@@ -719,8 +750,6 @@ static struct platform_driver sw_ehci_hcd_driver ={
 int sw_usb_disable_ehci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ehci = NULL;
-	struct usb_hcd *hcd = NULL;
-    struct device *dev = NULL;
 
 	if(usbc_no != 1 && usbc_no != 2){
 		DMSG_PANIC("ERR:Argmen invalid. usbc_no(%d)\n", usbc_no);
@@ -739,30 +768,15 @@ int sw_usb_disable_ehci(__u32 usbc_no)
 	}
 
 	if(sw_ehci->probe == 0){
-		DMSG_PANIC("ERR: sw_ehci is disable, can not suspend\n");
+		DMSG_PANIC("ERR: sw_ehci is disable, can not disable again\n");
 		return -1;
 	}
 
-	hcd = sw_ehci->hcd;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
-	}
-
-	dev = &sw_ehci->pdev->dev;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
-	}
+	sw_ehci->probe = 0;
 
 	DMSG_INFO("[%s]: sw_usb_disable_ehci\n", sw_ehci->hci_name);
 
-#ifdef CONFIG_PM
-	ehci_bus_suspend(hcd);
-	udelay(1000);
-	sw_ehci_hcd_suspend(dev);
-	udelay(1000);
-#endif
+    sw_ehci_hcd_remove(sw_ehci->pdev);
 
 	return 0;
 }
@@ -789,8 +803,6 @@ EXPORT_SYMBOL(sw_usb_disable_ehci);
 int sw_usb_enable_ehci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ehci = NULL;
-	struct usb_hcd *hcd = NULL;
-    struct device *dev = NULL;
 
 	if(usbc_no != 1 && usbc_no != 2){
 		DMSG_PANIC("ERR:Argmen invalid. usbc_no(%d)\n", usbc_no);
@@ -808,29 +820,21 @@ int sw_usb_enable_ehci(__u32 usbc_no)
 		return -1;
 	}
 
-	if(sw_ehci->probe == 0){
-		DMSG_PANIC("ERR: sw_ehci is disable, can not suspend\n");
+	if(sw_ehci->host_init_state){
+		DMSG_PANIC("ERR: not support sw_usb_enable_ehci\n");
 		return -1;
 	}
 
-	hcd = sw_ehci->hcd;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
+	if(sw_ehci->probe == 1){
+		DMSG_PANIC("ERR: sw_ehci is already enable, can not enable again\n");
 		return -1;
 	}
 
-	dev = &sw_ehci->pdev->dev;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
-	}
+	sw_ehci->probe = 1;
 
 	DMSG_INFO("[%s]: sw_usb_enable_ehci\n", sw_ehci->hci_name);
 
-#ifdef CONFIG_PM
-	sw_ehci_hcd_resume(dev);
-	ehci_bus_resume(hcd);
-#endif
+    sw_ehci_hcd_probe(sw_ehci->pdev);
 
 	return 0;
 }

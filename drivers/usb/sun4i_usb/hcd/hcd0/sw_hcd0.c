@@ -2007,6 +2007,7 @@ static void sw_hcd_restore_context(struct sw_hcd *sw_hcd)
 */
 int sw_usb_disable_hcd0(void)
 {
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_HOST
 	struct device *dev = NULL;
 	struct platform_device *pdev = NULL;
 	unsigned long flags = 0;
@@ -2029,6 +2030,7 @@ int sw_usb_disable_hcd0(void)
 		return 0;
 	}
 
+#ifndef  CONFIG_USB_SW_SUN4I_USB0_HOST
 	if(sw_hcd->config->port_info->port_type != USB_PORT_TYPE_HOST
 	  || sw_hcd->config->port_info->host_init_state){
         DMSG_PANIC("ERR: only host mode support sw_usb_disable_hcd, (%d, %d)\n",
@@ -2036,11 +2038,14 @@ int sw_usb_disable_hcd0(void)
                    sw_hcd->config->port_info->host_init_state);
 		return 0;
 	}
+#endif
 
 	if(!sw_hcd->enable){
 		DMSG_PANIC("WRN: hcd is disable, can not enter to disable again\n");
 		return 0;
 	}
+
+	sw_hcd->enable = 0;
 
 	if(!sw_hcd->sw_hcd_io->clk_is_open){
 		DMSG_PANIC("ERR: sw_usb_disable_hcd0, usb clock is close, can't close again\n");
@@ -2058,6 +2063,7 @@ int sw_usb_disable_hcd0(void)
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
 	DMSG_INFO("sw_usb_disable_hcd0 end\n");
+#endif
 
 	return 0;
 }
@@ -2083,6 +2089,7 @@ EXPORT_SYMBOL(sw_usb_disable_hcd0);
 */
 int sw_usb_enable_hcd0(void)
 {
+#ifdef  CONFIG_USB_SW_SUN4I_USB0_HOST
 	struct device *dev = NULL;
 	struct platform_device *pdev = NULL;
 	unsigned long	flags = 0;
@@ -2105,6 +2112,7 @@ int sw_usb_enable_hcd0(void)
 		return 0;
 	}
 
+#ifndef  CONFIG_USB_SW_SUN4I_USB0_HOST
 	if(sw_hcd->config->port_info->port_type != USB_PORT_TYPE_HOST
 	  || sw_hcd->config->port_info->host_init_state){
         DMSG_PANIC("ERR: only host mode support sw_usb_enable_hcd, (%d, %d)\n",
@@ -2112,11 +2120,14 @@ int sw_usb_enable_hcd0(void)
                    sw_hcd->config->port_info->host_init_state);
 		return 0;
 	}
+#endif
 
-	if(!sw_hcd->enable){
-		DMSG_PANIC("WRN: hcd is disable, can not enter to enable hcd0\n");
+	if(sw_hcd->enable == 1){
+		DMSG_PANIC("WRN: hcd is already enable, can not enable again\n");
 		return 0;
 	}
+
+	sw_hcd->enable = 1;
 
 	if(sw_hcd->sw_hcd_io->clk_is_open){
 		DMSG_PANIC("ERR: sw_usb_enable_hcd0, usb clock is open, can't open again\n");
@@ -2131,6 +2142,7 @@ int sw_usb_enable_hcd0(void)
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
 	DMSG_INFO("sw_usb_enable_hcd0 end\n");
+#endif
 
 	return 0;
 }

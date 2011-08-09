@@ -1101,7 +1101,7 @@ static void sw_udc_handle_ep0_idle(struct sw_udc *dev,
 	dev->req_std        = ((crq->bRequestType & USB_TYPE_MASK) == USB_TYPE_STANDARD);
 	dev->req_config     = 0;
 	dev->req_pending    = 1;
-    printk("sw_udc_handle_ep0_idle crq->bRequest = %d\n",crq->bRequest);
+
 	switch (crq->bRequest) {
     	case USB_REQ_SET_CONFIGURATION:
     		DMSG_DBG_UDC("USB_REQ_SET_CONFIGURATION ... \n");

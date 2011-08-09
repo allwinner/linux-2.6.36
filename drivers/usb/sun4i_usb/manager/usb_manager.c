@@ -318,13 +318,13 @@ err:
 */
 static void print_gpio_set(user_gpio_set_t *gpio_set)
 {
-	DMSG_INFO_MANAGER("gpio_name            = %s\n", gpio_set->gpio_name);
-	DMSG_INFO_MANAGER("port                 = %x\n", gpio_set->port);
-	DMSG_INFO_MANAGER("port_num             = %x\n", gpio_set->port_num);
-	DMSG_INFO_MANAGER("mul_sel              = %x\n", gpio_set->mul_sel);
-	DMSG_INFO_MANAGER("pull                 = %x\n", gpio_set->pull);
-	DMSG_INFO_MANAGER("drv_level            = %x\n", gpio_set->drv_level);
-	DMSG_INFO_MANAGER("data                 = %x\n", gpio_set->data);
+	DMSG_MANAGER_DEBUG("gpio_name            = %s\n", gpio_set->gpio_name);
+	DMSG_MANAGER_DEBUG("port                 = %x\n", gpio_set->port);
+	DMSG_MANAGER_DEBUG("port_num             = %x\n", gpio_set->port_num);
+	DMSG_MANAGER_DEBUG("mul_sel              = %x\n", gpio_set->mul_sel);
+	DMSG_MANAGER_DEBUG("pull                 = %x\n", gpio_set->pull);
+	DMSG_MANAGER_DEBUG("drv_level            = %x\n", gpio_set->drv_level);
+	DMSG_MANAGER_DEBUG("data                 = %x\n", gpio_set->data);
 }
 
 /*
@@ -349,37 +349,37 @@ static void print_usb_cfg(struct usb_cfg *cfg)
 {
     u32 i = 0;
 
-	DMSG_INFO_MANAGER("\n-----------usb config information--------------\n");
+	DMSG_MANAGER_DEBUG("\n-----------usb config information--------------\n");
 
-	DMSG_INFO_MANAGER("controller number    = %x\n", (u32)USBC_MAX_CTL_NUM);
+	DMSG_MANAGER_DEBUG("controller number    = %x\n", (u32)USBC_MAX_CTL_NUM);
 
-	DMSG_INFO_MANAGER("usb_global_enable    = %x\n", cfg->usb_global_enable);
-	DMSG_INFO_MANAGER("usbc_num             = %x\n", cfg->usbc_num);
+	DMSG_MANAGER_DEBUG("usb_global_enable    = %x\n", cfg->usb_global_enable);
+	DMSG_MANAGER_DEBUG("usbc_num             = %x\n", cfg->usbc_num);
 
     for(i = 0; i < USBC_MAX_CTL_NUM; i++){
-		DMSG_INFO_MANAGER("\n");
-		DMSG_INFO_MANAGER("port[%d]:\n", i);
-		DMSG_INFO_MANAGER("enable               = %x\n", cfg->port[i].enable);
-		DMSG_INFO_MANAGER("port_no              = %x\n", cfg->port[i].port_no);
-		DMSG_INFO_MANAGER("port_type            = %x\n", cfg->port[i].port_type);
-		DMSG_INFO_MANAGER("detect_type          = %x\n", cfg->port[i].detect_type);
+		DMSG_MANAGER_DEBUG("\n");
+		DMSG_MANAGER_DEBUG("port[%d]:\n", i);
+		DMSG_MANAGER_DEBUG("enable               = %x\n", cfg->port[i].enable);
+		DMSG_MANAGER_DEBUG("port_no              = %x\n", cfg->port[i].port_no);
+		DMSG_MANAGER_DEBUG("port_type            = %x\n", cfg->port[i].port_type);
+		DMSG_MANAGER_DEBUG("detect_type          = %x\n", cfg->port[i].detect_type);
 
-		DMSG_INFO_MANAGER("id.valid             = %x\n", cfg->port[i].id.valid);
-		DMSG_INFO_MANAGER("id.group_type        = %x\n", cfg->port[i].id.group_type);
+		DMSG_MANAGER_DEBUG("id.valid             = %x\n", cfg->port[i].id.valid);
+		DMSG_MANAGER_DEBUG("id.group_type        = %x\n", cfg->port[i].id.group_type);
 		print_gpio_set(&cfg->port[i].id.gpio_set);
 
-		DMSG_INFO_MANAGER("vbus.valid           = %x\n", cfg->port[i].det_vbus.valid);
-		DMSG_INFO_MANAGER("vbus.group_type      = %x\n", cfg->port[i].det_vbus.group_type);
+		DMSG_MANAGER_DEBUG("vbus.valid           = %x\n", cfg->port[i].det_vbus.valid);
+		DMSG_MANAGER_DEBUG("vbus.group_type      = %x\n", cfg->port[i].det_vbus.group_type);
 		print_gpio_set(&cfg->port[i].det_vbus.gpio_set);
 
-		DMSG_INFO_MANAGER("drv_vbus.valid       = %x\n", cfg->port[i].drv_vbus.valid);
-		DMSG_INFO_MANAGER("drv_vbus.group_type  = %x\n", cfg->port[i].drv_vbus.group_type);
+		DMSG_MANAGER_DEBUG("drv_vbus.valid       = %x\n", cfg->port[i].drv_vbus.valid);
+		DMSG_MANAGER_DEBUG("drv_vbus.group_type  = %x\n", cfg->port[i].drv_vbus.group_type);
 		print_gpio_set(&cfg->port[i].drv_vbus.gpio_set);
 
-		DMSG_INFO_MANAGER("\n");
+		DMSG_MANAGER_DEBUG("\n");
     }
 
-	DMSG_INFO_MANAGER("-------------------------------------------------\n");
+	DMSG_MANAGER_DEBUG("-------------------------------------------------\n");
 }
 
 /*
@@ -452,7 +452,7 @@ static int __init usb_manager_init(void)
 	struct task_struct *th = NULL;
 #endif
 
-    DMSG_INFO_MANAGER("[sw usb]: usb_manager_init\n");
+    DMSG_MANAGER_DEBUG("[sw usb]: usb_manager_init\n");
 
 #if defined(CONFIG_USB_SW_SUN4I_USB0_DEVICE_ONLY)
 	DMSG_INFO_MANAGER("CONFIG_USB_SW_SUN4I_USB0_DEVICE_ONLY\n");
@@ -524,7 +524,7 @@ static int __init usb_manager_init(void)
 	}
 #endif
 
-    DMSG_INFO_MANAGER("[sw usb]: usb_manager_init end\n");
+    DMSG_MANAGER_DEBUG("[sw usb]: usb_manager_init end\n");
 
     return 0;
 }
@@ -551,7 +551,7 @@ static void __exit usb_manager_exit(void)
 {
 	bsp_usbc_t usbc;
 
-    DMSG_INFO_MANAGER("[sw usb]: usb_manager_exit\n");
+    DMSG_MANAGER_DEBUG("[sw usb]: usb_manager_exit\n");
 
 #if defined(CONFIG_USB_SW_SUN4I_USB0_DEVICE_ONLY)
 	DMSG_INFO("CONFIG_USB_SW_SUN4I_USB0_DEVICE_ONLY\n");

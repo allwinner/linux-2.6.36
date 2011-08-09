@@ -56,6 +56,12 @@
 
 /* ด๚ย๋ต๗สิ */
 #if  0
+    #define DMSG_MANAGER_DEBUG          DMSG_PRINT
+#else
+    #define DMSG_MANAGER_DEBUG(...)
+#endif
+
+#if  0
     #define DMSG_DEBUG        			DMSG_PRINT
 #else
     #define DMSG_DEBUG(...)

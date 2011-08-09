@@ -43,6 +43,7 @@
 static const char ohci_name[]       = SW_OHCI_NAME;
 
 static struct sw_hci_hcd *g_sw_ohci[3];
+static u32 ohci_first_probe[3] = {1, 1, 1};
 
 /*.......................................................................................*/
 //                                      º¯ÊýÇø
@@ -328,7 +329,7 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 	sw_ohci->pdev = pdev;
 	g_sw_ohci[sw_ohci->usbc_no] = sw_ohci;
 
-	DMSG_INFO("[%s%d]: pdev->name: %s, pdev->id: %d, sw_ohci: 0x%p\n",
+	DMSG_INFO("[%s%d]: probe, pdev->name: %s, pdev->id: %d, sw_ohci: 0x%p\n",
 		      ohci_name, sw_ohci->usbc_no, pdev->name, pdev->id, sw_ohci);
 
 	/* get io resource */
@@ -376,7 +377,10 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 	sw_ohci->probe = 1;
 
     if(sw_ohci->host_init_state == 0){
-        sw_usb_disable_ohci(sw_ohci->usbc_no);
+        if(ohci_first_probe[sw_ohci->usbc_no]){
+            sw_usb_disable_ohci(sw_ohci->usbc_no);
+            ohci_first_probe[sw_ohci->usbc_no]--;
+        }
     }
 
     return 0;
@@ -434,7 +438,7 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
 		return -1;
 	}
 
-	DMSG_INFO("[%s%d]: pdev->name: %s, pdev->id: %d, sw_ohci: 0x%p\n",
+	DMSG_INFO("[%s%d]: remove, pdev->name: %s, pdev->id: %d, sw_ohci: 0x%p\n",
 		      ohci_name, sw_ohci->usbc_no, pdev->name, pdev->id, sw_ohci);
 
 	usb_remove_hcd(hcd);
@@ -447,7 +451,10 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
 	sw_release_io_resource(pdev, sw_ohci);
 
 	sw_ohci->hcd = NULL;
-	g_sw_ohci[sw_ohci->usbc_no] = NULL;
+
+    if(sw_ohci->host_init_state){
+	    g_sw_ohci[sw_ohci->usbc_no] = NULL;
+	}
 
 	platform_set_drvdata(pdev, NULL);
 
@@ -522,6 +529,7 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 	 * any locks =P But that will be a different fix.
 	 */
 	spin_lock_irqsave(&ohci->lock, flags);
+
 	if (hcd->state != HC_STATE_SUSPENDED) {
  	    DMSG_PANIC("[%s]: hcd->state is not HC_STATE_SUSPENDED, can't suspend\n",
  	               sw_ohci->hci_name);
@@ -642,9 +650,7 @@ static struct platform_driver sw_ohci_hcd_driver = {
 */
 int sw_usb_disable_ohci(__u32 usbc_no)
 {
-	struct sw_hci_hcd *sw_ohci  = NULL;
-	struct usb_hcd *hcd         = NULL;
-    struct device *dev          = NULL;
+	struct sw_hci_hcd *sw_ohci = NULL;
 
 	if(usbc_no != 1 && usbc_no != 2){
 		DMSG_PANIC("ERR:Argmen invalid. usbc_no(%d)\n", usbc_no);
@@ -653,7 +659,7 @@ int sw_usb_disable_ohci(__u32 usbc_no)
 
 	sw_ohci = g_sw_ohci[usbc_no];
 	if(sw_ohci == NULL){
-		DMSG_PANIC("ERR: sw_ehci is null\n");
+		DMSG_PANIC("ERR: sw_ohci is null\n");
 		return -1;
 	}
 
@@ -663,32 +669,17 @@ int sw_usb_disable_ohci(__u32 usbc_no)
 	}
 
 	if(sw_ohci->probe == 0){
-		DMSG_PANIC("ERR: sw_ohci is disable, can not suspend\n");
-		return 0;
-	}
-
-	hcd = sw_ohci->hcd;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
+		DMSG_PANIC("ERR: sw_ohci is disable, can not disable again\n");
 		return -1;
 	}
 
-	dev = &sw_ohci->pdev->dev;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
-	}
+	sw_ohci->probe = 0;
 
 	DMSG_INFO("[%s]: sw_usb_disable_ohci\n", sw_ohci->hci_name);
 
-#ifdef CONFIG_PM
-	ohci_bus_suspend(hcd);
-	udelay(1000);
-	sw_ohci_hcd_suspend(dev);
-	udelay(1000);
-#endif
+	sw_ohci_hcd_remove(sw_ohci->pdev);
 
-    return 0;
+	return 0;
 }
 EXPORT_SYMBOL(sw_usb_disable_ohci);
 
@@ -713,8 +704,6 @@ EXPORT_SYMBOL(sw_usb_disable_ohci);
 int sw_usb_enable_ohci(__u32 usbc_no)
 {
 	struct sw_hci_hcd *sw_ohci = NULL;
-	struct usb_hcd *hcd = NULL;
-    struct device *dev = NULL;
 
 	if(usbc_no != 1 && usbc_no != 2){
 		DMSG_PANIC("ERR:Argmen invalid. usbc_no(%d)\n", usbc_no);
@@ -732,34 +721,19 @@ int sw_usb_enable_ohci(__u32 usbc_no)
 		return -1;
 	}
 
-	if(sw_ohci->probe == 0){
-		DMSG_PANIC("ERR: sw_ohci is disable, can not suspend\n");
+	if(sw_ohci->probe == 1){
+		DMSG_PANIC("ERR: sw_ohci is already enable, can not enable again\n");
 		return -1;
 	}
 
-	hcd = sw_ohci->hcd;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
-	}
-
-	dev = &sw_ohci->pdev->dev;
-	if(hcd == NULL){
-		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
-	}
+	sw_ohci->probe = 1;
 
 	DMSG_INFO("[%s]: sw_usb_enable_ohci\n", sw_ohci->hci_name);
 
-#ifdef CONFIG_PM
-	sw_ohci_hcd_resume(dev);
-	ohci_bus_resume(hcd);
-#endif
+	sw_ohci_hcd_probe(sw_ohci->pdev);
 
 	return 0;
 }
 EXPORT_SYMBOL(sw_usb_enable_ohci);
-
-
 
 
