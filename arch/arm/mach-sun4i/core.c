@@ -353,7 +353,8 @@ struct sys_timer softwinner_timer = {
 enum sw_ic_ver sw_get_ic_ver(void)
 {
 	volatile u32 val = readl(SW_VA_TIMERC_IO_BASE + 0x13c);
-	val = (val >> 5) & 0x3;
+
+	val = (val >> 6) & 0x3;
 
 	if (val == 0x3) {
 		return MAGIC_VER_B;
