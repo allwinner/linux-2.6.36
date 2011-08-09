@@ -32,6 +32,7 @@
 #include <linux/clk.h>
 #include "sun4i-codec.h"
 #include <mach/gpio_v2.h>
+#include <mach/system.h>
 
 static int gpio_pa_shutdown = 0;
 /*
@@ -326,13 +327,16 @@ int codec_rd_control(u32 reg, u32 bit, u32 *val)
 */
 static  int codec_init(void)
 {
+	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
 	//enable dac digital 
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	//codec version seting
 	//codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
 	codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x1);
 	//set digital volume to maximum
-	codec_wr_control(SW_DAC_DPC, 0x6, DIGITAL_VOL, 0x0);
+	if(codec_chip_ver == MAGIC_VER_A){
+		codec_wr_control(SW_DAC_DPC, 0x6, DIGITAL_VOL, 0x0);
+	}
 	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	//enable PA
@@ -340,8 +344,14 @@ static  int codec_init(void)
 	//enable headphone direct 
 	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
-	codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
-	
+	if(codec_chip_ver == MAGIC_VER_A){
+		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
+	}else if(codec_chip_ver == MAGIC_VER_B){
+		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3c);
+	}else{
+		printk("[audio codec] chip version is unknown!\n");
+		return -1;
+	}
 	return 0;	
 }
 
@@ -434,7 +444,29 @@ static int codec_dev_free(struct snd_device *device)
 /*	对sun4i-codec.c各寄存器的各种设定，或读取。主要实现函数有三个.
 * 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw, 
 */
-static const struct snd_kcontrol_new codec_snd_controls[] = {
+static const struct snd_kcontrol_new codec_snd_controls_b[] = {
+	//FOR B VERSION
+	CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
+	//For A VERSION
+	//CODEC_SINGLE("Master Playback Volume", SW_DAC_DPC,12,0x3f,0),//62 steps, 3e + 1 = 3f 主音量控制
+	CODEC_SINGLE("Playback Switch", SW_DAC_ACTL,6,1,0),//全局输出开关
+	CODEC_SINGLE("Capture Volume",SW_ADC_ACTL,20,7,0),//录音音量
+	CODEC_SINGLE("Fm Volume",SW_DAC_ACTL,23,7,0),//Fm 音量
+	CODEC_SINGLE("Line Volume",SW_DAC_ACTL,26,1,0),//Line音量
+	CODEC_SINGLE("MicL Volume",SW_ADC_ACTL,25,3,0),//mic左音量
+	CODEC_SINGLE("MicR Volume",SW_ADC_ACTL,23,3,0),//mic右音量
+	CODEC_SINGLE("FmL Switch",SW_DAC_ACTL,17,1,0),//Fm左开关
+	CODEC_SINGLE("FmR Switch",SW_DAC_ACTL,16,1,0),//Fm右开关
+	CODEC_SINGLE("LineL Switch",SW_DAC_ACTL,19,1,0),//Line左开关
+	CODEC_SINGLE("LineR Switch",SW_DAC_ACTL,18,1,0),//Line右开关
+	CODEC_SINGLE("Ldac Left Mixer",SW_DAC_ACTL,15,1,0),
+	CODEC_SINGLE("Rdac Right Mixer",SW_DAC_ACTL,14,1,0),
+	CODEC_SINGLE("Ldac Right Mixer",SW_DAC_ACTL,13,1,0),
+	CODEC_SINGLE("Mic Input Mux",SW_DAC_ACTL,9,15,0),//from bit 9 to bit 12.Mic（麦克风）输入静音
+	CODEC_SINGLE("ADC Input Mux",SW_ADC_ACTL,17,7,0),//ADC输入静音
+};
+
+static const struct snd_kcontrol_new codec_snd_controls_a[] = {
 	//FOR NORMAL VERSION
 	//CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
 	//For A VERSION
@@ -472,11 +504,25 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
 	*	snd_ctl_new1函数用于创建一个snd_kcontrol并返回其指针，
 	*	snd_ctl_add函数用于将创建的snd_kcontrol添加到对应的card中。
 	*/
-	for (idx = 0; idx < ARRAY_SIZE(codec_snd_controls); idx++) {
-		if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls[idx],clnt))) < 0) {
-			return err;
+	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
+	
+	if(codec_chip_ver == MAGIC_VER_A){
+		for (idx = 0; idx < ARRAY_SIZE(codec_snd_controls_a); idx++) {
+			if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls_a[idx],clnt))) < 0) {
+				return err;
+			}
 		}
+	}else if(codec_chip_ver == MAGIC_VER_B){
+		for (idx = 0; idx < ARRAY_SIZE(codec_snd_controls_b); idx++) {
+			if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls_b[idx],clnt))) < 0) {
+				return err;
+			}
+		}
+	}else{
+		printk("[audio codec] chip version is unknown!\n");
+		return -1;
 	}
+	
 	/*
 	*	当card被创建后，设备（组件）能够被创建并关联于该card。第一个参数是snd_card_create
 	*	创建的card指针，第二个参数type指的是device-level即设备类型，形式为SNDRV_DEV_XXX,包括
@@ -487,7 +533,6 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
 	*/
 	if ((err = snd_device_new(card, SNDRV_DEV_CODEC, clnt, &ops)) < 0) {
 		//codec_free(clnt);
-//		printk("the func is: %s,the line is:%d\n", __func__, __LINE__);
 		return err;
 	}
 	
@@ -505,7 +550,6 @@ static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 	unsigned long play_len = 0, capture_len = 0;
 	unsigned int play_limit = 0, capture_limit = 0;
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){  
-//		printk("play: %s, %d\n", __func__, __LINE__);
 		play_prtd = substream->runtime->private_data;
 		play_pos = play_prtd->dma_pos;
 		play_len = play_prtd->dma_period;
@@ -526,7 +570,6 @@ static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 		}
 		play_prtd->dma_pos = play_pos;	
 	}else{
-//		printk("capture: %s, %d\n", __func__, __LINE__);
 		capture_prtd = substream->runtime->private_data;
 		capture_pos = capture_prtd->dma_pos;
 		capture_len = capture_prtd->dma_period;
@@ -536,7 +579,6 @@ static void sw_pcm_enqueue(struct snd_pcm_substream *substream)
 				capture_len  = capture_prtd->dma_end - capture_pos;			
 			}
 			capture_ret = sw_dma_enqueue(capture_prtd->params->channel, substream, __bus_to_virt(capture_pos), capture_len);
-			//printk("[audio_codec]%s: corrected dma len %d, pos = %#x\n", __func__, len, pos);
 			if(capture_ret == 0){
 			capture_prtd->dma_loaded++;
 			capture_pos += capture_prtd->dma_period;
@@ -602,11 +644,9 @@ static snd_pcm_uframes_t snd_sw_codec_pointer(struct snd_pcm_substream *substrea
 	struct sw_playback_runtime_data *play_prtd = NULL;
 	struct sw_capture_runtime_data *capture_prtd = NULL;
     if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
-//    	printk("play: %s, %d\n", __func__, __LINE__);  
     	play_prtd = substream->runtime->private_data;
    		spin_lock(&play_prtd->lock);
 		sw_dma_getcurposition(DMACH_NADDA_PLAY, (dma_addr_t*)&play_dmasrc, (dma_addr_t*)&play_dmadst);
-//		printk("func:%s,line:%d,play_prtd: %x,play_dmadst:%x\n", __func__, __LINE__, play_dmasrc, play_dmadst);
 		play_res = play_dmasrc + play_prtd->dma_period - play_prtd->dma_start;
 		spin_unlock(&play_prtd->lock);
 		if (play_res >= snd_pcm_lib_buffer_bytes(substream)) {
@@ -615,7 +655,6 @@ static snd_pcm_uframes_t snd_sw_codec_pointer(struct snd_pcm_substream *substrea
 		}
 		return bytes_to_frames(substream->runtime, play_res);
     }else{
-//    	printk("capture: %s, %d\n", __func__, __LINE__);
     	capture_prtd = substream->runtime->private_data;
     	spin_lock(&capture_prtd->lock);
     	sw_dma_getcurposition(DMACH_NADDA_CAPTURE, (dma_addr_t*)&capture_dmasrc, (dma_addr_t*)&capture_dmadst);
@@ -644,7 +683,6 @@ static int sw_codec_pcm_hw_params(struct snd_pcm_substream *substream, struct sn
 		if(play_prtd->params == NULL){
 			play_prtd->params = &sw_codec_pcm_stereo_play;			
 			play_ret = sw_dma_request(play_prtd->params->channel, play_prtd->params->client, NULL);
-//			printk("play:%s,%d,play_params %p, client %p, channel %d\n", __func__, __LINE__, play_prtd->params, play_prtd->params->client, play_prtd->params->channel);
 			if(play_ret < 0){
 				printk(KERN_ERR "failed to get dma channel. ret == %d\n", play_ret);
 				return play_ret;
@@ -708,7 +746,6 @@ static int snd_sw_codec_hw_free(struct snd_pcm_substream *substream)
 		if(play_prtd->params)
 	  	sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_FLUSH);
 		snd_pcm_set_runtime_buffer(substream, NULL);
-//	  	printk("play: %s,%d\n", __func__, __LINE__);
 		if (play_prtd->params) {
 			sw_dma_free(play_prtd->params->channel, play_prtd->params->client);
 			play_prtd->params = NULL;
@@ -719,7 +756,6 @@ static int snd_sw_codec_hw_free(struct snd_pcm_substream *substream)
 		if(capture_prtd->params)
 	  	sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_FLUSH);
 		snd_pcm_set_runtime_buffer(substream, NULL);
-//	  	printk("capture: %s,%d\n", __func__, __LINE__);
 		if (capture_prtd->params) {
 			sw_dma_free(capture_prtd->params->channel, capture_prtd->params->client);
 			capture_prtd->params = NULL;
@@ -736,10 +772,8 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	struct sw_playback_runtime_data *play_prtd = NULL;
 	struct sw_capture_runtime_data *capture_prtd = NULL;
 	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){		
-//		printk("play: %s, %d\n", __func__, __LINE__);
 		switch(substream->runtime->rate){
 			case 44100:							
-				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -748,7 +782,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -756,7 +789,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 11025:
-				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -764,15 +796,15 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 48000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
+				play_ret = clk_get_rate(codec_moduleclk);
+				printk("%s,%d,%d\n",__func__,__LINE__,play_ret);
 				break;
 			case 96000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -780,7 +812,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 192000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -788,7 +819,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 32000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -796,7 +826,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 24000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -804,7 +833,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 16000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -812,7 +840,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 12000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -820,7 +847,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 8000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -828,7 +854,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			default:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -855,10 +880,8 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				break;
 		}
 	}else{
-//		printk("capture: %s, %d\n", __func__, __LINE__);
 		switch(substream->runtime->rate){
 			case 44100:
-				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);		
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -867,7 +890,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
-				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -875,7 +897,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 11025:
-				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -883,7 +904,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 48000:				
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -891,7 +911,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 32000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -899,7 +918,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 24000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -907,7 +925,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 16000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -915,7 +932,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 12000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -923,7 +939,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 8000:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -931,7 +946,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			default:
-				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);	
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -981,9 +995,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		codec_play_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
 		codec_play_dma_conf->from         = play_prtd->dma_start;
 		codec_play_dma_conf->to           = play_prtd->params->dma_addr;
-//		printk("%s,%d,Set DMA parameter %8x, %8x\n",__func__,__LINE__, play_prtd->dma_start, play_prtd->params->dma_addr);
 	  	play_ret = sw_dma_config(play_prtd->params->channel, codec_play_dma_conf);
-//	  	printk("%s,%d,codec_dma_conf->reload: %d\n",__func__,__LINE__, codec_play_dma_conf->reload);
 	  	/* flush the DMA channel */
 		sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_FLUSH);
 		play_prtd->dma_loaded = 0;
@@ -993,7 +1005,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		return play_ret;
 	}else {			
 		codec_capture_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
-//		printk("capture: %s, %d\n", __func__, __LINE__);
 		if (!codec_capture_dma_conf){
 		   capture_ret =  - ENOMEM;
 		   printk("Can't audio malloc dma capture configure memory\n");
@@ -1006,8 +1017,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		return 0;
 	   	//open the adc channel register
 	   	codec_capture_open();
-	   	//set the dma
-	   	pr_debug("dma start address : %8x\n",capture_prtd->dma_start);
+	   	//set the dma	   	
 	   	codec_capture_dma_conf->drqsrc_type  = DRQ_TYPE_AUDIO;
 		codec_capture_dma_conf->drqdst_type  = D_DRQSRC_SDRAM;
 		codec_capture_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
@@ -1017,7 +1027,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		codec_capture_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
 		codec_capture_dma_conf->from         = capture_prtd->params->dma_addr;
 		codec_capture_dma_conf->to           = capture_prtd->dma_start;
-//		printk("%s,%d,Set DMA parameter %8x, %8x\n",__func__,__LINE__, capture_prtd->dma_start, capture_prtd->params->dma_addr);
 	  	capture_ret = sw_dma_config(capture_prtd->params->channel, codec_capture_dma_conf);  	   
 	  	/* flush the DMA channel */
 		sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_FLUSH);
@@ -1037,40 +1046,33 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 	struct sw_capture_runtime_data *capture_prtd = NULL;
 	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){
 		play_prtd = substream->runtime->private_data;
-//		printk("play:%s,%d\n", __func__, __LINE__);
 		spin_lock(&play_prtd->lock);
 		switch (cmd) {
 			case SNDRV_PCM_TRIGGER_START:
 			case SNDRV_PCM_TRIGGER_RESUME:
 			case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-				pr_debug("%s,%d\n", __func__, __LINE__);
 				play_prtd->state |= ST_RUNNING;				
 				codec_play_start();			
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);			
 				break;
-			case SNDRV_PCM_TRIGGER_SUSPEND:
-				pr_debug("%s,%d\n", __func__, __LINE__);
+			case SNDRV_PCM_TRIGGER_SUSPEND:				
 				codec_play_stop();				
 				break;
-			case SNDRV_PCM_TRIGGER_STOP:			 
-				pr_debug("%s,%d\n", __func__, __LINE__);
+			case SNDRV_PCM_TRIGGER_STOP:			 				
 				play_prtd->state &= ~ST_RUNNING;
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_STOP);
 				break;
-			case SNDRV_PCM_TRIGGER_PAUSE_PUSH:			
-				pr_debug("%s,%d\n", __func__, __LINE__);
+			case SNDRV_PCM_TRIGGER_PAUSE_PUSH:							
 				play_prtd->state &= ~ST_RUNNING;
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_STOP);
 				break;		
-			default:
-				printk("error:%s,%d\n", __func__, __LINE__);
+			default:				
 				play_ret = -EINVAL;
 				break;
 			}
 		spin_unlock(&play_prtd->lock);
 	}else{
 		capture_prtd = substream->runtime->private_data;
-//		printk("capture:%s,%d\n", __func__, __LINE__);
 		spin_lock(&capture_prtd->lock);
 		switch (cmd) {
 		case SNDRV_PCM_TRIGGER_START:
@@ -1108,7 +1110,6 @@ static int snd_swcard_capture_open(struct snd_pcm_substream *substream)
 	int err;
 	struct sw_capture_runtime_data *capture_prtd;
 
-//	printk("Entered %s, %d\n", __func__, __LINE__);
 	capture_prtd = kzalloc(sizeof(struct sw_capture_runtime_data), GFP_KERNEL);
 	if (capture_prtd == NULL)
 		return -ENOMEM;
@@ -1131,7 +1132,6 @@ static int snd_swcard_capture_open(struct snd_pcm_substream *substream)
 static int snd_swcard_capture_close(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-//	printk("Entered %s, %d\n", __func__, __LINE__);
 	kfree(runtime->private_data);
 	return 0;
 }
@@ -1143,7 +1143,6 @@ static int snd_swcard_playback_open(struct snd_pcm_substream *substream)
 	int err;
 	struct sw_playback_runtime_data *play_prtd;
 
-//	printk("Entered %s, %d\n", __func__, __LINE__);
 	play_prtd = kzalloc(sizeof(struct sw_playback_runtime_data), GFP_KERNEL);
 	if (play_prtd == NULL)
 		return -ENOMEM;
@@ -1166,7 +1165,6 @@ static int snd_swcard_playback_open(struct snd_pcm_substream *substream)
 static int snd_swcard_playback_close(struct snd_pcm_substream *substream)
 {
 	struct snd_pcm_runtime *runtime = substream->runtime;
-//	printk("Entered %s, %d\n", __func__, __LINE__);
 	kfree(runtime->private_data);
 	return 0;
 }
