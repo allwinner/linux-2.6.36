@@ -1220,23 +1220,12 @@ static struct i2c_board_info __initdata i2c_info_ft5x0x_ts[] =  {
 #endif
 */
 
-#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)
-static struct i2c_board_info mxc622x_i2c_board_info[] __initdata = {
+static struct i2c_board_info gsensor_i2c_board_info[] __initdata = {
 	{
-		I2C_BOARD_INFO("mxc622x", 0x15),
+		I2C_BOARD_INFO("", 0x00),
 		.platform_data	= NULL,
 	},
 };
-#endif
-
-#if defined(CONFIG_SENSORS_BMA250) || defined(CONFIG_SENSORS_BMA250_MODULE)
-static struct i2c_board_info bma250_i2c_board_info[] __initdata = {
-	{
-		I2C_BOARD_INFO("bma250", 0x18),
-		.platform_data	= NULL,
-	},
-};
-#endif
 
 
 /*
@@ -1259,6 +1248,61 @@ static int i2c_awxx_get_cfg(int bus_num)
     return value;
 }
 
+static int __init gsensor_i2c_awxx_init(void)
+{
+	int status = 0;
+	int ret = -1;
+	int used = 0;
+	int twi_addr = 0, twi_id = 0;
+	char gsensor_name[I2C_NAME_SIZE];
+
+	ret = script_parser_fetch("gsensor_para", "gsensor_used", &used, sizeof(used)/sizeof(int));
+
+	if(ret) {
+	    pr_err("gsensor_i2c_awxx_init: script_parser_fetch gsensor_used err, err = %d \n", ret);
+	    goto err;
+	}
+
+	if(!used) {
+		pr_info("gsensor_i2c_awxx_init: gsensor is not used in config\n");
+		ret = -1;
+		goto err;
+	}
+
+	ret = script_parser_fetch("gsensor_para", "gsenser_name", (int *)gsensor_name, I2C_NAME_SIZE);
+	if(ret) {
+		pr_err("gsensor_i2c_awxx_init: script_parser_fetch gsensor_name err, err = %d \n", ret);
+		goto err;
+	}
+
+	ret = script_parser_fetch("gsensor_para", "gsensor_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(int));
+	if(ret) {
+		pr_err("gsensor_i2c_awxx_init: script_parser_fetch gsensor_twi_addr err, err = %d \n", ret);
+		goto err;
+	}
+
+	ret = script_parser_fetch("gsensor_para", "gsensor_twi_id", &twi_id, sizeof(twi_id)/sizeof(int));
+	if(ret) {
+		pr_err("gsensor_i2c_awxx_init: script_parser_fetch gsensor_twi_id err, err = %d \n", ret);
+		goto err;
+	}
+
+	strncpy(gsensor_i2c_board_info[0].type, gsensor_name, I2C_NAME_SIZE);
+	gsensor_i2c_board_info[0].addr = twi_addr;
+
+	status = i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
+	if(status) {
+		pr_err("gsensor_i2c_awxx_init: register i2c board %s at addr %d err\n",	\
+					gsensor_i2c_board_info[0].type, gsensor_i2c_board_info[0].addr);
+		goto err;
+	}
+
+	pr_info("gsensor: registered %s @ addr 0x%x\n",	\
+				gsensor_i2c_board_info[0].type, gsensor_i2c_board_info[0].addr);
+err:
+	return ret;
+}
+
 static int __init i2c_adap_awxx_init(void)
 {
 	int status = 0;
@@ -1271,19 +1315,9 @@ static int __init i2c_adap_awxx_init(void)
 
 	status = i2c_register_board_info(0, i2c_info_power, ARRAY_SIZE(i2c_info_power));
 	pr_info("================power===================, status = %d \n",status);
-	
 
-        
-#if defined(CONFIG_SENSORS_BMA250) || defined(CONFIG_SENSORS_BMA250_MODULE)		//bus-1
-	status = i2c_register_board_info(1, bma250_i2c_board_info, ARRAY_SIZE(bma250_i2c_board_info));
-	pr_info("===============gsensor===============, status = %d\n",status);
-#endif
-    
-#if defined(CONFIG_SENSORS_MXC622X) || defined(CONFIG_SENSORS_MXC622X_MODULE)		//bus-1
-	status = i2c_register_board_info(1, mxc622x_i2c_board_info, ARRAY_SIZE(mxc622x_i2c_board_info));
-	pr_info("===============gsensor===============, status = %d\n",status);
-#endif
-    
+	status = gsensor_i2c_awxx_init();
+
 	//config ctp
 	if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_used", &device_used, sizeof(device_used)/sizeof(int))){
 	    pr_err("i2c_adap_awxx_init: script_parser_fetch err. \n");
