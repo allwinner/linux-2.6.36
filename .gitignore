@@ -90,3 +90,4 @@ modules/wifi/nano-c047.12/kernel/ksdio/Module.symvers
 output/
 arch/arm/mach-sun4i/pm/standby/standby.code
 modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl-debug-2.6.36-android+/
+modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host/os/linux/Module.symvers
