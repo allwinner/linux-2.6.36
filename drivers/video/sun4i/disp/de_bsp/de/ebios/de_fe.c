@@ -1532,8 +1532,7 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode
 
 
 //*********************************************************************************************
-// function         : DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
-//									__scal_src_size_t *singlesize)
+// function         : DE_SCAL_Get_3D_In_Single_Size( __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,__scal_src_size_t *singlesize)
 // description     : get single image size according to 3D inmode and full size
 // parameters    :
 //                 sel <scaler select>
@@ -1543,8 +1542,7 @@ __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode
 // return            : 
 //               success
 //***********************************************************************************************
-__s32 DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
-									__scal_src_size_t *singlesize)
+__s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,__scal_src_size_t *singlesize)
 {
 	switch(inmode)
 	{
@@ -1580,8 +1578,50 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_
 }
 
 //*********************************************************************************************
-// function         : DE_SCAL_Get_3D_Out_Full_Size(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
-//									__scal_out_size_t *fullsize)
+// function         : DE_SCAL_Get_3D_Out_Single_Size( __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,__scal_out_size_t *fullsize)
+// description     : get 3D output single size according to 3D outmode and full image size
+// parameters    :
+//                 sel <scaler select>
+//                 inmode <3D output mode>
+//                 fullsize <3D source size, maybe double width of left image or double heigth of left height>
+//                 singlesize <3D left image size>
+// return            : 
+//               success
+//***********************************************************************************************
+__s32 DE_SCAL_Get_3D_Out_Single_Size(__scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,__scal_out_size_t *fullsize)
+{
+	switch(outmode)
+	{
+		case DE_SCAL_3DOUT_CI_1:
+		case DE_SCAL_3DOUT_CI_2:
+		case DE_SCAL_3DOUT_CI_3:
+		case DE_SCAL_3DOUT_CI_4:
+		case DE_SCAL_3DOUT_HDMI_SSF:
+		case DE_SCAL_3DOUT_HDMI_SSH:
+			singlesize->height = fullsize->height;
+			singlesize->width  = fullsize->width>>1;
+			break;
+		case DE_SCAL_3DOUT_LIRGB:
+		case DE_SCAL_3DOUT_HDMI_TB:
+		case DE_SCAL_3DOUT_HDMI_FPP:
+		case DE_SCAL_3DOUT_HDMI_FPI:
+		case DE_SCAL_3DOUT_HDMI_LI:
+			singlesize->height = fullsize->height>>1;
+			singlesize->width  = fullsize->width;
+			break;
+		case DE_SCAL_3DOUT_HDMI_FA:  //
+			singlesize->height = fullsize->height;
+			singlesize->width  = fullsize->width;
+		default:
+			//undefined mode
+			break;
+	
+	}
+	return 0;
+}
+
+//*********************************************************************************************
+// function         : DE_SCAL_Get_3D_Out_Full_Size(__scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,__scal_out_size_t *fullsize)
 // description     : get 3D output full size according to 3D outmode and left/right image size
 // parameters    :
 //                 sel <scaler select>
@@ -1591,8 +1631,7 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_
 // return            : 
 //               success
 //***********************************************************************************************
-__s32 DE_SCAL_Get_3D_Out_Full_Size(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
-									__scal_out_size_t *fullsize)
+__s32 DE_SCAL_Get_3D_Out_Full_Size(__scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,__scal_out_size_t *fullsize)
 {
 	switch(outmode)
 	{
@@ -1657,8 +1696,7 @@ __s32 DE_SCAL_Set_3D_Fb_Addr(__u8 sel, __scal_buf_addr_t *addr, __scal_buf_addr_
 
 
 //*********************************************************************************************
-// function         : DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, 
-//								__scal_3d_outmode_t outmode)
+// function         : DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, __scal_3d_outmode_t outmode)
 // description     : scaler 3D control setting
 // parameters    :
 //                 sel <scaler select>
@@ -1668,8 +1706,7 @@ __s32 DE_SCAL_Set_3D_Fb_Addr(__u8 sel, __scal_buf_addr_t *addr, __scal_buf_addr_
 // return            : 
 //               success
 //***********************************************************************************************
-__s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, 
-								__scal_3d_outmode_t outmode)
+__s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, __scal_3d_outmode_t outmode)
 {
 	__u8 in_li_en=0;
 	__u8 out_ci_en=0, out_tb_en=0, out_ss_en=0, out_itl_en=0;

@@ -105,36 +105,6 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
 		}
 		break;
     					
-	case DISP_TV_MOD_NTSC_CVBS_SVIDEO:
-	case DISP_TV_MOD_PAL_CVBS_SVIDEO:
-	case DISP_TV_MOD_PAL_M_CVBS_SVIDEO:
-	case DISP_TV_MOD_PAL_NC_CVBS_SVIDEO:
-		{
-		    for(i=0; i<4; i++)
-		    {
-		        if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_COMPOSITE)
-		        {
-		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_COMPOSITE);
-		            TVE_dac_enable(sel, i);
-		            TVE_dac_sel(sel, i, i);
-		        }
-		        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_LUMA)
-		        {
-		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_LUMA);
-		            TVE_dac_enable(sel, i);
-		            TVE_dac_sel(sel, i, i);
-		        }
-		        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_CHROMA)
-		        {
-		            TVE_dac_set_source(sel, i, DISP_TV_DAC_SRC_CHROMA);
-		            TVE_dac_enable(sel, i);
-		            TVE_dac_sel(sel, i, i);
-		        }
-		    }
-		    
-		}
-		break;
-
 	case DISP_TV_MOD_480I:
 	case DISP_TV_MOD_576I:
 	case DISP_TV_MOD_480P:

@@ -254,10 +254,9 @@ __s32 DE_SCAL_Set_Writeback_Addr(__u8 sel, __scal_buf_addr_t *addr);
 __s32 DE_SCAL_Set_CSC_Coef_Enhance(__u8 sel, __u8 in_csc_mode, __u8 out_csc_mode, __u8 incs, __u8 outcs,
                                                    __s32  bright, __s32 contrast, __s32 saturaion, __s32 hue,
                                                    __u32  in_br_swap, __u32 out_br_swap);
-__s32 DE_SCAL_Get_3D_In_Single_Size(__u8 sel, __scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,
-									__scal_src_size_t *singlesize);
-__s32 DE_SCAL_Get_3D_Out_Full_Size(__u8 sel, __scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,
-									__scal_out_size_t *fullsize);
+__s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t *fullsize,__scal_src_size_t *singlesize);
+__s32 DE_SCAL_Get_3D_Out_Single_Size(__scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,__scal_out_size_t *fullsize);
+__s32 DE_SCAL_Get_3D_Out_Full_Size(__scal_3d_outmode_t outmode, __scal_out_size_t *singlesize,__scal_out_size_t *fullsize);
 __s32 DE_SCAL_Set_3D_Fb_Addr(__u8 sel, __scal_buf_addr_t *addr, __scal_buf_addr_t *addrtrd);
 __s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, 
 								__scal_3d_outmode_t outmode);

@@ -77,51 +77,51 @@ extern __panel_para_t		gpanel_info[2];
 
 __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 {
-	//TV mode and HDMI mode 
 //LCDx_CH1_CLK2, CLK2/CLK1,    HDMI_CLK,	   PLL_CLK	 ,     PLLX2 req	  //	TV_VGA_MODE 		//INDEX, FOLLOW enum order
-   {{27000000	  ,	2	    , 	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480I 			   //0x0	   
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576I 			   //0x1   
-	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480P 			   //0x2   
-	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576P 			   //0x3   
-	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_50HZ		   //0x4   
-	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_60HZ		   //0x5   
-	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080I_50HZ		   //0x6   
-	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080I_60HZ		   //0x7   
-	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080P_24HZ		   //0x8   
-	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_50HZ		   //0x9   
-	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_60HZ		   //0xa 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL			   //0xb 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_SVIDEO		   //0xc 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_CVBS_SVIDEO  //0xd 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC 			   //0xe 
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC_SVIDEO		   //0xf
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC_CVBS_SVIDEO    //0x10
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M			   //0x11
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M_SVIDEO 	   //0x12
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M_CVBS_SVIDEO   //0x13
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC			   //0x14
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC_SVIDEO	   //0x15
-	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC_CVBS_SVIDEO  //0x16		
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					   //0x17																		 
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					   //0x18														   
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					   //0x19															
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					   //0x1a																	
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					   //0x1b	  
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					   //0x1c	  
-	{		0	  ,	1	    ,	       0,		        0	,	0	}},  //    reserved 					   //0x1d																	   
+	//TV mode and HDMI mode 
+   {{27000000	  ,	2	    , 	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480I 			        //0x0	   
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576I 			        //0x1   
+	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_480P 			        //0x2   
+	{54000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_576P 			        //0x3   
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_50HZ		        //0x4   
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_60HZ		        //0x5   
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080I_50HZ	        //0x6   
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080I_60HZ	        //0x7   
+	{74250000	  ,	1	    ,	74250000,		297000000	,	0	},	 //    DISP_TV_MOD_1080P_24HZ	        //0x8   
+	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_50HZ	        //0x9   
+	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_60HZ	        //0xa 
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL			        //0xb 
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_SVIDEO	        //0xc 
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved  //0xd 
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC 			        //0xe 
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_NTSC_SVIDEO	        //0xf
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved    //0x10
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M			        //0x11
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_M_SVIDEO 	        //0x12
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved   //0x13
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC		        //0x14
+	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC_SVIDEO	        //0x15
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved  //0x16		
+	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_24HZ_3D_FP    //0x17
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x18
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x19
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1a
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1b
+	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1c
+	{		0	  ,	1	    ,	       0,		        0	,	0	}},  //    reserved 					        //0x1d
 	//VGA mode               	 				
-   {{147000000    , 1      ,   147000000, 		294000000   ,   0   },   //    DISP_VGA_H1680_V1050            // 0X0
-	{106800000    , 1      ,   106800000, 		267000000   ,   1   },   //    DISP_VGA_H1440_V900             // 0X1
-	{ 86000000    , 1      ,	86000000,  		258000000   ,   0   },   //    DISP_VGA_H1360_V768             // 0X2
-	{108000000    , 1      ,   108000000, 		270000000   ,   1   },   //    DISP_VGA_H1280_V1024            // 0X3
-	{ 65250000    , 1      ,	65250000,  		261000000   ,   0   },   //    DISP_VGA_H1024_V768             // 0X4
-	{ 39857143    , 1      ,	39857143,  		279000000 	,   0   },   //    DISP_VGA_H800_V600              // 0X5
-	{ 25090909    , 1      ,	25090909,  		276000000 	,   0   },   //    DISP_VGA_H640_V480              // 0X6
-	{        0    , 1      ,	       0,  		        0   ,   0   },   //    DISP_VGA_H1440_V900_RB          // 0X7
+   {{147000000    , 1      ,   147000000, 		294000000   ,   0   },   //    DISP_VGA_H1680_V1050                // 0X0
+	{106800000    , 1      ,   106800000, 		267000000   ,   1   },   //    DISP_VGA_H1440_V900                  // 0X1
+	{ 86000000    , 1      ,	86000000,  		258000000   ,   0   },   //    DISP_VGA_H1360_V768                  // 0X2
+	{108000000    , 1      ,   108000000, 		270000000   ,   1   },   //    DISP_VGA_H1280_V1024                // 0X3
+	{ 65250000    , 1      ,	65250000,  		261000000   ,   0   },   //    DISP_VGA_H1024_V768                  // 0X4
+	{ 39857143    , 1      ,	39857143,  		279000000 	,   0   },   //    DISP_VGA_H800_V600                   // 0X5
+	{ 25090909    , 1      ,	25090909,  		276000000 	,   0   },   //    DISP_VGA_H640_V480                   // 0X6
+	{        0    , 1      ,	       0,  		        0   ,   0   },   //    DISP_VGA_H1440_V900_RB           // 0X7
  	{        0    , 1      ,	       0,  		        0   ,   0   },   //    DISP_VGA_H1680_V1050_RB         // 0X8
 	{138000000    , 1      ,   138000000, 		276000000   ,   0   },   //    DISP_VGA_H1920_V1080_RB         // 0X9
-	{148500000    , 1      ,   148500000, 		297000000   ,   0   },   //    DISP_VGA_H1920_V1080            // 0xa   
-	{ 74250000	  ,	1	   ,    74250000, 		297000000	,	0	}}	 //    DISP_VGA_H1280_V720             // 0xb	
+	{148500000    , 1      ,   148500000, 		297000000   ,   0   },   //    DISP_VGA_H1920_V1080              // 0xa   
+	{ 74250000	  ,	1	   ,    74250000, 		297000000	,	0	}}	 //    DISP_VGA_H1280_V720                // 0xb	
 	};
 
 
@@ -968,192 +968,211 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 	return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_clk_on(void)
+//type==1: open ahb clk and image mclk
+//type==2: open all clk except ahb clk and image mclk
+//type==3: open all clk
+__s32 BSP_disp_clk_on(__u32 type)
 {
-	//AHB CLK
-	if((g_clk_status & CLK_DEFE0_AHB_ON) == CLK_DEFE0_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEFE1_AHB_ON) == CLK_DEFE1_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEBE0_AHB_ON) == CLK_DEBE0_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe0ahbclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEBE1_AHB_ON) == CLK_DEBE1_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe1ahbclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_LCDC0_AHB_ON) == CLK_LCDC0_AHB_ON)	//OK?? REG wont clear?
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd0ahbclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_LCDC1_AHB_ON) == CLK_LCDC1_AHB_ON)	//OK?? REG wont clear?
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd1ahbclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_HDMI_AHB_ON) == CLK_HDMI_AHB_ON)	
-	{
-		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_ON);
-	}
-	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_ON);
-	
-	//DRAM CLK
-	if((g_clk_status & CLK_DEFE0_DRAM_ON) == CLK_DEFE0_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe0dramclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEFE1_DRAM_ON) == CLK_DEFE1_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe1dramclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEBE0_DRAM_ON) == CLK_DEBE0_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEBE1_DRAM_ON) == CLK_DEBE1_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_ON);
-	}
-	
-	//MODULE CLK
-	if((g_clk_status & CLK_DEFE0_MOD_ON) == CLK_DEFE0_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe0mclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEFE1_MOD_ON) == CLK_DEFE1_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe1mclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe0mclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_ON);
-	}
-	if((g_clk_status & CLK_LCDC0_MOD0_ON) == CLK_LCDC0_MOD0_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_ON);
-	}
-	if((g_clk_status & CLK_LCDC0_MOD1_ON) == CLK_LCDC0_MOD1_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_ON);
-	}
-	if((g_clk_status & CLK_LCDC1_MOD0_ON) == CLK_LCDC1_MOD0_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd1ch0mclk0, CLK_ON);
-	}
-	if((g_clk_status & CLK_LCDC1_MOD1_ON) == CLK_LCDC1_MOD1_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk1, CLK_ON);
-		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk2, CLK_ON);
-	}
-	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
-	}
+    if(type & 1)
+    {
+//AHB CLK
+    	if((g_clk_status & CLK_DEFE0_AHB_ON) == CLK_DEFE0_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEFE1_AHB_ON) == CLK_DEFE1_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEBE0_AHB_ON) == CLK_DEBE0_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe0ahbclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEBE1_AHB_ON) == CLK_DEBE1_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe1ahbclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_LCDC0_AHB_ON) == CLK_LCDC0_AHB_ON)	//OK?? REG wont clear?
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd0ahbclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_LCDC1_AHB_ON) == CLK_LCDC1_AHB_ON)	//OK?? REG wont clear?
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd1ahbclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_HDMI_AHB_ON) == CLK_HDMI_AHB_ON)	
+    	{
+    		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_ON);
+    	}
+    	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_ON);
 
+//MODULE CLK
+    	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe0mclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_ON);
+    	}
+	}
+	
+	if(type & 2)
+	{
+//DRAM CLK
+    	if((g_clk_status & CLK_DEFE0_DRAM_ON) == CLK_DEFE0_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe0dramclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEFE1_DRAM_ON) == CLK_DEFE1_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe1dramclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEBE0_DRAM_ON) == CLK_DEBE0_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEBE1_DRAM_ON) == CLK_DEBE1_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_ON);
+    	}
+    	
+//MODULE CLK
+    	if((g_clk_status & CLK_DEFE0_MOD_ON) == CLK_DEFE0_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe0mclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_DEFE1_MOD_ON) == CLK_DEFE1_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe1mclk, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_LCDC0_MOD0_ON) == CLK_LCDC0_MOD0_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_LCDC0_MOD1_ON) == CLK_LCDC0_MOD1_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_ON);
+    		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_LCDC1_MOD0_ON) == CLK_LCDC1_MOD0_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd1ch0mclk0, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_LCDC1_MOD1_ON) == CLK_LCDC1_MOD1_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk1, CLK_ON);
+    		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk2, CLK_ON);
+    	}
+    	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
+    	}
+    }
 	return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_clk_off(void)
+//type==1: close ahb clk and image mclk
+//type==2: close all clk except ahb clk and image mclk
+//type==3: close all clk
+__s32 BSP_disp_clk_off(__u32 type)
 {		
-	//AHB CLK
-	if((g_clk_status & CLK_DEFE0_AHB_ON) == CLK_DEFE0_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEFE1_AHB_ON) == CLK_DEFE1_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEBE0_AHB_ON) == CLK_DEBE0_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe0ahbclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEBE1_AHB_ON) == CLK_DEBE1_AHB_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe1ahbclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_LCDC0_AHB_ON) == CLK_LCDC0_AHB_ON)	//OK?? REG wont clear?
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd0ahbclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_LCDC1_AHB_ON) == CLK_LCDC1_AHB_ON)	//OK?? REG wont clear?
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd1ahbclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_HDMI_AHB_ON) == CLK_HDMI_AHB_ON)	
-	{
-		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_OFF);
+    if(type & 1)
+    {
+//AHB CLK
+    	if((g_clk_status & CLK_DEFE0_AHB_ON) == CLK_DEFE0_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEFE1_AHB_ON) == CLK_DEFE1_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEBE0_AHB_ON) == CLK_DEBE0_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe0ahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEBE1_AHB_ON) == CLK_DEBE1_AHB_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe1ahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_LCDC0_AHB_ON) == CLK_LCDC0_AHB_ON)	//OK?? REG wont clear?
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd0ahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_LCDC1_AHB_ON) == CLK_LCDC1_AHB_ON)	//OK?? REG wont clear?
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd1ahbclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_HDMI_AHB_ON) == CLK_HDMI_AHB_ON)	
+    	{
+    		OSAL_CCMU_MclkOnOff(h_hdmiahbclk, CLK_OFF);
+    	}
+    	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_OFF);
+
+//MODULE CLK
+    	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe0mclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_OFF);
+    	}
 	}
 
-	//OSAL_CCMU_MclkOnOff(h_tveahbclk, CLK_OFF);
-	
-	//DRAM CLK
-	if((g_clk_status & CLK_DEFE0_DRAM_ON) == CLK_DEFE0_DRAM_ON)
+	if(type & 2)
 	{
-		OSAL_CCMU_MclkOnOff(h_defe0dramclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEFE1_DRAM_ON) == CLK_DEFE1_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe1dramclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEBE0_DRAM_ON) == CLK_DEBE0_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEBE1_DRAM_ON) == CLK_DEBE1_DRAM_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_OFF);
-	}
-	
-	//MODULE CLK
-	if((g_clk_status & CLK_DEFE0_MOD_ON) == CLK_DEFE0_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe0mclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEFE1_MOD_ON) == CLK_DEFE1_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_defe1mclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe0mclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_debe1mclk, CLK_OFF);
-	}
-	if((g_clk_status & CLK_LCDC0_MOD0_ON) == CLK_LCDC0_MOD0_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_OFF);
-	}
-	if((g_clk_status & CLK_LCDC0_MOD1_ON) == CLK_LCDC0_MOD1_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
-	}
-	if((g_clk_status & CLK_LCDC1_MOD0_ON) == CLK_LCDC1_MOD0_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd1ch0mclk0, CLK_OFF);
-	}
-	if((g_clk_status & CLK_LCDC1_MOD1_ON) == CLK_LCDC1_MOD1_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk1, CLK_OFF);
-		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk2, CLK_OFF);
-	}
-	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
-	{
-		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
-	}
-
+//DRAM CLK
+    	if((g_clk_status & CLK_DEFE0_DRAM_ON) == CLK_DEFE0_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe0dramclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEFE1_DRAM_ON) == CLK_DEFE1_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe1dramclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEBE0_DRAM_ON) == CLK_DEBE0_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe0dramclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEBE1_DRAM_ON) == CLK_DEBE1_DRAM_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_debe1dramclk, CLK_OFF);
+    	}
+    	
+//MODULE CLK
+    	if((g_clk_status & CLK_DEFE0_MOD_ON) == CLK_DEFE0_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe0mclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_DEFE1_MOD_ON) == CLK_DEFE1_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_defe1mclk, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_LCDC0_MOD0_ON) == CLK_LCDC0_MOD0_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd0ch0mclk0, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_LCDC0_MOD1_ON) == CLK_LCDC0_MOD1_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk1, CLK_OFF);
+    		OSAL_CCMU_MclkOnOff(h_lcd0ch1mclk2, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_LCDC1_MOD0_ON) == CLK_LCDC1_MOD0_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd1ch0mclk0, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_LCDC1_MOD1_ON) == CLK_LCDC1_MOD1_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk1, CLK_OFF);
+    		OSAL_CCMU_MclkOnOff(h_lcd1ch1mclk2, CLK_OFF);
+    	}
+    	if((g_clk_status & CLK_HDMI_MOD_ON) == CLK_HDMI_MOD_ON)
+    	{
+    		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
+    	}
+    }
 	return DIS_SUCCESS;
 }
 	

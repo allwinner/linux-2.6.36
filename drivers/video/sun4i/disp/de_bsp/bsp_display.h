@@ -37,6 +37,7 @@
 #include <mach/clock.h>
 #include <mach/aw_ccu.h>
 #include <mach/gpio_v2.h>
+#include <mach/system.h>
 
 #include "../OSAL/OSAL.h"
 
@@ -214,19 +215,15 @@ typedef enum
     DISP_TV_MOD_1080P_24HZ          = 8,
     DISP_TV_MOD_1080P_50HZ          = 9,
     DISP_TV_MOD_1080P_60HZ          = 0xa,
+    DISP_TV_MOD_1080P_24HZ_3D_FP    = 0x17,
     DISP_TV_MOD_PAL                 = 0xb,
     DISP_TV_MOD_PAL_SVIDEO          = 0xc,
-    DISP_TV_MOD_PAL_CVBS_SVIDEO     = 0xd,
     DISP_TV_MOD_NTSC                = 0xe,
     DISP_TV_MOD_NTSC_SVIDEO         = 0xf,
-    DISP_TV_MOD_NTSC_CVBS_SVIDEO    = 0x10,
     DISP_TV_MOD_PAL_M               = 0x11,
     DISP_TV_MOD_PAL_M_SVIDEO        = 0x12,
-    DISP_TV_MOD_PAL_M_CVBS_SVIDEO   = 0x13,
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
-    DISP_TV_MOD_PAL_NC_CVBS_SVIDEO  = 0x16,
-    DISP_TV_MOD_1080P_24HZ_3D_FP    = 0x17,
     DISP_TV_MODE_NUM               = 0x18,
 }__disp_tv_mode_t;
 
@@ -543,7 +540,7 @@ typedef struct
 	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
 	__s32 (*Hdmi_open)(void);
 	__s32 (*Hdmi_close)(void);
-	__s32 (*hdmi_mode_support)(__u8 mode);
+	__s32 (*hdmi_mode_support)(__disp_tv_mode_t mode);
 	__s32 (*hdmi_get_HPD_status)(void);
 	__s32 (*hdmi_set_pll)(__u32 pll, __u32 clk);
 	__s32 (*disp_int_process)(__u32 sel);
@@ -556,8 +553,8 @@ typedef struct
     __s32 (*cfg_close_flow)(__u32 sel);
 }__lcd_panel_fun_t;
 
-extern __s32 BSP_disp_clk_on(void);
-extern __s32 BSP_disp_clk_off(void);
+extern __s32 BSP_disp_clk_on(__u32 type);
+extern __s32 BSP_disp_clk_off(__u32 type);
 extern __s32 BSP_disp_init(__disp_bsp_init_para * para);
 extern __s32 BSP_disp_exit(__u32 mode);
 extern __s32 BSP_disp_open(void);

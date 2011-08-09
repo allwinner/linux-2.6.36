@@ -54,8 +54,5 @@ __s32 disp_clk_init(void);
 __s32 disp_pll_init(void);
 __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode);
 
-__s32 BSP_disp_clk_on(void);
-__s32 BSP_disp_clk_off(void);
-
 #endif
 

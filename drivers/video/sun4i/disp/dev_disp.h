@@ -112,7 +112,7 @@ extern __s32 Fb_Exit(void);
 extern __s32 Hdmi_open(void);
 extern __s32 Hdmi_close(void);
 extern __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode);
-extern __s32 Hdmi_mode_support(__u8 mode);
+extern __s32 Hdmi_mode_support(__disp_tv_mode_t mode);
 extern __s32 Hdmi_get_HPD_status(void);
 extern __s32 Hdmi_set_pll(__u32 pll, __u32 clk);
 

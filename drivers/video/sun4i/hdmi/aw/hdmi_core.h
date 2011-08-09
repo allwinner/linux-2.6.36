@@ -13,30 +13,6 @@ extern volatile __u32 HDMI_BASE;
 #define HDMI_WUINT8(offset,value)   writeb(value, HDMI_BASE + offset)
 #define HDMI_RUINT8(offset)         readb(HDMI_BASE + offset)
 
-#define HDMI_State_Idle 			 0x00
-#define HDMI_State_Wait_Hpd			 0x02
-#define HDMI_State_Rx_Sense			 0x03
-#define HDMI_State_EDID_Parse		 0x04
-#define HDMI_State_Wait_Video_config 0x05
-#define HDMI_State_Video_config		 0x06
-#define HDMI_State_Audio_config		 0x07
-#define HDMI_State_Playback			 0x09
-
-#define HDMI1440_480I		6
-#define HDMI1440_576I		21
-#define HDMI480P			2
-#define HDMI576P			17
-#define HDMI720P_50			19
-#define HDMI720P_60 		4
-#define HDMI1080I_50		20
-#define HDMI1080I_60		5
-#define HDMI1080P_50		31
-#define HDMI1080P_60 		16
-#define HDMI1080P_24 		32
-#define HDMI1080P_25 		33
-#define HDMI1080P_24_3D_FP  (HDMI1080P_24 +0x10000)
-
-
 #define Abort_Current_Operation				0
 #define Special_Offset_Address_Read 		1
 #define Explicit_Offset_Address_Write		2
@@ -45,8 +21,6 @@ extern volatile __u32 HDMI_BASE;
 #define Implicit_Offset_Address_Read 		5
 #define Explicit_Offset_Address_E_DDC_Read	6
 #define Implicit_Offset_Address_E_DDC_Read	7
-
-
 
 typedef struct video_timing
 {

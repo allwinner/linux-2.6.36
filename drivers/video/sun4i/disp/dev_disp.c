@@ -752,15 +752,14 @@ void backlight_early_suspend(struct early_suspend *h)
         }
     }
 
-    BSP_disp_clk_off();
-    b_in_suspend = 1;
+    BSP_disp_clk_off(2);
 }
 
 void backlight_late_resume(struct early_suspend *h)
 {
     int i = 0;
     
-    BSP_disp_clk_on();
+    BSP_disp_clk_on(2);
 
     for(i=0; i<2; i++)
     {
@@ -781,7 +780,6 @@ void backlight_late_resume(struct early_suspend *h)
             BSP_disp_hdmi_open(i);
         }
     }
-    b_in_suspend = 0;
 }
 
 static struct early_suspend backlight_early_suspend_handler = 
@@ -820,10 +818,13 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
             BSP_disp_hdmi_close(i);
         }
     }
-
-    BSP_disp_clk_off();
-    b_in_suspend = 1;
+    BSP_disp_clk_off(3);
+#else
+    BSP_disp_clk_off(1);
 #endif
+
+    b_in_suspend = 1;
+
     return 0;
 }
 
@@ -834,7 +835,7 @@ int disp_resume(struct platform_device *pdev)
 
     __inf("disp_resume call\n");
 
-    BSP_disp_clk_on();
+    BSP_disp_clk_on(3);
 
     for(i=0; i<2; i++)
     {
@@ -855,8 +856,11 @@ int disp_resume(struct platform_device *pdev)
             BSP_disp_hdmi_open(i);
         }
     }
-    b_in_suspend = 0;
+#else
+    BSP_disp_clk_on(2);
 #endif
+
+    b_in_suspend = 0;
 
     return 0;
 }
@@ -889,7 +893,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     }
     if(b_in_suspend)
     {
-        __wrn("display driver in suspend now!\n");
+        __wrn("ioctl:%x fail when in suspend!\n", cmd);
         return -1;
     }
 

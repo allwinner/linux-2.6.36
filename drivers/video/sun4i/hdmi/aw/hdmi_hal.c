@@ -22,7 +22,7 @@ __s32 Hdmi_hal_video_enable(__bool enable)
     return 0;
 }
 
-__s32 Hdmi_hal_set_display_mode(__u8 hdmi_mode)
+__s32 Hdmi_hal_set_display_mode(__u32 hdmi_mode)
 {
 	if(hdmi_mode != video_mode)
 	{
@@ -66,7 +66,7 @@ __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para)
     return 0;
 }
 
-__s32 Hdmi_hal_mode_support(__u8 mode)
+__s32 Hdmi_hal_mode_support(__u32 mode)
 {
     if(HPD == 0)
     {

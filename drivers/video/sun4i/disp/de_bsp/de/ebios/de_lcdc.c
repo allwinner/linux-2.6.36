@@ -419,8 +419,8 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     LCDC_WUINT32(sel, LCDC_HDTV0_OFF,(((cfg->src_x - 1)&0xfff)<<16)|((cfg->src_y - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV1_OFF,(((cfg->scl_x - 1)&0xfff)<<16)|((cfg->scl_y - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV2_OFF,(((cfg->out_x - 1)&0xfff)<<16)|((cfg->out_y - 1)&0xfff));
-    LCDC_WUINT32(sel, LCDC_HDTV3_OFF,(((cfg->ht)&0xfff)<<16)|((cfg->hbp)&0xfff));
-    LCDC_WUINT32(sel, LCDC_HDTV4_OFF,(((cfg->vt)&0xfff)<<16)|((cfg->vbp - 1)&0xfff));
+    LCDC_WUINT32(sel, LCDC_HDTV3_OFF,(((cfg->ht)&0xffff)<<16)|((cfg->hbp)&0xfff));
+    LCDC_WUINT32(sel, LCDC_HDTV4_OFF,(((cfg->vt)&0xffff)<<16)|((cfg->vbp - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV5_OFF,(((cfg->hspw)&0x3ff)<<16)|((cfg->vspw)&0x3ff));
     LCDC_WUINT32(sel, LCDC_IOCTL2_OFF,cfg->io_pol);//add
     LCDC_WUINT32(sel, LCDC_IOCTL3_OFF,cfg->io_out);//add
@@ -650,7 +650,7 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_x       = 1920;
         cfg.scl_y       = 2160;
         cfg.out_x       = 1920;
-        cfg.out_y       = 2160;
+        cfg.out_y       = 2160 + 45;
         cfg.ht       = 2749;
         cfg.hbp      = 191;
         cfg.vt       = (1125*4);
@@ -685,10 +685,8 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
         case DISP_TV_MOD_576I:
         case DISP_TV_MOD_PAL:
        	case DISP_TV_MOD_PAL_SVIDEO:
-        case DISP_TV_MOD_PAL_CVBS_SVIDEO:
         case DISP_TV_MOD_PAL_NC:
         case DISP_TV_MOD_PAL_NC_SVIDEO:
-        case DISP_TV_MOD_PAL_NC_CVBS_SVIDEO:
             cfg.b_interlace   = 1;
             cfg.src_x       = 720;
             cfg.src_y       = 288;
@@ -707,10 +705,8 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
         case DISP_TV_MOD_480I:
         case DISP_TV_MOD_NTSC:
         case DISP_TV_MOD_NTSC_SVIDEO:
-        case DISP_TV_MOD_NTSC_CVBS_SVIDEO:
         case DISP_TV_MOD_PAL_M:
         case DISP_TV_MOD_PAL_M_SVIDEO:
-        case DISP_TV_MOD_PAL_M_CVBS_SVIDEO:
             cfg.b_interlace   = 1;
             cfg.src_x       = 720;
             cfg.src_y       = 240;
