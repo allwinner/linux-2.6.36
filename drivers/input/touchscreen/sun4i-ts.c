@@ -229,7 +229,10 @@ static int touch_mode = SINGLE_TOUCH_MODE;
 static int change_mode = TRUE;
 static int tp_irq_state = TRUE;
 
+#ifdef PRINT_INT_INFO 
 static cputime64_t cur_wall_time = 0L;
+#endif
+
 //static cputime64_t cur_idle_time = 0L;
 
 static struct ts_sample_data cycle_buffer[CYCLE_BUFFER_SIZE] = {{0},};
