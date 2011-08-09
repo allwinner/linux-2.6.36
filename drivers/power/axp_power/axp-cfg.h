@@ -1,9 +1,6 @@
 #ifndef __LINUX_AXP_CFG_H_
 #define __LINUX_AXP_CFG_H_
 
-
-
-
 #define	AXP18_ADDR			0x2C >> 1
 #define AXP19_ADDR			0x68 >> 1
 #define AXP20_ADDR			0x68 >> 1
@@ -102,7 +99,7 @@
 #define SUSCHGCUR				1000000								//set suspend charging current limite
 #define RESCHGCUR				INTCHGCUR							//set resume charging current limite
 #define CLSCHGCUR				SUSCHGCUR							//set shutdown charging current limite
-#define INTCHGVOL				4200000								//set initial charing target voltage	
+#define INTCHGVOL				4200000								//set initial charing target voltage
 #define INTCHGENDRATE		10										//set initial charing end current	rate
 #define INTCHGENABLED		1										  //set initial charing enabled
 #define INTADCFREQ			25										//set initial adc frequency
@@ -111,5 +108,71 @@
 #define INTCHGCSTTIME		480										//set initial pre-charging time
 #define BATMAXVOL				4200000								//set battery max design volatge
 #define BATMINVOL				3500000								//set battery min design volatge
+
+#define OCVREG0			    0x01									//3.1328
+#define OCVREG1			    0x01									//3.2736
+#define OCVREG2			    0x02									//3.4144
+#define OCVREG3			    0x05									//3.5552
+#define OCVREG4			    0x07									//3.6256
+#define OCVREG5			    0x0D									//3.6608
+#define OCVREG6			    0x10									//3.6960
+#define OCVREG7			    0x1A									//3.7312
+#define OCVREG8			    0x24									//3.7664
+#define OCVREG9			    0x2E									//3.8016
+#define OCVREGA			    0x35									//3.8368
+#define OCVREGB			    0x3D									//3.8720
+#define OCVREGC			    0x49									//3.9424
+#define OCVREGD			    0x54									//4.0128
+#define OCVREGE			    0x5C									//4.0832
+#define OCVREGF			    0x63									//4.1536
+
+extern int pmu_used;
+extern int pmu_twi_id;
+extern int pmu_irq_id;
+extern int pmu_twi_addr;
+extern int pmu_battery_rdc;
+extern int pmu_battery_cap;
+extern int pmu_init_chgcur;
+extern int pmu_suspend_chgcur;
+extern int pmu_resume_chgcur;
+extern int pmu_shutdown_chgcur;
+extern int pmu_init_chgvol;
+extern int pmu_init_chgend_rate;
+extern int pmu_init_chg_enabled;
+extern int pmu_init_adc_freq;
+extern int pmu_init_adc_freqc;
+extern int pmu_init_chg_pretime;
+extern int pmu_init_chg_csttime;
+
+extern int pmu_bat_para1;
+extern int pmu_bat_para2;
+extern int pmu_bat_para3;
+extern int pmu_bat_para4;
+extern int pmu_bat_para5;
+extern int pmu_bat_para6;
+extern int pmu_bat_para7;
+extern int pmu_bat_para8;
+extern int pmu_bat_para9;
+extern int pmu_bat_para10;
+extern int pmu_bat_para11;
+extern int pmu_bat_para12;
+extern int pmu_bat_para13;
+extern int pmu_bat_para14;
+extern int pmu_bat_para15;
+extern int pmu_bat_para16;
+
+extern int pmu_usbvol_limit;
+extern int pmu_usbvol;
+extern int pmu_usbcur_limit;
+extern int pmu_usbcur;
+
+extern int pmu_pwroff_vol;
+extern int pmu_pwron_vol;
+
+extern int dcdc2_vol;
+extern int dcdc3_vol;
+extern int ldo2_vol;
+extern int ldo3_vol;
+extern int ldo4_vol;
 
 #endif

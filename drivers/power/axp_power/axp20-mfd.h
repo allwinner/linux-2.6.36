@@ -12,14 +12,17 @@ static int __devinit axp20_init_chip(struct axp_mfd_chip *chip)
 	int err;
 	/*read chip id*/
 	err =  __axp_read(chip->client, POWER20_IC_TYPE, &chip_id);
-	if (err)
+	if (err) {
+	    printk("[AXP20-MFD] try to read chip id failed!\n");
 		return err;
-		
+	}
+
 	/*enable irqs and clear*/
 	err =  __axp_writes(chip->client, POWER20_INTEN1, 19, v);
-
-	if (err)
+	if (err) {
+	    printk("[AXP20-MFD] try to clear irq failed!\n");
 		return err;
+	}
 
 	dev_info(chip->dev, "AXP (CHIP ID: 0x%02x) detected\n", chip_id);
 	chip->type = AXP20;
@@ -44,11 +47,11 @@ static int axp20_disable_irqs(struct axp_mfd_chip *chip, uint64_t irqs)
 	v[3] = POWER20_INTEN3;
 	v[4] = ((chip->irqs_enabled) >> 16) & 0xff;
 	v[5] = POWER20_INTEN4;
-	v[6] = ((chip->irqs_enabled) >> 24) & 0xff;	
+	v[6] = ((chip->irqs_enabled) >> 24) & 0xff;
 	v[7] = POWER20_INTEN5;
-	v[8] = ((chip->irqs_enabled) >> 32) & 0xff;	
+	v[8] = ((chip->irqs_enabled) >> 32) & 0xff;
 	ret =  __axp_writes(chip->client, POWER20_INTEN1, 9, v);
-	
+
 	return ret;
 
 }
@@ -68,9 +71,9 @@ static int axp20_enable_irqs(struct axp_mfd_chip *chip, uint64_t irqs)
 	v[5] = POWER20_INTEN4;
 	v[6] = ((chip->irqs_enabled) >> 24) & 0xff;
 	v[7] = POWER20_INTEN5;
-	v[8] = ((chip->irqs_enabled) >> 32) & 0xff;	
+	v[8] = ((chip->irqs_enabled) >> 32) & 0xff;
 	ret =  __axp_writes(chip->client, POWER20_INTEN1, 9, v);
-	
+
 	return ret;
 }
 
@@ -105,7 +108,7 @@ static ssize_t axp20_offvol_store(struct device *dev,
 		tmp = 2600;
 	if (tmp > 3300)
 		tmp = 3300;
-	
+
 	axp_read(dev,POWER20_VOFF_SET,&val);
 	val &= 0xf8;
 	val |= ((tmp - 2600) / 100);
@@ -133,7 +136,7 @@ static ssize_t axp20_noedelay_store(struct device *dev,
 	if (tmp < 1000)
 		tmp = 128;
 	if (tmp > 3000)
-		tmp = 3000;	
+		tmp = 3000;
 	axp_read(dev,POWER19_OFF_CTL,&val);
 	val &= 0xfc;
 	val |= ((tmp) / 1000);
@@ -155,7 +158,7 @@ static ssize_t axp20_pekopen_show(struct device *dev,
 		default:
 			tmp = 0;break;
 	}
-	return sprintf(buf,"%d\n",tmp);	
+	return sprintf(buf,"%d\n",tmp);
 }
 
 static ssize_t axp20_pekopen_store(struct device *dev,
@@ -226,7 +229,7 @@ static ssize_t axp20_peken_store(struct device *dev,
 		tmp = 1;
 	axp_read(dev,POWER20_PEK_SET,&val);
 	val &= 0xf7;
-	val |= (tmp << 3); 
+	val |= (tmp << 3);
 	axp_write(dev,POWER20_PEK_SET,val);
 	return count;
 }
@@ -252,7 +255,7 @@ static ssize_t axp20_pekdelay_store(struct device *dev,
 		tmp = 1;
 	axp_read(dev,POWER20_PEK_SET,&val);
 	val &= 0xfb;
-	val |= tmp << 2; 
+	val |= tmp << 2;
 	axp_write(dev,POWER20_PEK_SET,val);
 	return count;
 }
@@ -278,7 +281,7 @@ static ssize_t axp20_pekclose_store(struct device *dev,
 	tmp = (tmp - 4000) / 2000 ;
 	axp_read(dev,POWER20_PEK_SET,&val);
 	val &= 0xfc;
-	val |= tmp ; 
+	val |= tmp ;
 	axp_write(dev,POWER20_PEK_SET,val);
 	return count;
 }
@@ -301,7 +304,7 @@ static ssize_t axp20_ovtemclsen_store(struct device *dev,
 		tmp = 1;
 	axp_read(dev,POWER20_HOTOVER_CTL,&val);
 	val &= 0xfb;
-	val |= tmp << 2 ; 
+	val |= tmp << 2 ;
 	axp_write(dev,POWER20_HOTOVER_CTL,val);
 	return count;
 }
@@ -358,7 +361,7 @@ static ssize_t axp20_regs_store(struct device *dev,
 
 static struct device_attribute axp20_mfd_attrs[] = {
 	AXP_MFD_ATTR(axp20_offvol),
-	AXP_MFD_ATTR(axp20_noedelay),	
+	AXP_MFD_ATTR(axp20_noedelay),
 	AXP_MFD_ATTR(axp20_pekopen),
 	AXP_MFD_ATTR(axp20_peklong),
 	AXP_MFD_ATTR(axp20_peken),

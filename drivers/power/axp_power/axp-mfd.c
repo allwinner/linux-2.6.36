@@ -15,9 +15,11 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 
+#include "axp-cfg.h"
 #include "axp18-mfd.h"
 #include "axp19-mfd.h"
 #include "axp20-mfd.h"
+
 
 static void axp_mfd_irq_work(struct work_struct *work)
 {
@@ -39,11 +41,10 @@ static void axp_mfd_irq_work(struct work_struct *work)
 	enable_irq(chip->client->irq);
 }
 
-#if 0
-static int axp_mfd_irq_handler(int irq, void *data)
+#if 1
+static irqreturn_t axp_mfd_irq_handler(int irq, void *data)
 {
 	struct axp_mfd_chip *chip = data;
-
 	disable_irq_nosync(irq);
 	(void)schedule_work(&chip->irq_work);
 
@@ -107,7 +108,7 @@ int axp_mfd_create_attrs(struct axp_mfd_chip *chip)
 	else
 		ret = 0;
 	goto succeed;
-	
+
 sysfs_failed:
 	while (j--)
 		device_remove_file(chip->dev,&axp19_mfd_attrs[j]);
@@ -187,13 +188,47 @@ failed:
 
 static void axp_power_off(void)
 {
-	
-	axp_set_bits(&axp->dev, POWER18_ONOFF, 0x80);
-	
-	axp_set_bits(&axp->dev, POWER19_OFF_CTL, 0x80);
-	
-	axp_set_bits(&axp->dev, POWER20_OFF_CTL, 0x80);
+	uint8_t val;
 
+#if defined (CONFIG_AW_AXP18)
+	axp_set_bits(&axp->dev, POWER18_ONOFF, 0x80);
+#endif
+
+#if defined (CONFIG_AW_AXP19)
+	axp_set_bits(&axp->dev, POWER19_OFF_CTL, 0x80);
+#endif
+
+#if defined (CONFIG_AW_AXP20)
+	if(pmu_pwroff_vol >= 2600 && pmu_pwroff_vol <= 3300){
+		if (pmu_pwroff_vol > 2600){
+			val = 0x1;
+		}
+		else if (pmu_pwroff_vol > 2700){
+			val = 0x2;
+		}
+		else if (pmu_pwroff_vol > 2800){
+			val = 0x3;
+		}
+		else if (pmu_pwroff_vol > 2900){
+			val = 0x4;
+		}
+		else if (pmu_pwroff_vol > 3000){
+			val = 0x5;
+		}
+		else if (pmu_pwroff_vol > 3100){
+			val = 0x6;
+		}
+		else if (pmu_pwroff_vol > 3200){
+			val = 0x7;
+		}
+		else
+			val = 0x0;
+
+		axp_update(&axp->dev, POWER20_VOFF_SET, val, 0x7);
+	}
+
+	axp_set_bits(&axp->dev, POWER20_OFF_CTL, 0x80);
+#endif
 }
 
 static int __devinit axp_mfd_probe(struct i2c_client *client,
@@ -205,7 +240,7 @@ static int __devinit axp_mfd_probe(struct i2c_client *client,
 	chip = kzalloc(sizeof(struct axp_mfd_chip), GFP_KERNEL);
 	if (chip == NULL)
 		return -ENOMEM;
-	
+
 	axp = client;
 
 	chip->client = client;
@@ -222,16 +257,15 @@ static int __devinit axp_mfd_probe(struct i2c_client *client,
 	if (ret)
 		goto out_free_chip;
 
-	/*
 	ret = request_irq(client->irq, axp_mfd_irq_handler,
-		IRQF_DISABLED | IRQF_TRIGGER_LOW,"axp_mfd", chip);
+		IRQF_DISABLED, "axp_mfd", chip);
   	if (ret) {
   		dev_err(&client->dev, "failed to request irq %d\n",
   				client->irq);
   		goto out_free_chip;
   	}
-	*/
-	
+
+
 	ret = axp_mfd_add_subdevs(chip, pdata);
 	if (ret)
 		goto out_free_irq;
