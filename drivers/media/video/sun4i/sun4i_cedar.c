@@ -46,7 +46,7 @@
 #include <asm/system.h>
 #include <asm/siginfo.h>
 #include <asm/signal.h>
-
+#include <mach/system.h>
 #include "sun4i_cedar.h"
 
 #define DRV_VERSION "0.01alpha"
@@ -629,60 +629,117 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         case IOCTL_ADJUST_AVS2:	    
         {	        
             int arg_s = (int)arg;		
-            int temp;	        
-            save_context();
-            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        
-            temp = v & 0xffff0000;		
-            temp =temp + temp*arg_s/100; 
-			temp = temp > (244<<16) ? (244<<16) : temp;
-			temp = temp < (234<<16) ? (234<<16) : temp;
-            v = (temp & 0xffff0000) | (v&0x0000ffff);   
-            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
-            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
-            restore_context();
+            int temp;	
+            if(IC_VER_A10_A == sw_get_ic_ver()){        
+	            save_context();
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        
+	            temp = v & 0xffff0000;		
+	            temp =temp + temp*arg_s/100; 
+				temp = temp > (244<<16) ? (244<<16) : temp;
+				temp = temp < (234<<16) ? (234<<16) : temp;
+	            v = (temp & 0xffff0000) | (v&0x0000ffff);   
+	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
+	            restore_context();
+	        }else if(IC_VER_A10_B == sw_get_ic_ver()){
+				v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        
+	            temp = v & 0xffff0000;		
+	            temp =temp + temp*arg_s/100; 
+				temp = temp > (244<<16) ? (244<<16) : temp;
+				temp = temp < (234<<16) ? (234<<16) : temp;
+	            v = (temp & 0xffff0000) | (v&0x0000ffff);   
+	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);	        
+	        }else{
+	        	printk("IOCTL_ADJUST_AVS2 error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+	        }
             break;
         }
         
         case IOCTL_CONFIG_AVS2:
-        	save_context();
-			/* Set AVS counter divisor */
-            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);
-            v = 239 << 16 | (v & 0xffff);
-            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
-			
-			/* Enable AVS_CNT1 and Pause it */
-            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
-            v |= 1 << 9 | 1 << 1;
-            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
-
-			/* Set AVS_CNT1 init value as zero  */
-            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
-			restore_context();
+        	if(IC_VER_A10_A == sw_get_ic_ver()){
+	        	save_context();
+				/* Set AVS counter divisor */
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);
+	            v = 239 << 16 | (v & 0xffff);
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
+				
+				/* Enable AVS_CNT1 and Pause it */
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            v |= 1 << 9 | 1 << 1;
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
+	
+				/* Set AVS_CNT1 init value as zero  */
+	            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
+				restore_context();        		
+        	}else if(IC_VER_A10_B == sw_get_ic_ver()){
+				/* Set AVS counter divisor */
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);
+	            v = 239 << 16 | (v & 0xffff);
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
+				
+				/* Enable AVS_CNT1 and Pause it */
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            v |= 1 << 9 | 1 << 1;
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
+	
+				/* Set AVS_CNT1 init value as zero  */
+	            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
+        	}else{
+        		printk("IOCTL_CONFIG_AVS2 error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+        	}        	
             break;
             
         case IOCTL_RESET_AVS2:
             /* Set AVS_CNT1 init value as zero */
-            save_context();
-            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
-            restore_context();
+            if(IC_VER_A10_A == sw_get_ic_ver()){
+	        	save_context();
+	            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
+	            restore_context();
+        	}else if(IC_VER_A10_B == sw_get_ic_ver()){
+        		writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
+        	}else{
+        		printk("IOCTL_RESET_AVS2 error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+        	}            
             break;
             
         case IOCTL_PAUSE_AVS2:
             /* Pause AVS_CNT1 */
-            save_context();
-            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
-            v |= 1 << 9;
-            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
-            restore_context();
+            if(IC_VER_A10_A == sw_get_ic_ver()){
+	        	save_context();
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            v |= 1 << 9;
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            restore_context();
+        	}else if(IC_VER_A10_B == sw_get_ic_ver()){        	
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            v |= 1 << 9;
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);	            
+        	}else{
+        		printk("IOCTL_PAUSE_AVS2 get error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+        	}            
             break;
             
         case IOCTL_START_AVS2:
-		    /* Start AVS_CNT1 : do not pause */
-		    save_context();
-            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
-            v &= ~(1 << 9);
-            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
-            restore_context();
+        	/* Start AVS_CNT1 : do not pause */
+        	if(IC_VER_A10_A == sw_get_ic_ver()){
+	        	save_context();
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            v &= ~(1 << 9);
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            restore_context();
+        	}else if(IC_VER_A10_B == sw_get_ic_ver()){        	
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
+	            v &= ~(1 << 9);
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);	            
+        	}else{
+        		printk("IOCTL_START_AVS2 error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+        	}		    
             break;
 
         case IOCTL_GET_ENV_INFO:
@@ -695,6 +752,17 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
                 return -EFAULT;                           
         }
         break;
+        case IOCTL_GET_IC_VER:
+        {        	
+        	if(IC_VER_A10_A == sw_get_ic_ver()){
+        		return 0x0A1000A;
+        	}else if(IC_VER_A10_B == sw_get_ic_ver()){
+        		return 0x0A1000B;
+        	}else{
+        		printk("IC_VER get error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+        	}
+        }        
         default:
         break;
     }    
