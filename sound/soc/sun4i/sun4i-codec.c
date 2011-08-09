@@ -801,8 +801,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
-				play_ret = clk_get_rate(codec_moduleclk);
-				printk("%s,%d,%d\n",__func__,__LINE__,play_ret);
 				break;
 			case 96000:
 				clk_set_rate(codec_moduleclk, 24576000);
@@ -1295,7 +1293,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 		printk("try to set parent of codec_moduleclk to codec_pll2clk failed!\n");		
 	}
 	if (clk_set_rate(codec_moduleclk, 24576000)) {
-			printk("set codec_moduleclk clock freq 24576000 failed!\n");
+		printk("set codec_moduleclk clock freq 24576000 failed!\n");
 	}
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
