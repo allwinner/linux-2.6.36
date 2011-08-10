@@ -79,8 +79,9 @@ static int hv_i2c_rxdata(char *rxdata, int length)
 	ret = i2c_transfer(this_client->adapter, rx_msgs, 1);
 	//printk("msg i2c read: 0x%x\n", this_client->addr);
 	//printk("HV IIC read data\n");
-	if (ret < 0)
-		printk("msg %s i2c read error: 0x%x\n", __func__, this_client->addr);
+	if (ret < 0){
+		pr_info("msg %s i2c read error: 0x%x\n", __func__, this_client->addr);
+	}
 	
 	return ret;
 }
