@@ -227,7 +227,12 @@ static void axp_power_off(void)
 		axp_update(&axp->dev, POWER20_VOFF_SET, val, 0x7);
 	}
 
+    printk("[axp] send power-off command!\n");
+    mdelay(20);
 	axp_set_bits(&axp->dev, POWER20_OFF_CTL, 0x80);
+    mdelay(20);
+    printk("[axp] warning!!! axp can't power-off, maybe some error happend!\n");
+
 #endif
 }
 
