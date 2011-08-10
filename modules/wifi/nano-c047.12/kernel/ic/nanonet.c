@@ -1472,7 +1472,8 @@ nrx_event_work(
                break;
             }
             if(sc->pdev != NULL) 
-              dev_info(sc->pdev, "Registered interface %s\n", sc->dev->name);
+              //dev_info(sc->pdev, "Registered interface %s\n", sc->dev->name);
+              printk("%s, Registered interface %s\n", dev_name(sc->pdev), sc->dev->name);
          }
          
          nrx_set_flag(sc, NRX_FLAG_HAVE_REGISTER);

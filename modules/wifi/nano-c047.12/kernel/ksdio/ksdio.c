@@ -136,8 +136,8 @@ int sw_host_gpio_allocate(void)
     ret = script_parser_fetch(wifi_para, "sdio_wifi_mname", (void*)sw_wifi_ctrl.mname, sizeof(char*));
     if (ret)
     {
-        nano_msg("failed to get sdio wifi module name string\n");
-        return -1;
+        nano_msg("failed to get sdio wifi module name, specify one: nano_wifi\n");
+        strcpy((void*)sw_wifi_ctrl.mname, "nano_wifi");
     }
     nano_msg("Get wifi info.: %s\n", sw_wifi_ctrl.mname);
     ret = script_parser_fetch(wifi_para, "sdio_wifi_sdc_id", &sw_wifi_ctrl.sdc_id, sizeof(unsigned));
@@ -1646,7 +1646,6 @@ static int __init sdio_nrx_init(void)
         
         #ifdef WINNER_POWER_PIN_USED
         sw_host_power_card(1);
-        mdelay(10);
         #endif
         ret = sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
         if (ret)

@@ -827,7 +827,7 @@ int sw_host_insert_card(unsigned id, char* name)
     {
         awsmc_msg("card is inserted by %s\n", name);
         smc_host->present = 1;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(10));
+        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(1));
     }
     return 0;
 }
@@ -851,7 +851,7 @@ int sw_host_remove_card(unsigned id, char* name)
     {
         awsmc_msg("card is removed by %s\n", name);
         smc_host->present = 0;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(10));
+        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(1));
     }
     else
     {
