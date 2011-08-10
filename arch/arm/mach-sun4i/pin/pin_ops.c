@@ -280,7 +280,7 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //设备申请G
 		pre_port          = port;
 
 		//更新功能寄存器
-		if(tmp_user_gpio_data->mul_sel > 0)
+		if(tmp_user_gpio_data->mul_sel >= 0)
 		{
 			tmp_val = (port_num - (port_num_func<<3)) << 2;
 			tmp_sys_gpio_data->hardware_gpio_status.mul_sel = (tmp_group_func_data >> tmp_val) & 0x07;
@@ -292,7 +292,7 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //设备申请G
 
 		tmp_val = (port_num - (port_num_pull<<4)) << 1;
 
-		if(tmp_user_gpio_data->pull > 0)
+		if(tmp_user_gpio_data->pull >= 0)
 		{
 			tmp_sys_gpio_data->hardware_gpio_status.pull = (tmp_group_pull_data >> tmp_val) & 0x03;
 			if(tmp_user_gpio_data->pull >= 0)
@@ -303,9 +303,9 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //设备申请G
 			}
 		}
 		//根据driver level的值决定是否更新driver level寄存器
-		if(tmp_user_gpio_data->pull > 0)
+		if(tmp_user_gpio_data->pull >= 0)
 		{
-			tmp_sys_gpio_data->hardware_gpio_status.pull = (tmp_group_dlevel_data >> tmp_val) & 0x03;
+			tmp_sys_gpio_data->hardware_gpio_status.drv_level = (tmp_group_dlevel_data >> tmp_val) & 0x03;
 			if(tmp_user_gpio_data->drv_level >= 0)
 			{
 				tmp_group_dlevel_data &= ~(                                0x03  << tmp_val);
