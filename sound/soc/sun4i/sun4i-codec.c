@@ -532,7 +532,6 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
 	*	分配。在这里在snd_card_create分配。
 	*/
 	if ((err = snd_device_new(card, SNDRV_DEV_CODEC, clnt, &ops)) < 0) {
-		//codec_free(clnt);
 		return err;
 	}
 	
@@ -774,6 +773,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	if(substream->stream == SNDRV_PCM_STREAM_PLAYBACK){		
 		switch(substream->runtime->rate){
 			case 44100:							
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -782,6 +782,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -789,6 +790,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 11025:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -796,6 +798,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 48000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -803,6 +806,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 96000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -810,6 +814,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 192000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -817,6 +822,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 32000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -824,6 +830,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 24000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -831,6 +838,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 16000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -838,6 +846,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 12000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -845,6 +854,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			case 8000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -852,6 +862,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_DAC_FIFOC);
 				break;
 			default:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -880,6 +891,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 	}else{
 		switch(substream->runtime->rate){
 			case 44100:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);		
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -888,6 +900,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				
 				break;
 			case 22050:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -895,6 +908,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 11025:
+				clk_set_rate(codec_pll2clk, 22579200);
 				clk_set_rate(codec_moduleclk, 22579200);				
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -902,6 +916,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 48000:				
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -909,6 +924,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 32000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -916,6 +932,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 24000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -923,6 +940,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 16000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -930,6 +948,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 12000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -937,6 +956,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			case 8000:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -944,6 +964,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				writel(reg_val, baseaddr + SW_ADC_FIFOC);
 				break;
 			default:
+				clk_set_rate(codec_pll2clk, 24576000);
 				clk_set_rate(codec_moduleclk, 24576000);	
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
@@ -1064,7 +1085,8 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				play_prtd->state &= ~ST_RUNNING;
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_STOP);
 				break;		
-			default:				
+			default:
+				printk("error:%s,%d\n", __func__, __LINE__);
 				play_ret = -EINVAL;
 				break;
 			}
