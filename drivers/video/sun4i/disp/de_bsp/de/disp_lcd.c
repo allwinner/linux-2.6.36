@@ -857,6 +857,12 @@ __s32 Disp_pwm_cfg(__u32 sel)
         __u32 pre_scal[10] = {120, 180, 240, 360, 480, 12000, 24000, 36000, 48000, 72000};
         __u32 pre_scal_id = 0, entire_cycle = 16, active_cycle = 12;
         __u32 i=0, j=0, tmp=0;
+
+        if(gpanel_info[sel].lcd_pwm_freq < 100)
+        {
+            __wrn("pwm preq is less then 100hz, fix to 100hz\n");
+            gpanel_info[sel].lcd_pwm_freq = 100;
+        }
         
     	for(i=0; i<10; i++)
     	{
@@ -866,7 +872,7 @@ __s32 Disp_pwm_cfg(__u32 sel)
 
     	        freq = 24000000 / (pre_scal[i] * j);
     	        __inf("pre_scal:%d, entire_cycle:%d, freq:%d\n", pre_scal[i], j, freq);
-    	        if((freq < (gpanel_info[sel].lcd_pwm_freq * 1000)) && (freq > tmp))
+    	        if((freq < gpanel_info[sel].lcd_pwm_freq) && (freq > tmp))
     	        {
     	            tmp = freq;
     	            pre_scal_id = i;
@@ -1562,9 +1568,10 @@ __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode)
     
     return DIS_SUCCESS;
 }
- //setting:  0,       1,      2,....  14,   15
-//pol==0:  1,       2,      3,....  15,   0
-//pol==1:  0,     15,    14, ...    2,   1
+
+//setting:  0,       1,      2,....  14,   15
+//pol==0:  0,       1,      2,....  14,   15
+//pol==1: 15,    14,    13, ...   1,   0
 __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 {	    
     __u32 value = 0;
@@ -1582,25 +1589,11 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 
     if(gpanel_info[sel].lcd_pwm_pol == 0)
     {
-        if(bright == DISP_LCD_BRIGHT_LEVEL15)
-        {
-            value = 0;
-        }
-        else
-        {
-            value = bright * (entire_cycle / 16) + 1;
-        }
+        value = bright * (entire_cycle / 16);
     }
     else
     {
-        if(bright == DISP_LCD_BRIGHT_LEVEL0)
-        {
-            value = 0;
-        }
-        else
-        {
-            value = (15 - bright) * (entire_cycle / 16) + 1;
-        }
+        value = (15 - bright) * (entire_cycle / 16);
     }
     
     if(sel == 0)
@@ -1613,7 +1606,9 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
         sys_put_wvalue(gdisp.init_para.base_pwm+0x208,(tmp & 0xffff0000) | value);
     }
-
+    
+    LCD_delay_ms(10);
+    
     return DIS_SUCCESS;
 }
 
@@ -1637,25 +1632,11 @@ __s32 BSP_disp_lcd_get_bright(__u32 sel)
 
     if(gpanel_info[sel].lcd_pwm_pol == 0)
     {
-        if(value == 0)
-        {
-            bright = DISP_LCD_BRIGHT_LEVEL15;
-        }
-        else
-        {
-            bright = (value - 1) / (entire_cycle / 16);
-        }
+        bright = value / (entire_cycle / 16);
     }
     else
     {
-        if(value == 0)
-        {
-            bright = DISP_LCD_BRIGHT_LEVEL0;
-        }
-        else
-        {            
-            bright = 15 - ((value -1) / (entire_cycle / 16));
-        }
+        bright = 15 - (value / (entire_cycle / 16));
     }
 
     return bright;	
