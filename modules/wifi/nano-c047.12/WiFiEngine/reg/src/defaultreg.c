@@ -122,7 +122,7 @@ const rRegistry DefaultRegistry = {
       E(delayAfterReset) 0,
       E(automaticFWLoad) TRUE,
       E(enable20MHzSdioClock) FALSE,
-      E(txPktWinSize) 5,
+      E(txPktWinSize) 3,
       E(hmgAutoMode) TRUE,
    }
 };

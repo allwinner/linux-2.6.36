@@ -24,7 +24,6 @@
 
 #include <mach/platform.h>
 #include <linux/io.h>
-#include "host_op.h"
 
 extern unsigned int smc_debug;
 
@@ -117,71 +116,34 @@ extern unsigned int smc_debug;
 #define SRAMC_CFG_REG           (SRAMC_BASE+0x00)
 #define SRAMC_ITCM_AWC_REG      (SRAMC_BASE+0xb4)
 
-static void __iomem* gpio_base = NULL;
-
-static inline void aw_gpio_set_trigger_pio(void)
-{
-	u32 rval = sdc_read(PI_CFG0_REG);
-	
-	rval &= ~ 0x7;
-	rval &= ~ (0x7 << 4);
-	rval |= 0x1;
-	rval |= 0x1 << 4;
-	sdc_write(PI_CFG0_REG, rval);
-	
-	rval = sdc_read(PI_DAT_REG);
-	rval &= ~3;
-	rval |= 3;
-	sdc_write(PI_DAT_REG, rval);
-}
+static const void __iomem* gpio_base = (void __iomem*)SW_VA_PORTC_IO_BASE;;
 
 static inline void aw_gpio_trigger_single(void)
 {
-	u32 rval = sdc_read(PI_DAT_REG);
-	
-	rval &= ~1;
-	sdc_write(PI_DAT_REG, rval);
-	rval |= 1;
-	sdc_write(PI_DAT_REG, rval);
-}
-
-static inline void aw_gpio_trigger_single1(void)
-{
-	u32 rval = sdc_read(PI_DAT_REG);
-	
-	rval &= ~2;
-	sdc_write(PI_DAT_REG, rval);
-	rval |= 2;
-	sdc_write(PI_DAT_REG, rval);
-}
-
-static __inline void smc_io_pwr_en(void)    //ph12
-{
-    u32 rval = sdc_read(PH_CFG1_REG);
+	u32 rval;
+    u32 backup;
+    void __iomem* cfg_base  = (void __iomem*)PI_CFG0_REG;
+    void __iomem* data_base = (void __iomem*)PI_DAT_REG;
     
-    rval &= ~(0x7 << 16);
-    rval |= 1 << 16;
-    sdc_write(PH_CFG1_REG, rval);
-    
-//    sdc_write(PH_DAT_REG, ((1 << 12)) | sdc_read(PH_DAT_REG));
-    sdc_write(PH_DAT_REG, (~(1 << 12)) & sdc_read(PH_DAT_REG));
-}
-static __inline void smc_syscall_ioremap(void)
-{
-    gpio_base = (void __iomem*)SW_VA_PORTC_IO_BASE;
-    #ifdef AW1623_FPGA
-    sdc_write(PC_CFG0_REG, 0x33333333);
-    sdc_write(PC_CFG1_REG, 0x33333333);
-    sdc_write(PC_CFG2_REG, 0x33333333);
-    sdc_write(PC_CFG3_REG, 0x33333333);
-    #endif
-//    aw_gpio_set_trigger_pio();
-    //smc_io_pwr_en();
+    //config gpio to output
+    backup = readl(cfg_base);
+    rval = readl(cfg_base);
+    rval &= 0x7 << 12;
+    rval |= 1 << 12;
+    writel(rval, cfg_base);
+
+    rval = readl(data_base);
+ 	rval |= 1 << 3;
+    writel(rval, data_base);
+	rval &= ~(1 << 3);
+	writel(rval, data_base);
+	rval |= 1 << 3;
+	writel(rval, data_base);
+
+    //restore pio config
+    writel(backup, cfg_base);
 }
 
-static __inline void smc_syscall_iounremap(void)
-{
-    return;
-}
 
 #endif
+

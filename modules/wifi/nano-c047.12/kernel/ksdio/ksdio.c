@@ -136,8 +136,8 @@ int sw_host_gpio_allocate(void)
     ret = script_parser_fetch(wifi_para, "sdio_wifi_mname", (void*)sw_wifi_ctrl.mname, sizeof(char*));
     if (ret)
     {
-        nano_msg("failed to get sdio wifi module name string\n");
-        return -1;
+        nano_msg("failed to get sdio wifi module name, specify one: nano_wifi\n");
+        strcpy((void*)sw_wifi_ctrl.mname, "nano_wifi");
     }
     nano_msg("Get wifi info.: %s\n", sw_wifi_ctrl.mname);
     ret = script_parser_fetch(wifi_para, "sdio_wifi_sdc_id", &sw_wifi_ctrl.sdc_id, sizeof(unsigned));
@@ -160,7 +160,8 @@ int sw_host_gpio_allocate(void)
 
 int sw_host_gpio_free(void)
 {
-    gpio_release(sw_wifi_ctrl.pio_hdle, 1);
+    if (sw_wifi_ctrl.pio_hdle)
+        gpio_release(sw_wifi_ctrl.pio_hdle, 1);
     memset(&sw_wifi_ctrl, 0, sizeof(sw_wifi_ctrl));
     return 0;
 }
@@ -1048,12 +1049,21 @@ nrx_reset(struct sdio_func *func)
 
 #if defined(KSDIO_HOST_RESET_PIN)
 
+#ifdef WINNER_SHUTDOWN_PIN_USED
+    err = sw_host_hardware_shutdown(1);
+    mdelay(3);
+    if (!err) {
+        err = sw_host_hardware_shutdown(0);
+        mdelay(10);
+    }
+#else
    err = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 0);
    mdelay(3);  /* let SHUTDOWN_N assertion take effect */
    if (!err) {
       err = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 1);
       mdelay(10); /* let NRX600 to reset */
    }
+#endif
 
 #else /* !defined(KSDIO_HOST_RESET_PIN) */
    {
@@ -1608,6 +1618,7 @@ static struct sdio_driver sdio_nrx_driver = {
 static int __init sdio_nrx_init(void)
 {
 #ifdef KSDIO_HOST_RESET_PIN
+   #ifndef WINNER_SHUTDOWN_PIN_USED
    int status = host_gpio_allocate(KSDIO_HOST_RESET_PIN);
    if (status) {
       KDEBUG(ERROR, "Failed to allocate host GPIO for chip reset (status: %d)", status);
@@ -1617,6 +1628,7 @@ static int __init sdio_nrx_init(void)
    /* In an ideal world, this is where we set the SHUTDOWN_N pin high and
     * tell the MMC/SD/SDIO driver to look for a new "card"....
     */
+   #endif
 #endif
     
 #ifdef WINNER_HOST_GPIO_CTRL
@@ -1639,6 +1651,7 @@ static int __init sdio_nrx_init(void)
         if (ret)
         {
             nano_msg("Failed to insert card\n");
+            sw_host_gpio_free();
             return -1;
         }
     }
@@ -1656,6 +1669,7 @@ static void __exit sdio_nrx_exit(void)
    }
 #endif
 #ifdef KSDIO_HOST_RESET_PIN
+    #ifndef WINNER_SHUTDOWN_PIN_SUED
    {
       int status;
 
@@ -1663,6 +1677,7 @@ static void __exit sdio_nrx_exit(void)
       if (status)
          KDEBUG(ERROR, "Failed to free host GPIO for chip reset (status: %d)", status);
    }
+   #endif
 #endif
 #ifdef WINNER_HOST_GPIO_CTRL
     {
@@ -1697,13 +1712,21 @@ static int nano_hard_shutdown(struct nrxdev *nrxdev, uint32_t arg)
          if (!nrxdev->is_in_hard_shutdown) {
             nrxdev->is_in_hard_shutdown = 1;
             sdio_unregister_driver(&sdio_nrx_driver);
+            #ifdef WINNER_SHUTDOWN_PIN_USED
+            ret = sw_host_hardware_shutdown(1);
+            #else
             ret = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 0);
+            #endif
          }
          return ret;
 
       case NANONET_HARD_SHUTDOWN_EXIT:
          if (nrxdev->is_in_hard_shutdown) {
+            #ifdef WINNER_SHUTDOWN_PIN_USED
+            ret = sw_host_hardware_shutdown(0);
+            #else
             ret = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 1);
+            #endif
             if (ret)
                return ret;
             msleep(100);

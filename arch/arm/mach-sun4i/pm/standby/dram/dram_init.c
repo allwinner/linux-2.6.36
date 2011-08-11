@@ -42,29 +42,30 @@ void mctl_ddr3_reset(void)
     __u32 reg_val;
     __u32 i=0;
 
-		reg_val = mctl_read_w(TIMER_CPU_CFG_REG);
-		reg_val >>=6;
-		reg_val &=0x3;
-		if(reg_val == 0)
-		{
-			reg_val = mctl_read_w(SDR_CR);
-			reg_val &= ~(0x1<<12);
-			mctl_write_w(SDR_CR, reg_val);
-            standby_delay(0x100);
-			reg_val = mctl_read_w(SDR_CR);
-			reg_val |= (0x1<<12);
-			mctl_write_w(SDR_CR, reg_val);
-		}
-		else
-		{
-			reg_val = mctl_read_w(SDR_CR);
-			reg_val |= (0x1<<12);
-			mctl_write_w(SDR_CR, reg_val);
-            standby_delay(0x100);
-			reg_val = mctl_read_w(SDR_CR);
-			reg_val &= ~(0x1<<12);
-			mctl_write_w(SDR_CR, reg_val);
-		}
+    mctl_write_w(TIMER_CPU_CFG_REG, 0);
+    reg_val = mctl_read_w(TIMER_CPU_CFG_REG);
+    reg_val >>=6;
+    reg_val &=0x3;
+    if(reg_val == 0)
+    {
+        reg_val = mctl_read_w(SDR_CR);
+        reg_val &= ~(0x1<<12);
+        mctl_write_w(SDR_CR, reg_val);
+        standby_delay(0x100);
+        reg_val = mctl_read_w(SDR_CR);
+        reg_val |= (0x1<<12);
+        mctl_write_w(SDR_CR, reg_val);
+    }
+    else
+    {
+        reg_val = mctl_read_w(SDR_CR);
+        reg_val |= (0x1<<12);
+        mctl_write_w(SDR_CR, reg_val);
+        standby_delay(0x100);
+        reg_val = mctl_read_w(SDR_CR);
+        reg_val &= ~(0x1<<12);
+        mctl_write_w(SDR_CR, reg_val);
+    }
 }
 
 void mctl_set_drive(void)
