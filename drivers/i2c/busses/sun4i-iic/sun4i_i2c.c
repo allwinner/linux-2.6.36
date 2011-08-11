@@ -32,7 +32,7 @@
 #include "sun4i_i2c_private.h"
 #include "sun4i_i2c.h"
 
-#ifdef CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO 
+#ifdef CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO
 #define PRINT_TRANSFER_INFO
 #endif
 
@@ -62,9 +62,9 @@ struct awxx_i2c {
 
 	int bus_num;
 	unsigned int      status; /* start, running, idle */
+	unsigned int      suspend_flag;
 
 	spinlock_t          lock; /* syn */
-	spinlock_t          transfer_lock; /*transfer or suspend*/
 	wait_queue_head_t   wait;
 	struct i2c_msg      *msg;
 	unsigned int		msg_num;
@@ -692,7 +692,11 @@ static int i2c_awxx_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num
 	int ret = AWXX_I2C_FAIL;
 	int i   = 0;
 
-    spin_lock_irq(&i2c->transfer_lock);
+	if(i2c->suspend_flag) {
+	    printk("[i2c-%d] has already suspend, dev addr:%x!\n", i2c->adap.nr, msgs->addr);
+	    return -ENODEV;
+	}
+
 	for(i = adap->retries; i >= 0; i--)
 	{
 		ret = i2c_awxx_do_xfer(i2c, msgs, num);
@@ -710,7 +714,6 @@ static int i2c_awxx_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs, int num
 	}
 
 	ret = -EREMOTEIO;
-    spin_unlock_irq(&i2c->transfer_lock);
 out:
 	return ret;
 }
@@ -771,7 +774,7 @@ static int i2c_awxx_do_xfer(struct awxx_i2c *i2c, struct i2c_msg *msgs, int num)
 	if (timeout == 0){
 		//dev_dbg(i2c->adap.dev, "timeout \n");
 		pr_warning("i2c-%d, xfer timeout\n", i2c->bus_num);
-		ret = -ETIME; 
+		ret = -ETIME;
 	}
 	else if (ret != num){
 		pr_notice("incomplete xfer (0x%x)\n", ret);
@@ -826,13 +829,11 @@ static int i2c_awxx_clk_exit(struct awxx_i2c *i2c)
 {
      void *base_addr = i2c->base_addr;
 
-     spin_lock_irq(&i2c->transfer_lock);
      // aw_twi_disable_irq(base_addr);
      // disable twi bus
      aw_twi_disable_bus(base_addr);
      // disable APB clk
      aw_twi_disable_sys_clk(i2c);
-     spin_unlock_irq(&i2c->transfer_lock);
 
      return 0;
 
@@ -853,7 +854,7 @@ static int i2c_awxx_hw_init(struct awxx_i2c *i2c)
     {
         return -1;
     }
-    
+
     // soft reset
     aw_twi_soft_reset(i2c->base_addr);
 
@@ -867,9 +868,9 @@ static void i2c_awxx_hw_exit(struct awxx_i2c *i2c)
         return;
     }
 
-    // disable GPIO pin   
+    // disable GPIO pin
     aw_twi_release_gpio(i2c);
-    
+
 }
 
 static int i2c_awxx_probe(struct platform_device *dev)
@@ -912,8 +913,9 @@ static int i2c_awxx_probe(struct platform_device *dev)
 	i2c->bus_freq     = pdata->frequency;
 	i2c->irq 		  = irq;
 	i2c->bus_num      = pdata->bus_num;
+	i2c->status       = I2C_XFER_IDLE;
+	i2c->suspend_flag = 0;
 	spin_lock_init(&i2c->lock);
-	spin_lock_init(&i2c->transfer_lock);
 	init_waitqueue_head(&i2c->wait);
 
 	i2c->pclk = clk_get(NULL, i2c_pclk[i2c->adap.nr]);
@@ -1040,18 +1042,25 @@ static int i2c_awxx_suspend(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
 
-	printk("[i2c%d] suspend okay.. \n", i2c->bus_num);
-	
+	i2c->suspend_flag = 1;
+
+	if(i2c->status != I2C_XFER_IDLE){
+        printk("[i2c-%d] suspend wihle xfer,dev addr = %x\n",
+                    i2c->adap.nr, i2c->msg? i2c->msg->addr : 0xff);
+	}
+
     if(0 == i2c->bus_num){
-        printk("err: when power ic is working ,suspend twi0 is prohibit. jump over\n");
         return 0;
     }
 
     if(i2c_awxx_clk_exit(i2c))
     {
+        printk("[i2c%d] suspend failed.. \n", i2c->bus_num);
+        i2c->suspend_flag = 0;
         return -1;
     }
 
+    printk("[i2c%d] suspend okay.. \n", i2c->bus_num);
 	return 0;
 }
 
@@ -1061,22 +1070,21 @@ static int i2c_awxx_resume(struct device *dev)
 	struct platform_device *pdev = to_platform_device(dev);
 	struct awxx_i2c *i2c = platform_get_drvdata(pdev);
 
-    printk("[i2c%d] resume okay.. \n", i2c->bus_num);
-    
+    i2c->suspend_flag = 0;
+
     if(0 == i2c->bus_num){
-        printk("err: twi0 is working, do not need to resum. just jump over\n");
         return 0;
     }
 
     if(i2c_awxx_clk_init(i2c))
     {
+        printk("[i2c%d] resume failed.. \n", i2c->bus_num);
         return -1;
     }
-    
     // soft reset
     aw_twi_soft_reset(i2c->base_addr);
 
-	
+    printk("[i2c%d] resume okay.. \n", i2c->bus_num);
 	return 0;
 }
 
@@ -1197,7 +1205,7 @@ static struct i2c_board_info __initdata i2c_info_power[] =  {
 
 static struct i2c_board_info __initdata i2c_info_ctp[] =  {
 	{
-	    //need to be modify, according the menuconfig 
+	    //need to be modify, according the menuconfig
 		//I2C_BOARD_INFO("ft5x_ts", 0x7e),
 		.platform_data	= NULL,
 	},
@@ -1207,7 +1215,7 @@ static struct i2c_board_info __initdata i2c_info_ctp[] =  {
 #if defined(CONFIG_KEYBOARD_HV2605_KEYBOARD) || defined(CONFIG_KEYBOARD_HV2605_KEYBOARD_MODULE)
 static struct i2c_board_info i2c_board_info_hv_keyboard[] __initdata = {
 	{	I2C_BOARD_INFO("hv_keypad", 0x62),
-		.platform_data	= NULL,	
+		.platform_data	= NULL,
 	},
 };
 #endif
@@ -1332,50 +1340,50 @@ static int __init i2c_adap_awxx_init(void)
 	        pr_err("i2c_adap_awxx_init: script_parser_fetch err. \n");
 	        goto script_parser_fetch_err;
 	    }
-	    strcpy(i2c_info_ctp[0].type, name);   
+	    strcpy(i2c_info_ctp[0].type, name);
 	    printk("i2c_info_ctp[0].type is: %s, name is %s. \n", i2c_info_ctp[0].type, name);
-	    
+
 	    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_twi_addr", &twi_addr, sizeof(twi_addr)/sizeof(int))){
 	        pr_err("%s: script_parser_fetch err. \n", name);
 	        goto script_parser_fetch_err;
 	    }
 	    i2c_info_ctp[0].addr = twi_addr;
 	    printk("i2c: %s_ctp_twi_addr is %d, 0x%x. \n", name, twi_addr, twi_addr);
-	    
+
 	    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_twi_id", &twi_id, 1)){
 	        pr_err("%s: script_parser_fetch err. \n", name);
 	        goto script_parser_fetch_err;
 	    }
 	    printk("i2c: %s_ctp_twi_id is %d. \n", name, twi_id);
-	    
-	    status = i2c_register_board_info(twi_id, i2c_info_ctp, ARRAY_SIZE(i2c_info_ctp));         
-	    printk("================%s==============, twi_id = %d, status = %d \n", name, twi_id, status);   
-	
+
+	    status = i2c_register_board_info(twi_id, i2c_info_ctp, ARRAY_SIZE(i2c_info_ctp));
+	    printk("================%s==============, twi_id = %d, status = %d \n", name, twi_id, status);
+
 	}
-    
+
 #if defined(CONFIG_KEYBOARD_HV2605_KEYBOARD) || defined(CONFIG_KEYBOARD_HV2605_KEYBOARD_MODULE)
-            if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_used", &device_used, 1)){          
-                pr_err("hv_keyboard: script_parser_fetch err. \n");                                                     
-                goto script_parser_fetch_err;                                                                         
-            }                                                                                                         
-            if(1 == device_used){                                                                                 
-                if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_twi_addr", &twi_addr, 1)){  
-                    pr_err("hv_keyboard: script_parser_fetch err. \n");                                                 
-                    goto script_parser_fetch_err;                                                                     
-                }                                                                                                     
-                i2c_board_info_hv_keyboard[0].addr = twi_addr;                                                                   
-                printk("i2c: hv_keyboard_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);                               
-                                                                                                                      
-                if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_twi_id", &twi_id, 1)){      
-                    pr_err("hv_keyboard: script_parser_fetch err. \n");                                                 
-                    goto script_parser_fetch_err;                                                                     
-                }                                                                                                     
-                printk("i2c: hv_keyboard_twi_id is %d. \n", twi_id);                                                   
-                                                                                                                      
-                status = i2c_register_board_info(twi_id, i2c_board_info_hv_keyboard, ARRAY_SIZE(i2c_board_info_hv_keyboard));         
-                printk("================hv_keyboard==============, twi_id = %d, status = %d \n", twi_id, status);        
-                                                                                                                      
-            }                            
+            if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_used", &device_used, 1)){
+                pr_err("hv_keyboard: script_parser_fetch err. \n");
+                goto script_parser_fetch_err;
+            }
+            if(1 == device_used){
+                if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_twi_addr", &twi_addr, 1)){
+                    pr_err("hv_keyboard: script_parser_fetch err. \n");
+                    goto script_parser_fetch_err;
+                }
+                i2c_board_info_hv_keyboard[0].addr = twi_addr;
+                printk("i2c: hv_keyboard_twi_addr is %d, 0x%x. \n", twi_addr, twi_addr);
+
+                if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_twi_id", &twi_id, 1)){
+                    pr_err("hv_keyboard: script_parser_fetch err. \n");
+                    goto script_parser_fetch_err;
+                }
+                printk("i2c: hv_keyboard_twi_id is %d. \n", twi_id);
+
+                status = i2c_register_board_info(twi_id, i2c_board_info_hv_keyboard, ARRAY_SIZE(i2c_board_info_hv_keyboard));
+                printk("================hv_keyboard==============, twi_id = %d, status = %d \n", twi_id, status);
+
+            }
 #endif
 
 	if(i2c_awxx_get_cfg(0)){
