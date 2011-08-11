@@ -342,7 +342,7 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	//enable headphone direct 
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
+	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
@@ -355,18 +355,40 @@ static  int codec_init(void)
 	return 0;	
 }
 
+//static int codec_play_open(void)
+//{
+//	//flush TX FIFO
+//	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
+//	//set TX FIFO send drq level
+//	codec_wr_control(SW_DAC_FIFOC ,0x1fff, TX_TRI_LEVEL, 0xf);
+//
+//	codec_wr_control(SW_DAC_FIFOC ,0x3,DRA_LEVEL,0x3);
+//	//send last sample when dac fifo under run
+//	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x1);
+//	//send zero data
+//	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x0);
+//	//set TX FIFO MODE
+//	codec_wr_control(SW_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);//TX_FIFO_MODE == 24
+//	//enable dac analog
+//	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
+//	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
+//	//enable dac to pa
+//	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+//	return 0;
+//}
+
 static int codec_play_open(void)
 {
-	//flush TX FIFO
+	printk("%s,%d\n",__func__, __LINE__);
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
+	//mdelay(50);
+	//codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	mdelay(100);
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
-	codec_wr_control(SW_DAC_FIFOC ,0x1fff, TX_TRI_LEVEL, 0xf);
-
-	codec_wr_control(SW_DAC_FIFOC ,0x3,DRA_LEVEL,0x3);
+	codec_wr_control(SW_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
 	//send last sample when dac fifo under run
-	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x1);
-	//set TX FIFO MODE
-	codec_wr_control(SW_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);//TX_FIFO_MODE == 24
+	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x0);
 	//enable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
@@ -402,25 +424,44 @@ static int codec_capture_open(void)
 	 return 0;
 }
 
+
+
 static int codec_play_start(void)
 {
 	//flush TX FIFO
+	printk("%s,%d\n",__func__, __LINE__);
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_DRQ, 0x1);
+	//mdelay(60);
 	//pa unmute
-	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);
+	//codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);
 	return 0;
 }
 
 static int codec_play_stop(void)
 {
+	printk("%s,%d\n",__func__, __LINE__);
+		//pa mute
+	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	mdelay(5);
 	//disable dac drq
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_DRQ, 0x0);
 	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
+	//mdelay(50);
 	return 0;
 }
+//static int codec_play_stop(void)
+//{
+//	//disable dac drq
+//	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_DRQ, 0x0);
+//	//pa mute
+//	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+//	return 0;
+//}
 
 static int codec_capture_start(void)
 {
@@ -433,8 +474,32 @@ static int codec_capture_stop(void)
 {
 	//disable adc drq
 	codec_wr_control(SW_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
+	//enable mic1 pa
+	codec_wr_control(SW_ADC_ACTL, 0x1, MIC1_EN, 0x0);
+	//enable mic2 pa
+	//codec_wr_control(SW_ADC_ACTL, 0x1, MIC2_EN, 0x1);	 
+	//enable VMIC
+	codec_wr_control(SW_ADC_ACTL, 0x1, VMIC_EN, 0x0);
+	//select mic souce
+	pr_debug("ADC SELECT \n");
+	//codec_wr_control(SW_ADC_ACTL, 0x7, ADC_SELECT, 0x2);
+	//enable adc digital
+	codec_wr_control(SW_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x0);
+	//set RX FIFO mode
+	codec_wr_control(SW_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x0);
+	//flush RX FIFO
+	codec_wr_control(SW_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x0);
+	//enable adc1 analog
+	codec_wr_control(SW_ADC_ACTL, 0x3,  ADC_EN, 0x0);
 	return 0;
 }
+
+//static int codec_capture_stop(void)
+//{
+//	//disable adc drq
+//	codec_wr_control(SW_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
+//	return 0;
+//}
 
 static int codec_dev_free(struct snd_device *device)
 {
@@ -1070,16 +1135,21 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 			case SNDRV_PCM_TRIGGER_START:
 			case SNDRV_PCM_TRIGGER_RESUME:
 			case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-				play_prtd->state |= ST_RUNNING;				
-				codec_play_start();			
-				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);			
+				play_prtd->state |= ST_RUNNING;		
+				codec_play_start();				
+				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);	
+				mdelay(2);
+//				//pa unmute
+				codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
 				break;
 			case SNDRV_PCM_TRIGGER_SUSPEND:				
 				codec_play_stop();				
 				break;
 			case SNDRV_PCM_TRIGGER_STOP:			 				
 				play_prtd->state &= ~ST_RUNNING;
+				codec_play_stop();
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_STOP);
+				
 				break;
 			case SNDRV_PCM_TRIGGER_PAUSE_PUSH:							
 				play_prtd->state &= ~ST_RUNNING;
@@ -1107,6 +1177,7 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 			break;
 		case SNDRV_PCM_TRIGGER_STOP:		 
 			capture_prtd->state &= ~ST_RUNNING;
+			codec_capture_stop();
 			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_STOP);
 			break;
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:		
@@ -1372,36 +1443,37 @@ static int __init sw_codec_probe(struct platform_device *pdev)
  */
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
-	printk("enter snd_sw_codec_suspend:%s,%d\n",__func__,__LINE__);
-	printk("====pa shutdown====\n");
+//	printk("enter snd_sw_codec_suspend:%s,%d\n",__func__,__LINE__);
+//	printk("====pa shutdown====\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	msleep(100);
+		//pa mute
+	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	 mdelay(500);
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
-	mdelay(100);
-	//pa mute
-	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
-	 mdelay(100);
+	//mdelay(100);
+
 	//disable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
-	 mdelay(100);
+	 //mdelay(100);
 	//disable headphone direct 
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
- 	mdelay(100);
+	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
+ 	//mdelay(100);
 	//disable dac to pa
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
-	 mdelay(100);
+	// mdelay(100);
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
-	 mdelay(100);
+	 //mdelay(100);
 	 
 	clk_disable(codec_moduleclk);
 
-	printk("[codec suspend reg]\n");
-	printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
-	printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
-	printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
-	printk("[codec suspend reg]\n");
+//	printk("[codec suspend reg]\n");
+//	printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
+//	printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
+//	printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
+//	printk("[codec suspend reg]\n");
 	return 0;	
 }
 
@@ -1412,38 +1484,37 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
  */
 static int snd_sw_codec_resume(struct platform_device *pdev)
 {
-	printk("enter snd_sw_codec_resume:%s,%d\n",__func__,__LINE__);
+	//printk("211enter snd_sw_codec_resume:%s,%d\n",__func__,__LINE__);
 
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
-	//pa unmute
-	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
-	mdelay(400);
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
-	mdelay(20);
-    //enable dac analog
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 	mdelay(20);
 	//enable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
-	//enable headphone direct 
-	mdelay(20);
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
+	mdelay(550);
+    //enable dac analog
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
+	//mdelay(20);
+	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 
 	//enable dac to pa
-	 mdelay(20);
+	 //mdelay(20);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
-	mdelay(30);
+	//mdelay(30);
+		//pa unmute
+//	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
+    mdelay(50);
 	printk("====pa turn on===\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
 	/*for clk test*/
-	printk("[codec resume reg]\n");
-	printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
-	printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
-	printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
-	printk("[codec resume reg]\n");
+	//printk("[codec resume reg]\n");
+	//printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
+	//printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
+	//printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
+	//printk("[codec resume reg]\n");
 	return 0;	
 }
 
@@ -1461,31 +1532,29 @@ static int __devexit sw_codec_remove(struct platform_device *devptr)
 
 static void sw_codec_shutdown(struct platform_device *devptr)
 {
-	printk("[sw_codec]: shutdown start.\n");
-	printk("====pa shutdown====\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	msleep(100);
+		//pa mute
+	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
+	 mdelay(500);
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
-	mdelay(100);
-	//pa mute
-	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
-	 mdelay(100);
+	//mdelay(100);
+
 	//disable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
-	 mdelay(100);
+	 //mdelay(100);
 	//disable headphone direct 
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
- 	mdelay(100);
+	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
+ 	//mdelay(100);
 	//disable dac to pa
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
-	 mdelay(100);
+	// mdelay(100);
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
-	 mdelay(100);
+	 //mdelay(100);
 	 
 	clk_disable(codec_moduleclk);
-	printk("[sw_codec]: shutdown end.\n");	
 }
 
 static struct resource sw_codec_resource[] = {
