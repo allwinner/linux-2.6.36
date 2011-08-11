@@ -112,13 +112,13 @@ spinlock_t     nand_rb_lock;
 static irqreturn_t nand_rb_interrupt(int irq, void *dev_id)
 {
     unsigned long iflags;
-    
+
     //printk("rb int start \n");
     spin_lock_irqsave(&nand_rb_lock, iflags);
     NAND_RbInterrupt();
     spin_unlock_irqrestore(&nand_rb_lock, iflags);
 	//printk("end\n");
-	
+
 	return IRQ_HANDLED;
 }
 
@@ -1050,22 +1050,6 @@ static int nand_flush(struct nand_blk_dev *dev)
 	return 0;
 }
 
-static void nand_flush_all(void)
-{
-	if (0 == down_trylock(&mytr.nand_ops_mutex)){
-
-        mutex_lock(&suspend_mutex);
-
-		#ifdef NAND_CACHE_RW
-		NAND_CacheFlush();
-		#else
-		LML_FlushPageCache();
-		#endif
-		BMM_WriteBackAllMapTbl();
-
-        mutex_unlock(&suspend_mutex);
-	}
-}
 
  int cal_partoff_within_disk(char *name,struct inode *i)
 {
@@ -1360,7 +1344,7 @@ static int __init init_blklayer(void)
     NAND_ClearRbInt();
     spin_lock_init(&nand_rb_lock);
 	irqflags = IRQF_DISABLED;
-	
+
 	if (request_irq(SW_INT_IRQNO_NAND, nand_rb_interrupt, irqflags, mytr.name, &mytr))
 	{
 	    printk("nand interrupte register error\n");
@@ -1370,8 +1354,8 @@ static int __init init_blklayer(void)
 	{
 	    printk("nand interrupte register ok\n");
 	}
-	
-		
+
+
 	ret = PHY_Init();
 	if (ret) {
 		PHY_Exit();
@@ -1522,8 +1506,15 @@ static int nand_remove(struct platform_device *plat_dev)
 
 void nand_shutdown(struct platform_device *plat_dev)
 {
-	printk("[NAND]shutdown\n");
-	nand_flush_all();
+    printk("[NAND]shutdown\n");
+
+    down(&mytr.nand_ops_mutex);
+    #ifdef NAND_CACHE_RW
+    NAND_CacheFlush();
+    #else
+    LML_FlushPageCache();
+    #endif
+    BMM_WriteBackAllMapTbl();
 }
 
 static struct platform_driver nand_driver = {
@@ -1565,20 +1556,20 @@ static int __init nand_init(void)
 {
 	s32 ret;
 	int nand_used = 0;
-    
+
     ret = script_parser_fetch("nand_para","nand_used", &nand_used, sizeof(int));
     if (ret)
     {
     	printk("nand init fetch emac using configuration failed\n");
- 
+
     }
-    
+
     if(nand_used == 0)
     {
         printk("nand driver is disabled \n");
         return 0;
     }
-    
+
 
 	printk("[NAND]nand driver, init.\n");
 
@@ -1612,20 +1603,20 @@ static void __exit nand_exit(void)
 {
     s32 ret;
 	int nand_used = 0;
-    
+
     ret = script_parser_fetch("nand_para","nand_used", &nand_used, sizeof(int));
     if (ret)
     {
     	printk("nand init fetch emac using configuration failed\n");
- 
+
     }
-    
+
     if(nand_used == 0)
     {
         printk("nand driver is disabled \n");
         return ;
     }
-    
+
 	printk("[NAND]nand driver : bye bye\n");
 	platform_driver_unregister(&nand_driver);
 	//platform_device_unregister(&nand_device);
