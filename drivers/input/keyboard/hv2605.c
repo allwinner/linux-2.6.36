@@ -34,8 +34,13 @@
 #include <asm/io.h>
 #include <mach/script_v2.h>
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
+#endif
 //#define KEY_DEBUG
 //#define PRINT_STATUS_INFO
+#define  PRINT_SUSPEND_INFO
 
 static struct i2c_client *this_client;
 static struct hv_keypad_data *hv_keypad;
@@ -65,6 +70,36 @@ struct hv_keypad_data {
 
 static struct i2c_msg tx_msg[] = {{0},};
 static 	struct i2c_msg rx_msgs[] = {{0},{0},};
+
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+struct hv2605_keyboard_data {
+    struct early_suspend early_suspend;
+};
+#endif
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static struct hv2605_keyboard_data *keyboard_data;
+#endif
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void hv2605_keyboard_suspend(struct early_suspend *h)
+{
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter earlysuspend: hv2605_keyboard_suspend. \n");
+    #endif
+    cancel_delayed_work_sync(&hv_keypad->work);
+    return ;
+}
+static void hv2605_keyboard_resume(struct early_suspend *h)
+{
+    #ifdef PRINT_SUSPEND_INFO
+        printk("enter laterresume: hv2605_keyboard_resume. \n");
+    #endif
+    queue_delayed_work(hv_keypad->queue, &hv_keypad->work, DELAY_PERIOD);
+    return ; 
+}
+#else
+#endif
 
 static int hv_i2c_rxdata(char *rxdata, int length)
 {
@@ -284,6 +319,18 @@ static int hv_keypad_probe(struct i2c_client *client, const struct i2c_device_id
     hv_init();
     
 	queue_delayed_work(hv_keypad->queue, &hv_keypad->work, DELAY_PERIOD);
+#ifdef CONFIG_HAS_EARLYSUSPEND	
+    printk("==register_early_suspend =\n");
+    keyboard_data = kzalloc(sizeof(*keyboard_data), GFP_KERNEL);
+	if (keyboard_data == NULL) {
+		err = -ENOMEM;
+		goto err_alloc_data_failed;
+	}
+    keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    keyboard_data->early_suspend.suspend = hv2605_keyboard_suspend;
+    keyboard_data->early_suspend.resume	= hv2605_keyboard_resume;	
+    register_early_suspend(&keyboard_data->early_suspend);
+#endif
 	printk("==probe ======over =\n");
   
     return 0;
@@ -297,6 +344,9 @@ exit_create_singlethread:
 	kfree(hv_keypad);
 exit_alloc_data_failed:
 exit_check_functionality_failed:
+#ifdef CONFIG_HAS_EARLYSUSPEND
+ err_alloc_data_failed:
+#endif
 	return err;
 }
 
@@ -309,6 +359,8 @@ static int __devexit hv_keypad_remove(struct i2c_client *client)
 	printk("==hv_keypad_remove=\n");
 	//cancel_work_sync(&zt_ts->work);
 	//destroy_workqueue(zt_ts->queue);
+	cancel_delayed_work_sync(&hv_keypad->work);
+	destroy_workqueue(hv_keypad->queue);
 	i2c_set_clientdata(client, NULL);
 	return 0;
 }
