@@ -41,6 +41,7 @@
 #include <mach/platform.h>
 #include <mach/script_v2.h>
 #include <mach/gpio_v2.h>
+#include <mach/system.h>
 
 #ifdef CONFIG_ANDROID_PMEM
 /*
@@ -206,16 +207,43 @@ static int read_chip_sid(char* page, char** start, off_t off, int count,
 	return sprintf(page, "%08x-%08x-%08x-%08x\n", a, b, c, d);
 }
 
+static int read_chip_version(char* page, char** start, off_t off, int count,
+	int* eof, void* data)
+{
+	enum sw_ic_ver ver = sw_get_ic_ver();
+
+	switch (ver) {
+	case MAGIC_VER_A:
+		return sprintf(page, "A\n");
+	case MAGIC_VER_B:
+		return sprintf(page, "B\n");
+	case MAGIC_VER_C:
+		return sprintf(page, "C\n");
+	default:
+		return sprintf(page, "%d\n", ver);
+	}
+
+	return 0;
+}
+
 
 static int __init platform_proc_init(void)
 {
 	struct proc_dir_entry *sid_entry = NULL;
+	struct proc_dir_entry *version_entry = NULL;
 
 	sid_entry = create_proc_read_entry("sid", 0400,
 			NULL, read_chip_sid, NULL);
 
 	if (!sid_entry) {
 		pr_err("Create sid at /proc failed\n");
+	}
+
+	version_entry = create_proc_read_entry("sw_ver", 0400,
+			NULL, read_chip_version, NULL);
+
+	if (!version_entry) {
+		pr_err("Create version at /proc failed\n");
 	}
 
 	return 0;
