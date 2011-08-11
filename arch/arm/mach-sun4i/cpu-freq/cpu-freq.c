@@ -383,7 +383,10 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
 
     if(corevdd && (new_vdd > last_vdd)) {
         CPUFREQ_INF("set core vdd to %d\n", new_vdd);
-        regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
+        if(regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000)) {
+            CPUFREQ_INF("try to set voltage failed!\n");
+            return -EINVAL;
+        };
     }
     #endif
 
@@ -394,7 +397,10 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
         #ifdef CONFIG_CPU_FREQ_DVFS
         if(corevdd && (new_vdd > last_vdd)) {
             CPUFREQ_INF("set core vdd to %d\n", last_vdd);
-            regulator_set_voltage(corevdd, last_vdd*1000, last_vdd*1000);
+            if(regulator_set_voltage(corevdd, last_vdd*1000, last_vdd*1000)){
+                CPUFREQ_INF("try to set voltage failed!\n");
+                last_vdd = new_vdd;
+            }
         }
         #endif
 
@@ -411,7 +417,10 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
     #ifdef CONFIG_CPU_FREQ_DVFS
     if(corevdd && (new_vdd < last_vdd)) {
         CPUFREQ_INF("set core vdd to %d\n", new_vdd);
-        regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000);
+        if(regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000)) {
+            CPUFREQ_INF("try to set voltage failed!\n");
+            new_vdd = last_vdd;
+        }
     }
     last_vdd = new_vdd;
     #endif
