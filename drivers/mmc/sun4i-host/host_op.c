@@ -1076,6 +1076,9 @@ static int awsmc_suspend(struct device *dev)
 
         ret = mmc_suspend_host(mmc);
         
+        /* disable irq */
+        disable_irq(smc_host->irq);
+
         /* backup registers */
         sdxc_regs_save(smc_host);
 
@@ -1109,6 +1112,9 @@ static int awsmc_resume(struct device *dev)
         /* restore registers */
         sdxc_regs_restore(smc_host);
         sdxc_program_clk(smc_host);
+        
+        /* enable irq */
+        enable_irq(smc_host->irq);
 
         ret = mmc_resume_host(mmc);
     }
