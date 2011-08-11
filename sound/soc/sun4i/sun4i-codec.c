@@ -334,7 +334,7 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	//enable headphone direct 
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
+//	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
@@ -1077,8 +1077,12 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 			case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 				play_prtd->state |= ST_RUNNING;		
 				codec_play_start();				
-				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);	
-				mdelay(6);
+				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);
+				if(substream->runtime->rate > 22050){	
+					mdelay(2);
+				}else{
+					mdelay(7);
+				}
 				//pa unmute
 				codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
 				break;
@@ -1398,7 +1402,7 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	 //mdelay(100);
 	//disable headphone direct 
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
+//	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
  	//mdelay(100);
 	//disable dac to pa
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
@@ -1436,7 +1440,7 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
 	//mdelay(20);
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
+	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 
 	//enable dac to pa
 	 //mdelay(20);
@@ -1484,7 +1488,7 @@ static void sw_codec_shutdown(struct platform_device *devptr)
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	 //mdelay(100);
 	//disable headphone direct 
-	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
+//	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
  	//mdelay(100);
 	//disable dac to pa
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
