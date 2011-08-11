@@ -857,7 +857,7 @@ int disp_resume(struct platform_device *pdev)
         }
     }
 #else
-    BSP_disp_clk_on(2);
+    BSP_disp_clk_on(1);
 #endif
 
     b_in_suspend = 0;
