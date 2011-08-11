@@ -1,5 +1,5 @@
 /*
- *  Driver for CODEC on M1 soundcard
+ *   Driver for CODEC on M1 soundcard
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License.
  * 
@@ -35,12 +35,6 @@
 #include <mach/system.h>
 
 static int gpio_pa_shutdown = 0;
-/*
- * these are the address and sizes used to fill the xmit buffer
- * so we can get a clock in record only mode
- */
-#define SW_DAC_FIFO         0x01c22c04
-#define SW_ADC_FIFO         0x01c22c20
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
@@ -51,7 +45,7 @@ static volatile unsigned int play_dmadst = 0;
 
 /* Structure/enum declaration ------------------------------- */
 typedef struct codec_board_info {
-	struct device	*dev;	     /* parent device */
+	struct device	*dev;	     		/* parent device */
 	struct resource	*codec_base_res;   /* resources found */
 	struct resource	*codec_base_req;   /* resources found */
 
@@ -184,8 +178,7 @@ int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 {
 	int change;
 	unsigned int old, new;
-	
-	//mutex_lock(&io_mutex);
+		
 	old	=	codec_rdreg(reg);
 	new	=	(old & ~mask) | value;
 	change = old != new;
@@ -194,8 +187,7 @@ int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 		pr_debug("reg = %x,reg_val = %x\n",reg,new);
 		codec_wrreg(reg,new);
 	}
-		
-	//mutex_unlock(&io_mutex);
+			
 	return change;
 }
 
@@ -355,34 +347,9 @@ static  int codec_init(void)
 	return 0;	
 }
 
-//static int codec_play_open(void)
-//{
-//	//flush TX FIFO
-//	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
-//	//set TX FIFO send drq level
-//	codec_wr_control(SW_DAC_FIFOC ,0x1fff, TX_TRI_LEVEL, 0xf);
-//
-//	codec_wr_control(SW_DAC_FIFOC ,0x3,DRA_LEVEL,0x3);
-//	//send last sample when dac fifo under run
-//	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x1);
-//	//send zero data
-//	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x0);
-//	//set TX FIFO MODE
-//	codec_wr_control(SW_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);//TX_FIFO_MODE == 24
-//	//enable dac analog
-//	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
-//	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
-//	//enable dac to pa
-//	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
-//	return 0;
-//}
-
 static int codec_play_open(void)
-{
-	printk("%s,%d\n",__func__, __LINE__);
+{	
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
-	//mdelay(50);
-	//codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	mdelay(100);
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
@@ -429,20 +396,15 @@ static int codec_capture_open(void)
 static int codec_play_start(void)
 {
 	//flush TX FIFO
-	printk("%s,%d\n",__func__, __LINE__);
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_DRQ, 0x1);
-	//mdelay(60);
-	//pa unmute
-	//codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);
 	return 0;
 }
 
 static int codec_play_stop(void)
-{
-	printk("%s,%d\n",__func__, __LINE__);
-		//pa mute
+{	
+	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	mdelay(5);
 	//disable dac drq
@@ -450,18 +412,9 @@ static int codec_play_stop(void)
 	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
-	//mdelay(50);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);	
 	return 0;
 }
-//static int codec_play_stop(void)
-//{
-//	//disable dac drq
-//	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_DRQ, 0x0);
-//	//pa mute
-//	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
-//	return 0;
-//}
 
 static int codec_capture_start(void)
 {
@@ -494,13 +447,6 @@ static int codec_capture_stop(void)
 	return 0;
 }
 
-//static int codec_capture_stop(void)
-//{
-//	//disable adc drq
-//	codec_wr_control(SW_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
-//	return 0;
-//}
-
 static int codec_dev_free(struct snd_device *device)
 {
 	return 0;
@@ -512,8 +458,6 @@ static int codec_dev_free(struct snd_device *device)
 static const struct snd_kcontrol_new codec_snd_controls_b[] = {
 	//FOR B VERSION
 	CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
-	//For A VERSION
-	//CODEC_SINGLE("Master Playback Volume", SW_DAC_DPC,12,0x3f,0),//62 steps, 3e + 1 = 3f 主音量控制
 	CODEC_SINGLE("Playback Switch", SW_DAC_ACTL,6,1,0),//全局输出开关
 	CODEC_SINGLE("Capture Volume",SW_ADC_ACTL,20,7,0),//录音音量
 	CODEC_SINGLE("Fm Volume",SW_DAC_ACTL,23,7,0),//Fm 音量
@@ -532,8 +476,6 @@ static const struct snd_kcontrol_new codec_snd_controls_b[] = {
 };
 
 static const struct snd_kcontrol_new codec_snd_controls_a[] = {
-	//FOR NORMAL VERSION
-	//CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
 	//For A VERSION
 	CODEC_SINGLE("Master Playback Volume", SW_DAC_DPC,12,0x3f,0),//62 steps, 3e + 1 = 3f 主音量控制
 	CODEC_SINGLE("Playback Switch", SW_DAC_ACTL,6,1,0),//全局输出开关
@@ -1064,8 +1006,8 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		   return play_ret;
 		}
    	 	play_prtd = substream->runtime->private_data;
-   	 /* return if this is a bufferless transfer e.g.
-	  * codec <--> BT codec or GSM modem -- lg FIXME */       
+   	 	/* return if this is a bufferless transfer e.g.
+	  	* codec <--> BT codec or GSM modem -- lg FIXME */       
    	 	if (!play_prtd->params)
 		return 0;                              
    	 	//open the dac channel register
@@ -1139,7 +1081,7 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				codec_play_start();				
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);	
 				mdelay(2);
-//				//pa unmute
+				//pa unmute
 				codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
 				break;
 			case SNDRV_PCM_TRIGGER_SUSPEND:				
@@ -1443,7 +1385,6 @@ static int __init sw_codec_probe(struct platform_device *pdev)
  */
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
-//	printk("enter snd_sw_codec_suspend:%s,%d\n",__func__,__LINE__);
 //	printk("====pa shutdown====\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	msleep(100);
@@ -1484,7 +1425,6 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
  */
 static int snd_sw_codec_resume(struct platform_device *pdev)
 {
-	//printk("211enter snd_sw_codec_resume:%s,%d\n",__func__,__LINE__);
 
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
