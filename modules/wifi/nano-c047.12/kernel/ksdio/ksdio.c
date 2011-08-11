@@ -1669,7 +1669,7 @@ static void __exit sdio_nrx_exit(void)
    }
 #endif
 #ifdef KSDIO_HOST_RESET_PIN
-    #ifndef WINNER_SHUTDOWN_PIN_SUED
+    #ifndef WINNER_SHUTDOWN_PIN_USED
    {
       int status;
 
