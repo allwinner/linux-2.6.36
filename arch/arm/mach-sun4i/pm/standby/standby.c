@@ -205,9 +205,9 @@ static void standby(void)
     /* enable LDO, enable HOSC */
     standby_clk_ldoenable();
     /* delay 1ms for power be stable */
-    standby_delay(10);
+    standby_delay(1);
     standby_clk_hoscenable();
-    standby_delay(10);
+    standby_delay(1);
     #endif
     /* swtich apb1 to hosc */
     standby_clk_apb2hosc();

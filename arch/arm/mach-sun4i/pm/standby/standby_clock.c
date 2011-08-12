@@ -58,7 +58,7 @@ __s32 standby_clk_init(void)
     ccu_reg_back[6] = *(volatile __u32 *)&CmuReg->Pll7Ctl;
 
     /* cpu frequency is 60mhz now */
-    cpu_ms_loopcnt = 60000;
+    cpu_ms_loopcnt = 3000;
 
     return 0;
 }
@@ -108,7 +108,7 @@ __s32 standby_clk_core2losc(void)
 {
     CmuReg->SysClkDiv.AC328ClkSrc = 0;
     /* cpu frequency is 32k hz */
-    cpu_ms_loopcnt = 16;
+    cpu_ms_loopcnt = 1;
 
     return 0;
 }
@@ -129,7 +129,7 @@ __s32 standby_clk_core2hosc(void)
 {
     CmuReg->SysClkDiv.AC328ClkSrc = 1;
     /* cpu frequency is 24M hz */
-    cpu_ms_loopcnt = 12000;
+    cpu_ms_loopcnt = 600;
 
     return 0;
 }
@@ -149,8 +149,8 @@ __s32 standby_clk_core2hosc(void)
 __s32 standby_clk_core2pll(void)
 {
     CmuReg->SysClkDiv.AC328ClkSrc = 2;
-    /* cpu frequency is 30M hz */
-    cpu_ms_loopcnt = 30000;
+    /* cpu frequency is 60M hz */
+    cpu_ms_loopcnt = 2000;
 
     return 0;
 }
