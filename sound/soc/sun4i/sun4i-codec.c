@@ -30,10 +30,11 @@
 #include <sound/control.h>
 #include <sound/initval.h>
 #include <linux/clk.h>
+#include <linux/timer.h>
 #include "sun4i-codec.h"
 #include <mach/gpio_v2.h>
 #include <mach/system.h>
-
+#include <linux/list.h>
 static int gpio_pa_shutdown = 0;
 
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
@@ -148,11 +149,11 @@ static struct snd_pcm_hardware sw_pcm_capture_hardware =
 };
 
 struct sw_codec{
-	struct snd_card *card;
-	struct snd_pcm *pcm;
 	long samplerate;
+	struct snd_card *card;
+	struct snd_pcm *pcm;		
 };
-
+struct timer_list codec_resume_timer;
 static unsigned int rates[] = {
 	8000,11025,12000,16000,
 	22050,24000,24000,32000,
@@ -1263,7 +1264,36 @@ void snd_sw_codec_free(struct snd_card *card)
 {
   
 }
+static void codec_resume_events(unsigned long arg)
+{
+	printk("%s,%d\n",__func__,__LINE__);
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
+	mdelay(20);
+	//enable PA
+	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
+	mdelay(550);
+    //enable dac analog
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
+	//mdelay(20);
+	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 
+	//enable dac to pa
+	 //mdelay(20);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
+	//mdelay(30);
+		//pa unmute
+//	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
+    mdelay(50);
+	printk("====pa turn on===\n");
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
+	/*for clk test*/
+	//printk("[codec resume reg]\n");
+	//printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
+	//printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
+	//printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
+	//printk("[codec resume reg]\n");
+}
 static int __init sw_codec_probe(struct platform_device *pdev)
 {
 	int err;
@@ -1369,7 +1399,8 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	}
 	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	 codec_init(); 
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");		
+	 gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	 
+	 setup_timer(&codec_resume_timer, codec_resume_events, (unsigned long)&codec_resume_timer);		
 	 printk("sun4i Audio codec successfully loaded..\n"); 	 
 	 return 0;
 	 
@@ -1387,7 +1418,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
  */
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
-//	printk("====pa shutdown====\n");
+	printk("[audio codec]:suspend start\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	msleep(100);
 		//pa mute
@@ -1411,14 +1442,10 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	 //mdelay(100);
 	 
 	clk_disable(codec_moduleclk);
-
-//	printk("[codec suspend reg]\n");
-//	printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
-//	printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
-//	printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
-//	printk("[codec suspend reg]\n");
+	printk("[audio codec]:suspend end\n");
 	return 0;	
 }
+
 
 /*	resume state,先unmute，
  *	再enable DAC，enable L/R DAC,enable PA，
@@ -1427,36 +1454,12 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
  */
 static int snd_sw_codec_resume(struct platform_device *pdev)
 {
-
+	printk("[audio codec]:resume start\n");
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
-	mdelay(20);
-	//enable PA
-	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
-	mdelay(550);
-    //enable dac analog
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
-	//mdelay(20);
-	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
-
-	//enable dac to pa
-	 //mdelay(20);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
-	//mdelay(30);
-		//pa unmute
-//	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);	
-    mdelay(50);
-	printk("====pa turn on===\n");
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
-	/*for clk test*/
-	//printk("[codec resume reg]\n");
-	//printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
-	//printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
-	//printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
-	//printk("[codec resume reg]\n");
+	mod_timer(&codec_resume_timer, jiffies + 0);
+	printk("[audio codec]:resume end\n");
 	return 0;	
 }
 
@@ -1467,6 +1470,7 @@ static int __devexit sw_codec_remove(struct platform_device *devptr)
 	clk_put(codec_pll2clk);
 	//释放codec_apbclk时钟句柄
 	clk_put(codec_apbclk);
+	
 	snd_card_free(platform_get_drvdata(devptr));
 	platform_set_drvdata(devptr, NULL);
 	return 0;
