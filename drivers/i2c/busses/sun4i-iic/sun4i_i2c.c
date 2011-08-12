@@ -352,13 +352,7 @@ static int aw_twi_start(void *base_addr)
 
 static int aw_twi_restart(void  *base_addr)
 {
-    int ret = AWXX_I2C_FAIL;
-
-    ret = aw_twi_start(base_addr);
-    if(ret == AWXX_I2C_FAIL)
-    {
-        return AWXX_I2C_FAIL;
-    }
+    aw_twi_set_start(base_addr);
     aw_twi_clear_irq_flag(base_addr);
     return AWXX_I2C_OK;
 }

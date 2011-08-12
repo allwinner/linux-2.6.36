@@ -231,7 +231,7 @@ unsigned int aw_twi_get_start(void *base_addr)
 {
     unsigned int reg_val = readl(base_addr + TWI_CTL_REG);
     reg_val >>= 5;
-    return reg_val;
+    return reg_val & 1;
 }
 
 /*
@@ -276,7 +276,7 @@ unsigned int aw_twi_get_stop(void *base_addr)
 {
     unsigned int reg_val = readl(base_addr + TWI_CTL_REG);
     reg_val >>= 4;
-    return reg_val;
+    return reg_val & 1;
 }
 
 /*
