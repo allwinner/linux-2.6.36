@@ -44,6 +44,10 @@ enum {
 };
 static int state;
 
+#ifdef CONFIG_EARLYSUSPEND_DELAY
+extern struct wake_lock ealysuspend_delay_work;
+#endif
+
 void register_early_suspend(struct early_suspend *handler)
 {
 	struct list_head *pos;
@@ -162,6 +166,13 @@ void request_suspend_state(suspend_state_t new_state)
 	}
 	if (!old_sleep && new_state != PM_SUSPEND_ON) {
 		state |= SUSPEND_REQUESTED;
+
+        #ifdef CONFIG_EARLYSUSPEND_DELAY
+        /* delay 5 seconds to enter suspend */
+        wake_unlock(&ealysuspend_delay_work);
+        wake_lock_timeout(&ealysuspend_delay_work, HZ * 5);
+        #endif
+
 		queue_work(suspend_work_queue, &early_suspend_work);
 	} else if (old_sleep && new_state == PM_SUSPEND_ON) {
 		state &= ~SUSPEND_REQUESTED;
