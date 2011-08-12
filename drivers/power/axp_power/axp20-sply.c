@@ -311,7 +311,8 @@ static int axp_battery_get_property(struct power_supply *psy,
     val->intval = charger->bat_det;
     break;
   case POWER_SUPPLY_PROP_TEMP:
-    val->intval = charger->ic_temp - 200;
+    //val->intval = charger->ic_temp - 200;
+    val->intval =  300;
     break;
   default:
     ret = -EINVAL;
@@ -1258,7 +1259,7 @@ static int axp_battery_probe(struct platform_device *pdev)
   ocv_cap[27] = 0xCE;
   ocv_cap[28] = pmu_bat_para15;
   ocv_cap[29] = 0xCF;
-  ocv_cap[30] = pmu_bat_para16;
+  ocv_cap[30] = 99;
   axp_writes(charger->master, 0xC0,31,ocv_cap);
 
 	axp_charger_update_state(charger);
