@@ -26,7 +26,7 @@
 #include <linux/mutex.h>
 #include <linux/earlysuspend.h>
 
-#define BMA250_DEBUG
+//#define BMA250_DEBUG
 
 #ifdef BMA250_DEBUG
 #define bma_dbg(x...)	printk(x)
@@ -460,7 +460,7 @@ static int bma250_read_accel_xyz(struct i2c_client *client,
 							struct bma250acc *acc)
 {
 	int comres;
-	unsigned char data[6];
+	unsigned char data[6] = {0};
 	if (client == NULL) {
 		comres = -1;
 	} else{
