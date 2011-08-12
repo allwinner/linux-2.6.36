@@ -745,18 +745,28 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 
 		USBC_INT_ClearMiscPending(sw_hcd->sw_hcd_io->usb_bsp_hdle, (1 << USBC_BP_INTUSB_SESSION_REQ));
 
-		/* IRQ arrives from ID pin sense or (later, if VBUS power
-		 * is removed) SRP.  responses are time critical:
-		 *  - turn on VBUS (with silicon-specific mechanism)
-		 *  - go through A_WAIT_VRISE
-		 *  - ... to A_WAIT_BCON.
-		 * a_wait_vrise_tmout triggers VBUS_ERROR transitions
-		 */
-		USBC_Writeb((1 << USBC_BP_DEVCTL_SESSION), USBC_REG_DEVCTL(usbc_base));
+        /* power down */
+        devctl = USBC_Readb(USBC_REG_DEVCTL(usbc_base));
+    	devctl &= ~(1 << USBC_BP_DEVCTL_SESSION);
+    	USBC_Writeb(devctl, USBC_REG_DEVCTL(usbc_base));
+
+        USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_LOW);
+
+        sw_hcd_set_vbus(sw_hcd, 0);
+
+        /* delay */
+        mdelay(100);
+
+        /* power on */
+        devctl = USBC_Readb(USBC_REG_DEVCTL(usbc_base));
+    	devctl |= (1 << USBC_BP_DEVCTL_SESSION);
+    	USBC_Writeb(devctl, USBC_REG_DEVCTL(usbc_base));
+
+        USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_HIGH);
+
+        sw_hcd_set_vbus(sw_hcd, 1);
 
 		sw_hcd->ep0_stage = SW_HCD_EP0_START;
-		SW_HCD_HST_MODE(sw_hcd);
-		sw_hcd_set_vbus(sw_hcd, 1);
 
 		handled = IRQ_HANDLED;
 	}
@@ -836,23 +846,44 @@ static irqreturn_t sw_hcd_stage0_irq(struct sw_hcd *sw_hcd, u8 int_usb, u8 devct
 
 		USBC_INT_ClearMiscPending(sw_hcd->sw_hcd_io->usb_bsp_hdle, (1 << USBC_BP_INTUSB_RESET));
 
-	    if (is_host_capable() && (devctl & (1 << USBC_BP_DEVCTL_HOST_MODE)) != 0) {
-			/*
-			 * Looks like non-HS BABBLE can be ignored, but
-			 * HS BABBLE is an error condition. For HS the solution
-			 * is to avoid babble in the first place and fix what
-			 * caused BABBLE. When HS BABBLE happens we can only
-			 * stop the session.
-			 */
-			if (devctl & ((1 << USBC_BP_DEVCTL_FS_DEV) | (1 << USBC_BP_DEVCTL_LS_DEV))){
-				DMSG_DBG_HCD("sw_hcd_stage0_irq, BABBLE devctl: %02x\n", devctl);
-			}else{
-				DMSG_DBG_HCD("sw_hcd_stage0_irq, Stopping host session -- babble\n");
+        //把babble当作disconnect处理
+		USBC_Host_SetFunctionAddress_Deafult(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_TX, 0);
+		{
+		    u32 i = 1;
 
-				USBC_Writeb(0x00, USBC_REG_DEVCTL(usbc_base));
+			for( i = 1 ; i <= 5; i++){
+				USBC_Host_SetFunctionAddress_Deafult(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_TX, i);
+				USBC_Host_SetFunctionAddress_Deafult(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_RX, i);
 			}
 		}
 
+		/* 清除关于拔出设备的所有中断, 目前没有hub, 所以可以清除所有中断 */
+		USBC_INT_ClearMiscPendingAll(sw_hcd->sw_hcd_io->usb_bsp_hdle);
+		USBC_INT_ClearEpPendingAll(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_TX);
+		USBC_INT_ClearEpPendingAll(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_EP_TYPE_RX);
+
+        /* power down */
+        devctl = USBC_Readb(USBC_REG_DEVCTL(usbc_base));
+    	devctl &= ~(1 << USBC_BP_DEVCTL_SESSION);
+    	USBC_Writeb(devctl, USBC_REG_DEVCTL(usbc_base));
+
+        USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_LOW);
+
+        sw_hcd_set_vbus(sw_hcd, 0);
+
+        /* delay */
+        mdelay(100);
+
+        /* power on */
+        devctl = USBC_Readb(USBC_REG_DEVCTL(usbc_base));
+    	devctl |= (1 << USBC_BP_DEVCTL_SESSION);
+    	USBC_Writeb(devctl, USBC_REG_DEVCTL(usbc_base));
+
+        USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_HIGH);
+
+        sw_hcd_set_vbus(sw_hcd, 1);
+
+        /* disconnect */
 		sw_hcd->ep0_stage = SW_HCD_EP0_START;
 		usb_hcd_resume_root_hub(sw_hcd_to_hcd(sw_hcd));
 		sw_hcd_root_disconnect(sw_hcd);

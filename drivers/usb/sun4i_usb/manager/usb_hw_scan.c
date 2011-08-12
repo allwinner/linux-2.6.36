@@ -659,9 +659,9 @@ __s32 usb_hw_scan_init(struct usb_cfg *cfg)
 							/* set config, input */
 							gpio_set_one_pin_io_status(scan_info->det_vbus_hdle, 0, NULL);
 
-							/* reserved is pull up */
+							/* reserved is disable */
 							if(need_pull_pio){
-								gpio_set_one_pin_pull(scan_info->det_vbus_hdle, 2, NULL);
+								gpio_set_one_pin_pull(scan_info->det_vbus_hdle, 0, NULL);
 							}
 						break;
 

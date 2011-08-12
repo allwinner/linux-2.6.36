@@ -458,21 +458,26 @@ static __s32 pin_exit(sw_hcd_io_t *sw_hcd_io)
 */
 static void sw_hcd_board_set_vbus(struct sw_hcd *sw_hcd, int is_on)
 {
+    u32 on_off = 0;
+
+	DMSG_INFO("[%s]: Set USB Power %s\n", sw_hcd->driver_name, (is_on ? "ON" : "OFF"));
+
+    /* set power */
+    if(sw_hcd->sw_hcd_io->drv_vbus_gpio_set.data == 0){
+        on_off = is_on ? 1 : 0;
+    }else{
+        on_off = is_on ? 0 : 1;
+    }
+
 	/* set gpio data */
-	if(is_on){
-		gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, 1, NULL);
-	}else{
-		gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, 0, NULL);
-	}
+	gpio_write_one_pin_value(sw_hcd->sw_hcd_io->Drv_vbus_Handle, on_off, NULL);
 
 	if(is_on){
 		USBC_Host_StartSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_HIGH);
-		DMSG_INFO_HCD0("INFO : USB VBus power ON\n");
 	}else{
 		USBC_Host_EndSession(sw_hcd->sw_hcd_io->usb_bsp_hdle);
 		USBC_ForceVbusValid(sw_hcd->sw_hcd_io->usb_bsp_hdle, USBC_VBUS_TYPE_DISABLE);
-		DMSG_INFO_HCD0("INFO : USB VBus power OFF\n");
 	}
 
 	return;
