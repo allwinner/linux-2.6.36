@@ -316,7 +316,7 @@ static void awsmc_cd_timer(unsigned long data)
 //    awsmc_dbg("cd %d, host present %d, cur present %d\n", gpio_val, smc_host->present, present);
 
     if (smc_host->present ^ present) {
-        awsmc_dbg("card detect change, present %d\n", present);
+        awsmc_msg("mmc %d detect change, present %d\n", smc_host->pdev->id, present);
         smc_host->present = present;
         mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
     } else {
@@ -364,7 +364,7 @@ static irqreturn_t awsmc_irq(int irq, void *dev_id)
     if (smc_host->sdio_int)
     {
         mmc_signal_sdio_irq(smc_host->mmc);
-    	awsmc_dbg("- sdio int -\n");
+    	//awsmc_dbg("- sdio int -\n");
     }
 
     /* card detect change */
@@ -412,11 +412,11 @@ static void awsmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
         if ((ios->power_mode == MMC_POWER_ON) || (ios->power_mode == MMC_POWER_UP))
         {
-        	awsmc_msg("running at %dkHz (requested: %dkHz).\n", smc_host->real_cclk/1000, ios->clock/1000);
+        	awsmc_dbg("running at %dkHz (requested: %dkHz).\n", smc_host->real_cclk/1000, ios->clock/1000);
         }
         else
         {
-        	awsmc_msg("powered down.\n");
+        	awsmc_dbg("powered down.\n");
         }
     }
 
@@ -956,7 +956,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     	goto probe_free_resource;
     }
 
-    if (request_irq(smc_host->irq, awsmc_irq, IRQF_SHARED, DRIVER_NAME, smc_host))
+    if (request_irq(smc_host->irq, awsmc_irq, 0, DRIVER_NAME, smc_host))
     {
     	dev_err(&pdev->dev, "Failed to request smc card interrupt.\n");
     	ret = -ENOENT;

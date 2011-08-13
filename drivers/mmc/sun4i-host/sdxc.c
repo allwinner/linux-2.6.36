@@ -652,10 +652,10 @@ static void  sdxc_init_idma_des(struct awsmc_host* smc_host, struct mmc_data* da
                 pdes[des_idx].buf_addr_ptr2 = __pa(&pdes[des_idx+1]);
             }
 			
-            awsmc_info("sg %d, frag %d, remain %d, des[%d](%08x): [0] = %08x, [1] = %08x, [2] = %08x, [3] = %08x\n", i, j, remain, 
-                                                                             des_idx, (u32)&pdes[des_idx], 
-                                                                             (u32)((u32*)&pdes[des_idx])[0], (u32)((u32*)&pdes[des_idx])[1], 
-                                                                             (u32)((u32*)&pdes[des_idx])[2], (u32)((u32*)&pdes[des_idx])[3]);
+//            awsmc_info("sg %d, frag %d, remain %d, des[%d](%08x): [0] = %08x, [1] = %08x, [2] = %08x, [3] = %08x\n", i, j, remain, 
+//                                                                             des_idx, (u32)&pdes[des_idx], 
+//                                                                             (u32)((u32*)&pdes[des_idx])[0], (u32)((u32*)&pdes[des_idx])[1], 
+//                                                                             (u32)((u32*)&pdes[des_idx])[2], (u32)((u32*)&pdes[des_idx])[3]);
 																			 
         }
     }
@@ -874,7 +874,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     msk_int = sdc_read(SDXC_REG_MISTA);
     
     smc_host->int_sum |= raw_int;
-    awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
+    //awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
     
 	if (msk_int & SDXC_SDIOInt) 
 	{
@@ -970,7 +970,7 @@ s32 sdxc_request_done(struct awsmc_host* smc_host)
     		smc_host->int_sum & SDXC_StartBitErr ? " SBE"    : "",
     		smc_host->int_sum & SDXC_EndBitErr   ? " EBE"    : ""
     		);
-    		
+        
     	ret = -1;
         goto _out_;
     }
@@ -1010,9 +1010,11 @@ _out_:
     }
     
     temp = sdc_read(SDXC_REG_STAS);
-    if ((temp & SDXC_DataFSMBusy) || (smc_host->int_sum & (SDXC_RespErr | SDXC_HardWLocked)))
+    if ((temp & SDXC_DataFSMBusy) || (smc_host->int_sum & (SDXC_RespErr | SDXC_HardWLocked | SDXC_RespTimeout)))
     {
-        awsmc_dbg_err("smc %d data FSM busy or SDXC_HardWLocked\n", smc_host->pdev->id);
+        awsmc_dbg("sdc %d abnormal status: %s %s\n", smc_host->pdev->id,
+                                                  temp & SDXC_DataFSMBusy ? "DataFSMBusy" : "",
+                                                  smc_host->int_sum & SDXC_HardWLocked ? "HardWLocked" : "");
         sdxc_reset(smc_host);
         sdxc_program_clk(smc_host);
     }
