@@ -16,6 +16,18 @@
 #include "mali_osk.h"
 #include "mali_platform.h"
 
+#include <linux/module.h>  
+#include <linux/clk.h>
+#include <mach/gpio_v2.h>
+#include <mach/irqs.h>
+#include <mach/script_v2.h>
+
+int mali_clk_div = 3;
+module_param(mali_clk_div, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(mali_clk_div, "Clock divisor for mali");
+
+struct clk *h_ahb_mali, *h_mali_clk, *h_ve_pll;;
+
 #if USING_MALI_PMM
 
 #include "mali_pmm.h"
@@ -66,6 +78,63 @@ void pmm_pmu_test( platform_pmu_t *pmu, u32 cores );
 
 _mali_osk_errcode_t mali_platform_init(_mali_osk_resource_t *resource)
 {
+	unsigned long rate;
+	int clk_div;
+	int mali_used = 0;
+	
+	//get mali ahb clock
+	h_ahb_mali = clk_get(NULL, "ahb_mali");
+	if(!h_ahb_mali){
+		MALI_PRINT(("try to get ahb mali clock failed!\n"));
+	}
+	//get mali clk
+	h_mali_clk = clk_get(NULL, "mali");
+	if(!h_mali_clk){
+		MALI_PRINT(("try to get mali clock failed!\n"));
+	}
+
+	h_ve_pll = clk_get(NULL, "ve_pll");
+	if(!h_ve_pll){
+		MALI_PRINT(("try to get ve pll clock failed!\n"));
+	}
+
+	//set mali parent clock
+	if(clk_set_parent(h_mali_clk, h_ve_pll)){
+		MALI_PRINT(("try to set mali clock source failed!\n"));
+	}
+	
+	//set mali clock
+	rate = clk_get_rate(h_ve_pll);
+
+	if(!script_parser_fetch("mali_para", "mali_used", &mali_used, 1)) {
+		if (mali_used == 1) {
+			if (!script_parser_fetch("mali_para", "mali_clkdiv", &clk_div, 1)) {
+				if (clk_div > 0) {
+					pr_info("mali: use config clk_div %d\n", clk_div);
+					mali_clk_div = clk_div;
+				}
+			}
+		}
+	}
+
+	pr_info("mali: clk_div %d\n", mali_clk_div);
+	rate /= mali_clk_div;
+
+	if(clk_set_rate(h_mali_clk, rate)){
+		MALI_PRINT(("try to set mali clock failed!\n"));
+	}
+	
+	if(clk_enable(h_ahb_mali)){
+		MALI_PRINT(("try to enable mali ahb failed!\n"));
+	}
+	if(clk_enable(h_mali_clk)){
+		MALI_PRINT(("try to enable mali clock failed!\n"));
+	}
+	if(clk_reset(h_mali_clk,0)){
+		MALI_PRINT(("try to reset release failed!\n"));
+	}
+	MALI_PRINT(("mali clock set completed, clock is  %d Mhz\n", rate));
+	
 #if USING_MALI_PMM
 	if( resource == NULL )
 	{
@@ -174,11 +243,18 @@ _mali_osk_errcode_t mali_platform_deinit(_mali_osk_resource_type_t *type)
 		/* Didn't expect a different resource */
 		MALI_ERROR(_MALI_OSK_ERR_INVALID_ARGS);
 	}	
-		
+	//close clock
+	MALI_PRINT(("free mali clk\n"));
+	clk_disable(h_mali_clk);
+	clk_disable(h_ahb_mali);	
 	MALI_SUCCESS;
 
 #else
 	/* Nothing to do when not using PMM */
+	//close clock
+	MALI_PRINT(("free mali clk\n"));
+	clk_disable(h_mali_clk);
+	clk_disable(h_ahb_mali);
 	MALI_SUCCESS;
 #endif
 }

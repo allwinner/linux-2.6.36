@@ -19,12 +19,6 @@
 #include <asm/uaccess.h>    /* user space access */
 #include <linux/device.h>
 #include <linux/major.h>
-#include <linux/clk.h>
-
-#include <mach/gpio_v2.h>
-#include <mach/irqs.h>
-#include <mach/script_v2.h>
-
 
 /* the mali kernel subsystem types */
 #include "mali_kernel_subsystem.h"
@@ -59,11 +53,6 @@ int mali_major = MALI_MAJOR;
 int mali_benchmark = 0;
 module_param(mali_benchmark, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH); /* rw-rw-r-- */
 MODULE_PARM_DESC(mali_benchmark, "Bypass Mali hardware when non-zero");
-
-int mali_clk_div = 3;
-module_param(mali_clk_div, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH);
-MODULE_PARM_DESC(mali_clk_div, "Clock divisor for mali");
-
 
 extern int mali_hang_check_interval;
 module_param(mali_hang_check_interval, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH);
@@ -111,67 +100,9 @@ struct file_operations mali_fops =
 };
 
 
-struct clk *h_ahb_mali, *h_mali_clk, *h_ve_pll;
-
 int mali_driver_init(void)
 {
 	int err;
-	unsigned long rate;
-	int clk_div;
-	int mali_used = 0;
-	
-	//get mali ahb clock
-	h_ahb_mali = clk_get(NULL, "ahb_mali");
-	if(!h_ahb_mali){
-		MALI_PRINT(("try to get ahb mali clock failed!\n"));
-	}
-	//get mali clk
-	h_mali_clk = clk_get(NULL, "mali");
-	if(!h_mali_clk){
-		MALI_PRINT(("try to get mali clock failed!\n"));
-	}
-
-	h_ve_pll = clk_get(NULL, "ve_pll");
-	if(!h_ve_pll){
-		MALI_PRINT(("try to get dram pll clock failed!\n"));
-	}
-
-	//set mali parent clock
-	if(clk_set_parent(h_mali_clk, h_ve_pll)){
-		MALI_PRINT(("try to get video pll1 clock failed!\n"));
-	}
-	
-	//set mali clock
-	rate = clk_get_rate(h_ve_pll);
-
-	if(!script_parser_fetch("mali_para", "mali_used", &mali_used, 1)) {
-		if (mali_used == 1) {
-			if (!script_parser_fetch("mali_para", "mali_clkdiv", &clk_div, 1)) {
-				if (clk_div > 0) {
-					pr_info("mali: use config clk_div %d\n", clk_div);
-					mali_clk_div = clk_div;
-				}
-			}
-		}
-	}
-
-	pr_info("mali: clk_div %d\n", mali_clk_div);
-	rate /= mali_clk_div;
-
-	if(clk_set_rate(h_mali_clk, rate)){
-		MALI_PRINT(("try to get video pll1 clock failed!\n"));
-	}
-	
-	if(clk_enable(h_ahb_mali)){
-		MALI_PRINT(("try to enable mali ahb failed!\n"));
-	}
-	if(clk_enable(h_mali_clk)){
-		MALI_PRINT(("try to enable mali clock failed!\n"));
-	}
-	if(clk_reset(h_mali_clk,0)){
-		MALI_PRINT(("try to reset release failed!\n"));
-	}
-	MALI_PRINT(("mali clock set completed, clock is  %d Mhz--\n", rate));
 	
 #if USING_MALI_PMM
 #if MALI_LICENSE_IS_GPL
@@ -226,10 +157,6 @@ void mali_driver_exit(void)
 #endif
 #endif
 #endif
-	//close clock
-	MALI_PRINT(("free mali clk\n"));
-	clk_disable(h_mali_clk);
-	clk_disable(h_ahb_mali);
 	
 }
 
