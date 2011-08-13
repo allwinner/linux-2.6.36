@@ -34,7 +34,6 @@
 #include "sun4i-codec.h"
 #include <mach/gpio_v2.h>
 #include <mach/system.h>
-#include <linux/list.h>
 static int gpio_pa_shutdown = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
@@ -1430,8 +1429,8 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
 	printk("[audio codec]:suspend start\n");
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
-	msleep(100);
+	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	mdelay(100);
 		//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	 mdelay(500);
@@ -1490,8 +1489,8 @@ static int __devexit sw_codec_remove(struct platform_device *devptr)
 
 static void sw_codec_shutdown(struct platform_device *devptr)
 {
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
-	msleep(100);
+	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	mdelay(100);
 		//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	 mdelay(500);
