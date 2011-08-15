@@ -284,15 +284,15 @@ const unsigned int AXP19_NOTIFIER_ON = 		AXP19_IRQ_USBOV |
 
 #define AXP20_INTTEMP							(0x5E)
 
-const unsigned int AXP20_NOTIFIER_ON = 		AXP20_IRQ_USBOV |
+const unsigned int AXP20_NOTIFIER_ON = 		//AXP20_IRQ_USBOV |
 											AXP20_IRQ_USBIN |
 				        					AXP20_IRQ_USBRE |
-				       						AXP20_IRQ_USBLO |
-				       						AXP20_IRQ_ACOV |
+				       						//AXP20_IRQ_USBLO |
+				       						//AXP20_IRQ_ACOV |
 				       						AXP20_IRQ_ACIN |
 				       						AXP20_IRQ_ACRE |
-				       						AXP20_IRQ_TEMOV |
-				       						AXP20_IRQ_TEMLO |
+				       						//AXP20_IRQ_TEMOV |
+				       						//AXP20_IRQ_TEMLO |
 				       						AXP20_IRQ_BATIN |
 				       						AXP20_IRQ_BATRE |
 				       						AXP20_IRQ_PEKLO |

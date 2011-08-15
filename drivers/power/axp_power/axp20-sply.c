@@ -107,15 +107,12 @@ static void axp_charger_update_state(struct axp_charger *charger)
   charger->batery_active = (tmp & AXP20_STATUS_BATINACT)?1:0;
   charger->low_charge_current = (tmp & AXP20_STATUS_CHACURLOEXP)?1:0;
   charger->int_over_temp = (tmp & AXP20_STATUS_ICTEMOV)?1:0;
-  axp_reads(charger->master,AXP20_INTTEMP,2,val);
-  //DBG_PSY_MSG("TEMPERATURE:val1=0x%x,val2=0x%x\n",val[1],val[0]);
-  tmp = (val[0] << 4 ) + (val[1] & 0x0F);
-  charger->ic_temp = (int) tmp  - 1447;
 }
 
 static void axp_charger_update(struct axp_charger *charger)
 {
   uint16_t tmp;
+  uint8_t val[2];
   struct axp_adc_res adc;
   charger->adc = &adc;
   axp_read_adc(charger, &adc);
@@ -131,6 +128,10 @@ static void axp_charger_update(struct axp_charger *charger)
   charger->vusb = axp20_vdc_to_mV(tmp);
   tmp = charger->adc->iusb_res;
   charger->iusb = axp20_iusb_to_mA(tmp);
+  axp_reads(charger->master,AXP20_INTTEMP,2,val);
+  //DBG_PSY_MSG("TEMPERATURE:val1=0x%x,val2=0x%x\n",val[1],val[0]);
+  tmp = (val[0] << 4 ) + (val[1] & 0x0F);
+  charger->ic_temp = (int) tmp  - 1447;
 }
 
 #if defined  (CONFIG_AXP_CHARGEINIT)
@@ -470,6 +471,7 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
     	break;
     case AXP20_IRQ_TEMOV:
 		case AXP20_IRQ_TEMLO:
+		  axp_change(charger);
         break;
     case AXP20_IRQ_PEKLO:
     	axp_presslong(charger);
@@ -478,6 +480,7 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
     	axp_pressshort(charger);
     	break;
     default:
+    	axp_change(charger);
         break;
     }
 
@@ -1169,11 +1172,14 @@ static int axp_battery_probe(struct platform_device *pdev)
   ret = power_supply_register(&pdev->dev, &charger->batt);
   if (ret)
     goto err_ps_register;
-
-  ret = power_supply_register(&pdev->dev, &charger->ac);
-  if (ret){
-    power_supply_unregister(&charger->batt);
-    goto err_ps_register;
+	
+	axp_read(charger->master,AXP20_CHARGE_STATUS,&val);
+	if(!((val >> 1) & 0x01)){
+  	ret = power_supply_register(&pdev->dev, &charger->ac);
+  	if (ret){
+    	power_supply_unregister(&charger->batt);
+    	goto err_ps_register;
+  	}
   }
   ret = power_supply_register(&pdev->dev, &charger->usb);
   if (ret){

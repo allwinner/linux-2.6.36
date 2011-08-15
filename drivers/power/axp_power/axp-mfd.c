@@ -200,26 +200,26 @@ static void axp_power_off(void)
 
 #if defined (CONFIG_AW_AXP20)
 	if(pmu_pwroff_vol >= 2600 && pmu_pwroff_vol <= 3300){
-		if (pmu_pwroff_vol > 2600){
-			val = 0x1;
-		}
-		else if (pmu_pwroff_vol > 2700){
-			val = 0x2;
-		}
-		else if (pmu_pwroff_vol > 2800){
-			val = 0x3;
-		}
-		else if (pmu_pwroff_vol > 2900){
-			val = 0x4;
-		}
-		else if (pmu_pwroff_vol > 3000){
-			val = 0x5;
+		if (pmu_pwroff_vol > 3200){
+			val = 0x7;
 		}
 		else if (pmu_pwroff_vol > 3100){
 			val = 0x6;
 		}
-		else if (pmu_pwroff_vol > 3200){
-			val = 0x7;
+		else if (pmu_pwroff_vol > 3000){
+			val = 0x5;
+		}
+		else if (pmu_pwroff_vol > 2900){
+			val = 0x4;
+		}
+		else if (pmu_pwroff_vol > 2800){
+			val = 0x3;
+		}
+		else if (pmu_pwroff_vol > 2700){
+			val = 0x2;
+		}
+		else if (pmu_pwroff_vol > 2600){
+			val = 0x1;
 		}
 		else
 			val = 0x0;
