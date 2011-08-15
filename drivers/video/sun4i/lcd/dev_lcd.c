@@ -105,10 +105,8 @@ static void __exit lcd_module_exit(void)
     cdev_del(my_cdev);
 }
 
-
-
-//late_initcall(lcd_module_init);
-module_init(lcd_module_init);
+late_initcall(lcd_module_init);
+//module_init(lcd_module_init);
 module_exit(lcd_module_exit);
 
 MODULE_AUTHOR("danling_xiao");

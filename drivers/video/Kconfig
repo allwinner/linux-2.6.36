@@ -257,18 +257,18 @@ config LYCHEE_HDMI_SUN3I
 	---help---
 	default m 
 
+config LYCHEE_HDMI_SUN4I
+        tristate "HDMI Driver Support(sun4i)"
+        depends on ARCH_SUN4I
+        ---help---
+        default m
+
 config LYCHEE_FB_SUN4I
 	tristate "DISP Driver Support(sun4i)"
 	depends on FB && ARCH_SUN4I
 	---help---
 	default m 
 
-config LYCHEE_HDMI_SUN4I
-	tristate "HDMI Driver Support(sun4i)"
-	depends on ARCH_SUN4I
-	---help---
-	default m 
-	
 config LYCHEE_LCD_SUN4I
 	tristate "LCD Driver Support(sun4i)"
 	depends on ARCH_SUN4I
