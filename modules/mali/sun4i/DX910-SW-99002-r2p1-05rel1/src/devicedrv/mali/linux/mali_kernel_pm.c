@@ -237,7 +237,7 @@ static struct platform_driver mali_plat_driver = {
 static struct early_suspend mali_dev_early_suspend = {
 	.suspend = mali_pm_early_suspend,
 	.resume = mali_pm_late_resume,
-	.level = EARLY_SUSPEND_LEVEL_DISABLE_FB,
+	.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN,
 };
 #endif /* CONFIG_HAS_EARLYSUSPEND */
 
