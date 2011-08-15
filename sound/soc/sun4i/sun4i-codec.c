@@ -34,6 +34,7 @@
 #include "sun4i-codec.h"
 #include <mach/gpio_v2.h>
 #include <mach/system.h>
+
 static int gpio_pa_shutdown = 0;
 struct clk *codec_apbclk,*codec_pll2clk,*codec_moduleclk;
 
@@ -151,7 +152,7 @@ struct sw_codec{
 	struct snd_card *card;
 	struct snd_pcm *pcm;		
 };
-//struct timer_list codec_resume_timer;
+
 static void codec_resume_events(struct work_struct *work);
 struct workqueue_struct *resume_work_queue;
 static DECLARE_WORK(codec_resume_work, codec_resume_events);
@@ -336,6 +337,7 @@ static  int codec_init(void)
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	//enable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
+	codec_wr_control(SW_DAC_FIFOC ,0x3,DRA_LEVEL,0x3);
 	//enable headphone direct 
 //	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
@@ -357,6 +359,7 @@ static int codec_play_open(void)
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
 	codec_wr_control(SW_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
+	
 	//send last sample when dac fifo under run
 	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x0);
 	//enable dac analog
@@ -1403,8 +1406,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	}
 	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	 codec_init(); 
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
-	 //setup_timer(&codec_resume_timer, codec_resume_events, (unsigned long)&codec_resume_timer);
+	 gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	 
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
         printk("[su4i-codec] try to create workqueue for codec failed!\n");
@@ -1431,9 +1433,9 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	printk("[audio codec]:suspend start\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
 	mdelay(100);
-		//pa mute
+	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
-	 mdelay(500);
+	mdelay(500);
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
@@ -1441,7 +1443,7 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 
 	//disable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
-	 //mdelay(100);
+	//mdelay(100);
 	//disable headphone direct 
 //	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
  	//mdelay(100);
@@ -1468,7 +1470,7 @@ static int snd_sw_codec_resume(struct platform_device *pdev)
 	if (-1 == clk_enable(codec_moduleclk)){
 		printk("open codec_moduleclk failed; \n");
 	}
-	//mod_timer(&codec_resume_timer, jiffies + 0);
+		
 	queue_work(resume_work_queue, &codec_resume_work);
 	printk("[audio codec]:resume end\n");
 	return 0;	
@@ -1481,7 +1483,7 @@ static int __devexit sw_codec_remove(struct platform_device *devptr)
 	clk_put(codec_pll2clk);
 	// Õ∑≈codec_apbclk ±÷”æ‰±˙
 	clk_put(codec_apbclk);
-//	kfree(codec_resume_timer);
+
 	snd_card_free(platform_get_drvdata(devptr));
 	platform_set_drvdata(devptr, NULL);
 	return 0;
@@ -1491,7 +1493,7 @@ static void sw_codec_shutdown(struct platform_device *devptr)
 {
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
 	mdelay(100);
-		//pa mute
+	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	 mdelay(500);
     //disable dac analog
