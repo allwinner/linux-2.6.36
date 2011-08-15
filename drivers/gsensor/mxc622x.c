@@ -38,6 +38,8 @@
 
 #include <linux/mxc622x.h>
 
+#include <linux/earlysuspend.h>
+
 #define DEBUG			0
 #define MAX_FAILURE_COUNT	3
 
@@ -48,6 +50,18 @@
 #define MXC622X_RETRY_COUNT	3
 
 static struct i2c_client *this_client;
+
+struct mxc622x_data {
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+#endif
+} this_data;
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void mxc622x_early_suspend(struct early_suspend *h);
+static void mxc622x_late_resume(struct early_suspend *h);
+#endif
+
 
 static int mxc622x_i2c_rx_data(char *buf, int len)
 {
@@ -240,6 +254,12 @@ int mxc622x_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		pr_err("%s: device_create_file failed\n", __FUNCTION__);
 		goto out_deregister;
 	}
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	this_data.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	this_data.early_suspend.suspend = mxc622x_early_suspend;
+	this_data.early_suspend.resume = mxc622x_late_resume;
+	register_early_suspend(&this_data.early_suspend);
+#endif
 
 	return 0;
 
@@ -249,8 +269,39 @@ out:
 	return res;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static void mxc622x_early_suspend(struct early_suspend *h)
+{
+	unsigned char data[4] = {0};
+
+	data[0] = MXC622X_REG_CTRL;
+	data[1] = MXC622X_CTRL_PWRDN;
+	if (mxc622x_i2c_tx_data(data, 2) < 0) {
+		pr_warning("mxc622x_early_suspend: power down mxc622x err\n");
+	}
+	/* wait PWRDN done */
+	msleep(MXC622X_DELAY_PWRDN);
+}
+
+static void mxc622x_late_resume(struct early_suspend *h)
+{
+	unsigned char data[4] = {0};
+
+	data[0] = MXC622X_REG_CTRL;
+	data[1] = MXC622X_CTRL_PWRON;
+	if (mxc622x_i2c_tx_data(data, 2) < 0) {
+		pr_err("mxc622x_late_resume: power on mxc622x err\n");
+	}
+	/* wait PWRON done */
+	msleep(MXC622X_DELAY_PWRON);
+}
+#endif /* CONFIG_HAS_EARLYSUSPEND */
+
 static int mxc622x_remove(struct i2c_client *client)
 {
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	unregister_early_suspend(&this_data.early_suspend);
+#endif
 	device_remove_file(&client->dev, &dev_attr_mxc622x);
 	misc_deregister(&mxc622x_device);
 

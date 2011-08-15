@@ -190,6 +190,20 @@ __s32 BSP_disp_tv_open(__u32 sel)
 
         Disp_Switch_Dram_Mode(DISP_OUTPUT_TYPE_TV, tv_mod);
 
+        {
+            __hdle gpio_pa_shutdown;
+
+            gpio_pa_shutdown = OSAL_GPIO_Request_Ex("audio_para", "audio_pa_ctrl");
+            if(!gpio_pa_shutdown) 
+            {
+                DE_WRN("audio codec_wakeup request gpio fail!\n");
+            }
+            else
+            {
+                OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+            }
+        }
+	 
         gdisp.screen[sel].b_out_interlace = Disp_get_screen_scan_mode(tv_mod);
         gdisp.screen[sel].status |= TV_ON;
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
@@ -220,7 +234,21 @@ __s32 BSP_disp_tv_close(__u32 sel)
                 Scaler_Set_Outitl(scaler_index, FALSE);
             }
         }
+        
+        {
+            __hdle gpio_pa_shutdown;
 
+            gpio_pa_shutdown = OSAL_GPIO_Request_Ex("audio_para", "audio_pa_ctrl");
+            if(!gpio_pa_shutdown) 
+            {
+                DE_WRN("audio codec_wakeup request gpio fail!\n");
+            }
+            else
+            {
+                OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 1, "audio_pa_ctrl");
+            }
+        }
+        
 		gdisp.screen[sel].b_out_interlace = 0;
         gdisp.screen[sel].status &= TV_OFF;
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;

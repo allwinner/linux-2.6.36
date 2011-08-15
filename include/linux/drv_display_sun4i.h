@@ -444,6 +444,27 @@ typedef struct
 	__u32 base_ccmu;
 	__u32 base_pwm;
 }__reg_bases_t;
+
+typedef void (*LCD_FUNC) (__u32 sel);
+typedef struct lcd_function
+{
+    LCD_FUNC func;
+    __u32 delay;//ms
+}__lcd_function_t;
+
+typedef struct lcd_flow
+{
+    __lcd_function_t func[5];
+    __u32 func_num;
+}__lcd_flow_t;
+
+typedef struct
+{
+    void (*cfg_panel_info)(__panel_para_t * info);
+    __s32 (*cfg_open_flow)(__u32 sel);
+    __s32 (*cfg_close_flow)(__u32 sel);
+}__lcd_panel_fun_t;
+
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

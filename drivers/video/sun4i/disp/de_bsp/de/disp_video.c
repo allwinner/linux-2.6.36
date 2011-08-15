@@ -274,6 +274,7 @@ __s32 BSP_disp_video_get_dit_info(__u32 sel, __u32 hid, __disp_dit_info_t * dit_
 	}
 	return DIS_SUCCESS;
 }
+
 __s32 BSP_disp_video_start(__u32 sel, __u32 hid)
 {
     hid = HANDTOID(hid);

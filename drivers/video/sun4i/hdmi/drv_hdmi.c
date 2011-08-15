@@ -217,9 +217,11 @@ int Hdmi_run_thread(void *parg)
 	return 0;
 }
 
-
+extern void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func);
 __s32 Hdmi_init(void)
 {	    
+    __audio_hdmi_func hdmi_func;
+    
 	run_sem = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
 	sema_init((struct semaphore*)run_sem,0);
 	
@@ -237,6 +239,10 @@ __s32 Hdmi_init(void)
 
     Hdmi_set_reg_base((__u32)ghdmi.io);
 	Hdmi_hal_init();
+
+    hdmi_func.hdmi_audio_enable = Hdmi_Audio_Enable;
+    hdmi_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
+	audio_set_hdmi_func(&hdmi_func);
 
 	return 0;
 }

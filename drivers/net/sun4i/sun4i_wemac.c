@@ -2098,8 +2098,7 @@ wemac_probe(struct platform_device *pdev)
 	}
 
 	if (!is_valid_ether_addr(ndev->dev_addr))
-		dev_warn(db->dev, "%s: Invalid ethernet MAC address. Please "
-			 "set using ifconfig\n", ndev->name);
+		pr_info("Invalid MAC address. Please set using ifconfig\n");
 
 	platform_set_drvdata(pdev, ndev);
 	ret = register_netdev(ndev);

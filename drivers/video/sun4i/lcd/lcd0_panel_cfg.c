@@ -33,7 +33,7 @@ static void LCD_power_off(__u32 sel)
 ////////////////////////////////////////   back light   ////////////////////////////////////////////////////////////////////
 static void LCD_bl_open(__u32 sel)
 {
-    /LCD_BL_EN(sel, 1);
+    LCD_BL_EN(sel, 1);
     LCD_PWM_EN(sel, 1);
 }
 
@@ -49,3 +49,4 @@ void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun)
     fun->cfg_open_flow = LCD_open_flow;
     fun->cfg_close_flow = LCD_close_flow;
 }
+

@@ -87,8 +87,8 @@ static __inline void list_free_node(list_head_t * node)
 {
 	if(node != NULL)
 	{
-		OSAL_free(node->data);
-		OSAL_free(node);
+		OSAL_free((void *)(node->data));
+		OSAL_free((void *)node);
 		node = NULL;
 	}
 }
@@ -104,7 +104,7 @@ static list_head_t * List_New_Sprite_Block(__u32 sel, __disp_sprite_block_para_t
 	
 	if(id != DIS_NO_RES)
 	{
-		data = OSAL_malloc(sizeof(sprite_block_data_t));
+		data = (sprite_block_data_t *)OSAL_malloc(sizeof(sprite_block_data_t));
 		data->enable = FALSE;
 		data->id = id;
 		data->src_win.x = para->src_win.x;
@@ -116,7 +116,7 @@ static list_head_t * List_New_Sprite_Block(__u32 sel, __disp_sprite_block_para_t
 		data->address = (__u32)para->fb.addr[0];
 		data->size.width = para->fb.size.width;
 		
-		node = OSAL_malloc(sizeof(list_head_t));
+		node = (list_head_t *)OSAL_malloc(sizeof(list_head_t));
 		node->next = node->prev = node;
 		node->data = data;
 
