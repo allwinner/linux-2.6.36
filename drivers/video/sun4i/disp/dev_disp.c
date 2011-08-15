@@ -338,22 +338,12 @@ __s32 DRV_DISP_Init(void)
     para.scaler_begin   		= DRV_scaler_begin;
     para.scaler_finish  		= DRV_scaler_finish;
     para.tve_interrup   		= NULL;
-#ifdef CONFIG_LYCHEE_HDMI_SUN4I
 	para.Hdmi_open  			= Hdmi_open;
 	para.Hdmi_close  			= Hdmi_close;
 	para.hdmi_set_mode  		= Hdmi_set_display_mode;
 	para.hdmi_mode_support		= Hdmi_mode_support;
 	para.hdmi_get_HPD_status	= Hdmi_get_HPD_status;
 	para.hdmi_set_pll	        = Hdmi_set_pll;
-#else
-	para.Hdmi_open  			= NULL;
-	para.Hdmi_close  			= NULL;
-	para.hdmi_set_mode  		= NULL;
-	para.hdmi_mode_support		= NULL;
-	para.hdmi_get_HPD_status	= NULL;
-	para.hdmi_set_pll	        = NULL;
-
-#endif
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
@@ -368,8 +358,8 @@ __s32 DRV_DISP_Init(void)
 
     BSP_disp_init(&para);
     BSP_disp_open();
-    Fb_Init();
     
+    Fb_Init();
     
     return 0;        
 }
@@ -647,7 +637,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
-    DRV_DISP_Init();
+    //DRV_DISP_Init();
 
 	return 0;
 
@@ -1526,6 +1516,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
     	case DISP_CMD_HDMI_SET_MODE:
+    		//ubuffer[1] = DISP_TV_MOD_1080P_50HZ;
     		ret = BSP_disp_hdmi_set_mode(ubuffer[0], ubuffer[1]);
     		break;
 
@@ -1905,7 +1896,8 @@ int __init disp_module_init(void)
 #ifdef CONFIG_HAS_EARLYSUSPEND
     register_early_suspend(&backlight_early_suspend_handler);
 #endif
-    __inf("disp major:%d\n", MAJOR(devid));
+
+    printk("disp_module_init, major:%d\n", MAJOR(devid));
 
 	return ret;
 }
@@ -1927,6 +1919,8 @@ static void __exit disp_module_exit(void)
 
     cdev_del(my_cdev);
 }
+
+EXPORT_SYMBOL(DRV_DISP_Init);
 
 late_initcall(disp_module_init);
 //module_init(disp_module_init);

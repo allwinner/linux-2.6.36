@@ -1,5 +1,4 @@
-#include "ebios_lcdc_tve.h"
-
+/*
 const __disp_vga_t disp_vga_h1024_v768 = 
 {
 	//__u32	pixel_clk;
@@ -29,4 +28,4 @@ const __disp_vga_t disp_vga_h1024_v768 =
 	//__bool	ver_sync_polarity;
 	0,	
 };
-
+*/

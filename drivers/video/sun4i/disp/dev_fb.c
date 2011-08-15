@@ -1277,22 +1277,34 @@ __s32 Fb_Init(void)
             fb_para.output_height = BSP_disp_get_screen_height(screen_id);
             Display_Fb_Request(i, &fb_para);
             
-            fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
+            //fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
         }
 
-        BSP_disp_print_reg(0, DISP_REG_SCALER0);
-        BSP_disp_print_reg(0, DISP_REG_SCALER1);
+        if(disp_init.scaler_mode[0])
+        {
+            BSP_disp_print_reg(0, DISP_REG_SCALER0);
+        }
+        if(disp_init.scaler_mode[1])
+        {
+            BSP_disp_print_reg(0, DISP_REG_SCALER1);
+        }
     	if(disp_init.disp_mode != DISP_INIT_MODE_SCREEN1)
     	{
             BSP_disp_print_reg(0, DISP_REG_IMAGE0);
             BSP_disp_print_reg(0, DISP_REG_LCDC0);
-            BSP_disp_print_reg(0, DISP_REG_TVEC0); 
+            if((disp_init.output_type[0] == DISP_OUTPUT_TYPE_TV) || (disp_init.output_type[0] == DISP_OUTPUT_TYPE_VGA))
+            {
+                BSP_disp_print_reg(0, DISP_REG_TVEC0);
+            }
         }
         if(disp_init.disp_mode != DISP_INIT_MODE_SCREEN0)
         {
     	    BSP_disp_print_reg(0, DISP_REG_IMAGE1);
     	    BSP_disp_print_reg(0, DISP_REG_LCDC1); 
-    	    BSP_disp_print_reg(0, DISP_REG_TVEC1); 
+    	    if((disp_init.output_type[1] == DISP_OUTPUT_TYPE_TV) || (disp_init.output_type[1] == DISP_OUTPUT_TYPE_VGA))
+            {
+                BSP_disp_print_reg(0, DISP_REG_TVEC1);
+            }
         }
         BSP_disp_print_reg(0, DISP_REG_CCMU); 
         BSP_disp_print_reg(0, DISP_REG_PWM);

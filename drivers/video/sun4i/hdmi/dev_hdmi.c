@@ -195,7 +195,7 @@ int __init hdmi_module_init(void)
 		ret = platform_driver_register(&hdmi_driver);
 	}
 	
-    __inf("hdmi major:%d\n", MAJOR(devid));
+    printk("hdmi_module_init, major:%d\n", MAJOR(devid));
 
 	return ret;
 }

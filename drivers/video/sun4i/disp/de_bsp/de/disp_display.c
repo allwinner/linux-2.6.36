@@ -219,7 +219,7 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
 
     if(b_force_on)
     {
-        printk("%s", str);
+        OSAL_PRINTF("%s", str);
     }
     else
     {
@@ -236,7 +236,7 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
 
         if(b_force_on)
         {
-            printk("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+            OSAL_PRINTF("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
         }
         else
         {

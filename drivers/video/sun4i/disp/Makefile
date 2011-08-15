@@ -9,5 +9,5 @@ disp-objs :=  dev_disp.o dev_fb.o\
 							de_bsp/de/disp_event.o de_bsp/de/disp_hdmi.o de_bsp/de/disp_hwc.o de_bsp/de/disp_layer.o\
 							de_bsp/de/disp_lcd.o de_bsp/de/disp_scaler.o de_bsp/de/disp_sprite.o de_bsp/de/disp_tv.o\
 							de_bsp/de/disp_vga.o de_bsp/de/disp_video.o\
-							de_bsp/lcd/lcd0_panel_cfg.o de_bsp/lcd/lcd1_panel_cfg.o\
+							#de_bsp/lcd/lcd0_panel_cfg.o de_bsp/lcd/lcd1_panel_cfg.o\
 

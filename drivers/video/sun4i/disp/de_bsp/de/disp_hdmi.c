@@ -133,7 +133,9 @@ __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t  mode)
         DE_WRN("unsupported hdmi mode:%d in BSP_disp_hdmi_set_mode\n", mode);
         return DIS_FAIL;
     }
-
+	
+	//mode = DISP_TV_MOD_1080P_24HZ_3D_FP;
+	
 	if(gdisp.init_para.hdmi_set_mode)
 	{
 	    gdisp.init_para.hdmi_set_mode(mode);

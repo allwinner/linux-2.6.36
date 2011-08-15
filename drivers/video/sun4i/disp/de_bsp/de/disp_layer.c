@@ -5,6 +5,7 @@
 #include "disp_event.h"
 #include "disp_clk.h"
 
+static __disp_output_type_t g_out_3d = 0;
 
 static __s32 Layer_Get_Idle_Hid(__u32 sel)
 {
@@ -407,6 +408,23 @@ __s32 BSP_disp_layer_release(__u32 sel, __u32 hid)
     BSP_disp_cfg_start(sel);
     
     layer_man = &gdisp.screen[sel].layer_manage[hid];
+    
+    if(g_out_3d)
+    {
+        BSP_disp_hdmi_close(sel);
+        set_current_state(TASK_INTERRUPTIBLE);
+        schedule_timeout(60 * HZ / 1000);//60ms
+
+        BSP_disp_hdmi_set_mode(sel, DISP_TV_MOD_1080P_50HZ);
+        BSP_disp_hdmi_open(sel);
+
+        g_out_3d = 0;
+
+        set_current_state(TASK_INTERRUPTIBLE);
+        schedule_timeout(60 * HZ / 1000);//60ms
+
+    }
+    
     if(layer_man->status & LAYER_USED)
     {
         if(layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER)
@@ -749,6 +767,15 @@ __s32 BSP_disp_layer_set_screen_window(__u32 sel, __u32 hid,__disp_rect_t * regn
     }
 	
     layer_man = &gdisp.screen[sel].layer_manage[hid];
+
+    if(g_out_3d)
+    {
+        regn->x = 0;
+        regn->y = 0;
+        regn->width = BSP_disp_get_screen_width(sel);
+        regn->height = BSP_disp_get_screen_height(sel);
+    }
+
     if(layer_man->status & LAYER_USED)
     {
     	BSP_disp_cfg_start(sel);
@@ -828,6 +855,8 @@ __s32 BSP_disp_layer_get_screen_window(__u32 sel, __u32 hid,__disp_rect_t *regn)
     }
 }
 
+    
+
 __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
 {
     __s32 ret;
@@ -835,7 +864,33 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
     __layer_man_t * layer_man;
     __u32 prio_tmp = 0;
     __u32 size;
-    
+
+    if(0)//player->fb.format == DISP_FORMAT_YUV420)
+    {
+        g_out_3d = 1;
+        if(g_out_3d)
+        {
+            BSP_disp_hdmi_close(sel);
+
+            set_current_state(TASK_INTERRUPTIBLE);
+            schedule_timeout(60 * HZ / 1000);//60ms
+
+            BSP_disp_hdmi_set_mode(sel, DISP_TV_MOD_1080P_24HZ_3D_FP);
+            BSP_disp_hdmi_open(sel);            
+        }
+        
+        set_current_state(TASK_INTERRUPTIBLE);
+        schedule_timeout(60 * HZ / 1000);//60ms
+
+        player->fb.b_trd_src = 1;
+        player->fb.trd_mode = DISP_3D_SRC_MODE_SSH;
+        
+        player->scn_win.x = 0;
+        player->scn_win.y = 0;
+        player->scn_win.width = BSP_disp_get_screen_width(sel);
+        player->scn_win.height = BSP_disp_get_screen_height(sel);
+    }
+
     player->b_from_screen = 0;
     
     hid = HANDTOID(hid);

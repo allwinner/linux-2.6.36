@@ -648,7 +648,7 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.src_x       = 1920;
         cfg.src_y       = 2160;
         cfg.scl_x       = 1920;
-        cfg.scl_y       = 2160;
+        cfg.scl_y       = 2160 + 45;
         cfg.out_x       = 1920;
         cfg.out_y       = 2160 + 45;
         cfg.ht       = 2749;

@@ -2,12 +2,16 @@
 #ifndef __LCD_PANNEL_CFG_H__
 #define __LCD_PANNEL_CFG_H__
 
-#include "../bsp_display.h"
+#include <linux/drv_display.h>
+
 
 static void LCD_power_on(__u32 sel);
 static void LCD_power_off(__u32 sel);
 static void LCD_bl_open(__u32 sel);//打开LCD背光
 static void LCD_bl_close(__u32 sel);//关闭LCD背光
+
+void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun);
+void LCD_get_panel_funs_1(__lcd_panel_fun_t * fun);
 
 extern void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
 extern void LCD_CLOSE_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
@@ -28,8 +32,9 @@ extern __s32 LCD_GPIO_release(__u32 sel,__u32 io_index);
 extern __s32 LCD_GPIO_set_attr(__u32 sel,__u32 io_index, __bool b_output);
 extern __s32 LCD_GPIO_read(__u32 sel,__u32 io_index);
 extern __s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data);
+extern void LCD_set_panel_funs(__lcd_panel_fun_t * lcd0_cfg, __lcd_panel_fun_t * lcd1_cfg);
 
-#define BIT0          0x00000001  
+#define BIT0		  0x00000001  
 #define BIT1		  0x00000002  
 #define BIT2		  0x00000004  
 #define BIT3		  0x00000008  

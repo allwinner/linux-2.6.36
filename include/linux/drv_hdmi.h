@@ -19,4 +19,10 @@ typedef struct
 	__u8    just_pol;
 }hdmi_audio_t;
 
+typedef struct
+{
+    __s32 (*hdmi_audio_enable)(__u8 mode, __u8 channel);
+    __s32 (*hdmi_set_audio_para)(hdmi_audio_t * audio_para);
+}__audio_hdmi_func;
+
 #endif

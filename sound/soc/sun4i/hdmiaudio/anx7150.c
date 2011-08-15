@@ -23,13 +23,19 @@
 
 #include "anx7150.h"
 
-//#define CONFIG_LYCHEE_HDMI_SUN4I
+#define HDMI
 
-#ifdef CONFIG_LYCHEE_HDMI_SUN4I
-extern __s32 Hdmi_Set_Audio_Para(hdmi_audio_t * audio_para);
-extern __s32 Hdmi_Audio_Enable(__u8 mode,  __u8 channel);
+#ifdef HDMI
+static __audio_hdmi_func g_hdmi_func;
+
+void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func)
+{
+	g_hdmi_func.hdmi_audio_enable = hdmi_func->hdmi_audio_enable;
+	g_hdmi_func.hdmi_set_audio_para = hdmi_func->hdmi_set_audio_para;
+}
+
+EXPORT_SYMBOL(audio_set_hdmi_func);
 #endif
-
 
 #define ANX7150_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
 #define ANX7150_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
@@ -62,9 +68,9 @@ static int anx7150_hw_params(struct snd_pcm_substream *substream,
 {
 	hdmi_para.sample_rate = params_rate(params);
 	
-	#ifdef CONFIG_LYCHEE_HDMI_SUN4I
-		Hdmi_Audio_Enable(1, 1);
-		Hdmi_Set_Audio_Para(&hdmi_para);
+	#ifdef HDMI
+		g_hdmi_func.hdmi_audio_enable(1, 1);
+		g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
 	#endif
 
 	return 0;

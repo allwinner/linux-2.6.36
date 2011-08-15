@@ -273,14 +273,14 @@ __s32 Scaler_Init(__u32 sel)
     if(sel == 0)
     {
         OSAL_RegISR(INTC_IRQNO_SCALER0,0,Scaler_event_proc, (void *)sel,0,0);
-#ifdef __MELIS_OSAL__
+#ifndef __LINUX_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_SCALER0);
 #endif
     }
     else if(sel == 1)
     {
         OSAL_RegISR(INTC_IRQNO_SCALER1,0,Scaler_event_proc, (void *)sel,0,0);
-#ifdef __MELIS_OSAL__
+#ifndef __LINUX_OSAL__
         OSAL_InterruptEnable(INTC_IRQNO_SCALER1);
 #endif
     }
@@ -678,11 +678,7 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 	__scal_scan_mod_t out_scan;
     __u32 screen_index;
 
-if(0)
-{
-    scl->in_fb.b_trd_src = 1;
-    scl->in_fb.trd_mode = DISP_3D_SRC_MODE_SSH;
-}
+    
     scaler = &(gdisp.scaler[sel]);
     screen_index = gdisp.scaler[sel].screen_index;
 
