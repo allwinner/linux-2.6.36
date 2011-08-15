@@ -385,8 +385,16 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
         CPUFREQ_INF("set core vdd to %d\n", new_vdd);
         if(regulator_set_voltage(corevdd, new_vdd*1000, new_vdd*1000)) {
             CPUFREQ_INF("try to set voltage failed!\n");
+
+            /* notify everyone that clock transition finish */
+    	    if (policy) {
+	            freqs.cpu = 0;
+	            freqs.old = freqs.new;
+	            freqs.new = cpu_cur.pll / 1000;
+		        cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
+	        }
             return -EINVAL;
-        };
+        }
     }
     #endif
 
@@ -407,7 +415,8 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
         /* notify everyone that clock transition finish */
     	if (policy) {
 	        freqs.cpu = 0;
-	        freqs.old = freqs.new = cpu_cur.pll / 1000;
+	        freqs.old = freqs.new;
+	        freqs.new = cpu_cur.pll / 1000;
 		    cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 	    }
 
