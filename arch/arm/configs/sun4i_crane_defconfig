@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Mon Aug 15 15:41:46 2011
+# Mon Aug 15 19:39:20 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -1229,8 +1229,9 @@ CONFIG_FB=y
 #
 # Frame buffer hardware drivers
 #
-CONFIG_LYCHEE_FB_SUN4I=y
 CONFIG_LYCHEE_HDMI_SUN4I=y
+CONFIG_LYCHEE_FB_SUN4I=y
+CONFIG_LYCHEE_LCD_SUN4I=y
 # CONFIG_FB_ARMCLCD is not set
 # CONFIG_FB_S1D13XXX is not set
 # CONFIG_FB_VIRTUAL is not set
