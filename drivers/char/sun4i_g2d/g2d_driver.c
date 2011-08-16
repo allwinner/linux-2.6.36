@@ -411,12 +411,12 @@ static int g2d_resume(struct platform_device *pdev)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 void g2d_early_suspend(struct early_suspend *h)
 {
-    g2d_suspend(NULL, PMSG_SUSPEND);
+//    g2d_suspend(NULL, PMSG_SUSPEND);
 }
 
 void g2d_late_resume(struct early_suspend *h)
 {
-    g2d_resume(NULL);
+//    g2d_resume(NULL);
 }
 
 static struct early_suspend g2d_early_suspend_handler =
