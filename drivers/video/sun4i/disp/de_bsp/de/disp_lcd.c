@@ -574,6 +574,18 @@ void LCD_delay_ms(__u32 ms)
 #endif
 }
 
+
+void LCD_delay_us(__u32 us) 
+{
+#ifdef __LINUX_OSAL__
+    udelay(us);
+#else
+    volatile __u32 time;
+    
+    for(time = 0; time < (ms*700/10);time++);//assume cpu runs at 700Mhz,10 clock one cycle
+#endif
+}
+
 void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay)
 {
     open_flow[sel].func[open_flow[sel].func_num].func = func;
@@ -795,7 +807,6 @@ __s32 LCD_GPIO_request(__u32 sel, __u32 io_index)
         DE_INF("%s.%s gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_name,gpio_info->port, gpio_info->port_num, gpio_info->data);
     }
 
-    gpio_info->mul_sel = 0;
     gpio_hdl[io_index] = OSAL_GPIO_Request(gpio_info, 1);
     
     return 0;
@@ -950,6 +961,7 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
             if(ret < 0)
             {
                 DE_WRN("fetch script data %s.%s fail\n",primary_key, sub_name[i]);
+                continue;
             }
             else
             {
@@ -1656,6 +1668,7 @@ EXPORT_SYMBOL(LCD_OPEN_FUNC);
 EXPORT_SYMBOL(LCD_CLOSE_FUNC);
 EXPORT_SYMBOL(LCD_get_reg_bases);
 EXPORT_SYMBOL(LCD_delay_ms);
+EXPORT_SYMBOL(LCD_delay_us);
 EXPORT_SYMBOL(TCON_open);
 EXPORT_SYMBOL(TCON_close);
 EXPORT_SYMBOL(LCD_PWM_EN);

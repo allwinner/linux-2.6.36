@@ -3,8 +3,8 @@
 
 static __s32 LCD_open_flow(__u32 sel)
 {
-	LCD_OPEN_FUNC(sel, LCD_power_on, 10); //打开LCD供电,并延迟10ms
-	LCD_OPEN_FUNC(sel, TCON_open, 200); //打开LCD控制器,并延迟200ms
+	LCD_OPEN_FUNC(sel, LCD_power_on, 50); //打开LCD供电,并延迟10ms
+	LCD_OPEN_FUNC(sel, TCON_open, 500); //打开LCD控制器,并延迟200ms
 	LCD_OPEN_FUNC(sel, LCD_bl_open, 0); //打开背光,并延迟0ms
 
 	return 0;
@@ -14,7 +14,7 @@ static __s32 LCD_close_flow(__u32 sel)
 {	
 	LCD_CLOSE_FUNC(sel, LCD_bl_close, 0); //关闭背光,并延迟0ms
 	LCD_CLOSE_FUNC(sel, TCON_close, 0); //关闭LCD 控制器,并延迟0ms
-	LCD_CLOSE_FUNC(sel, LCD_power_off, 20); //关闭LCD供电,并延迟20ms
+	LCD_CLOSE_FUNC(sel, LCD_power_off, 1000); //关闭LCD供电,并延迟20ms
 
 	return 0;
 }

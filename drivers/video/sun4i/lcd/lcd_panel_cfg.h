@@ -2,7 +2,7 @@
 #ifndef __LCD_PANNEL_CFG_H__
 #define __LCD_PANNEL_CFG_H__
 
-#include <linux/drv_display.h>
+#include "dev_lcd.h"
 
 
 static void LCD_power_on(__u32 sel);
@@ -17,6 +17,7 @@ extern void LCD_OPEN_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
 extern void LCD_CLOSE_FUNC(__u32 sel, LCD_FUNC func, __u32 delay/*ms*/);
 extern void LCD_get_reg_bases(__reg_bases_t *para);
 extern void LCD_delay_ms(__u32 ms) ;
+extern void LCD_delay_us(__u32 ns);
 extern void TCON_open(__u32 sel);//打开LCD控制器
 extern void TCON_close(__u32 sel);//关闭LCD控制器
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
