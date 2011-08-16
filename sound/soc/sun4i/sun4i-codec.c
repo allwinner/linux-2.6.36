@@ -1430,8 +1430,10 @@ static int __init sw_codec_probe(struct platform_device *pdev)
  */
 static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 {
-	printk("[audio codec]:suspend start\n");
+	printk("[audio codec]:suspend start5000\n");
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	mdelay(50);
+	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
@@ -1442,7 +1444,7 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
 	//mdelay(100);
 
 	//disable PA
-	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
+	
 	//mdelay(100);
 	//disable headphone direct 
 //	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
