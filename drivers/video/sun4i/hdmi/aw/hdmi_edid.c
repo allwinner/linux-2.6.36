@@ -76,10 +76,10 @@ __s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf)
       
       off   += n; 
 
-      begin_ms = jiffies / (HZ * 1000);
+      begin_ms = (jiffies * 1000) / HZ;
       while(HDMI_RUINT32(0x500)&0x40000000)
       { 
-        end_ms = jiffies / (HZ * 1000);
+        end_ms = (jiffies * 1000) / HZ;
         if((end_ms - begin_ms) > 1000)
         {
             __wrn("ddc read timeout\n");
