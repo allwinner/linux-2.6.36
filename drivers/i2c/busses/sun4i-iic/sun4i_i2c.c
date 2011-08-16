@@ -1044,6 +1044,9 @@ static int i2c_awxx_suspend(struct device *dev)
 	}
 
     if(0 == i2c->bus_num){
+        /* twi0 is for power, it will be accessed by axp driver
+           before twi resume, so, don't suspend twi0            */
+	    i2c->suspend_flag = 0;
         return 0;
     }
 
