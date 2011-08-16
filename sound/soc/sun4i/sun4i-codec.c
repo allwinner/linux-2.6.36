@@ -1441,19 +1441,10 @@ static int snd_sw_codec_suspend(struct platform_device *pdev,pm_message_t state)
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
-	//mdelay(100);
-
-	//disable PA
 	
-	//mdelay(100);
-	//disable headphone direct 
-//	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
- 	//mdelay(100);
 	//disable dac to pa
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
-	// mdelay(100);
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
-	 //mdelay(100);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);	
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  	 
 	 
 	clk_disable(codec_moduleclk);
 	printk("[audio codec]:suspend end\n");
@@ -1492,28 +1483,21 @@ static int __devexit sw_codec_remove(struct platform_device *devptr)
 }
 
 static void sw_codec_shutdown(struct platform_device *devptr)
-{
+{	
 	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	mdelay(50);
+	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
 	mdelay(100);
 	//pa mute
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
-	 mdelay(500);
+	mdelay(500);
     //disable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x0);
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x0);
-	//mdelay(100);
-
-	//disable PA
-	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x0);
-	 //mdelay(100);
-	//disable headphone direct 
-//	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x0);
- 	//mdelay(100);
+	
 	//disable dac to pa
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);
-	// mdelay(100);
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  
-	 //mdelay(100);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x0);	
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x0);  	 
 	 
 	clk_disable(codec_moduleclk);
 }
