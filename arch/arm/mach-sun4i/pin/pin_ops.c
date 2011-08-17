@@ -670,7 +670,7 @@ __s32  gpio_get_all_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, __u3
 			//给用户控件赋值
 			script_gpio->pull      = (*tmp_group_pull_addr   >> ((port_num - (port_num_pull<<4))<<1)) & 0x03;    //读出pull数据
 			script_gpio->drv_level = (*tmp_group_dlevel_addr >> ((port_num - (port_num_pull<<4))<<1)) & 0x03;    //读出功能数据
-			script_gpio->mul_sel   = (*tmp_group_func_addr   >> ((port_num - (port_num_pull<<3))<<2)) & 0x07;    //读出驱动能力数据
+			script_gpio->mul_sel   = (*tmp_group_func_addr   >> ((port_num - (port_num_func<<3))<<2)) & 0x07;    //读出功能数据
 			if(script_gpio->mul_sel <= 1)
 			{
 				script_gpio->data  = (*tmp_group_data_addr   >>   port_num) & 0x01;                              //读出data数据
@@ -866,7 +866,7 @@ __s32  gpio_set_one_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, cons
         	tmp_addr = PIO_REG_PULL(port, port_num_pull);
             reg_val = *tmp_addr;								                     //修改FUNC寄存器
             tmp_val = (port_num - (port_num_pull<<4))<<1;
-            reg_val &= ~(0x07 << tmp_val);
+            reg_val &= ~(0x03 << tmp_val);
             reg_val |=  (script_gpio.pull) << tmp_val;
             *tmp_addr = reg_val;
         }
@@ -876,7 +876,7 @@ __s32  gpio_set_one_pin_status(u32 p_handler, user_gpio_set_t *gpio_status, cons
         	tmp_addr = PIO_REG_DLEVEL(port, port_num_pull);
             reg_val = *tmp_addr;                       								  //修改FUNC寄存器
             tmp_val = (port_num - (port_num_pull<<4))<<1;
-            reg_val &= ~(0x07 << tmp_val);
+            reg_val &= ~(0x03 << tmp_val);
             reg_val |=  (script_gpio.drv_level) << tmp_val;
             *tmp_addr = reg_val;
         }
