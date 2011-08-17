@@ -161,7 +161,7 @@ int sw_host_gpio_allocate(void)
 int sw_host_gpio_free(void)
 {
     if (sw_wifi_ctrl.pio_hdle)
-        gpio_release(sw_wifi_ctrl.pio_hdle, 1);
+        gpio_release(sw_wifi_ctrl.pio_hdle, 2);
     memset(&sw_wifi_ctrl, 0, sizeof(sw_wifi_ctrl));
     return 0;
 }
@@ -208,6 +208,13 @@ int sw_host_power_card(u32 enb)
 
     if (enb)
     {
+        /* disable wakeup (no use) */
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_host_wakeup");
+        if (ret)
+        {
+            nano_msg("Failed to disable VCC3v3 !\n");
+        }
+        
         /* enable vcc */
         ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_vcc_en");
         if (ret)
@@ -245,6 +252,13 @@ int sw_host_power_card(u32 enb)
         {
             nano_msg("Failed to disable VCC3v3 !\n");
             return -1;
+        }
+        
+        /* disable wakeup (no use) */
+        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_host_wakeup");
+        if (ret)
+        {
+            nano_msg("Failed to disable VCC3v3 !\n");
         }
     }
     return 0;
@@ -1283,6 +1297,30 @@ static void nano_netif_off(struct nrxdev *nrxdev)
       nrxdev->netdev = NULL;
    }
 #endif /* KSDIO_IGNORE_REMOVE */
+    
+#ifdef WINNER_POWERDOWN_CARD_IN_SUSPEND
+    {
+        /* remove card and power down */
+        int ret;
+        
+        nano_msg("power down n20 wifi\n");
+        ret = sw_host_remove_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
+        if (ret)
+        {
+            nano_msg("Failed to remove card in suspend\n");
+        }
+        
+        #ifdef WINNER_SHUTDOWN_PIN_USED
+        sw_host_hardware_shutdown(1);
+        #endif
+
+        #ifdef WINNER_POWER_PIN_USED
+        sw_host_power_card(0);
+        #endif
+    }
+#endif
+
+    printk("nano_netif_off\m");
 }
 
 /* Called to destroy or to suspend the network interface.
@@ -1291,6 +1329,27 @@ static void nano_netif_off(struct nrxdev *nrxdev)
 static int nano_netif_on(struct nrxdev *nrxdev,
                          struct nanonet_create_param *create_param)
 {
+#ifdef WINNER_POWERDOWN_CARD_IN_SUSPEND
+    /* 
+     */
+    {
+        int ret;
+        
+        nano_msg("power up n20 wifi\n");
+        #ifdef WINNER_POWER_PIN_USED
+        sw_host_power_card(1);
+        #endif
+        
+        ret = sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
+        if (ret)
+        {
+            nano_msg("Failed to insert card\n");
+            sw_host_gpio_free();
+            return -1;
+        }
+    }
+#endif
+
 #ifdef KSDIO_IGNORE_REMOVE
    if (netdev_saved) {
       nrxdev->netdev = netdev_saved;
@@ -1310,6 +1369,7 @@ static int nano_netif_on(struct nrxdev *nrxdev,
       netdev_saved = nrxdev->netdev;
 #endif /* KSDIO_IGNORE_REMOVE*/
    }
+    printk("nano_netif_on\m");
    return 0;
 }
 

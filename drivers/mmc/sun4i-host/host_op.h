@@ -46,7 +46,8 @@
 #include <mach/dma.h>
 //#include <mach/clock.h>
 //#include <mach/gpio.h>
-//#include <mach/platform.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
 
 //#define AW1623_FPGA
 
@@ -236,6 +237,8 @@ struct awsmc_host {
 
 	/* backup register structrue */
 	struct awsmc_ctrl_regs		bak_regs;
+	user_gpio_set_t             bak_gpios[6];
+	u32                         gpio_suspend_ok;
 };
 
 
