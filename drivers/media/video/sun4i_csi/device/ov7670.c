@@ -360,7 +360,7 @@ static struct regval_list ov7670_default_regs[] = {
 	{ 0x79, 0x03 },		{ 0xc8, 0x40 },
 	{ 0x79, 0x05 },		{ 0xc8, 0x30 },
 	{ 0x79, 0x26 },
-
+	
 	{ 0xff, 0xff },	/* END MARKER */
 };
 
@@ -599,14 +599,56 @@ static int ov7670_write_array(struct v4l2_subdev *sd, struct regval_list *vals)
  */
 static int ov7670_reset(struct v4l2_subdev *sd, u32 val)
 {
-	ov7670_write(sd, REG_COM7, COM7_RESET);
-	msleep(1);
+	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+
+	switch(val)
+	{
+		case CSI_SUBDEV_RST_OFF:
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_OFF,"csi_reset");
+			msleep(10);
+			break;
+		case CSI_SUBDEV_RST_ON:
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,"csi_reset");
+			msleep(10);
+			break;
+		case CSI_SUBDEV_RST_PUL:
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_OFF,"csi_reset");
+			msleep(10);
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_ON,"csi_reset");
+			msleep(100);
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_RST_OFF,"csi_reset");
+			break;
+		default:
+			return -EINVAL;
+	}
+	
+//	ov7670_write(sd, REG_COM7, COM7_RESET);
+//	msleep(1);
 	return 0;
 }
 
 
 static int ov7670_init(struct v4l2_subdev *sd, u32 val)
 {
+	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
+	int ret;
+	
+	switch(val) {
+		case CSI_SUBDEV_INIT_FULL:
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_ON,"csi_power_en");
+			msleep(10);
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,"csi_stby");
+			msleep(10);
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_OFF,"csi_stby");
+			msleep(10);
+		case CSI_SUBDEV_INIT_SIMP:
+			ret = ov7670_reset(sd,CSI_SUBDEV_RST_PUL);
+			if(ret < 0)
+				return ret;
+			break;
+		default:
+			return -EINVAL;
+	}
 	return ov7670_write_array(sd, ov7670_default_regs);
 }
 

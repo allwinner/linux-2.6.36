@@ -87,7 +87,7 @@ obj-$(CONFIG_SOC_CAMERA_TW9910)		+= tw9910.o
 obj-$(CONFIG_CSI_OV7670) 					+= sun4i_csi/device/ov7670.o
 obj-$(CONFIG_CSI_GT2005)					+= sun4i_csi/device/gt2005.o
 obj-$(CONFIG_CSI_GC0308)					+= sun4i_csi/device/gc0308.o
-
+obj-$(CONFIG_CSI_HI704)						+= sun4i_csi/device/hi704.o
 
 
 # And now the v4l2 drivers:

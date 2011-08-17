@@ -1,10 +1,10 @@
 ===========================================
 
-Version: v1_20
+Version: V1_30
 
 Author:  raymonxiu
 
-Date:     2011-8-5 10:49:39
+Date:     2011-8-17 14:37:12
 
 Description:
 
@@ -12,6 +12,14 @@ newest module list:(X = 0 or 1)
 insmod sun4i_csiX.ko ccm="ov7670" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gc0308" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
+insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
+
+V1_30
+1) Add brightness,contrast,etc interface in gc0308 and gt2005
+2) Add Hynix hi704 module
+3) Fix the bug that the video frame buffer is not 4k aligned when using cedarx reserved memory
+4) gc0308 hflip
+5) ov7670 add io 
 
 V1_20
 1) Fetch the ccm and i2c_addr from sys_config

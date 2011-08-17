@@ -1093,4 +1093,13 @@ config CSI_GC0308
 	---help---
 	  This is a Video4Linux2 sensor-level driver for the GalaxyCore
 	  GC0308 VGA camera.
+
+config CSI_HI704
+	tristate "HYNIX HI704 VGA sensor support"
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the Hynix
+	  HI704 VGA camera.
+	  
 endif
