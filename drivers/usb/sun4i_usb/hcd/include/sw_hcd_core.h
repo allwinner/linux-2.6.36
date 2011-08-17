@@ -195,6 +195,7 @@ typedef struct sw_hcd{
 
 	sw_hcd_io_t	*sw_hcd_io;
 	u32 enable;
+	u32 suspend;
 }sw_hcd_t;
 
 struct sw_hcd_ep_reg{
