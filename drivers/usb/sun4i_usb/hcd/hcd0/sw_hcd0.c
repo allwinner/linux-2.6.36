@@ -1578,6 +1578,11 @@ int sw_usb_host0_disable(void)
 		return -1;
 	}
 
+	if(sw_hcd->suspend){
+	    DMSG_PANIC("wrn: sw_hcd is suspend, can not disable\n");
+		return -EBUSY;
+	}
+
 	/* nuke all urb and disconnect */
 	spin_lock_irqsave(&sw_hcd->lock, flags);
 
@@ -2191,6 +2196,7 @@ static int sw_hcd_suspend(struct device *dev)
 	}
 
 	spin_lock_irqsave(&sw_hcd->lock, flags);
+	sw_hcd->suspend = 1;
 	sw_hcd_port_suspend_ex(sw_hcd);
 	sw_hcd_stop(sw_hcd);
 	sw_hcd_set_vbus(sw_hcd, 0);
@@ -2244,6 +2250,7 @@ static int sw_hcd_resume_early(struct device *dev)
 	open_usb_clock(sw_hcd->sw_hcd_io);
 	sw_hcd_restore_context(sw_hcd);
 	sw_hcd_start(sw_hcd);
+	sw_hcd->suspend = 0;
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
 	DMSG_INFO_HCD0("[%s]: sw_hcd_resume_early end\n", sw_hcd_driver_name);

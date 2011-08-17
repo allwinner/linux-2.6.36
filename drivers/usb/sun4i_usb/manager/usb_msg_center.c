@@ -87,7 +87,7 @@ void app_rmmod_usb_host(void)
 
 void app_insmod_usb_device(void)
 {
-	g_center_info.msg.app_insmod_device = 1;	
+	g_center_info.msg.app_insmod_device = 1;
 }
 
 void app_rmmod_usb_device(void)
@@ -197,10 +197,17 @@ static void insmod_host_driver(struct usb_msg_center_info *center_info)
 */
 static void rmmod_host_driver(struct usb_msg_center_info *center_info)
 {
+    int ret = 0;
+
 	DMSG_INFO("\n\nrmmod_host_driver\n\n");
 
+	ret = sw_usb_host0_disable();
+	if(ret != 0){
+    	DMSG_PANIC("err: disable hcd0 failed\n");
+    	return;
+	}
+
 	set_usb_role(center_info, USB_ROLE_NULL);
-	sw_usb_host0_disable();
 
 	return;
 }
@@ -404,11 +411,11 @@ void usb_msg_center(struct usb_cfg *cfg)
 		case USB_ROLE_NULL:
 			do_usb_role_null(center_info);
 		break;
-		
+
 		case USB_ROLE_HOST:
 			do_usb_role_host(center_info);
 		break;
-		
+
 		case USB_ROLE_DEVICE:
 			do_usb_role_device(center_info);
 		break;

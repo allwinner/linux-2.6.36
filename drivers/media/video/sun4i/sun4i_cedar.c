@@ -135,53 +135,56 @@ u32 int_sta=0,int_value;
  */
 static irqreturn_t VideoEngineInterupt(int irq, void *dev)
 {
-    volatile int* ve_int_ctrl_reg;    
-    volatile int* modual_sel_reg;
+    unsigned int ve_int_ctrl_reg;
+    volatile int val;
     int modual_sel;
-	struct iomap_para addrs = cedar_devp->iomap_addrs;
+    struct iomap_para addrs = cedar_devp->iomap_addrs;
 
-    modual_sel_reg = (int *)(addrs.regs_macc + 0);
-    modual_sel = *modual_sel_reg;
+    modual_sel = readl(addrs.regs_macc + 0);
     modual_sel &= 0xf;
  
 	/* estimate Which video format */
     switch (modual_sel)
     {
         case 0: //mpeg124            
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x100 + 0x14);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0x100 + 0x14);
             break;
         case 1: //h264            
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x200 + 0x20);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0x200 + 0x20);
             break;
         case 2: //vc1           
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x300 + 0x24);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0x300 + 0x24);
             break;
         case 3: //rmvb            
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x400 + 0x14);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0x400 + 0x14);
             break;
         case 0xa: //isp            
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0xa00 + 0x08);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0xa00 + 0x08);
             break;
         case 0xb: //avc enc            
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0xb00 + 0x14);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0xb00 + 0x14);
             break; 
         default:            
-            ve_int_ctrl_reg = (int *)(addrs.regs_macc + 0x100 + 0x14);
+            ve_int_ctrl_reg = (unsigned int)(addrs.regs_macc + 0x100 + 0x14);
             pr_debug("macc modual sel not defined!\n");
             break;
     }
 
     //disable interrupt
-    if(modual_sel == 0)
-        *ve_int_ctrl_reg = *ve_int_ctrl_reg & (~0x7C);
-    else
-        *ve_int_ctrl_reg = *ve_int_ctrl_reg & (~0xF);
-	
-	cedar_devp->irq_value = 1;	//hx modify 2011-8-1 16:08:47
-	cedar_devp->irq_flag = 1;		
+    if(modual_sel == 0) {
+        val = readl(ve_int_ctrl_reg);
+        writel(val & (~0x7c), ve_int_ctrl_reg);
+    }
+    else {
+        val = readl(ve_int_ctrl_reg);
+        writel(val & (~0xf), ve_int_ctrl_reg);
+    }
+
+    cedar_devp->irq_value = 1;	//hx modify 2011-8-1 16:08:47
+    cedar_devp->irq_flag = 1;
     //any interrupt will wake up wait queue
     wake_up_interruptible(&wait_ve);        //ioctl
-	
+
     return IRQ_HANDLED;
 }
 
