@@ -582,7 +582,7 @@ void LCD_delay_us(__u32 us)
 #else
     volatile __u32 time;
     
-    for(time = 0; time < (ms*700/10);time++);//assume cpu runs at 700Mhz,10 clock one cycle
+    for(time = 0; time < (us*700/10);time++);//assume cpu runs at 700Mhz,10 clock one cycle
 #endif
 }
 
@@ -639,24 +639,52 @@ void TCON_close(__u32 sel)
     }
 }
 
+
+static __u32 pwm_read_reg(__u32 offset)
+{
+    __u32 value = 0;
+
+    value = sys_get_wvalue(gdisp.init_para.base_pwm+offset);
+    
+    return value;
+}
+
+static __s32 pwm_write_reg(__u32 offset, __u32 value)
+{
+    sys_put_wvalue(gdisp.init_para.base_pwm+offset, value);
+    
+    LCD_delay_ms(10);
+    
+    return 0;    
+}
+
 __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
 {
     if(OSAL_sw_get_ic_ver() != 0xA)
     {
         __u32 tmp = 0;
-
+        
         if(b_en)
         {
-            tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
+            tmp = pwm_read_reg(0x200);
             tmp |= (1<<4);
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);
+            pwm_write_reg(0x200,tmp);
+
+            tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
+            tmp &= 0xfffff8ff;
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
         }
         else
         {
-            tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
+            tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
+            tmp &= 0xfffff8ff;
+            sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (0<<8));//pwm io,PB2, bit10:8
+
+            tmp = pwm_read_reg(0x200);
             tmp &= (~(1<<4));
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);    
+            pwm_write_reg(0x200,tmp);   
         }
+
     }
     else
     {
@@ -911,31 +939,31 @@ __s32 Disp_pwm_cfg(__u32 sel)
             active_cycle = (15 - DISP_LCD_BRIGHT_LEVEL12) * (entire_cycle / 16) + 1;
         }
 
-        if(gpanel_info[sel].port_index == 0)
+        if(sel == 0)
         {
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x204, ((entire_cycle - 1)<< 16) | active_cycle);
+            pwm_write_reg(0x204, ((entire_cycle - 1)<< 16) | active_cycle);
             
-            tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
+            tmp = pwm_read_reg(0x200);
             tmp &= 0xffffff00;
             tmp |= ((1<<6) | (1<<5) | pre_scal_id);//bit6:gatting the special clock for pwm0; bit5:pwm0  active state is high level
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);
+            pwm_write_reg(0x200,tmp);
 
-            tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
+            tmp = pwm_read_reg(0x24);
             tmp &= 0xfffff8ff;
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
+            pwm_write_reg(0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
         }
         else
         {
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x208, ((entire_cycle - 1)<< 16) | active_cycle);
+            pwm_write_reg(0x208, ((entire_cycle - 1)<< 16) | active_cycle);
             
-            tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x200);
+            tmp = pwm_read_reg(0x200);
             tmp &= 0xff807fff;
             tmp |= ((1<<21) | (1<<20) | (pre_scal_id<<15));//bit21:gatting the special clock for pwm1; bit20:pwm1  active state is high level
-            sys_put_wvalue(gdisp.init_para.base_pwm+0x200,tmp);
+            pwm_write_reg(0x200,tmp);
 
-            tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x120);
+            tmp = pwm_read_reg(0x120);
             tmp &= 0xffff8fff;
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x120,tmp | (2<<12));//pwm io,PI3, bit14:12
+            pwm_write_reg(0x120,tmp | (2<<12));//pwm io,PI3, bit14:12
         }
     }
 	return DIS_SUCCESS;
@@ -970,6 +998,17 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
             if(!bon)
             {
                 gpio_info->mul_sel = 0;
+            }
+            else
+            {
+                if(gpanel_info[sel].lcd_if == 3)
+                {
+                    gpio_info->mul_sel = 3;
+                }
+                else
+                {
+                    gpio_info->mul_sel = 2;
+                }
             }
             lcd_pin_hdl = OSAL_GPIO_Request(gpio_info, 1);
             OSAL_GPIO_Release(lcd_pin_hdl, 2);
@@ -1475,6 +1514,8 @@ __s32 BSP_disp_lcd_open_after(__u32 sel)
     gdisp.screen[sel].status |= LCD_ON;
     gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_LCD;
 
+    BSP_disp_lcd_set_bright(sel, gdisp.screen[sel].lcd_bright);
+    
     return DIS_SUCCESS;
 }
 
@@ -1534,68 +1575,46 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
     __u32 tmp;
     __u32 entire_cycle;
 
-    if(sel == 0)
+    if(gdisp.screen[sel].status & LCD_ON)
     {
-	    entire_cycle = ((sys_get_wvalue(gdisp.init_para.base_pwm+0x204) & 0xffff0000) >> 16) + 1;
-    }
-    else
-    {
-	    entire_cycle = ((sys_get_wvalue(gdisp.init_para.base_pwm+0x208) & 0xffff0000) >> 16) + 1;
+        if(sel == 0)
+        {
+    	    entire_cycle = ((pwm_read_reg(0x204) & 0xffff0000) >> 16) + 1;
+        }
+        else
+        {
+    	    entire_cycle = ((pwm_read_reg(0x208) & 0xffff0000) >> 16) + 1;
+        }
+
+        if(gpanel_info[sel].lcd_pwm_pol == 0)
+        {
+            value = bright * (entire_cycle / 16);
+        }
+        else
+        {
+            value = (15 - bright) * (entire_cycle / 16);
+        }
+        
+        if(sel == 0)
+        {
+    	    tmp = pwm_read_reg(0x204);
+            pwm_write_reg(0x204,(tmp & 0xffff0000) | value);
+        }
+        else
+        {
+    	    tmp = pwm_read_reg(0x208);
+            pwm_write_reg(0x208,(tmp & 0xffff0000) | value);
+        }
     }
 
-    if(gpanel_info[sel].lcd_pwm_pol == 0)
-    {
-        value = bright * (entire_cycle / 16);
-    }
-    else
-    {
-        value = (15 - bright) * (entire_cycle / 16);
-    }
-    
-    if(sel == 0)
-    {
-	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x204,(tmp & 0xffff0000) | value);
-    }
-    else
-    {
-	    tmp = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
-        sys_put_wvalue(gdisp.init_para.base_pwm+0x208,(tmp & 0xffff0000) | value);
-    }
-    
-    LCD_delay_ms(10);
+    gdisp.screen[sel].lcd_bright = bright;
     
     return DIS_SUCCESS;
 }
 
 __s32 BSP_disp_lcd_get_bright(__u32 sel)
 {
-    __u32    value;
-    __s32	bright = 0;
-    __u32 entire_cycle;
-
-    if(sel == 0)
-    {
-        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x204);
-    }
-    else
-    {
-        value = sys_get_wvalue(gdisp.init_para.base_pwm+0x208);
-    }
-
-    entire_cycle = ((value & 0xffff0000) >> 16) + 1;
-    value = value & 0x0000ffff;
-
-    if(gpanel_info[sel].lcd_pwm_pol == 0)
-    {
-        bright = value / (entire_cycle / 16);
-    }
-    else
-    {
-        bright = 15 - (value / (entire_cycle / 16));
-    }
-
-    return bright;	
+    return gdisp.screen[sel].lcd_bright;	
 }
 
 __s32 BSP_disp_set_gamma_table(__u32 sel, __u32 *gamtbl_addr,__u32 gamtbl_size)

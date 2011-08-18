@@ -81,6 +81,8 @@ typedef struct
     void                    (*LCD_CPUIF_ISR)(void);
 	__u32	                pll_use_status;	//lcdc0/lcdc1 using which video pll(0 or 1)
 	__bool                  bl_not_open;
+
+	__disp_lcd_bright_t     lcd_bright;
 }__disp_screen_t;
 
 typedef struct

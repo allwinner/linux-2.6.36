@@ -170,7 +170,7 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //设备申请G
 		real_gpio_count ++;
 	}
 
-	printk("to malloc space for pin \n");
+	//printk("to malloc space for pin \n");
 	//根据有效的GPIO个数申请空间
 	user_gpio_buf = (char *)CSP_OSAL_MALLOC(16 + sizeof(system_gpio_set_t) * real_gpio_count);   //申请内存，多申请16个字节，用于存放GPIO个数等信息
 	if(!user_gpio_buf)
@@ -178,7 +178,7 @@ u32 gpio_request(user_gpio_set_t *gpio_list, __u32 group_count_max)  //设备申请G
 		return (u32)0;
 	}
 	//add by young for debug
-	printk("gpio module: alloc user_gpio_buf addr is:  0x%x \n", (unsigned int)user_gpio_buf);
+	//printk("gpio module: alloc user_gpio_buf addr is:  0x%x \n", (unsigned int)user_gpio_buf);
 	memset(user_gpio_buf, 0, 16 + sizeof(system_gpio_set_t) * real_gpio_count);         //首先全部清零
 	*(int *)user_gpio_buf = real_gpio_count;                                           //保存有效的GPIO个数
 	user_gpio_set = (system_gpio_set_t *)(user_gpio_buf + 16);                         //指向第一个结构体
@@ -449,7 +449,7 @@ __s32 gpio_release(u32 p_handler, __s32 if_release_to_default_status)
 	}
 	if(if_release_to_default_status == 2)
 	{
-		printk("gpio module :  release p_handler = %x\n",p_handler);
+		//printk("gpio module :  release p_handler = %x\n",p_handler);
 		CSP_OSAL_FREE((char *)p_handler);
 		
 		return EGPIO_SUCCESS;
@@ -539,7 +539,7 @@ __s32 gpio_release(u32 p_handler, __s32 if_release_to_default_status)
 	}
 
 	//free(p_handler);                                //释放内存
-	printk("gpio module :  release p_handler = %x\n",p_handler);
+	//printk("gpio module :  release p_handler = %x\n",p_handler);
 	CSP_OSAL_FREE((char *)p_handler);
 
 	return EGPIO_SUCCESS;
