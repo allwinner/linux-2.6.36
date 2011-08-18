@@ -593,7 +593,8 @@ static int axp_get_rdc(struct axp_charger *charger)
   unsigned int i,temp;
   int averPreVol = 0, averPreCur = 0,averNextVol = 0,averNextCur = 0;
 
-  msleep(3000);
+  //msleep(3000);
+  ssleep(30);
   if(!charger->bat_det){
         return pmu_battery_rdc;
   }
@@ -618,7 +619,8 @@ static int axp_get_rdc(struct axp_charger *charger)
       return pmu_battery_rdc;
     }
     axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
-    msleep(3000);
+    //msleep(3000);
+    ssleep(60);
     for(i = 0; i< AXP20_RDC_COUNT; i++){
       axp_charger_update(charger);
       if( axp20_icharge_to_mA(charger->adc->ichar_res) == 0 ){
