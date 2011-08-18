@@ -36,6 +36,8 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
         gdisp.scaler[screen_id].contrast = 32;
         gdisp.scaler[screen_id].saturation = 32;
         gdisp.scaler[screen_id].hue = 32;
+
+        gdisp.screen[screen_id].lcd_bright = DISP_LCD_BRIGHT_LEVEL12;
     }
     memcpy(&gdisp.init_para,para,sizeof(__disp_bsp_init_para));
     memset(g_video,0,sizeof(g_video));

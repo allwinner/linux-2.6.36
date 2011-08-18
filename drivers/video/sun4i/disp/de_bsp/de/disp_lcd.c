@@ -666,23 +666,49 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         
         if(b_en)
         {
-            tmp = pwm_read_reg(0x200);
-            tmp |= (1<<4);
-            pwm_write_reg(0x200,tmp);
+            if(sel == 0)
+            {
+                tmp = pwm_read_reg(0x200);
+                tmp |= (1<<4);
+                pwm_write_reg(0x200,tmp);
 
-            tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
-            tmp &= 0xfffff8ff;
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
+                tmp &= 0xfffff8ff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
+            }
+            else
+            {
+                tmp = pwm_read_reg(0x200);
+                tmp |= (1<<19);
+                pwm_write_reg(0x200,tmp);
+
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x120);
+                tmp &= 0xffff8fff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x120,tmp | (2<<12));//pwm io,PI3, bit14:12
+            }
         }
         else
         {
-            tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
-            tmp &= 0xfffff8ff;
-            sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (0<<8));//pwm io,PB2, bit10:8
+            if(sel == 0)
+            {
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x24);
+                tmp &= 0xfffff8ff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (0<<8));//pwm io,PB2, bit10:8
 
-            tmp = pwm_read_reg(0x200);
-            tmp &= (~(1<<4));
-            pwm_write_reg(0x200,tmp);   
+                tmp = pwm_read_reg(0x200);
+                tmp &= (~(1<<4));
+                pwm_write_reg(0x200,tmp);   
+            }
+            else
+            {
+                tmp = sys_get_wvalue(gdisp.init_para.base_pioc+0x120);
+                tmp &= 0xffff8fff;
+                sys_put_wvalue(gdisp.init_para.base_pioc+0x120,tmp | (0<<8));//pwm io,PI3, bit14:12
+
+                tmp = pwm_read_reg(0x200);
+                tmp &= (~(1<<19));
+                pwm_write_reg(0x200,tmp);   
+            }
         }
 
     }
@@ -692,31 +718,61 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         {
             __hdle hdl;
             user_gpio_set_t  gpio_set[1];
-            
-            gpio_set->port = 2;
-            gpio_set->port_num = 2;
-            gpio_set->mul_sel = 1;
-            gpio_set->pull = 0;
-            gpio_set->drv_level = 1;
-            gpio_set->data = 1;
 
-            hdl = OSAL_GPIO_Request(gpio_set, 1);
-            OSAL_GPIO_Release(hdl, 2);
+            if(sel == 0)
+            {
+                gpio_set->port = 2;
+                gpio_set->port_num = 2;
+                gpio_set->mul_sel = 1;
+                gpio_set->pull = 0;
+                gpio_set->drv_level = 1;
+                gpio_set->data = 1;
+
+                hdl = OSAL_GPIO_Request(gpio_set, 1);
+                OSAL_GPIO_Release(hdl, 2);
+            }
+            else
+            {
+                gpio_set->port = 9;
+                gpio_set->port_num = 3;
+                gpio_set->mul_sel = 1;
+                gpio_set->pull = 0;
+                gpio_set->drv_level = 1;
+                gpio_set->data = 1;
+
+                hdl = OSAL_GPIO_Request(gpio_set, 1);
+                OSAL_GPIO_Release(hdl, 2);
+            }
         }
         else
         {
             __hdle hdl;
             user_gpio_set_t  gpio_set[1];
-            
-            gpio_set->port = 2;
-            gpio_set->port_num = 2;
-            gpio_set->mul_sel = 1;
-            gpio_set->pull = 0;
-            gpio_set->drv_level = 1;
-            gpio_set->data = 0;
 
-            hdl = OSAL_GPIO_Request(gpio_set, 1);
-            OSAL_GPIO_Release(hdl, 2);
+            if(sel == 0)
+            {
+                gpio_set->port = 2;
+                gpio_set->port_num = 2;
+                gpio_set->mul_sel = 1;
+                gpio_set->pull = 0;
+                gpio_set->drv_level = 1;
+                gpio_set->data = 0;
+
+                hdl = OSAL_GPIO_Request(gpio_set, 1);
+                OSAL_GPIO_Release(hdl, 2);
+            }
+            else
+            {
+                gpio_set->port = 9;
+                gpio_set->port_num = 3;
+                gpio_set->mul_sel = 1;
+                gpio_set->pull = 0;
+                gpio_set->drv_level = 1;
+                gpio_set->data = 0;
+
+                hdl = OSAL_GPIO_Request(gpio_set, 1);
+                OSAL_GPIO_Release(hdl, 2);
+            }
         }
     }
     return 0;
@@ -947,10 +1003,6 @@ __s32 Disp_pwm_cfg(__u32 sel)
             tmp &= 0xffffff00;
             tmp |= ((1<<6) | (1<<5) | pre_scal_id);//bit6:gatting the special clock for pwm0; bit5:pwm0  active state is high level
             pwm_write_reg(0x200,tmp);
-
-            tmp = pwm_read_reg(0x24);
-            tmp &= 0xfffff8ff;
-            pwm_write_reg(0x24,tmp | (2<<8));//pwm io,PB2, bit10:8
         }
         else
         {
@@ -960,10 +1012,6 @@ __s32 Disp_pwm_cfg(__u32 sel)
             tmp &= 0xff807fff;
             tmp |= ((1<<21) | (1<<20) | (pre_scal_id<<15));//bit21:gatting the special clock for pwm1; bit20:pwm1  active state is high level
             pwm_write_reg(0x200,tmp);
-
-            tmp = pwm_read_reg(0x120);
-            tmp &= 0xffff8fff;
-            pwm_write_reg(0x120,tmp | (2<<12));//pwm io,PI3, bit14:12
         }
     }
 	return DIS_SUCCESS;
