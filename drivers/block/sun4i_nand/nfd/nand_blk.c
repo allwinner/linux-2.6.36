@@ -99,7 +99,6 @@ struct collect_ops collect_arg;
 
 
 DECLARE_MUTEX(nand_mutex);
-DEFINE_MUTEX(suspend_mutex);
 static unsigned char volatile IS_IDLE = 1;
 u32 nand_handle=0;
 static struct clk *ahb_nand_clk = NULL;
@@ -374,8 +373,6 @@ static int nand_blktrans_thread(void *arg)
 		int res = 0;
 	#endif
 		DECLARE_WAITQUEUE(wait, current);
-
-        mutex_lock(&suspend_mutex);
 
 		if (!req && !(req = blk_fetch_request(rq))) {
 			//printk("[N]wait req\n");
