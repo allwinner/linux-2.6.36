@@ -144,6 +144,85 @@ static inline void aw_gpio_trigger_single(void)
     writel(backup, cfg_base);
 }
 
+static inline void aw_gpio_trigger_single1(void)
+{
+	u32 rval;
+    u32 backup;
+    void __iomem* cfg_base  = (void __iomem*)PI_CFG0_REG;
+    void __iomem* data_base = (void __iomem*)PI_DAT_REG;
+    
+    //config gpio to output
+    backup = readl(cfg_base);
+    rval = readl(cfg_base);
+    rval &= 0x7 << 8;
+    rval |= 1 << 8;
+    writel(rval, cfg_base);
+
+    rval = readl(data_base);
+ 	rval |= 1 << 2;
+    writel(rval, data_base);
+	rval &= ~(1 << 2);
+	writel(rval, data_base);
+	rval |= 1 << 2;
+	writel(rval, data_base);
+
+    //restore pio config
+    writel(backup, cfg_base);
+}
+
+
+static inline void aw_gpio_trigger_single2(void)
+{
+	u32 rval;
+    u32 backup;
+    void __iomem* cfg_base  = (void __iomem*)PI_CFG0_REG;
+    void __iomem* data_base = (void __iomem*)PI_DAT_REG;
+    
+    //config gpio to output
+    backup = readl(cfg_base);
+    rval = readl(cfg_base);
+    rval &= 0x7 << 4;
+    rval |= 1 << 4;
+    writel(rval, cfg_base);
+
+    rval = readl(data_base);
+ 	rval |= 1 << 1;
+    writel(rval, data_base);
+	rval &= ~(1 << 1);
+	writel(rval, data_base);
+	rval |= 1 << 1;
+	writel(rval, data_base);
+
+    //restore pio config
+    writel(backup, cfg_base);
+}
+
+static inline void aw_gpio_trigger_single3(void)
+{
+	u32 rval;
+    u32 backup;
+    void __iomem* cfg_base  = (void __iomem*)PI_CFG0_REG;
+    void __iomem* data_base = (void __iomem*)PI_DAT_REG;
+    
+    //config gpio to output
+    backup = readl(cfg_base);
+    rval = readl(cfg_base);
+    rval &= 0x7 << 0;
+    rval |= 1 << 0;
+    writel(rval, cfg_base);
+
+    rval = readl(data_base);
+ 	rval |= 1 << 0;
+    writel(rval, data_base);
+	rval &= ~(1 << 0);
+	writel(rval, data_base);
+	rval |= 1 << 0;
+	writel(rval, data_base);
+
+    //restore pio config
+    writel(backup, cfg_base);
+}
+
 
 #endif
 

@@ -1344,7 +1344,7 @@ static int __init awsmc_init(void)
     awsmc_msg("awsmc_init\n");
     
     /*
-     * request wifi gpio handler and release
+     * reset wifi gpio handler and release
      */
     {
         u32 pio_hdle = gpio_request_ex("sdio_wifi_para", NULL);
@@ -1353,7 +1353,7 @@ static int __init awsmc_init(void)
         {
             awsmc_msg("Request wifi gpio resource failed\n");
         }
-        awsmc_msg("reset wifi gpio resource failed\n");
+        awsmc_msg("reset wifi gpio resource\n");
         
         gpio_release(pio_hdle, 2);
     }

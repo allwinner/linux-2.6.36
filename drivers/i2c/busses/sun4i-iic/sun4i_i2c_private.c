@@ -115,7 +115,15 @@ void aw_twi_put_byte(void *base_addr, const unsigned char *buffer)
 void aw_twi_enable_irq(void *base_addr)
 {
     unsigned int reg_val = readl(base_addr + TWI_CTL_REG);
-    reg_val |= TWI_CTL_INTEN;
+    
+    /* enable irq: 2011-8-18 13:39:05
+     * 1 when enable irq for next operation, set intflag to 1 to prevent to clear it by a mistake
+     *   (intflag bit is write-0-to-clear bit)
+     * 2 Similarly, mask startbit and stopbit to prevent to set it twice by a mistake
+     *   (start bit and stop bit are self-clear-to-0 bits)
+     */
+    reg_val |= (TWI_CTL_INTEN | TWI_CTL_INTFLG);
+    reg_val &= ~(TWI_CTL_STA | TWI_CTL_STP);
     writel(reg_val, base_addr + TWI_CTL_REG);
     return;
 }
@@ -345,6 +353,13 @@ void aw_twi_clear_irq_flag(void *base_addr)
     unsigned int reg_val = readl(base_addr + TWI_CTL_REG);
     reg_val &= ~TWI_CTL_INTFLG;//0x 1111_0111
     writel(reg_val ,base_addr + TWI_CTL_REG);
+    
+    //read two more times to make sure that interrupt flag does really be cleared
+    {
+        unsigned int temp;
+        temp = readl(base_addr + TWI_CTL_REG);
+        temp |= readl(base_addr + TWI_CTL_REG);
+    }
     return;
 }
 
