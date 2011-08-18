@@ -695,9 +695,9 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
                 tmp &= 0xfffff8ff;
                 sys_put_wvalue(gdisp.init_para.base_pioc+0x24,tmp | (0<<8));//pwm io,PB2, bit10:8
 
-                tmp = pwm_read_reg(0x200);
-                tmp &= (~(1<<4));
-                pwm_write_reg(0x200,tmp);   
+                //tmp = pwm_read_reg(0x200);
+                //tmp &= (~(1<<4));
+                //pwm_write_reg(0x200,tmp);   
             }
             else
             {
@@ -705,9 +705,9 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
                 tmp &= 0xffff8fff;
                 sys_put_wvalue(gdisp.init_para.base_pioc+0x120,tmp | (0<<8));//pwm io,PI3, bit14:12
 
-                tmp = pwm_read_reg(0x200);
-                tmp &= (~(1<<19));
-                pwm_write_reg(0x200,tmp);   
+                //tmp = pwm_read_reg(0x200);
+                //tmp &= (~(1<<19));
+                //pwm_write_reg(0x200,tmp);   
             }
         }
 
@@ -1561,8 +1561,6 @@ __s32 BSP_disp_lcd_open_after(__u32 sel)
     gdisp.screen[sel].b_out_interlace = 0;
     gdisp.screen[sel].status |= LCD_ON;
     gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_LCD;
-
-    BSP_disp_lcd_set_bright(sel, gdisp.screen[sel].lcd_bright);
     
     return DIS_SUCCESS;
 }
@@ -1623,36 +1621,33 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
     __u32 tmp;
     __u32 entire_cycle;
 
-    if(gdisp.screen[sel].status & LCD_ON)
+    if(sel == 0)
     {
-        if(sel == 0)
-        {
-    	    entire_cycle = ((pwm_read_reg(0x204) & 0xffff0000) >> 16) + 1;
-        }
-        else
-        {
-    	    entire_cycle = ((pwm_read_reg(0x208) & 0xffff0000) >> 16) + 1;
-        }
+	    entire_cycle = ((pwm_read_reg(0x204) & 0xffff0000) >> 16) + 1;
+    }
+    else
+    {
+	    entire_cycle = ((pwm_read_reg(0x208) & 0xffff0000) >> 16) + 1;
+    }
 
-        if(gpanel_info[sel].lcd_pwm_pol == 0)
-        {
-            value = bright * (entire_cycle / 16);
-        }
-        else
-        {
-            value = (15 - bright) * (entire_cycle / 16);
-        }
-        
-        if(sel == 0)
-        {
-    	    tmp = pwm_read_reg(0x204);
-            pwm_write_reg(0x204,(tmp & 0xffff0000) | value);
-        }
-        else
-        {
-    	    tmp = pwm_read_reg(0x208);
-            pwm_write_reg(0x208,(tmp & 0xffff0000) | value);
-        }
+    if(gpanel_info[sel].lcd_pwm_pol == 0)
+    {
+        value = bright * (entire_cycle / 16);
+    }
+    else
+    {
+        value = (15 - bright) * (entire_cycle / 16);
+    }
+    
+    if(sel == 0)
+    {
+	    tmp = pwm_read_reg(0x204);
+        pwm_write_reg(0x204,(tmp & 0xffff0000) | value);
+    }
+    else
+    {
+	    tmp = pwm_read_reg(0x208);
+        pwm_write_reg(0x208,(tmp & 0xffff0000) | value);
     }
 
     gdisp.screen[sel].lcd_bright = bright;
