@@ -71,12 +71,12 @@ u32  open_usb_clock(sw_udc_io_t *sw_udc_io)
 
 	if(sw_udc_io->sie_clk && sw_udc_io->phy_clk && sw_udc_io->phy0_clk && !sw_udc_io->clk_is_open){
 	   	clk_enable(sw_udc_io->sie_clk);
-		msleep(10);
+		mdelay(10);
 
 	    clk_enable(sw_udc_io->phy_clk);
 	    clk_enable(sw_udc_io->phy0_clk);
 	    clk_reset(sw_udc_io->phy0_clk, 0);
-		msleep(10);
+		mdelay(10);
 
 		sw_udc_io->clk_is_open = 1;
 	}else{

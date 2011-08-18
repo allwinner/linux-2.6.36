@@ -498,11 +498,11 @@ static int open_clock(struct sw_hci_hcd *sw_hci, u32 ohci)
             clk_enable(sw_hci->ohci_gate);
         }
 
-        msleep(10);
+        mdelay(10);
 
    	    clk_enable(sw_hci->sie_clk);
 
-        msleep(10);
+        mdelay(10);
 
     	UsbPhyInit(sw_hci->usbc_no);
     }else{
