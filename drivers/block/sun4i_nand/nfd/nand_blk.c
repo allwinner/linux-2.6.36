@@ -382,9 +382,6 @@ static int nand_blktrans_thread(void *arg)
 			add_wait_queue(&nandr->thread_wq, &wait);
 			set_current_state(TASK_INTERRUPTIBLE);
 			spin_unlock_irq(rq->queue_lock);
-
-            mutex_unlock(&suspend_mutex);
-
 			schedule();
 			spin_lock_irq(rq->queue_lock);
 			remove_wait_queue(&nandr->thread_wq, &wait);
@@ -398,8 +395,6 @@ static int nand_blktrans_thread(void *arg)
 		//printk("[N]request start\n");
 		__rq_for_each_bio(rq_iter.bio,req){
 			if(!bio_segments(rq_iter.bio)){
-
-                mutex_unlock(&suspend_mutex);
 				continue;
 			}
 			//printk("[N]start bio,count=%d\n",(rq_iter.bio)->bi_vcnt);
@@ -469,7 +464,6 @@ static int nand_blktrans_thread(void *arg)
 
 		__rq_for_each_bio(rq_iter.bio,req){
 			if(!bio_segments(rq_iter.bio)){
-                mutex_unlock(&suspend_mutex);
 				continue;
 			}
 			if(unlikely(sector == ULLONG_MAX)){
@@ -588,8 +582,7 @@ static int nand_blktrans_thread(void *arg)
 			#endif
 		}
 	#endif
-
-        mutex_unlock(&suspend_mutex);
+		
 	}
 
 	if(req)
@@ -1032,8 +1025,6 @@ static int nand_flush(struct nand_blk_dev *dev)
 {
 	if (0 == down_trylock(&mytr.nand_ops_mutex))
 	{
-        mutex_lock(&suspend_mutex);
-
 		IS_IDLE = 0;
 	#ifdef NAND_CACHE_RW
 		NAND_CacheFlush();
@@ -1043,13 +1034,24 @@ static int nand_flush(struct nand_blk_dev *dev)
 		up(&mytr.nand_ops_mutex);
 		IS_IDLE = 1;
 
-        mutex_unlock(&suspend_mutex);
-
 		dbg_inf("nand_flush \n");
 	}
 	return 0;
 }
 
+static void nand_flush_all(void)
+{
+	if (0 == down_trylock(&mytr.nand_ops_mutex)){
+		#ifdef NAND_CACHE_RW
+		NAND_CacheFlush();
+		#else
+		LML_FlushPageCache();
+		#endif
+		BMM_WriteBackAllMapTbl();	
+
+		up(&mytr.nand_ops_mutex);
+	}
+}
 
  int cal_partoff_within_disk(char *name,struct inode *i)
 {
@@ -1442,7 +1444,6 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 	int i=0;
 
 	printk("[NAND] nand_suspend \n");
-    mutex_lock(&suspend_mutex);
 
 	if(!IS_IDLE){
 		for(i=0;i<10;i++){
@@ -1452,9 +1453,9 @@ static int nand_suspend(struct platform_device *plat_dev, pm_message_t state)
 		}
 	}
 	if(i==10){
-        mutex_unlock(&suspend_mutex);
 		return -EBUSY;
 	}else{
+		down(&mytr.nand_ops_mutex);
 		#ifndef USE_SYS_CLK
 			release_nand_clock();
 		#else
@@ -1483,9 +1484,8 @@ static int nand_resume(struct platform_device *plat_dev)
 		nand_module_clk_enable();
 	#endif
 
-    mutex_unlock(&suspend_mutex);
+	up(&mytr.nand_ops_mutex);
 
-	printk("[NAND] nand_resume \n");
 
 	return 0;
 }
@@ -1507,14 +1507,7 @@ static int nand_remove(struct platform_device *plat_dev)
 void nand_shutdown(struct platform_device *plat_dev)
 {
     printk("[NAND]shutdown\n");
-
-    down(&mytr.nand_ops_mutex);
-    #ifdef NAND_CACHE_RW
-    NAND_CacheFlush();
-    #else
-    LML_FlushPageCache();
-    #endif
-    BMM_WriteBackAllMapTbl();
+	nand_flush_all();
 }
 
 static struct platform_driver nand_driver = {
