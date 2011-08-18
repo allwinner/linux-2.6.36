@@ -81,6 +81,8 @@ static int gpio_wakeup_hdle = 0;
 #define X_DIFF (800)
 static int screen_max_x;
 static int screen_max_y;
+static int revert_x_flag = 0;
+static int revert_y_flag = 0;
 
 #define FOR_TSLIB_TEST
 //#define PRINT_INT_INFO
@@ -460,6 +462,12 @@ BIT_NO_CHANGE:
 		x = (TOUCH_MAX_WIDTH - x)*SCREEN_MAX_WIDTH/TOUCH_MAX_WIDTH;//y
 		y =  y*SCREEN_MAX_HEIGHT/TOUCH_MAX_HEIGHT ;					//x
 		//print_point_info("RAW X = %d,Y = %d\n",800-y,x);
+		if(1 == revert_x_flag){
+			x = SCREEN_MAX_WIDTH - x;
+			}
+		if(1 == revert_y_flag){
+			y = SCREEN_MAX_HEIGHT - y;
+			}
 		swap(x, y); 
 		p->x = x;
 		p->y = y;
@@ -873,6 +881,19 @@ static int __devinit goodix_ts_init(void)
     	return -ENOMEM;
     	
     }
+    
+    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_revert_x_flag", &revert_x_flag, 1)){
+        pr_err("goodix_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    pr_info("goodix_ts: revert_x_flag = %d. \n", revert_x_flag);
+
+    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_revert_y_flag", &revert_y_flag, 1)){
+        pr_err("goodix_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    pr_info("goodix_ts: revert_y_flag = %d. \n", revert_y_flag);
+    
     ret=i2c_add_driver(&goodix_ts_driver);
 
 script_parser_fetch_err:
