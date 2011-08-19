@@ -627,19 +627,19 @@ static int sw_ehci_hcd_resume(struct device *dev)
 
 	if(dev == NULL){
 		DMSG_PANIC("ERR: Argment is invalid\n");
-		return -1;
+		return 0;
 	}
 
 	hcd = dev_get_drvdata(dev);
 	if(hcd == NULL){
 		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
+		return 0;
 	}
 
 	sw_ehci = dev->platform_data;
 	if(sw_ehci == NULL){
 		DMSG_PANIC("ERR: sw_ehci is null\n");
-		return -1;
+		return 0;
 	}
 
 	if(sw_ehci->probe == 0){
@@ -650,7 +650,7 @@ static int sw_ehci_hcd_resume(struct device *dev)
 	ehci = hcd_to_ehci(hcd);
 	if(ehci == NULL){
 		DMSG_PANIC("ERR: ehci is null\n");
-		return -1;
+		return 0;
 	}
 
  	DMSG_INFO("[%s]: sw_ehci_hcd_resume\n", sw_ehci->hci_name);

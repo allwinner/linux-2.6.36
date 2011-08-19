@@ -492,19 +492,19 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 
 	if(dev == NULL){
 		DMSG_PANIC("ERR: Argment is invalid\n");
-		return -1;
+		return 0;
 	}
 
 	hcd = dev_get_drvdata(dev);
 	if(hcd == NULL){
 		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
+		return 0;
 	}
 
 	sw_ohci = dev->platform_data;
 	if(sw_ohci == NULL){
 		DMSG_PANIC("ERR: sw_ohci is null\n");
-		return -1;
+		return 0;
 	}
 
 	if(sw_ohci->probe == 0){
@@ -515,7 +515,7 @@ static int sw_ohci_hcd_suspend(struct device *dev)
 	ohci = hcd_to_ohci(hcd);
 	if(ohci == NULL){
 		DMSG_PANIC("ERR: ohci is null\n");
-		return -1;
+		return 0;
 	}
 
  	DMSG_INFO("[%s]: sw_ohci_hcd_suspend\n", sw_ohci->hci_name);
@@ -576,19 +576,19 @@ static int sw_ohci_hcd_resume(struct device *dev)
 
 	if(dev == NULL){
 		DMSG_PANIC("ERR: Argment is invalid\n");
-		return -1;
+		return 0;
 	}
 
 	hcd = dev_get_drvdata(dev);
 	if(hcd == NULL){
 		DMSG_PANIC("ERR: hcd is null\n");
-		return -1;
+		return 0;
 	}
 
 	sw_ohci = dev->platform_data;
 	if(sw_ohci == NULL){
 		DMSG_PANIC("ERR: sw_ohci is null\n");
-		return -1;
+		return 0;
 	}
 
 	if(sw_ohci->probe == 0){
