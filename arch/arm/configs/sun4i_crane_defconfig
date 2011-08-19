@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Wed Aug 17 16:39:23 2011
+# Fri Aug 19 19:34:23 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -554,6 +554,7 @@ CONFIG_BLK_DEV_RAM_SIZE=64
 # CONFIG_ATA_OVER_ETH is not set
 CONFIG_MISC_DEVICES=y
 # CONFIG_AD525X_DPOT is not set
+# CONFIG_SUN4I_VIBRATOR is not set
 # CONFIG_ANDROID_PMEM is not set
 CONFIG_ANDROID_PMEM_BASE=0x0
 CONFIG_ANDROID_PMEM_SIZE=0
