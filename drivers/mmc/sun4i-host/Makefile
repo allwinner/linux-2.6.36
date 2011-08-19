@@ -10,4 +10,4 @@ endif
 	
 obj-$(CONFIG_SUN4I_MMC_SW)    += mmc_host.o
 
-mmc_host-y := sdxc.o host_op.o
+mmc_host-y := sdxc.o host_op.o sdio_pwr.o

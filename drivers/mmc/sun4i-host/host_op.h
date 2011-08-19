@@ -153,6 +153,15 @@ struct awsmc_ctrl_regs {
 	u32		idmacc;
 };
 
+struct sw_sdio_res {
+    u32     used;
+    char    mname[32];
+    u32     sdc_id;
+    u32     pio_hdle;
+    u32     poweron;
+    u32     suspend;
+};
+
 struct awsmc_host {
     
     struct platform_device      *pdev;
@@ -263,5 +272,10 @@ static inline void uart_send_char(char c)
 #else
 #define uart_send_char(c) 
 #endif
+
+int sw_get_sdio_resource(void);
+int sw_put_sdio_resource(void);
+int sw_sdio_powerup(char* mname);
+int sw_sdio_poweroff(char* mname);
 
 #endif

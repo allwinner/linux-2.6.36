@@ -31,7 +31,8 @@
 
 static char* awsmc_hclk_name[4] = {"ahb_sdc0", "ahb_sdc1", "ahb_sdc2", "ahb_sdc3"};
 static char* awsmc_mclk_name[4] = {"sdc0", "sdc1", "sdc2", "sdc3"};
-static struct awsmc_host* sw_host[4] = {NULL, NULL, NULL, NULL};
+struct awsmc_host* sw_host[4] = {NULL, NULL, NULL, NULL};
+struct sw_sdio_res sw_sdio_card;
 
 /* Module parameters */
 /* debug control */
@@ -316,12 +317,12 @@ static void awsmc_cd_timer(unsigned long data)
     if (smc_host->present ^ present) {
         awsmc_msg("mmc %d detect change, present %d\n", smc_host->pdev->id, present);
         smc_host->present = present;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
+        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(100));
     } else {
 //        awsmc_dbg("card detect no change\n");
     }
 
-    mod_timer(&smc_host->cd_timer, jiffies + 100);
+    mod_timer(&smc_host->cd_timer, jiffies + 300);
     return;
 }
 
@@ -802,64 +803,6 @@ static inline void awsmc_procfs_remove(struct awsmc_host *smc_host) { }
 
 #endif
 
-int sw_host_insert_card(unsigned id, char* name)
-{
-    struct awsmc_host* smc_host = NULL;
-
-    BUG_ON(id > 3);
-    BUG_ON(sw_host[id] == NULL);
-
-    smc_host = sw_host[id];
-	if (smc_host->cd_mode != CARD_DETECT_BY_FS)
-    {
-        awsmc_msg("card detecet mode is not by manual(mode 4 in config file) !\n");
-        return -1;
-    }
-
-    if (smc_host->present)
-    {
-        awsmc_msg("card is already inserted !\n");
-        return -1;
-    }
-    else
-    {
-        awsmc_msg("card is inserted by %s\n", name);
-        smc_host->present = 1;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(1));
-    }
-    return 0;
-}
-EXPORT_SYMBOL_GPL(sw_host_insert_card);
-
-int sw_host_remove_card(unsigned id, char* name)
-{
-    struct awsmc_host* smc_host = NULL;
-
-    BUG_ON(id > 3);
-    BUG_ON(sw_host[id] == NULL);
-    
-    smc_host = sw_host[id];
-	if (smc_host->cd_mode != CARD_DETECT_BY_FS)
-    {
-        awsmc_msg("card detecet mode is not by manual(mode 4 in config file) !\n");
-        return -1;
-    }
-
-    if (smc_host->present)
-    {
-        awsmc_msg("card is removed by %s\n", name);
-        smc_host->present = 0;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(1));
-    }
-    else
-    {
-        awsmc_msg("card is already removed !\n");
-        return -1;
-    }
-    return 0;
-}
-EXPORT_SYMBOL_GPL(sw_host_remove_card);
-
 static struct mmc_host_ops awsmc_ops = {
     .request	     = awsmc_request,
     .set_ios	     = awsmc_set_ios,
@@ -1188,8 +1131,17 @@ static int awsmc_suspend(struct device *dev)
     	/* disable mmc hclk */
     	clk_disable(smc_host->hclk);
         
+        /* handle sdio card's power */
+        if (sw_sdio_card.poweron)
+        {
+            awsmc_msg("Found sdio card is poweron, now suspend\n");
+            sw_sdio_card.suspend = 1;
+            sw_sdio_poweroff(sw_sdio_card.mname);
+        }
+        
         /* suspend pins to save power */
         mmc_suspend_pins(smc_host);
+        
     }
 
     awsmc_msg("smc %d suspend\n", pdev->id);
@@ -1208,7 +1160,15 @@ static int awsmc_resume(struct device *dev)
         
         /* resume pins to correct status */
         mmc_resume_pins(smc_host);
-
+        
+        /* handle sdio card's power */
+        if (sw_sdio_card.suspend)
+        {
+            awsmc_msg("Found sdio card is suspend before, now poweron\n");
+            sw_sdio_powerup(sw_sdio_card.mname);
+            sw_sdio_card.suspend = 0;
+        }
+        
     	/* enable mmc hclk */
     	clk_enable(smc_host->hclk);
 
@@ -1343,60 +1303,39 @@ static int __init awsmc_init(void)
 
     awsmc_msg("awsmc_init\n");
     
-    /*
-     * reset wifi gpio handler and release
-     */
-    {
-        u32 pio_hdle = gpio_request_ex("sdio_wifi_para", NULL);
-        
-        if (!pio_hdle)
-        {
-            awsmc_msg("Request wifi gpio resource failed\n");
-        }
-        awsmc_msg("reset wifi gpio resource\n");
-        
-        gpio_release(pio_hdle, 2);
-    }
-    
     memset((void*)sdc_used, 0, sizeof(sdc_used));
     ret = script_parser_fetch("mmc0_para","sdc_used", &sdc_used[0], sizeof(int));
     if (ret)
     {
     	printk("awsmc_init fetch mmc0 using configuration failed\n");
-    	#ifndef AW1623_FPGA
-    	return -1;//fpga
-    	#endif
     }
     ret = script_parser_fetch("mmc1_para","sdc_used", &sdc_used[1], sizeof(int));
     if (ret)
     {
         printk("awsmc_init fetch mmc1 using onfiguration failed\n");
-    	#ifndef AW1623_FPGA
-    	return -1;//fpga
-    	#endif
     }
     ret = script_parser_fetch("mmc2_para","sdc_used", &sdc_used[2], sizeof(int));
     if (ret)
     {
         printk("awsmc_init fetch mmc2 using configuration failed\n");
-    	#ifndef AW1623_FPGA
-    	return -1;//fpga
-    	#endif
     }
     ret = script_parser_fetch("mmc3_para","sdc_used", &sdc_used[3], sizeof(int));
     if (ret)
     {
         printk("awsmc_init fetch mmc3 using configuration failed\n");
-    	#ifndef AW1623_FPGA
-    	return -1;//fpga
-    	#endif
     }
 
     awsmc_msg("awsmc controller unsing config sdc0 %d, sdc1 %d, sdc2 %d, sdc3 %d\n", sdc_used[0], sdc_used[1], sdc_used[2], sdc_used[3]);
     #ifdef AW1623_FPGA
     sdc_used[0] = 1;//fpga
     #endif
-
+    
+    ret = sw_get_sdio_resource();
+    if (ret)
+    {
+        printk("awsmc_init fetch sdio card's configuration failed\n");
+    }
+    
     if (sdc_used[0])
     {
         platform_device_register(&axmmc_device[0]);

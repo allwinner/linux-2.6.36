@@ -104,169 +104,6 @@
 #include <linux/completion.h> 
 #include <linux/sched.h>
 
-#include "host.h"
-
-#ifdef WINNER_HOST_GPIO_CTRL
-#include <mach/gpio_v2.h>
-#include <mach/script_v2.h>
-#define nano_msg(...) printk("[nano]: "__VA_ARGS__)
-
-extern int sw_host_insert_card(unsigned id, char* name);
-extern int sw_host_remove_card(unsigned id, char* name);
-struct {
-    u32 used;
-    char mname[32];
-    u32 sdc_id;
-    u32 pio_hdle;
-} sw_wifi_ctrl;
-
-int sw_host_gpio_allocate(void)
-{
-    int ret;
-    char* wifi_para = "sdio_wifi_para";
-    u32 pio_hdle = 0;
-
-    memset(&sw_wifi_ctrl, 0, sizeof(sw_wifi_ctrl));
-    ret = script_parser_fetch(wifi_para, "sdio_wifi_used", &sw_wifi_ctrl.used, sizeof(unsigned));
-    if (ret)
-    {
-        nano_msg("failed to get sdio wifi used information\n");
-        return -1;
-    }
-    ret = script_parser_fetch(wifi_para, "sdio_wifi_mname", (void*)sw_wifi_ctrl.mname, sizeof(char*));
-    if (ret)
-    {
-        nano_msg("failed to get sdio wifi module name, specify one: nano_wifi\n");
-        strcpy((void*)sw_wifi_ctrl.mname, "nano_wifi");
-    }
-    nano_msg("Get wifi info.: %s\n", sw_wifi_ctrl.mname);
-    ret = script_parser_fetch(wifi_para, "sdio_wifi_sdc_id", &sw_wifi_ctrl.sdc_id, sizeof(unsigned));
-    if (ret)
-    {
-        nano_msg("failed to get sdio wifi sdc id\n");
-        return -1;
-    }
-    
-    pio_hdle = gpio_request_ex(wifi_para, NULL);
-    if (!pio_hdle)
-    {
-        nano_msg("Request gpio resource failed\n");
-        return -1;
-    }
-    sw_wifi_ctrl.pio_hdle = pio_hdle;
-    
-    return 0;
-}
-
-int sw_host_gpio_free(void)
-{
-    if (sw_wifi_ctrl.pio_hdle)
-        gpio_release(sw_wifi_ctrl.pio_hdle, 2);
-    memset(&sw_wifi_ctrl, 0, sizeof(sw_wifi_ctrl));
-    return 0;
-}
-
-#ifdef WINNER_SHUTDOWN_PIN_USED
-int sw_host_hardware_shutdown(u32 shutdown)
-{
-    int ret;
-    if (shutdown)
-    {
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_shdn");
-        if (ret)
-        {
-            nano_msg("Failed to shut down N20S!\n");
-            return -1;
-        }
-        else
-        {
-            nano_msg("N20s shutdown!!\n");
-        }
-    }
-    else
-    {
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_shdn");
-        if (ret)
-        {
-            nano_msg("Failed to start up N20S!\n");
-            return -1;
-        }
-        else
-        {
-            nano_msg("N20s start up!!\n");
-        }
-    }
-    return 0;
-}
-#endif //WINNER_POWER_PIN_USED
-
-
-#ifdef WINNER_POWER_PIN_USED
-int sw_host_power_card(u32 enb)
-{
-    int ret;
-
-    if (enb)
-    {
-        /* disable wakeup (no use) */
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_host_wakeup");
-        if (ret)
-        {
-            nano_msg("Failed to disable VCC3v3 !\n");
-        }
-        
-        /* enable vcc */
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_vcc_en");
-        if (ret)
-        {
-            nano_msg("Failed to enable VCC3v3 !\n");
-            return -1;
-        }
-        udelay(5);
-        #ifdef WINNER_SHUTDOWN_PIN_USED
-        sw_host_hardware_shutdown(0);
-        #endif
-        /* delay 100 microseconds */
-        udelay(150);
-        /* enable vcc */
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 1, "sdio_wifi_vdd_en");
-        if (ret)
-        {
-            nano_msg("Failed to enable VDD1v2 !\n");
-            return -1;
-        }
-    }
-    else
-    {
-        /* disable vdd */
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_vdd_en");
-        if (ret)
-        {
-            nano_msg("Failed to disable VDD1v2 !\n");
-            return -1;
-        }
-
-        /* disable vcc */
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_vcc_en");
-        if (ret)
-        {
-            nano_msg("Failed to disable VCC3v3 !\n");
-            return -1;
-        }
-        
-        /* disable wakeup (no use) */
-        ret = gpio_write_one_pin_value(sw_wifi_ctrl.pio_hdle, 0, "sdio_wifi_host_wakeup");
-        if (ret)
-        {
-            nano_msg("Failed to disable VCC3v3 !\n");
-        }
-    }
-    return 0;
-}
-#endif // WINNER_POWER_PIN_USED
-
-#endif //WINNER_HOST_GPIO_CTRL
-
 #undef  PROCFS_HIC
 
 #ifndef KSDIO_SIZE_ALIGN
@@ -1063,21 +900,12 @@ nrx_reset(struct sdio_func *func)
 
 #if defined(KSDIO_HOST_RESET_PIN)
 
-#ifdef WINNER_SHUTDOWN_PIN_USED
-    err = sw_host_hardware_shutdown(1);
-    mdelay(3);
-    if (!err) {
-        err = sw_host_hardware_shutdown(0);
-        mdelay(10);
-    }
-#else
    err = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 0);
    mdelay(3);  /* let SHUTDOWN_N assertion take effect */
    if (!err) {
       err = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 1);
       mdelay(10); /* let NRX600 to reset */
    }
-#endif
 
 #else /* !defined(KSDIO_HOST_RESET_PIN) */
    {
@@ -1183,7 +1011,12 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
        * (orfr 090415) was 3.5 ms with some margin
        */
       mdelay(15); 
-
+      
+      sdio_f0_writeb(nrxdev->func, 0x02, CCCR_INTACK, &err);
+      if (err != 0) {
+         KDEBUG(ERROR, "Clear irq failed after download fw, err %d", err);
+      }
+      	
       err = nrx_enable_irq(nrxdev);
       if (err) {
          KDEBUG(ERROR, "Failed to enable IRQs, err = %d", err);
@@ -1297,30 +1130,6 @@ static void nano_netif_off(struct nrxdev *nrxdev)
       nrxdev->netdev = NULL;
    }
 #endif /* KSDIO_IGNORE_REMOVE */
-    
-#ifdef WINNER_POWERDOWN_CARD_IN_SUSPEND
-    {
-        /* remove card and power down */
-        int ret;
-        
-        nano_msg("power down n20 wifi\n");
-        ret = sw_host_remove_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
-        if (ret)
-        {
-            nano_msg("Failed to remove card in suspend\n");
-        }
-        
-        #ifdef WINNER_SHUTDOWN_PIN_USED
-        sw_host_hardware_shutdown(1);
-        #endif
-
-        #ifdef WINNER_POWER_PIN_USED
-        sw_host_power_card(0);
-        #endif
-    }
-#endif
-
-    printk("nano_netif_off\m");
 }
 
 /* Called to destroy or to suspend the network interface.
@@ -1329,27 +1138,6 @@ static void nano_netif_off(struct nrxdev *nrxdev)
 static int nano_netif_on(struct nrxdev *nrxdev,
                          struct nanonet_create_param *create_param)
 {
-#ifdef WINNER_POWERDOWN_CARD_IN_SUSPEND
-    /* 
-     */
-    {
-        int ret;
-        
-        nano_msg("power up n20 wifi\n");
-        #ifdef WINNER_POWER_PIN_USED
-        sw_host_power_card(1);
-        #endif
-        
-        ret = sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
-        if (ret)
-        {
-            nano_msg("Failed to insert card\n");
-            sw_host_gpio_free();
-            return -1;
-        }
-    }
-#endif
-
 #ifdef KSDIO_IGNORE_REMOVE
    if (netdev_saved) {
       nrxdev->netdev = netdev_saved;
@@ -1369,7 +1157,6 @@ static int nano_netif_on(struct nrxdev *nrxdev,
       netdev_saved = nrxdev->netdev;
 #endif /* KSDIO_IGNORE_REMOVE*/
    }
-    printk("nano_netif_on\m");
    return 0;
 }
 
@@ -1675,10 +1462,12 @@ static struct sdio_driver sdio_nrx_driver = {
     .id_table   = sdio_nrx_ids,
 };
 
+extern int sw_sdio_powerup(char* mname);
+extern int sw_sdio_poweroff(char* mname);
+
 static int __init sdio_nrx_init(void)
 {
 #ifdef KSDIO_HOST_RESET_PIN
-   #ifndef WINNER_SHUTDOWN_PIN_USED
    int status = host_gpio_allocate(KSDIO_HOST_RESET_PIN);
    if (status) {
       KDEBUG(ERROR, "Failed to allocate host GPIO for chip reset (status: %d)", status);
@@ -1688,35 +1477,12 @@ static int __init sdio_nrx_init(void)
    /* In an ideal world, this is where we set the SHUTDOWN_N pin high and
     * tell the MMC/SD/SDIO driver to look for a new "card"....
     */
-   #endif
 #endif
     
-#ifdef WINNER_HOST_GPIO_CTRL
-    /* winner's power management for N20's
-     * alloc gpio resource
-     */
-    {
-        int ret;
-        ret = sw_host_gpio_allocate();
-        if (ret)
-        {
-            nano_msg("Failed to allocate host GPIO (ret: %d)", ret);
-            return -1;
-        }
-        
-        #ifdef WINNER_POWER_PIN_USED
-        sw_host_power_card(1);
-        #endif
-        ret = sw_host_insert_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
-        if (ret)
-        {
-            nano_msg("Failed to insert card\n");
-            sw_host_gpio_free();
-            return -1;
-        }
-    }
-
+#ifdef WINNER_POWER_ONOFF_CTRL
+    sw_sdio_powerup("Nano-n20s");
 #endif
+
     return sdio_register_driver(&sdio_nrx_driver);
 }
 
@@ -1729,7 +1495,6 @@ static void __exit sdio_nrx_exit(void)
    }
 #endif
 #ifdef KSDIO_HOST_RESET_PIN
-    #ifndef WINNER_SHUTDOWN_PIN_USED
    {
       int status;
 
@@ -1737,27 +1502,13 @@ static void __exit sdio_nrx_exit(void)
       if (status)
          KDEBUG(ERROR, "Failed to free host GPIO for chip reset (status: %d)", status);
    }
-   #endif
 #endif
-#ifdef WINNER_HOST_GPIO_CTRL
-    {
-        int ret;
-        ret = sw_host_remove_card(sw_wifi_ctrl.sdc_id, sw_wifi_ctrl.mname);
-        if (ret)
-        {
-            nano_msg("Failed to remove card\n");
-        }
-        #ifdef WINNER_SHUTDOWN_PIN_USED
-        sw_host_hardware_shutdown(1);
-        #endif
 
-        #ifdef WINNER_POWER_PIN_USED
-        sw_host_power_card(0);
-        #endif
-        sw_host_gpio_free();
-    }
+    sdio_unregister_driver(&sdio_nrx_driver);
+    
+#ifdef WINNER_POWER_ONOFF_CTRL
+    sw_sdio_poweroff("Nano-n20s");
 #endif
-   sdio_unregister_driver(&sdio_nrx_driver);
 }
 
 #ifdef USE_WIFI
@@ -1772,21 +1523,13 @@ static int nano_hard_shutdown(struct nrxdev *nrxdev, uint32_t arg)
          if (!nrxdev->is_in_hard_shutdown) {
             nrxdev->is_in_hard_shutdown = 1;
             sdio_unregister_driver(&sdio_nrx_driver);
-            #ifdef WINNER_SHUTDOWN_PIN_USED
-            ret = sw_host_hardware_shutdown(1);
-            #else
             ret = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 0);
-            #endif
          }
          return ret;
 
       case NANONET_HARD_SHUTDOWN_EXIT:
          if (nrxdev->is_in_hard_shutdown) {
-            #ifdef WINNER_SHUTDOWN_PIN_USED
-            ret = sw_host_hardware_shutdown(0);
-            #else
             ret = host_gpio_set_level(KSDIO_HOST_RESET_PIN, 1);
-            #endif
             if (ret)
                return ret;
             msleep(100);
