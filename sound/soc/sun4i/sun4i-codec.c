@@ -344,7 +344,7 @@ static  int codec_init(void)
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
 	}else if(codec_chip_ver == MAGIC_VER_B){
-		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3d);
+		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3c);
 	}else{
 		printk("[audio codec] chip version is unknown!\n");
 		return -1;
@@ -399,6 +399,7 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	//flush TX FIFO
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
@@ -409,6 +410,7 @@ static int codec_play_start(void)
 static int codec_play_stop(void)
 {	
 	//pa mute
+	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	mdelay(5);
 	//disable dac drq
@@ -423,6 +425,7 @@ static int codec_play_stop(void)
 static int codec_capture_start(void)
 {
 	//enable adc drq
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	codec_wr_control(SW_ADC_FIFOC ,0x1, ADC_DRQ, 0x1);
 	return 0;
 }
@@ -1406,7 +1409,7 @@ static int __init sw_codec_probe(struct platform_device *pdev)
 	}
 	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	
 	 codec_init(); 
-	 gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	 
+	 gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");	 
 	 resume_work_queue = create_singlethread_workqueue("codec_resume");
 	 if (resume_work_queue == NULL) {
         printk("[su4i-codec] try to create workqueue for codec failed!\n");
