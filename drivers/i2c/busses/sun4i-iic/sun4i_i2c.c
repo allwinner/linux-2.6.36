@@ -1305,7 +1305,7 @@ static int __init gsensor_i2c_awxx_init(void)
 	strncpy(gsensor_i2c_board_info[0].type, gsensor_name, I2C_NAME_SIZE);
 	gsensor_i2c_board_info[0].addr = twi_addr;
 
-	status = i2c_register_board_info(1, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
+	status = i2c_register_board_info(twi_id, gsensor_i2c_board_info, ARRAY_SIZE(gsensor_i2c_board_info));
 	if(status) {
 		pr_err("gsensor_i2c_awxx_init: register i2c board %s at addr %d err\n",	\
 					gsensor_i2c_board_info[0].type, gsensor_i2c_board_info[0].addr);
