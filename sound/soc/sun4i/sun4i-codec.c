@@ -349,6 +349,7 @@ static  int codec_init(void)
 		printk("[audio codec] chip version is unknown!\n");
 		return -1;
 	}
+	codec_wr_control(SW_DAC_DEBUG ,  0x1, DAC_CHANNEL, 0x1);
 	return 0;	
 }
 

@@ -33,7 +33,7 @@
 //For CODEC OLD VERSION
 #define DAC_VERSION               (23)
 
-
+#define DAC_CHANNEL				  (6)
 #define LAST_SE                   (26)
 #define TX_FIFO_MODE              (24)
 #define DRA_LEVEL                 (21)
