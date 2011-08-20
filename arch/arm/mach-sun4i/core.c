@@ -37,8 +37,10 @@
 
 #include "core.h"
 
-/* set timer period to 20 cycles */
-#define TMR_INTER_VAL   19
+#define SYS_TIMER_SCAL      (16)            /* timer clock source pre-divsion   */
+#define SYS_TIMER_CLKSRC    (24000000)      /* timer clock source               */
+#define TMR_INTER_VAL       (SYS_TIMER_CLKSRC/(SYS_TIMER_SCAL*HZ))
+
 
 /**
  * Global vars definitions
@@ -310,13 +312,15 @@ static void __init softwinner_timer_init(void)
     volatile u32  val = 0;
 
     writel(TMR_INTER_VAL, SW_TIMER0_INTVAL_REG);
-    val = 0;
-    writel(val, SW_TIMER0_CTL_REG);
-    val = readl(SW_TIMER0_CTL_REG); /* 2KHz */
-    val |= (4 << 4);                /* LOSC 16 division */
-    writel(val, SW_TIMER0_CTL_REG);
+    /* set clock sourch to HOSC, 16 pre-division */
     val = readl(SW_TIMER0_CTL_REG);
-    val |= 2;                       /* auto reload      */
+    val &= ~(0x07<<4);
+    val &= ~(0x03<<2);
+    val |= (4<<4) | (1<<2);
+    writel(val, SW_TIMER0_CTL_REG);
+    /* set mode to auto reload */
+    val = readl(SW_TIMER0_CTL_REG);
+    val |= (1<<1);
     writel(val, SW_TIMER0_CTL_REG);
     setup_irq(SW_INT_IRQNO_TIMER0, &softwinner_timer_irq);
 
@@ -325,7 +329,7 @@ static void __init softwinner_timer_init(void)
     val |= (1<<0);
     writel(val, SW_TIMER_INT_CTL_REG);
 
-    timer0_clockevent.mult = div_sc(2048, NSEC_PER_SEC, timer0_clockevent.shift);
+    timer0_clockevent.mult = div_sc(HZ, NSEC_PER_SEC, timer0_clockevent.shift);
     timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
     timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &timer0_clockevent);
     timer0_clockevent.cpumask = cpumask_of(0);
