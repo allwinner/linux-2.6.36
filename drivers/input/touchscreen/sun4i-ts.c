@@ -65,6 +65,9 @@ static int tp_flag = 0;
 //#define PRINT_TASKLET_INFO
 #define CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 #define PRINT_SUSPEND_INFO
+//#define PRINT_FILTER_DOUBLE_POINT_STATUS_INFO
+//#define PRINT_ORIENTATION_INFO
+#define FIX_ORIENTATION
 
 //#define TP_TEMP_DEBUG
 
@@ -87,6 +90,7 @@ static int tp_flag = 0;
 #define ADC_FIRST_DLY_MODE     (0x1<<23) 
 #define ADC_CLK_SELECT         (0x0<<22)
 #define ADC_CLK_DIVIDER        (0x2<<20)    
+//#define CLK                    (6)
 #define CLK                    (7)
 #define FS_DIV                 (CLK<<16)
 #define ACQ                    (0x3f)
@@ -120,9 +124,13 @@ static int tp_flag = 0;
 #define TP_DOWN_PENDING        (1<<0)
 
 #define SINGLE_TOUCH_MODE      (1)
-#define DOUBLE_TOUCH_MODE      (2)
-#define SINGLE_CNT_LIMIT       (25)
-#define DOUBLE_CNT_LIMIT       (8)
+#define CHANGING_TO_DOUBLE_TOUCH_MODE (2)
+#define DOUBLE_TOUCH_MODE      (3)
+#define UP_TOUCH_MODE           (4)
+
+#define SINGLE_CNT_LIMIT       (150)
+#define DOUBLE_CNT_LIMIT       (2)
+#define UP_TO_SINGLE_CNT_LIMIT (10)
 
                                
 #define TPDATA_MASK            (0xfff)
@@ -139,6 +147,11 @@ static int tp_flag = 0;
 
 #define CYCLE_BUFFER_SIZE       (64)          //must be 2^n
 #define DELAY_PERIOD            (8)          //delay 90 ms, unit is 10ms  
+
+#define ZOOM_CHANGE_LIMIT_CNT  (3)
+#define ZOOM_IN                                       (1)
+#define ZOOM_OUT                                   (2)
+#define ZOOM_INIT_STATE                    (3)
 
 #ifndef TRUE
 #define TRUE   1
@@ -190,6 +203,23 @@ static int tp_flag = 0;
 #define print_tasklet_info(fmt, args...)   //
 #endif
 
+#ifdef PRINT_FILTER_DOUBLE_POINT_STATUS_INFO 
+#define print_filter_double_point_status_info(fmt, args...)     \
+            do{                              \
+                    printk(fmt, ##args);     \
+            }while(0)
+#else
+#define print_filter_double_point_status_info(fmt, args...)   //
+#endif
+
+#ifdef PRINT_ORIENTATION_INFO 
+#define print_orientation_info(fmt, args...)     \
+            do{                              \
+                    printk(fmt, ##args);     \
+            }while(0)
+#else
+#define print_orientation_info(fmt, args...)   //
+#endif
 
 struct sun4i_ts_data {
 	struct resource *res;
@@ -225,7 +255,7 @@ struct ts_sample_data{
 };
 
 struct sun4i_ts_data * mtTsData =NULL;	
-static int touch_mode = SINGLE_TOUCH_MODE;
+static int touch_mode = UP_TOUCH_MODE;
 static int change_mode = TRUE;
 static int tp_irq_state = TRUE;
 
@@ -239,7 +269,15 @@ static struct ts_sample_data cycle_buffer[CYCLE_BUFFER_SIZE] = {{0},};
 static struct ts_sample_data *prev_sample;
 static struct timer_list data_timer;
 static int data_timer_status = 0;  //when 1, mean tp driver have recervied data, and begin to report data, and start timer to reduce up&down signal  
-
+static struct ts_sample_data prev_single_sample;
+static struct ts_sample_data prev_double_sample_data;
+static int orientation_flag = 0;
+static int zoom_flag = 0;
+static int accmulate_zoom_out_ds = 0;
+static int accmulate_zoom_in_ds = 0;
+static int zoom_in_count = 0;
+static int zoom_out_count = 0;
+static int zoom_change_cnt = 0;
 
 //for test
 //static int tp_irq = 0;
@@ -362,13 +400,226 @@ static void report_single_point(struct sun4i_ts_data *ts_data, struct ts_sample_
    
     return;
 }
+static int judge_zoom_orientation(struct ts_sample_data *sample_data)
+{
+       int dx,dy;
+       int ret = 0;
+       dx = sample_data->x - prev_single_sample.x;
+       dy = sample_data->y - prev_single_sample.y;
+       if(dx*dy > 0){
+            ret = -1;
+       }else if(dx*dy < 0){
+            ret = 1;
+       }
+       return ret;
+}
+static void filter_double_point_init(struct ts_sample_data *sample_data)
+{
+       //backup prev_double_sample_data
+       zoom_flag = ZOOM_INIT_STATE;
+        accmulate_zoom_out_ds = 0;
+        zoom_out_count = 0;
+        accmulate_zoom_in_ds = 0;
+        zoom_in_count = 0;
+       //printk("sample_data->x = %d, sample_data-> y = %d. \n", sample_data->x, sample_data->y);
+       memcpy((void*)(&prev_double_sample_data), (void*)sample_data, sizeof(*sample_data));
+       //when report two point, the first two point will be reserved for reference purpose.
+}
 
+static void change_to_double_mode(struct sun4i_ts_data *ts_data)
+{
+        if((CHANGING_TO_DOUBLE_TOUCH_MODE != touch_mode) && (DOUBLE_TOUCH_MODE != touch_mode)){
+            printk("change_to_double_mode: err, not the expected state. touch_mode = %d. \n", touch_mode);
+        }
+        touch_mode = DOUBLE_TOUCH_MODE;
+        change_mode = FALSE;
+        ts_data->single_touch_cnt = 0; //according this counter, change to single touch mode
+}
+
+static void change_to_zoom_in(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
+{ 
+    zoom_flag = ZOOM_IN;
+    zoom_change_cnt = 0;
+    accmulate_zoom_out_ds = 0;
+    zoom_out_count = 0;
+    orientation_flag = judge_zoom_orientation(sample_data);
+    change_to_double_mode(ts_data);
+    return;
+}
+
+static void change_to_zoom_out(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
+{
+    zoom_flag = ZOOM_OUT;
+    zoom_change_cnt = 0;
+    accmulate_zoom_in_ds = 0;
+    zoom_in_count = 0;
+    orientation_flag = judge_zoom_orientation(sample_data);
+    change_to_double_mode(ts_data);
+    return;
+}
+
+static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
+{
+    int ret = 0;
+    static int prev_sample_ds = 0;
+    static int cur_sample_ds = 0;
+    static int delta_ds = 0;
+    #define DELTA_DS_LIMIT                     (1)
+    #define ZOOM_IN_CNT_LIMIT             (3)
+    #define ZOOM_OUT_CNT_LIMIT         (3)
+    #define GLIDE_DELTA_DS_MAX_TIMES                   (4)
+    #define GLIDE_DELTA_DS_LOWER_LIMIT   (120)
+    
+    if(ZOOM_INIT_STATE == zoom_flag && (0 == zoom_out_count || 0 ==  zoom_in_count)){
+        prev_sample_ds = int_sqrt((prev_double_sample_data.dx)*(prev_double_sample_data.dx) + (prev_double_sample_data.dy)*(prev_double_sample_data.dy));
+      /* printk("sun4i-ts: prev_double_sample_data->x = %d, prev_double_sample_data->y = %d, \
+                   prev_double_sample_data.dx = %d, prev_double_sample_data.dy = %d. \n", \
+       prev_double_sample_data.x, prev_double_sample_data.y, prev_double_sample_data.dx, prev_double_sample_data.dy);*/
+    }
+    
+    cur_sample_ds = int_sqrt((sample_data->dx)*(sample_data->dx) + (sample_data->dy)*(sample_data->dy));
+    delta_ds = cur_sample_ds - prev_sample_ds;
+  //  printk("delta_ds = %d, prev_sample_ds = %d, cur_sample_ds = %d. \n", delta_ds, prev_sample_ds, cur_sample_ds);
+  //  printk("zoom_in_count = %d, accmulate_zoom_in_ds = %d, zoom_out_count = %d, accmulate_zoom_out_ds=%d. \n", \
+    //           zoom_in_count, accmulate_zoom_in_ds, zoom_out_count, accmulate_zoom_out_ds);
+    if(delta_ds > DELTA_DS_LIMIT){//zoom in
+        
+        if(ZOOM_OUT == zoom_flag){//zoom in when zoom out
+        //printk("delta_ds = %d, (4*accmulate_zoom_out_ds/zoom_out_count) = %d. \n", delta_ds, (GLIDE_DELTA_DS_MAX_TIMES*accmulate_zoom_out_ds/zoom_out_count));
+               if(delta_ds > max(GLIDE_DELTA_DS_LOWER_LIMIT, (GLIDE_DELTA_DS_MAX_TIMES*accmulate_zoom_out_ds/zoom_out_count))){
+                //noise
+                    //printk("delta_ds = %d, prev_sample_ds = %d, cur_sample_ds = %d. \n", delta_ds, prev_sample_ds, cur_sample_ds);
+                cur_sample_ds = prev_sample_ds;            //discard the noise, and can not be reference.
+                //printk("delta_ds = %d, (4*accmulate_zoom_out_ds/zoom_out_count) = %d. \n", delta_ds, (4*accmulate_zoom_out_ds/zoom_out_count));
+                print_filter_double_point_status_info("sun4i-ts: noise, zoom in when zoom out. \n");
+                //printk("discard noise. \n");
+                ret = TRUE;
+            }else{
+                //normal zoom in
+                zoom_change_cnt++;
+                accmulate_zoom_in_ds += delta_ds;
+                zoom_in_count++;
+                if(zoom_change_cnt > ZOOM_CHANGE_LIMIT_CNT){
+
+                    print_filter_double_point_status_info("change to ZOOM_IN from ZOOM_OUT. \n");
+                    change_to_zoom_in(ts_data, sample_data);
+                }else{
+                    //zoom_change_cnt = 0;
+                    print_filter_double_point_status_info("sun4i-ts: normal zoom in, but this will cause twitter. \n");
+                    ret = TRUE;
+                }
+            }
+             //accmulate_zoom_out_ds -= delta_ds;
+            //zoom_out_count++;
+        }else if(ZOOM_IN == zoom_flag){
+            if(delta_ds > max(GLIDE_DELTA_DS_LOWER_LIMIT, (GLIDE_DELTA_DS_MAX_TIMES*accmulate_zoom_in_ds/zoom_in_count))){
+                cur_sample_ds = prev_sample_ds;            //discard the noise, and can not be reference.
+                //printk("discard noise. \n");
+                ret = TRUE;
+            }else{
+                accmulate_zoom_in_ds += delta_ds;
+                zoom_in_count++;
+            }
+            zoom_change_cnt = 0;
+            accmulate_zoom_out_ds = 0;
+            zoom_out_count = 0;
+             #if 0
+                printk("ZOOM_IN: delta_ds= %d. \n", delta_ds);
+             #endif
+        }else if(ZOOM_INIT_STATE == zoom_flag){
+           zoom_in_count++;
+           if(zoom_in_count > ZOOM_IN_CNT_LIMIT){
+                accmulate_zoom_in_ds = delta_ds;
+                zoom_in_count = 1;
+                print_filter_double_point_status_info("change to ZOOM_IN from ZOOM_INIT_STATE. \n");
+                change_to_zoom_in(ts_data, sample_data);
+                 #if 1
+                print_filter_double_point_status_info("ZOOM_INIT_STATE: delta_ds= %d. \n", delta_ds);
+                #endif
+           }else{
+                ret = TRUE;
+           }
+
+        }        
+    }else if(delta_ds<(-DELTA_DS_LIMIT)){//zoom out   
+        delta_ds = -delta_ds;
+        
+        if(ZOOM_IN == zoom_flag){//zoom out when zoom in
+        //printk("delta_ds = %d, (4*accmulate_zoom_in_ds/zoom_in_count) = %d. \n", -delta_ds, (4*accmulate_zoom_in_ds/zoom_in_count));
+            if(delta_ds > max(GLIDE_DELTA_DS_LOWER_LIMIT, (GLIDE_DELTA_DS_MAX_TIMES*accmulate_zoom_in_ds/zoom_in_count))){ //noise
+            //printk("delta_ds = %d, prev_sample_ds = %d, cur_sample_ds = %d. \n", delta_ds, prev_sample_ds, cur_sample_ds);
+                cur_sample_ds = prev_sample_ds;            //discard the noise, and can not be reference.
+                print_filter_double_point_status_info("sun4i-ts: noise, zoom out when zoom in. \n");
+                //printk("discard noise. \n");
+                //zoom_change_cnt = 0;
+                ret = TRUE;
+            }else{//normal zoom out
+                zoom_change_cnt++;
+                accmulate_zoom_out_ds += delta_ds;
+                zoom_out_count++;
+                if(zoom_change_cnt > ZOOM_CHANGE_LIMIT_CNT){
+                    print_filter_double_point_status_info("change to ZOOM_OUT from ZOOM_IN. \n");
+                    change_to_zoom_out(ts_data, sample_data);
+                }else{
+                    //zoom_change_cnt = 0;
+                    print_filter_double_point_status_info("sun4i-ts: normal zoom out, but this will cause twitter. \n");
+                    ret = TRUE;
+                }
+            }
+            //accmulate_zoom_in_ds -= delta_ds;
+            //zoom_in_count++;
+        }else if(ZOOM_OUT == zoom_flag){ //zoom out when zoom out            
+            if(delta_ds > max(GLIDE_DELTA_DS_LOWER_LIMIT, (GLIDE_DELTA_DS_MAX_TIMES*accmulate_zoom_out_ds/zoom_out_count))){
+                cur_sample_ds = prev_sample_ds;
+                //printk("discard noise. \n");
+                ret = TRUE;
+            }else{
+                accmulate_zoom_out_ds += delta_ds;
+                zoom_out_count++;            
+            }
+            zoom_change_cnt = 0;
+            accmulate_zoom_in_ds = 0;
+            zoom_in_count = 0;
+            //printk("ZOOM_OUT: delta_ds= %d. \n", delta_ds);
+        }else if(ZOOM_INIT_STATE == zoom_flag){
+            zoom_out_count ++;
+            if(zoom_out_count > ZOOM_OUT_CNT_LIMIT){
+                accmulate_zoom_out_ds = delta_ds;
+                zoom_out_count = 1;
+                print_filter_double_point_status_info("change to ZOOM_OUT from ZOOM_INIT_STATE. \n");
+                change_to_zoom_out(ts_data, sample_data);
+                #if 1
+                print_filter_double_point_status_info("ZOOM_INIT_STATE: delta_ds= %d. \n", delta_ds);
+                #endif
+            }else{
+                //have not known orientation, discard the point
+                ret = TRUE;
+           }
+            
+        }
+       
+    }else{
+      //  printk("delta_ds == %d. \n", delta_ds);
+         ret = TRUE;
+    }
+    //update prev_double_sample_data
+    memcpy((void*)&prev_double_sample_data, (void*)sample_data, sizeof(*sample_data));
+    prev_sample_ds = cur_sample_ds;
+    //printk("prev_sample_ds = %d, cur_sample_ds = %d. \n", prev_sample_ds, cur_sample_ds);
+
+    return ret;
+    
+}
 static void report_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
 {
 	int x1,x2,y1,y2;
 	//int tmp;
     //tmp = X_TURN_POINT<<2;
-	input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
+        //printk("enter report_double_point . \n");
+        if(TRUE == filter_double_point(ts_data, sample_data)){ //noise
+            return;
+        }
+        
 	if(sample_data->dx < X_TURN_POINT){
 	    x1 = X_CENTER_COORDINATE - (sample_data->dx<<2);
         x2 = X_CENTER_COORDINATE + (sample_data->dx<<2);  
@@ -376,20 +627,36 @@ static void report_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_
         x1 = X_CENTER_COORDINATE - X_COMPENSATE - ((sample_data->dx) - X_TURN_POINT);
         x2 = X_CENTER_COORDINATE + X_COMPENSATE + ((sample_data->dx) - X_TURN_POINT); 
 	}
+#ifdef FIX_ORIENTATION
+    orientation_flag = 1;
+#endif
    
     //printk("X_TURN_POINT is %d. \n", tmp);
-    
-	if(sample_data->dy < Y_TURN_POINT){
-        y1 = Y_CENTER_COORDINATE - (sample_data->dy<<1);
-        y2 = Y_CENTER_COORDINATE + (sample_data->dy<<1);
+       if(-1 == orientation_flag){   
+        	if(sample_data->dy < Y_TURN_POINT){
+                y1 = Y_CENTER_COORDINATE - (sample_data->dy<<1);
+                y2 = Y_CENTER_COORDINATE + (sample_data->dy<<1);
 
-	}else{
-        y1 = Y_CENTER_COORDINATE - Y_COMPENSATE - (sample_data->dy - Y_TURN_POINT);
-        y2 = Y_CENTER_COORDINATE + Y_COMPENSATE + (sample_data->dy - Y_TURN_POINT);
-	}
+        	}else{
+                y1 = Y_CENTER_COORDINATE - Y_COMPENSATE - (sample_data->dy - Y_TURN_POINT);
+                y2 = Y_CENTER_COORDINATE + Y_COMPENSATE + (sample_data->dy - Y_TURN_POINT);
+        	}
 
-    //printk("dx:%d, dy: %d, x1:%d, y1:%d \n", sample_data->dx, sample_data->dy, x1, y1);
+       }else if(1 == orientation_flag){          
+        	if(sample_data->dy < Y_TURN_POINT){
+                y2 = Y_CENTER_COORDINATE - (sample_data->dy<<1);
+                y1 = Y_CENTER_COORDINATE + (sample_data->dy<<1);
 
+        	}else{
+                y2 = Y_CENTER_COORDINATE - Y_COMPENSATE - (sample_data->dy - Y_TURN_POINT);
+                y1 = Y_CENTER_COORDINATE + Y_COMPENSATE + (sample_data->dy - Y_TURN_POINT);
+        	}
+       }else{
+                print_orientation_info("orientation_flag: orientation is not supported or have not known. \n");
+                return;
+       }
+	
+        input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
 	input_report_abs(ts_data->input, ABS_MT_POSITION_X, x1);
 	input_report_abs(ts_data->input, ABS_MT_POSITION_Y, y1);
 	input_mt_sync(ts_data->input);
@@ -411,6 +678,17 @@ static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sa
 {
     //printk("calling report data. \n");
     if(TRUE == change_mode){                 //only up event happened, chang_mode is allowed.
+        ts_data->single_touch_cnt++; 
+        if(ts_data->single_touch_cnt > UP_TO_SINGLE_CNT_LIMIT){ 
+            //change to single touch mode
+            report_single_point(ts_data, sample_data);
+            touch_mode = SINGLE_TOUCH_MODE;
+
+            print_report_data_info("change touch mode to SINGLE_TOUCH_MODE from UP state. \n");
+
+        }
+    }else if(FALSE == change_mode){
+          //keep in double touch mode
         //remain in double touch mode    
         ts_data->single_touch_cnt++;        
         if(ts_data->single_touch_cnt > SINGLE_CNT_LIMIT){ 
@@ -418,12 +696,9 @@ static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sa
             report_single_point(ts_data, sample_data);
             touch_mode = SINGLE_TOUCH_MODE;
 
-            print_report_data_info("change touch mode to SINGLE_TOUCH_MODE");
+            print_report_data_info("change touch mode to SINGLE_TOUCH_MODE from double_touch_mode. \n");
 
-        }
-    }else if(FALSE == change_mode){
-          //keep in double touch mode
-          //igore single point                                                                                
+        }                                                                              
     }  
 
     return;
@@ -459,7 +734,7 @@ static void report_up_event(unsigned long data)
     //ts_data->buffer_tail = 0;
     ts_data->touchflag = 0; 
     //ts_data->count     = 0;
-    //touch_mode = SINGLE_TOUCH_MODE;
+    touch_mode = UP_TOUCH_MODE;
     change_mode = TRUE;
 
     return;
@@ -472,21 +747,34 @@ static void process_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *s
     if(((sample_data->dx) > DUAL_TOUCH)&&((sample_data->dy) > DUAL_TOUCH)){
         ts_data->touchflag = 2;
         ts_data->double_point_cnt++;
+        if(UP_TOUCH_MODE == touch_mode ){
+            print_orientation_info("sun4i-ts: need to get the single point. \n");
+           prev_single_sample.x = sample_data->x;
+            prev_single_sample.y = sample_data->y;
+            touch_mode = SINGLE_TOUCH_MODE;
+        }
         //printk("ts_data->double_point_cnt is %d. \n", ts_data->double_point_cnt);
         if(ts_data->double_point_cnt > DOUBLE_CNT_LIMIT){
             if(sample_data->dx < MAX_DELTA_X && sample_data->dy < MAX_DELTA_Y){
                     //ts_data->count = 0;  
-                    touch_mode = DOUBLE_TOUCH_MODE;
-                    change_mode = FALSE;
-                    ts_data->single_touch_cnt = 0; //according this counter, change to single touch mode
+                    if(SINGLE_TOUCH_MODE == touch_mode){
+                        touch_mode = CHANGING_TO_DOUBLE_TOUCH_MODE;
+                        orientation_flag = 0;
+                        filter_double_point_init(sample_data);
+                        print_orientation_info("sun4i-ts: orientation_flag == %d . \n", orientation_flag);
+                        return;
+                    }                    
                     report_double_point(ts_data, sample_data);
             }
         }
     
     }else  if(1 == ts_data->touchflag){
+            prev_single_sample.x = sample_data->x;
+            prev_single_sample.y = sample_data->y;
            if(DOUBLE_TOUCH_MODE == touch_mode ){
                  report_data(ts_data, sample_data);
-           }else if(SINGLE_TOUCH_MODE == touch_mode ){//remain in single touch mode
+           }else if(SINGLE_TOUCH_MODE == touch_mode  ||UP_TOUCH_MODE == touch_mode  || CHANGING_TO_DOUBLE_TOUCH_MODE == touch_mode){//remain in single touch mode
+                 touch_mode = SINGLE_TOUCH_MODE;
                  report_single_point(ts_data, sample_data);
            }                    
     }
@@ -574,11 +862,11 @@ void tp_do_tasklet(unsigned long data)
         	    if(1 == ts_data->touchflag || 2 == ts_data->touchflag)
         	    {
         	        print_report_status_info("actually TP_UP. \n");
-                    ts_data->touchflag = 0; 
+                    //ts_data->touchflag = 0; 
                     //ts_data->count     = 0;
                     //touch_mode = SINGLE_TOUCH_MODE;
-                    change_mode = TRUE;
-                    ts_data->ts_process_status = TP_UP;
+                    //change_mode = TRUE;
+                    //ts_data->ts_process_status = TP_UP;
                     report_up_event((unsigned long)ts_data);
                     
 
@@ -621,6 +909,7 @@ static irqreturn_t sun4i_isr_tp(int irq, void *dev_id)
 	struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)platform_get_drvdata(pdev);
 
 	unsigned int reg_val;
+	unsigned int reg_fifoc;
     int head_index = (int)(ts_data->buffer_head&(CYCLE_BUFFER_SIZE-1));
     int tail = (int)ts_data->buffer_tail;
 
@@ -701,7 +990,10 @@ static unsigned int temp_data = 0;
                 //ts_data->z2     = readl(TP_BASSADDRESS + TP_DATA);        
                 cycle_buffer[head_index].sample_status = TP_DATA_VA;
                 ts_data->ts_sample_status = TP_DATA_VA;
-                writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr+TP_INT_FIFOC); 
+                //flush fifo
+                reg_fifoc = readl(ts_data->base_addr+TP_INT_FIFOC);
+                reg_fifoc |= TP_FIFO_FLUSH;
+                writel(reg_fifoc, ts_data->base_addr+TP_INT_FIFOC); 
                 writel(reg_val&FIFO_DATA_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);
 
     		    print_int_info("data coming, jiffies to ms == %u , jiffies == %lu, time: = %llu \n", \
@@ -712,8 +1004,9 @@ static unsigned int temp_data = 0;
 
             }else{
                 //flush fifo, the data you do not want to reserved, need to be flush out fifo
-                writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, ts_data->base_addr+TP_INT_FIFOC); 
-
+                reg_fifoc = readl(ts_data->base_addr+TP_INT_FIFOC);
+                reg_fifoc |= TP_FIFO_FLUSH;
+                writel(reg_fifoc, ts_data->base_addr+TP_INT_FIFOC); 
             }    
 
 	   /* }else{ //INITIAL or UP
