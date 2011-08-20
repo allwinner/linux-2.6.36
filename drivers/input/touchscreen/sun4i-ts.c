@@ -464,7 +464,7 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
     static int prev_sample_ds = 0;
     static int cur_sample_ds = 0;
     static int delta_ds = 0;
-    #define DELTA_DS_LIMIT                     (1)
+    #define DELTA_DS_LIMIT                     (12)
     #define ZOOM_IN_CNT_LIMIT             (3)
     #define ZOOM_OUT_CNT_LIMIT         (3)
     #define GLIDE_DELTA_DS_MAX_TIMES                   (4)
@@ -479,8 +479,8 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
     
     cur_sample_ds = int_sqrt((sample_data->dx)*(sample_data->dx) + (sample_data->dy)*(sample_data->dy));
     delta_ds = cur_sample_ds - prev_sample_ds;
-  //  printk("delta_ds = %d, prev_sample_ds = %d, cur_sample_ds = %d. \n", delta_ds, prev_sample_ds, cur_sample_ds);
-  //  printk("zoom_in_count = %d, accmulate_zoom_in_ds = %d, zoom_out_count = %d, accmulate_zoom_out_ds=%d. \n", \
+    //print_filter_double_point_status_info("delta_ds = %d, prev_sample_ds = %d, cur_sample_ds = %d. \n", delta_ds, prev_sample_ds, cur_sample_ds);
+    //print_filter_double_point_status_info("zoom_in_count = %d, accmulate_zoom_in_ds = %d, zoom_out_count = %d, accmulate_zoom_out_ds=%d. \n", \
     //           zoom_in_count, accmulate_zoom_in_ds, zoom_out_count, accmulate_zoom_out_ds);
     if(delta_ds > DELTA_DS_LIMIT){//zoom in
         
@@ -599,7 +599,7 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
         }
        
     }else{
-      //  printk("delta_ds == %d. \n", delta_ds);
+         //printk("delta_ds == %d. \n", delta_ds);
          ret = TRUE;
     }
     //update prev_double_sample_data
