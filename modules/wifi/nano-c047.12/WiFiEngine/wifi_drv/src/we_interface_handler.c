@@ -445,12 +445,17 @@ void wei_release_resource_hic(int id)
                DriverEnvironment_CancelTimer(wifiEngineState.ps_traffic_timeout_timer_id);
                WES_CLEAR_FLAG(WES_FLAG_PS_TRAFFIC_TIMEOUT_RUNNING);
             }
+
+            WIFI_RESOURCE_HIC_UNLOCK();
+            wei_request_resource_hic(RESOURCE_USER_TX_TRAFFIC_TMO);
+            WIFI_RESOURCE_HIC_LOCK();            
             
             if (DriverEnvironment_RegisterTimerCallback(powerManagementProperties->psTxTrafficTimeout, 
                      wifiEngineState.ps_traffic_timeout_timer_id,ps_traffic_timeout_cb,0) != 1)
             {
                 DE_TRACE_STATIC(TR_SEVERE,"Failed to register timer callback\n");
                 /* Skip timer and go to sleep */
+                wifiEngineState.users = 0;
                 wifiEngineState.dataPathState = DATA_PATH_CLOSED;
                 state = INTERFACE_PS_CLOSED_WAIT;
                 /* Inform firmware that ps hic interface is not used anymore */
@@ -460,9 +465,7 @@ void wei_release_resource_hic(int id)
             else
             {
                WES_SET_FLAG(WES_FLAG_PS_TRAFFIC_TIMEOUT_RUNNING);
-               WIFI_RESOURCE_HIC_UNLOCK();
-               wei_request_resource_hic(RESOURCE_USER_TX_TRAFFIC_TMO);
-               WIFI_RESOURCE_HIC_LOCK();
+
             }          
 
          }
