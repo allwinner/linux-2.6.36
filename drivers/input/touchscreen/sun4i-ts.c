@@ -464,7 +464,7 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
     static int prev_sample_ds = 0;
     static int cur_sample_ds = 0;
     static int delta_ds = 0;
-    #define DELTA_DS_LIMIT                     (12)
+    #define DELTA_DS_LIMIT                     (10)
     #define ZOOM_IN_CNT_LIMIT             (3)
     #define ZOOM_OUT_CNT_LIMIT         (3)
     #define GLIDE_DELTA_DS_MAX_TIMES                   (4)
