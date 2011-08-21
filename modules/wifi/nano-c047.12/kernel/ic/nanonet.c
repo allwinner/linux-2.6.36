@@ -1115,7 +1115,8 @@ void nanonet_attach(struct net_device *dev, void *data)
    KDEBUG(TRACE, "%s: attach", dev->name);
    netif_device_attach(dev);
    nrx_set_flag(sc, NRX_FLAG_ATTACHED);
-   nrx_schedule_event(sc, 1); /* kick state machine */
+   nrx_set_state(sc, NRX_STATE_UNPLUG);
+   nrx_schedule_event(sc, 0); /* kick state machine */
 }
 EXPORT_SYMBOL(nanonet_attach);
 
