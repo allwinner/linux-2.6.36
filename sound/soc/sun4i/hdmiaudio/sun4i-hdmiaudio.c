@@ -68,10 +68,56 @@ static struct sun4i_dma_params sun4i_hdmiaudio_pcm_stereo_in = {
  static struct clk *hdmiaudio_pllx8;
  static struct clk *hdmiaudio_moduleclk;
 
-void sun4i_snd_txctrl_hdmiaudio(int on)
+void sun4i_snd_txctrl_hdmiaudio(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
 
+//	printk(KERN_WARNING "[HDMIAUIDO] substream->runtime->channels = %d\n", substream->runtime->channels);
+
+	reg_val = readl(sun4i_hdmiaudio.regs + SUN4I_TXCHSEL);
+	reg_val &= ~0x7;
+	reg_val |= SUN4I_TXCHSEL_CHNUM(substream->runtime->channels);
+	writel(reg_val, sun4i_hdmiaudio.regs + SUN4I_TXCHSEL);
+
+	reg_val = readl(sun4i_hdmiaudio.regs + SUN4I_TXCHMAP);
+	reg_val = 0;
+	if(substream->runtime->channels == 1)
+	{
+		reg_val = 0x76543200;
+	}
+	else
+	{
+		reg_val = 0x76543210;
+	}
+	writel(reg_val, sun4i_hdmiaudio.regs + SUN4I_TXCHMAP);
+
+	reg_val = readl(sun4i_hdmiaudio.regs + SUN4I_HDMIAUDIOCTL);
+	reg_val &= ~SUN4I_HDMIAUDIOCTL_SDO3EN;
+	reg_val &= ~SUN4I_HDMIAUDIOCTL_SDO2EN;
+	reg_val &= ~SUN4I_HDMIAUDIOCTL_SDO1EN;	
+	reg_val &= ~SUN4I_HDMIAUDIOCTL_SDO0EN;
+	switch(substream->runtime->channels)
+	{
+		case 1:
+		case 2:
+			reg_val |= SUN4I_HDMIAUDIOCTL_SDO0EN; break;
+		case 3:
+		case 4:
+			reg_val |= SUN4I_HDMIAUDIOCTL_SDO0EN | SUN4I_HDMIAUDIOCTL_SDO1EN; break;
+		case 5:
+		case 6:
+			reg_val |= SUN4I_HDMIAUDIOCTL_SDO0EN | SUN4I_HDMIAUDIOCTL_SDO1EN | SUN4I_HDMIAUDIOCTL_SDO2EN; break;
+		case 7:
+		case 8:
+			reg_val |= SUN4I_HDMIAUDIOCTL_SDO0EN | SUN4I_HDMIAUDIOCTL_SDO1EN | SUN4I_HDMIAUDIOCTL_SDO2EN | SUN4I_HDMIAUDIOCTL_SDO3EN; break;	
+		default:
+			reg_val |= SUN4I_HDMIAUDIOCTL_SDO0EN; break;
+	}
+	writel(reg_val, sun4i_hdmiaudio.regs + SUN4I_HDMIAUDIOCTL);
+		
+//	printk(KERN_WARNING "[HDMIAUDIO] 0x01c22400 = %#x, line= %d\n", *(volatile int*)0xF1C22400, __LINE__);
+//	printk(KERN_WARNING "[HDMIAUDIO] 0x01c22430 = %#x, line= %d\n", *(volatile int*)0xF1C22430, __LINE__);
+//	printk(KERN_WARNING "[HDMIAUDIO] 0x01c22434 = %#x, line= %d\n", *(volatile int*)0xF1C22434, __LINE__);
 	//flush TX FIFO
 	reg_val = readl(sun4i_hdmiaudio.regs + SUN4I_HDMIAUDIOFCTL);
 	reg_val |= SUN4I_HDMIAUDIOFCTL_FTX;	
@@ -118,7 +164,7 @@ void sun4i_snd_txctrl_hdmiaudio(int on)
 		
 }
 
-void sun4i_snd_rxctrl_hdmiaudio(int on)
+void sun4i_snd_rxctrl_hdmiaudio(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
 	
@@ -288,7 +334,7 @@ static int sun4i_hdmiaudio_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt
 	
 	/* set FIFO control register */
 	reg_val = 0 & 0x3;
-	reg_val |= (0 & 0x1)<<2;
+	reg_val |= (1 & 0x1)<<2;
 	reg_val |= SUN4I_HDMIAUDIOFCTL_RXTL(0xf);				//RX FIFO trigger level
 	reg_val |= SUN4I_HDMIAUDIOFCTL_TXTL(0x40);				//TX FIFO empty trigger level
 	writel(reg_val, sun4i_hdmiaudio.regs + SUN4I_HDMIAUDIOFCTL);
@@ -327,11 +373,11 @@ static int sun4i_hdmiaudio_trigger(struct snd_pcm_substream *substream,
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 				{
-					sun4i_snd_rxctrl_hdmiaudio(1);
+					sun4i_snd_rxctrl_hdmiaudio(substream, 1);
 				}
 			else
 				{
-					sun4i_snd_txctrl_hdmiaudio(1);
+					sun4i_snd_txctrl_hdmiaudio(substream, 1);
 				}
 			sw_dma_ctrl(dma_data->channel, SW_DMAOP_STARTED);
 			break;
@@ -340,11 +386,11 @@ static int sun4i_hdmiaudio_trigger(struct snd_pcm_substream *substream,
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 			if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 			{
-				sun4i_snd_rxctrl_hdmiaudio(0);
+				sun4i_snd_rxctrl_hdmiaudio(substream, 0);
 			}
 			else
 			{
-			  sun4i_snd_txctrl_hdmiaudio(0);
+			  sun4i_snd_txctrl_hdmiaudio(substream, 0);
 			}
 			break;
 		default:
@@ -483,8 +529,8 @@ static int sun4i_hdmiaudio_probe(struct platform_device *pdev, struct snd_soc_da
 	reg_val |= SUN4I_HDMIAUDIOCTL_GEN;
 	writel(reg_val, sun4i_hdmiaudio.regs + SUN4I_HDMIAUDIOCTL);
 
-	sun4i_snd_txctrl_hdmiaudio(0);
-	sun4i_snd_rxctrl_hdmiaudio(0);
+	//sun4i_snd_txctrl_hdmiaudio(0);
+	//sun4i_snd_rxctrl_hdmiaudio(0);
 	
 	iounmap(sun4i_hdmiaudio.ioregs);
 	

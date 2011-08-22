@@ -228,10 +228,10 @@ static int sun4i_pcm_trigger(struct snd_pcm_substream *substream, int cmd)
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			spin_lock(&prtd->lock);
-			prtd->dma_loaded--;
-			sun4i_pcm_enqueue(substream);
-			spin_unlock(&prtd->lock);
+	//		spin_lock(&prtd->lock);
+	//		prtd->dma_loaded--;
+	//		sun4i_pcm_enqueue(substream);
+	//		spin_unlock(&prtd->lock);
 		printk("[HDMI-AUDIO] PCM trigger start...\n");
 		sw_dma_ctrl(prtd->params->channel, SW_DMAOP_START);
 		break;

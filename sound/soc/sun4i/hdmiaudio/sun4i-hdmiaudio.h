@@ -271,8 +271,8 @@ unsigned int sun4i_hdmiaudio_get_clockrate(void);
 extern struct sun4i_hdmiaudio_info sun4i_hdmiaudio;
 extern struct snd_soc_dai sun4i_hdmiaudio_dai;
 
-extern void sun4i_snd_txctrl_hdmiaudio(int on);
-extern void sun4i_snd_rxctrl_hdmiaudio(int on);
+extern void sun4i_snd_txctrl_hdmiaudio(struct snd_pcm_substream *substream, int on);
+extern void sun4i_snd_rxctrl_hdmiaudio(struct snd_pcm_substream *substream, int on);
 
 struct sun4i_hdmiaudio_info {
 	void __iomem   *regs;    /* IIS BASE */

@@ -67,10 +67,19 @@ static struct sun4i_dma_params sun4i_spdif_stereo_in = {
 struct sun4i_spdif_info sun4i_spdif;
 static u32 spdif_handle = 0;
 static struct clk *spdif_apbclk, *spdif_pll2clk, *spdif_pllx8, *spdif_moduleclk;
-void sun4i_snd_txctrl(int on)
+void sun4i_snd_txctrl(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
-	
+	//printk("[SPDIF] substream->runtime->channels = %d\n", substream->runtime->channels);
+
+		if(substream->runtime->channels == 1)
+		{
+			reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCFG);
+			reg_val |= SUN4I_SPDIF_TXCFG_SINGLEMOD;
+			writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCFG);
+		}
+
+	//printk("[SPDIF] 0x01c21004 = %#x, line= %d\n", *(volatile int*)0xF1C21004, __LINE__);
 		//soft reset SPDIF
 		writel(0x1, sun4i_spdif.regs + SUN4I_SPDIF_CTL);
 	
@@ -221,7 +230,7 @@ static int sun4i_spdif_trigger(struct snd_pcm_substream *substream,
 				}
 			else
 				{
-					sun4i_snd_txctrl(1);
+					sun4i_snd_txctrl(substream, 1);
 				}
 			sw_dma_ctrl(dma_data->channel, SW_DMAOP_STARTED);
 			break;
@@ -234,7 +243,7 @@ static int sun4i_spdif_trigger(struct snd_pcm_substream *substream,
 			}
 			else
 			{
-			  sun4i_snd_txctrl(0);
+			  sun4i_snd_txctrl(substream, 0);
 			}
 			break;
 		default:
@@ -285,6 +294,17 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 			{
 				switch(div)
 				{
+					//24KHZ
+					case 8:
+						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+						reg_val |= (SUN4I_SPDIF_TXCHSTA0_SAMFREQ(0x6));
+						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+						
+						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
+						reg_val |= (SUN4I_SPDIF_TXCHSTA1_ORISAMFREQ(0x9));
+						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
+						break;
+						
 					//32KHZ
 					case 6:
 						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
@@ -343,6 +363,17 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 			{
 				switch(div)
 				{
+					//22.05khz
+					case 8:
+						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+						reg_val |= (SUN4I_SPDIF_TXCHSTA0_SAMFREQ(0x4));
+						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+				
+						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
+						reg_val |= (SUN4I_SPDIF_TXCHSTA1_ORISAMFREQ(0xb));
+						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);				
+						break;
+						
 					//44.1KHZ
 					case 4:
 						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
@@ -352,6 +383,17 @@ static int sun4i_spdif_set_clkdiv(struct snd_soc_dai *cpu_dai, int div_id, int d
 						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
 						reg_val |= (SUN4I_SPDIF_TXCHSTA1_ORISAMFREQ(0xF));
 						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);				
+						break;
+						
+					//88.2khz
+					case 2:
+						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+						reg_val |= (SUN4I_SPDIF_TXCHSTA0_SAMFREQ(0x8));
+						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA0);
+					
+						reg_val = readl(sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
+						reg_val |= (SUN4I_SPDIF_TXCHSTA1_ORISAMFREQ(0x7));
+						writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_TXCHSTA1);
 						break;
 			
 					//176.4KHZ
@@ -440,8 +482,8 @@ static int sun4i_spdif_probe(struct platform_device *pdev, struct snd_soc_dai *d
 		writel(reg_val, sun4i_spdif.regs + SUN4I_SPDIF_CTL);
 		
 
-			sun4i_snd_txctrl(0);
-			sun4i_snd_rxctrl(0);
+		//	sun4i_snd_txctrl(0);
+		//	sun4i_snd_rxctrl(0);
 			
 			iounmap(sun4i_spdif.ioregs);
 			

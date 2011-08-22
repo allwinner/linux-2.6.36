@@ -71,9 +71,50 @@ static struct sun4i_dma_params sun4i_i2s_pcm_stereo_in = {
 static u32 i2s_handle = 0;
  static struct clk *i2s_apbclk, *i2s_pll2clk, *i2s_pllx8, *i2s_moduleclk;
 
-void sun4i_snd_txctrl_i2s(int on)
+void sun4i_snd_txctrl_i2s(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
+
+	reg_val = readl(sun4i_iis.regs + SUN4I_TXCHSEL);
+	reg_val &= ~0x7;
+	reg_val |= SUN4I_TXCHSEL_CHNUM(substream->runtime->channels);
+	writel(reg_val, sun4i_iis.regs + SUN4I_TXCHSEL);
+
+	reg_val = readl(sun4i_iis.regs + SUN4I_TXCHMAP);
+	reg_val = 0;
+	if(substream->runtime->channels == 1)
+	{
+		reg_val = 0x76543200;
+	}
+	else
+	{
+		reg_val = 0x76543210;
+	}
+	writel(reg_val, sun4i_iis.regs + SUN4I_TXCHMAP);
+
+	reg_val = readl(sun4i_iis.regs + SUN4I_IISCTL);
+	reg_val &= ~SUN4I_IISCTL_SDO3EN;
+	reg_val &= ~SUN4I_IISCTL_SDO2EN;
+	reg_val &= ~SUN4I_IISCTL_SDO1EN;	
+	reg_val &= ~SUN4I_IISCTL_SDO0EN;
+	switch(substream->runtime->channels)
+	{
+		case 1:
+		case 2:
+			reg_val |= SUN4I_IISCTL_SDO0EN; break;
+		case 3:
+		case 4:
+			reg_val |= SUN4I_IISCTL_SDO0EN | SUN4I_IISCTL_SDO1EN; break;
+		case 5:
+		case 6:
+			reg_val |= SUN4I_IISCTL_SDO0EN | SUN4I_IISCTL_SDO1EN | SUN4I_IISCTL_SDO2EN; break;
+		case 7:
+		case 8:
+			reg_val |= SUN4I_IISCTL_SDO0EN | SUN4I_IISCTL_SDO1EN | SUN4I_IISCTL_SDO2EN | SUN4I_IISCTL_SDO3EN; break;	
+		default:
+			reg_val |= SUN4I_IISCTL_SDO0EN; break;
+	}
+	writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 	
 	//flush TX FIFO
 	reg_val = readl(sun4i_iis.regs + SUN4I_IISFCTL);
@@ -285,7 +326,7 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt)
 	
 	/* set FIFO control register */
 	reg_val = 0 & 0x3;
-	reg_val |= (0 & 0x1)<<2;
+	reg_val |= (1 & 0x1)<<2;
 	reg_val |= SUN4I_IISFCTL_RXTL(0xf);				//RX FIFO trigger level
 	reg_val |= SUN4I_IISFCTL_TXTL(0x40);				//TX FIFO empty trigger level
 	writel(reg_val, sun4i_iis.regs + SUN4I_IISFCTL);
@@ -329,7 +370,7 @@ static int sun4i_i2s_trigger(struct snd_pcm_substream *substream,
 				}
 			else
 				{
-					sun4i_snd_txctrl_i2s(1);
+					sun4i_snd_txctrl_i2s(substream, 1);
 				}
 			sw_dma_ctrl(dma_data->channel, SW_DMAOP_STARTED);
 			break;
@@ -342,7 +383,7 @@ static int sun4i_i2s_trigger(struct snd_pcm_substream *substream,
 			}
 			else
 			{
-			  sun4i_snd_txctrl_i2s(0);
+			  sun4i_snd_txctrl_i2s(substream, 0);
 			}
 			break;
 		default:
@@ -466,8 +507,8 @@ static int sun4i_i2s_probe(struct platform_device *pdev, struct snd_soc_dai *dai
 	reg_val |= SUN4I_IISCTL_GEN;
 	writel(reg_val, sun4i_iis.regs + SUN4I_IISCTL);
 
-	sun4i_snd_txctrl_i2s(0);
-	sun4i_snd_rxctrl_i2s(0);
+//	sun4i_snd_txctrl_i2s(0);
+//	sun4i_snd_rxctrl_i2s(0);
 	
 	iounmap(sun4i_iis.ioregs);
 	
