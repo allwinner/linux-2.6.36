@@ -1691,6 +1691,8 @@ int __init sw_dma_init(unsigned int channels, unsigned int irq,
 	//writel(0xffffffff, SW_VA_DMAC_IO_BASE + 0x4);
 	writel(0xffffffff, dma_base + 0x4);
 	
+	writel(1<<16, dma_base + 0x8);
+	pr_debug("%s,%d,%x,%p\n",__func__,__LINE__,*(volatile int *)(dma_base + 0x8),dma_base + 0x8);
 	for (channel = 0; channel < channels;  channel++) {
 		cp = &sw_chans[channel];
 
