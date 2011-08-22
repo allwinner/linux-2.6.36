@@ -325,10 +325,10 @@ static  int codec_init(void)
 {
 	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
 	//enable dac digital 
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
+	codec_wr_control(SW_DAC_DPC, 0x1, DAC_EN, 0x1);  
 	//codec version seting
 	//codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
-	codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x1);
+	codec_wr_control(SW_DAC_FIFOC, 0x1, 28, 0x0);
 	//set digital volume to maximum
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_DPC, 0x6, DIGITAL_VOL, 0x0);
@@ -337,7 +337,7 @@ static  int codec_init(void)
 	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x0);
 	//enable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
-	codec_wr_control(SW_DAC_FIFOC ,0x3,DRA_LEVEL,0x3);
+	codec_wr_control(SW_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
 	//enable headphone direct 
 //	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
@@ -349,7 +349,7 @@ static  int codec_init(void)
 		printk("[audio codec] chip version is unknown!\n");
 		return -1;
 	}
-	codec_wr_control(SW_DAC_DEBUG ,  0x1, DAC_CHANNEL, 0x1);
+//	codec_wr_control(SW_DAC_DEBUG ,  0x1, DAC_CHANNEL, 0x1);
 	return 0;	
 }
 
@@ -361,6 +361,8 @@ static int codec_play_open(void)
 	//set TX FIFO send drq level
 	codec_wr_control(SW_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
 	
+	//set TX FIFO MODE
+	codec_wr_control(SW_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
 	//send last sample when dac fifo under run
 	codec_wr_control(SW_DAC_FIFOC ,0x1, LAST_SE, 0x0);
 	//enable dac analog
