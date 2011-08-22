@@ -17,6 +17,7 @@ typedef struct
 	__u8    dir_ctl;        /* 0 */
 	__u8    ws_pol;
 	__u8    just_pol;
+	__u8    channel_num;
 }hdmi_audio_t;
 
 typedef struct

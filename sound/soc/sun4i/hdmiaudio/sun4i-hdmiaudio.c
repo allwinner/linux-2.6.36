@@ -21,6 +21,9 @@
 #include <linux/io.h>
 #include <linux/gpio.h>
 
+
+
+
 #include <sound/core.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
@@ -33,6 +36,8 @@
 
 #include "sun4i-hdmipcm.h"
 #include "sun4i-hdmiaudio.h"
+
+
 
 //save the register value
 static int regsave[8];
@@ -72,8 +77,9 @@ void sun4i_snd_txctrl_hdmiaudio(struct snd_pcm_substream *substream, int on)
 {
 	u32 reg_val;
 
-//	printk(KERN_WARNING "[HDMIAUIDO] substream->runtime->channels = %d\n", substream->runtime->channels);
-
+	hdmi_para.channel_num = substream->runtime->channels;
+	g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
+	
 	reg_val = readl(sun4i_hdmiaudio.regs + SUN4I_TXCHSEL);
 	reg_val &= ~0x7;
 	reg_val |= SUN4I_TXCHSEL_CHNUM(substream->runtime->channels);
@@ -334,7 +340,7 @@ static int sun4i_hdmiaudio_set_fmt(struct snd_soc_dai *cpu_dai, unsigned int fmt
 	
 	/* set FIFO control register */
 	reg_val = 0 & 0x3;
-	reg_val |= (1 & 0x1)<<2;
+	reg_val |= (0 & 0x1)<<2;
 	reg_val |= SUN4I_HDMIAUDIOFCTL_RXTL(0xf);				//RX FIFO trigger level
 	reg_val |= SUN4I_HDMIAUDIOFCTL_TXTL(0x40);				//TX FIFO empty trigger level
 	writel(reg_val, sun4i_hdmiaudio.regs + SUN4I_HDMIAUDIOFCTL);

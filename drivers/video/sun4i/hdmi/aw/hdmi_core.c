@@ -403,11 +403,23 @@ __s32 audio_config(void)
 	{
 		return 0;
 	}	
-    if(audio_info.channel_num == 2)
+	
+	if(audio_info.channel_num == 1)
+    {
+          HDMI_WUINT32(0x044,0x00000000);             	//audio fifo rst and select ddma, 2 ch 16bit pcm 
+          HDMI_WUINT32(0x048,0x00000000);				//ddma,pcm layout0 1ch
+          HDMI_WUINT32(0x04c,0x76543200);
+		  
+          HDMI_WUINT32(0x0A0,0x710a0184);             	//audio infoframe head 
+          HDMI_WUINT32(0x0A4,0x00000000);             	//CA = 0X1F 
+          HDMI_WUINT32(0x0A8,0x00000000); 
+          HDMI_WUINT32(0x0Ac,0x00000000);           
+    }else  if(audio_info.channel_num == 2)
     {
           HDMI_WUINT32(0x044,0x00000000);             	//audio fifo rst and select ddma, 2 ch 16bit pcm 
           HDMI_WUINT32(0x048,0x00000001);				//ddma,pcm layout0 2ch
-          
+          HDMI_WUINT32(0x04c,0x76543210);
+		  
           HDMI_WUINT32(0x0A0,0x710a0184);             	//audio infoframe head 
           HDMI_WUINT32(0x0A4,0x00000000);             	//CA = 0X1F 
           HDMI_WUINT32(0x0A8,0x00000000); 
@@ -416,17 +428,18 @@ __s32 audio_config(void)
     {
           HDMI_WUINT32(0x044,0x00000000);             	//audio fifo rst and select ddma, 2 ch 16bit pcm 
           HDMI_WUINT32(0x048,0x0000000f);				//ddma,pcm layout1 8ch
-          
+          HDMI_WUINT32(0x04c,0x76543210);
+		  
           HDMI_WUINT32(0x0A0,0x520a0184);             	//audio infoframe head 
           HDMI_WUINT32(0x0A4,0x1F000000);             	//CA = 0X1F 
           HDMI_WUINT32(0x0A8,0x00000000); 
           HDMI_WUINT32(0x0Ac,0x00000000); 
     }else
     {
-    		__wrn("unkonwn num_ch\n");
+    		__wrn("unkonwn num_ch:%d\n", audio_info.channel_num);
     }     
 
-    HDMI_WUINT32(0x04c,0x76543210				);
+    
     HDMI_WUINT32(0x050,audio_info.CTS			);                   	//CTS and N 
     HDMI_WUINT32(0x054,audio_info.ACR_N			);
     HDMI_WUINT32(0x058,audio_info.CH_STATUS0 	);

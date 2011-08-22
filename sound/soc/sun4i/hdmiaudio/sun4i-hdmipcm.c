@@ -204,6 +204,7 @@ static int sun4i_pcm_prepare(struct snd_pcm_substream *substream)
 				codec_dma_conf->hf_irq       = SW_DMA_IRQ_FULL;
 				codec_dma_conf->from         = prtd->dma_start;
 				codec_dma_conf->to           = prtd->params->dma_addr;
+				codec_dma_conf->cmbk		 = 0x1F071F07;
 			  ret = sw_dma_config(prtd->params->channel,codec_dma_conf);
 	}
    

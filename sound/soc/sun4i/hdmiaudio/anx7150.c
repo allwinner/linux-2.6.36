@@ -26,7 +26,7 @@
 #define HDMI
 
 #ifdef HDMI
-static __audio_hdmi_func g_hdmi_func;
+__audio_hdmi_func g_hdmi_func;
 
 void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func)
 {
@@ -70,7 +70,7 @@ static int anx7150_hw_params(struct snd_pcm_substream *substream,
 	
 	#ifdef HDMI
 		g_hdmi_func.hdmi_audio_enable(1, 1);
-		g_hdmi_func.hdmi_set_audio_para(&hdmi_para);
+
 	#endif
 
 	return 0;

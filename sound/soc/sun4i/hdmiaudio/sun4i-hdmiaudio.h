@@ -14,6 +14,13 @@
 */
 #ifndef SUN4I_HDMIAUIDO_H_
 #define SUN4I_HDMIAUIDO_H_
+#include <linux/drv_hdmi.h>
+
+
+extern hdmi_audio_t hdmi_para;
+extern __audio_hdmi_func g_hdmi_func;
+
+
 
 /*------------------------------------------------------------*/
 /* REGISTER definition */
