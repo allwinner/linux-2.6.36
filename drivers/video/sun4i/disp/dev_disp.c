@@ -855,6 +855,20 @@ int disp_resume(struct platform_device *pdev)
     return 0;
 }
 
+void disp_shutdown(struct platform_device *pdev)
+{
+    __u32 type = 0, i = 0;
+    
+    for(i=0; i<2; i++)
+    {
+        type = BSP_disp_get_output_type(i);
+        if(type == DISP_OUTPUT_TYPE_LCD)
+        {
+            LCD_BL_EN(i, 0);
+            LCD_PWM_EN(i, 0);
+        }
+    }
+}
 
 long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
@@ -1844,6 +1858,7 @@ static struct platform_driver disp_driver =
 	.remove		= disp_remove,
 	.suspend    = disp_suspend,
 	.resume    = disp_resume,
+	.shutdown   = disp_shutdown,
 	.driver		= 
 	{
 		.name	= "disp",

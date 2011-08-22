@@ -343,7 +343,7 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT8 (0x252,0x00);
     
     //packet config
-    if( vic == HDMI1080P_24_3D_FP)
+    if( vic != HDMI1080P_24_3D_FP)
     { 
     	HDMI_WUINT32(0x2f0,0x0000f321);
     	HDMI_WUINT32(0x2f4,0x0000000f);  
