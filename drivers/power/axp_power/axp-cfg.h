@@ -8,6 +8,7 @@
 #define	AXP19_I2CBUS		0
 #define	AXP20_I2CBUS		0
 #define BATRDC				200 //initial rdc
+#define AXP20_IRQNO     0
 
 
 #define	LDO1SET				0  //0: LDO1SET connect AGND, 1: LDO1SET connect AIPS, for axp189 LDOSET bonding to AGND
@@ -59,7 +60,7 @@
 #define AXP19_AVER_MAX		10
 #define AXP19_RDC_COUNT		10
 
-#define AXP20_VOL_MAX			18 // capability buffer length
+#define AXP20_VOL_MAX			12 // capability buffer length
 #define AXP20_TIME_MAX		20
 #define AXP20_AVER_MAX		10
 #define AXP20_RDC_COUNT		10
@@ -174,5 +175,13 @@ extern int dcdc3_vol;
 extern int ldo2_vol;
 extern int ldo3_vol;
 extern int ldo4_vol;
+
+extern int pmu_pekoff_time;
+extern int pmu_pekoff_en;
+extern int pmu_peklong_time;
+extern int pmu_pekon_time;
+extern int pmu_pwrok_time;
+extern int pmu_pwrnoe_time;
+extern int pmu_intotp_en;
 
 #endif

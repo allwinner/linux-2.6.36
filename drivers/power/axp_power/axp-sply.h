@@ -405,6 +405,8 @@ static uint8_t coulomb_flag;
 static struct axp_charger *axp_charger;
 static int Total_Cap = 0;
 static int Cap_Index = 0;
+static int flag_state_change = 0;
 static int Bat_Cap_Buffer[AXP20_VOL_MAX];
+static int counter = 0;
 
 #endif

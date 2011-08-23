@@ -226,6 +226,14 @@ static void axp_power_off(void)
 
 		axp_update(&axp->dev, POWER20_VOFF_SET, val, 0x7);
 	}
+	val = 0xff;
+	
+	axp_read(&axp->dev, POWER20_COULOMB_CTL, &val);
+	val &= 0x3f;
+	axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
+	val |= 0x80;
+	val &= 0xbf;
+	axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
 
     printk("[axp] send power-off command!\n");
     mdelay(20);
