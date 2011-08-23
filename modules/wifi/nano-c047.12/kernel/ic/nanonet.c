@@ -1113,7 +1113,12 @@ void nanonet_attach(struct net_device *dev, void *data)
    ASSERT(sc->transport_data == NULL);
    sc->transport_data = data;
    KDEBUG(TRACE, "%s: attach", dev->name);
-   netif_device_attach(dev);
+
+#ifdef CONFIG_HAS_WAKELOCK
+   wake_lock(&sc->nrx_wake_lock);
+   KDEBUG(TRACE, "Acquired nrx_wake_lock");
+#endif
+   
    nrx_set_flag(sc, NRX_FLAG_ATTACHED);
    nrx_set_state(sc, NRX_STATE_UNPLUG);
    nrx_schedule_event(sc, 0); /* kick state machine */
@@ -1126,6 +1131,7 @@ void nanonet_detach(struct net_device *dev, void *data)
    ASSERT(sc->transport_data == data);
    KDEBUG(TRACE, "%s: detach", dev->name);
    nrx_clear_flag(sc, NRX_FLAG_ATTACHED);
+   nrx_clear_flag(sc, NRX_FLAG_IF_ATTACHED);
    netif_device_detach(dev);
    sc->transport_data = NULL;
 }
@@ -1189,6 +1195,13 @@ nanonet_destroy(struct net_device *dev)
    flush_scheduled_work();
 #endif
    free_netdev(dev);
+
+#ifdef CONFIG_HAS_WAKELOCK
+   if (wake_lock_active(&sc->nrx_wake_lock))
+      wake_unlock(&sc->nrx_wake_lock);
+   wake_lock_destroy(&sc->nrx_wake_lock);
+   KDEBUG(TRACE, "Destroyed nrx_wake_lock");
+#endif
 
    KDEBUG(TRACE, "EXIT:");
 }
@@ -1364,12 +1377,14 @@ nrx_event_work(
 
    switch(sc->state) {
       case NRX_STATE_UNPLUG:
+      	 printk("[nano] NRX_STATE_UNPLUG\n");    	
          WiFiEngine_Unplug();
          nrx_set_state(sc, NRX_STATE_WAIT_FW);
          nrx_schedule_event(sc, 0);
          break;
 
       case NRX_STATE_WAIT_FW:
+      	 printk("[nano] NRX_STATE_WAIT_FW\n");
          if(!nrx_test_flag(sc, NRX_FLAG_ATTACHED)) {
             break;
          }
@@ -1389,6 +1404,7 @@ nrx_event_work(
          }
          else
          {
+         	printk("[naon] download firmware okay\n");
             nrx_set_state(sc, NRX_STATE_PLUG);
             nrx_schedule_event(sc, 0);
          }
@@ -1406,6 +1422,7 @@ nrx_event_work(
          break;
 
       case NRX_STATE_PLUG:
+      	printk("[nano] NRX_STATE_PLUG\n");
          WiFiEngine_Plug();
          if(WiFiEngine_GetRegistryPowerFlag() == PowerSave_Enabled_Deactivated_From_Start) 
          { 
@@ -1417,6 +1434,7 @@ nrx_event_work(
          break;
 
       case NRX_STATE_CONFIGURE:
+      	printk("[nano] NRX_STATE_CONFIGURE\n");
          /* Ensure that no auto connect is started on old ssid:s */
          WiFiEngine_DisableSSID();
          WiFiEngine_Configure_Device(nrx_test_flag(sc, NRX_FLAG_UNPLUGGED));
@@ -1425,6 +1443,7 @@ nrx_event_work(
          break;
 
       case NRX_STATE_WAIT_MIB:
+      	printk("[nano] NRX_STATE_WAIT_MIB\n");
          for(m = WEI_TQ_FIRST(&mib_head); m != NULL; ) {
             if(m->count == 0) {
                status = WiFiEngine_SendMIBGet(m->mib, &m->tid);
@@ -1465,10 +1484,12 @@ nrx_event_work(
          break;
 
       case NRX_STATE_START:
+      	printk("[nano] NRX_STATE_START\n");
          if(!nrx_test_flag(sc, NRX_FLAG_HAVE_REGISTER)) {
             status = register_netdev(dev);
             if(status != 0) {
                KDEBUG(ERROR, "failed to register net device (%d)", status);
+               printk("failed to register net device (%d)\n", status);
                nrx_set_state(sc, NRX_STATE_DEFUNCT);
                break;
             }
@@ -1479,6 +1500,15 @@ nrx_event_work(
          
          nrx_set_flag(sc, NRX_FLAG_HAVE_REGISTER);
 
+         if (!nrx_test_flag(sc, NRX_FLAG_IF_ATTACHED)) {
+            netif_device_attach(dev);
+            nrx_set_flag(sc, NRX_FLAG_IF_ATTACHED);
+#ifdef CONFIG_HAS_WAKELOCK
+            wake_unlock(&sc->nrx_wake_lock);
+            KDEBUG(TRACE, "Released nrx_wake_lock");
+#endif
+         }
+
          nrx_wxevent_device_reset(dev);
          nrx_wxevent_ap(dev);
          
@@ -1488,6 +1518,7 @@ nrx_event_work(
          break;
 
       case NRX_STATE_RUN:
+      	 printk("[nano] NRX_STATE_RUN\n");
          if(nrx_clear_flag(sc, NRX_FLAG_WAKE_QUEUE)) {
             nrx_tx_queue_wake(dev);
          }
@@ -1612,6 +1643,11 @@ nanonet_create(struct device *pdev, void *data, struct nanonet_create_param *par
    
    memset(sc->cwin, 0xFF, sizeof(sc->cwin));
 
+#ifdef CONFIG_HAS_WAKELOCK
+   wake_lock_init(&sc->nrx_wake_lock, WAKE_LOCK_SUSPEND, "nrx");
+   KDEBUG(TRACE, "Created nrx_wake_lock, type WAKE_LOCK_SUSPEND");
+#endif
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,8)
    INIT_TQUEUE(&sc->event_work, nrx_event_work, dev);
    init_timer(&sc->event_timer);
@@ -1668,22 +1704,28 @@ nanonet_create(struct device *pdev, void *data, struct nanonet_create_param *par
    
    if(nrx_unplug) {
 	  KDEBUG(TRACE, "Started in unplugged mode");
+	  printk("Started in unplugged mode\n");
       nrx_set_flag(sc,NRX_FLAG_UNPLUGGED);
    }
 
    if(sc->transport->fw_download == NULL ||
       nano_download_firmware == 0) {
+      printk("1.[nano] set NRX_STATE_PLUG and schedule\n");
       nrx_set_state(sc, NRX_STATE_PLUG);
       nrx_schedule_event(sc, 0);
    } else {
+   	  printk("2.[nano] NRX_STATE_WAIT_FW no schedule\n");
       nrx_set_flag(sc, NRX_FLAG_SHUTDOWN);
       nrx_set_state(sc, NRX_STATE_WAIT_FW);
       if(nrx_debug_wait)
+      	 printk("[nano] nrx_schedule_event\n"); // XXXXXXXXXXXXXXXX possibly wrong syntax
          nrx_schedule_event(sc, 0);
    }
    
    nrx_set_flag(sc, NRX_FLAG_ATTACHED);
+   nrx_set_flag(sc, NRX_FLAG_IF_ATTACHED);
    KDEBUG(TRACE, "registered if %s", dev->name);
+   printk("[nano] registered if %s\n", dev->name);
    return dev;
 }
 

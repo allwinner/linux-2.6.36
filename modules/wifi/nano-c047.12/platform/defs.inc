@@ -1,2 +1,1 @@
 PLATFORM=winner
-CONFIG=release

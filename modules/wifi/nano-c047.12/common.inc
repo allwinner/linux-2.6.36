@@ -14,7 +14,6 @@ OBJDUMP		= $(CROSS_COMPILE)objdump
 
 export AS LD CC CPP CXX AR NM STRIP OBJCOPY OBJDUMP CROSS_COMPILE LDFLAGS 
 
-CONFIG=release
 ifneq ($(CONFIG),release)
 	DEBUG_FLAGS += -DWIFI_DEBUG_ON -DWIFI_DUMP_PACKETS
 	DEBUG_FLAGS += -fno-strict-aliasing -fno-common

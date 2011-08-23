@@ -20,6 +20,7 @@
 */
 #include "host_op.h"
 #include "sdxc.h"
+#include "smc_syscall.h"
 
 extern unsigned int smc_debug;
 
@@ -971,6 +972,10 @@ s32 sdxc_request_done(struct awsmc_host* smc_host)
     		smc_host->int_sum & SDXC_EndBitErr   ? " EBE"    : ""
     		);
         
+        if (req->data)
+        {
+            awsmc_dbg_err("In data %s operation\n", req->data->flags & MMC_DATA_WRITE ? "write" : "read");
+        }
     	ret = -1;
         goto _out_;
     }

@@ -12,6 +12,10 @@
 #include <linux/skbuff.h>
 #include <net/iw_handler.h>
 
+#ifdef CONFIG_HAS_WAKELOCK
+#include <linux/wakelock.h>
+#endif
+
 #include "wifi_engine.h"
 #include "wei_tailq.h"
 #include "px.h"
@@ -51,6 +55,7 @@ struct nrx_softc {
 #define NRX_FLAG_ATTACHED       6 /* transport driver is attached */
 #define NRX_FLAG_IF_DOWN		7 /* network interface is down */
 #define NRX_FLAG_WAKE_QUEUE	8 /* wake queue after delay */
+#define NRX_FLAG_IF_ATTACHED    9 /* network interface is attached */
 
    /* parent handles */
    struct nanonet_create_param *transport;
@@ -98,6 +103,10 @@ struct nrx_softc {
    we_ps_control_t *ps_control;
 
    int tx_queue_stopped;
+
+#ifdef CONFIG_HAS_WAKELOCK
+   struct wake_lock nrx_wake_lock;
+#endif
 };
 
 static inline void nrx_dev_lock(struct nrx_softc *sc)

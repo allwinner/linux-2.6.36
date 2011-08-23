@@ -465,7 +465,6 @@ void wei_release_resource_hic(int id)
             else
             {
                WES_SET_FLAG(WES_FLAG_PS_TRAFFIC_TIMEOUT_RUNNING);
-
             }          
 
          }

@@ -169,7 +169,12 @@ nrx_wxevent_ap(struct net_device *dev)
 
    if(status != WIFI_ENGINE_SUCCESS) {
        memset(sa.sa_data, 0, sizeof(sa.sa_data));
+       printk("[nano] NULL BSSID sent\n");
    }
+   else
+       printk("[nano] BSSID sent - 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x\n",
+              bssid.octet[0], bssid.octet[1], bssid.octet[2],
+              bssid.octet[3], bssid.octet[4], bssid.octet[5]);
    
    wireless_send_event(dev, SIOCGIWAP, (union iwreq_data*)&sa, NULL);
 

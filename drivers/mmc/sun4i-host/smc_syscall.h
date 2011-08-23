@@ -25,8 +25,6 @@
 #include <mach/platform.h>
 #include <linux/io.h>
 
-extern unsigned int smc_debug;
-
 #define GPIO_BASE            		SW_PA_PORTC_IO_BASE
 
 #define PA_CFG0_REG        			(gpio_base+0x000)
@@ -128,7 +126,7 @@ static inline void aw_gpio_trigger_single(void)
     //config gpio to output
     backup = readl(cfg_base);
     rval = readl(cfg_base);
-    rval &= 0x7 << 12;
+    rval &= ~(0x7 << 12);
     rval |= 1 << 12;
     writel(rval, cfg_base);
 
@@ -154,7 +152,7 @@ static inline void aw_gpio_trigger_single1(void)
     //config gpio to output
     backup = readl(cfg_base);
     rval = readl(cfg_base);
-    rval &= 0x7 << 8;
+    rval &= ~(0x7 << 8);
     rval |= 1 << 8;
     writel(rval, cfg_base);
 
@@ -181,7 +179,7 @@ static inline void aw_gpio_trigger_single2(void)
     //config gpio to output
     backup = readl(cfg_base);
     rval = readl(cfg_base);
-    rval &= 0x7 << 4;
+    rval &= ~(0x7 << 4);
     rval |= 1 << 4;
     writel(rval, cfg_base);
 
@@ -207,7 +205,7 @@ static inline void aw_gpio_trigger_single3(void)
     //config gpio to output
     backup = readl(cfg_base);
     rval = readl(cfg_base);
-    rval &= 0x7 << 0;
+    rval &= ~(0x7 << 0);
     rval |= 1 << 0;
     writel(rval, cfg_base);
 
@@ -217,6 +215,32 @@ static inline void aw_gpio_trigger_single3(void)
 	rval &= ~(1 << 0);
 	writel(rval, data_base);
 	rval |= 1 << 0;
+	writel(rval, data_base);
+
+    //restore pio config
+    writel(backup, cfg_base);
+}
+
+static inline void aw_gpio_trigger_by_pf4(void)
+{
+	u32 rval;
+    u32 backup;
+    void __iomem* cfg_base  = (void __iomem*)PF_CFG0_REG;
+    void __iomem* data_base = (void __iomem*)PF_DAT_REG;
+    
+    //config gpio to output
+    backup = readl(cfg_base);
+    rval = readl(cfg_base);
+    rval &= ~(0x7 << 16);
+    rval |= 1 << 16;
+    writel(rval, cfg_base);
+
+    rval = readl(data_base);
+ 	rval |= 1 << 4;
+    writel(rval, data_base);
+	rval &= ~(1 << 4);
+	writel(rval, data_base);
+	rval |= 1 << 4;
 	writel(rval, data_base);
 
     //restore pio config

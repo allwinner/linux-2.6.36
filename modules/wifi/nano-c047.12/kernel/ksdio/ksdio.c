@@ -236,6 +236,7 @@ struct nrxdev {
    bool                is_in_hard_shutdown;
    chip_type_t         chip_type;
    uint8_t             rx_hic_start[KSDIO_HIC_MIN_SIZE];
+   struct mmc_ios      init_mmc_ios;
 };
 
 /* Save a version of nrxdev to be able to detect double initalization */
@@ -535,7 +536,7 @@ unsigned
 mmc_set_clock(struct mmc_host *host, unsigned clk)
 {
    struct mmc_ios *ios = &host->ios;
-   unsigned        prev_clk = ios->clock;
+   unsigned  prev_clk = ios->clock;
    ios->clock = clk;
    host->ops->set_ios(host, ios);
    return prev_clk;
@@ -563,9 +564,11 @@ do_rx(struct nrxdev *nrxdev)
    KDEBUG(TRANSPORT, "Receiving %d bytes", len);
    if (err != 0) {
       KDEBUG(ERROR, "readsb() failed, err %d", err);
+      printk("readsb() failed, err %d\n", err);
       goto exit;
    } else if (len > HIC_MAX_SIZE) {
       KDEBUG(ERROR, "Invalid length %u", len);
+      printk("Invalid length %u\n", len);
       KDEBUG(ERROR, "Buffer: %02x %02x %02x %02x %02x %02x %02x %02x",
                nrxdev->rx_hic_start[0], nrxdev->rx_hic_start[1],
                nrxdev->rx_hic_start[2], nrxdev->rx_hic_start[3],
@@ -577,6 +580,7 @@ do_rx(struct nrxdev *nrxdev)
            nrxdev->rx_hic_start[0] == nrxdev->rx_hic_start[2] &&
            nrxdev->rx_hic_start[0] == nrxdev->rx_hic_start[3])
    {
+      printk("Invalid data\n");
       KDEBUG(ERROR, "Invalid data");
       KDEBUG(ERROR, "Buffer: %02x %02x %02x %02x %02x %02x %02x %02x",
                nrxdev->rx_hic_start[0], nrxdev->rx_hic_start[1],
@@ -587,6 +591,7 @@ do_rx(struct nrxdev *nrxdev)
    } else {
       if ((skb = dev_alloc_skb(len)) == NULL) {
          KDEBUG(ERROR, "Out of memory (%u bytes)", len);
+         printk("Out of memory (%u bytes)\n", len);
          goto exit;
       }
       memcpy(skb_put(skb,KSDIO_HIC_MIN_SIZE), nrxdev->rx_hic_start,
@@ -596,6 +601,7 @@ do_rx(struct nrxdev *nrxdev)
          err = sdio_readsb(func, skb_put(skb, len), 0, len);
          if (err != 0) {
             KDEBUG(ERROR, "readsb() failed, err %d", err);
+            printk("readsb() failed, err %d\n", err);
             dev_kfree_skb(skb); 
             skb = NULL;
          }
@@ -656,6 +662,8 @@ do_tx(struct nrxdev *nrxdev)
 #endif
       } else {
          err = sdio_writesb(nrxdev->func, 0, skb->data, skb->len);
+         if (err)
+            printk("TX(%u bytes), err=%d\n", skb->len, err);
          KDEBUG(TRANSPORT, "TX(%u bytes), err=%d", skb->len, err);
          PRINTBUF(skb->data, skb->len, "TX");
       }
@@ -705,6 +713,7 @@ static void nrx_sdio_isr(struct sdio_func *func)
       sdio_f0_writeb(nrxdev->func, 0x02, CCCR_INTACK, &err);
       if (err != 0) {
          KDEBUG(ERROR, "Ack irq failed, err %d", err);
+         printk("[nano] Ack irq failed, err %d\n", err);
       }
    }
 
@@ -880,6 +889,11 @@ nrx_init(struct sdio_func *func)
    KDEBUG(TRACE, "CCCR_HISPEED_EN, err %d", err);
 #endif
 
+#ifdef KSDIO_FORCE_CLOCK
+   mmc_set_clock(func->card->host, KSDIO_FORCE_CLOCK);
+   printk("%s: Clock switched to %uMHz\n", sdio_func_id(func), func->card->host->ios.clock/1000000);
+#endif
+
    /* Enable SDIO interrupt generation without need for running CLK */
    sdio_f0_writeb(func, 0x01, CCCR_NOCLK_INT, &err);
    KDEBUG(ERROR, "CCCR_NOCLK_INT, err %d", err);
@@ -893,10 +907,13 @@ nrx_init(struct sdio_func *func)
    return err;
 }
 
+#define mmc_card_clear_highspeed(c) ((c)->state &= ~MMC_STATE_HIGHSPEED)
+
 static int
 nrx_reset(struct sdio_func *func) 
 {
    int err;
+   struct nrxdev *nrxdev = dev_get_drvdata(&func->dev);
 
 #if defined(KSDIO_HOST_RESET_PIN)
 
@@ -909,7 +926,6 @@ nrx_reset(struct sdio_func *func)
 
 #else /* !defined(KSDIO_HOST_RESET_PIN) */
    {
-      struct nrxdev *nrxdev = dev_get_drvdata(&func->dev);
       unsigned char cccr_reset_val = 0;
       
       /* Reset bits in CCCR_RESET are active high for NRX600
@@ -933,6 +949,13 @@ nrx_reset(struct sdio_func *func)
    }
 #endif /* KSDIO_HOST_RESET_PIN */
 
+   if (!err) {
+      struct mmc_host *host = func->card->host;
+      mmc_card_clear_highspeed(func->card);
+      host->ops->set_ios(host, &nrxdev->init_mmc_ios);
+      printk("Reseted MMC ios to the initial state\n");
+   }
+
    KDEBUG(TRACE, "EXIT: err = %d", err);
    return err;
 }
@@ -952,6 +975,7 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
 #endif
 
    KDEBUG(TRACE, "Loading firmware %u bytes", size);
+   printk("[nano] Loading firmware %u bytes\n", size);
 
    sdio_claim_host(func);
 
@@ -966,6 +990,7 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
    load_data = kmalloc(KSDIO_FW_CHUNK_LEN, GFP_KERNEL | GFP_DMA);
    if (!load_data) {
       KDEBUG(ERROR, "kmalloc failed");
+      printk("[nano] kmalloc failed\n");
       err = -ENOMEM;
       goto exit;
    }
@@ -989,8 +1014,8 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
           write_len += KSDIO_SIZE_ALIGN - (write_len % KSDIO_SIZE_ALIGN);
       err = sdio_writesb(func, 0, load_data, write_len);
       if (err) {
-         KDEBUG(ERROR, "fw download failed, err = %d "
-                "- chunk #%u, %zu bytes (%d written), %zu bytes remain",
+         printk("fw download failed, err = %d "
+                "- chunk #%u, %zu bytes (%d written), %zu bytes remain\n",
                 err, chunk, chunk_len, write_len, remain);
          break;
       }
@@ -1010,16 +1035,19 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
       /* Give fw time to restart. Measured req time for NRX700
        * (orfr 090415) was 3.5 ms with some margin
        */
+      printk("[nano] FW Download success\n");
       mdelay(15); 
       
       sdio_f0_writeb(nrxdev->func, 0x02, CCCR_INTACK, &err);
       if (err != 0) {
-         KDEBUG(ERROR, "Clear irq failed after download fw, err %d", err);
+         KDEBUG(ERROR, "Ack irq failed, err %d", err);
+         printk("[nano] Ack irq failed, err %d\n", err);
       }
       	
       err = nrx_enable_irq(nrxdev);
       if (err) {
          KDEBUG(ERROR, "Failed to enable IRQs, err = %d", err);
+         printk("Failed to enable IRQs, err = %d \n", err);
          sdio_disable_func(func);
          goto exit;
       }
@@ -1103,6 +1131,7 @@ static int nrx_soft_shutdown(struct sdio_func *func)
    kfree(tmp);
    if(ret != 0) {
       KDEBUG(ERROR, "nano_ksdio: Failed to enter shutdown mode, err %d", ret);
+      printk("[nano] failed to enter soft shutdown mode\n");
    }
    return ret;
 }
@@ -1126,6 +1155,7 @@ static void nano_netif_off(struct nrxdev *nrxdev)
    nrxdev->netdev = NULL;
 #else /* !KSDIO_IGNORE_REMOVE */
    if (nrxdev->netdev != NULL) {
+   	  printk("[nano] destroy wifi\n");
       nanonet_destroy(nrxdev->netdev);
       nrxdev->netdev = NULL;
    }
@@ -1140,6 +1170,7 @@ static int nano_netif_on(struct nrxdev *nrxdev,
 {
 #ifdef KSDIO_IGNORE_REMOVE
    if (netdev_saved) {
+   	  printk("[nano] netdev_saved\n");
       nrxdev->netdev = netdev_saved;
 #ifndef KSDIO_HOST_RESET_PIN
       nanonet_attach(nrxdev->netdev, nrxdev);
@@ -1151,6 +1182,7 @@ static int nano_netif_on(struct nrxdev *nrxdev,
                                       nrxdev, create_param);
       if (!nrxdev->netdev) {
          KDEBUG(ERROR, "nanonet_create failed!");
+         printk("[nano] nanonet_create failed!\n");
          return -ENOSYS;
       }
 #ifdef KSDIO_IGNORE_REMOVE
@@ -1256,12 +1288,14 @@ static int sdio_nrx_probe(struct sdio_func *func, const struct sdio_device_id *i
    INIT_WORK(&nrxdev->tx_work, do_tx_work);
 #endif
    
-   
    init_waitqueue_head(&nrxdev->readq);
    skb_queue_head_init(&nrxdev->rx);
    skb_queue_head_init(&nrxdev->tx);
    nrxdev->chip_type = chip_type;
    nrxdev->is_in_hard_shutdown = 0;
+   nrxdev->init_mmc_ios = func->card->host->ios;
+   printk("%s: Initial clock %uMHz, timing mode %u\n", sdio_func_id(func),
+          nrxdev->init_mmc_ios.clock/1000000, (unsigned) nrxdev->init_mmc_ios.timing);
 
 #ifdef KSDIO_SEPARATE_WORKQUEUE
    nrxdev->workqueue = create_workqueue("nano_wq");
@@ -1293,11 +1327,6 @@ static int sdio_nrx_probe(struct sdio_func *func, const struct sdio_device_id *i
 #endif /* KSDIO_NO_4_BIT_MODE */
 
    sdio_claim_host(func);
-
-#ifdef KSDIO_FORCE_CLOCK
-   mmc_set_clock(func->card->host, KSDIO_FORCE_CLOCK);
-#endif
-   printk("%s: Clock %uMHz\n", sdio_func_id(func), func->card->host->ios.clock/1000000);
 
    err = sdio_enable_func(func);
    if (err) {
