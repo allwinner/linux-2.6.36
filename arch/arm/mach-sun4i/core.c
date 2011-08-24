@@ -329,7 +329,7 @@ static void __init softwinner_timer_init(void)
     val |= (1<<0);
     writel(val, SW_TIMER_INT_CTL_REG);
 
-    timer0_clockevent.mult = div_sc(HZ, NSEC_PER_SEC, timer0_clockevent.shift);
+    timer0_clockevent.mult = div_sc(SYS_TIMER_CLKSRC/SYS_TIMER_SCAL, NSEC_PER_SEC, timer0_clockevent.shift);
     timer0_clockevent.max_delta_ns = clockevent_delta2ns(0xff, &timer0_clockevent);
     timer0_clockevent.min_delta_ns = clockevent_delta2ns(0x1, &timer0_clockevent);
     timer0_clockevent.cpumask = cpumask_of(0);

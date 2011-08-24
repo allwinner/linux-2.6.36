@@ -54,9 +54,7 @@
 
 /* config clock frequency   */
 #define AW_HPET_CLK_SRC     TMR_CLK_SRC_24MHOSC
-#define AW_HPET_CLK_EVT     TMR_CLK_SRC_32KLOSC
-
-//#define AW1623_FPGA
+#define AW_HPET_CLK_EVT     TMR_CLK_SRC_24MHOSC
 
 
 /* aw HPET clock source frequency */
@@ -74,13 +72,8 @@
 #ifndef AW_HPET_CLK_EVT
     #error "AW_HPET_CLK_EVT is not define!!"
 #endif
-
 #if(AW_HPET_CLK_EVT == TMR_CLK_SRC_32KLOSC)
-    #ifdef AW1623_FPGA
-        #define AW_HPET_CLOCK_EVENT_HZ      (32000)
-    #else
-        #define AW_HPET_CLOCK_EVENT_HZ      (32768)
-    #endif
+    #define AW_HPET_CLOCK_EVENT_HZ          (32768)
 #elif(AW_HPET_CLK_EVT == TMR_CLK_SRC_24MHOSC)
     #define AW_HPET_CLOCK_EVENT_HZ          (24000000)
 #else

@@ -149,7 +149,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
             /* set timer work with continueous mode */
             TMR_REG_TMR1_CTL &= ~(1<<0);
             /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-            ndelay((1000000000*2+AW_HPET_CLOCK_EVENT_HZ-1)/AW_HPET_CLOCK_EVENT_HZ);
+            __delay(50);
             TMR_REG_TMR1_CTL &= ~(1<<7);
             TMR_REG_TMR1_CTL |= (1<<0);
             break;
@@ -160,7 +160,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
             /* set timer work with onshot mode */
             TMR_REG_TMR1_CTL &= ~(1<<0);
             /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-            ndelay((1000000000*2+AW_HPET_CLOCK_EVENT_HZ-1)/AW_HPET_CLOCK_EVENT_HZ);
+            __delay(50);
             TMR_REG_TMR1_CTL |= (1<<7);
             TMR_REG_TMR1_CTL |= (1<<0);
             break;
@@ -171,7 +171,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
             /* disable clock event device */
             TMR_REG_TMR1_CTL &= ~(1<<0);
             /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-            ndelay((1000000000*2+AW_HPET_CLOCK_EVENT_HZ-1)/AW_HPET_CLOCK_EVENT_HZ);
+            __delay(50);
             break;
         }
     }
@@ -199,10 +199,6 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 {
     CLKSRC_DBG("aw_set_next_clkevt: %u\n", (unsigned int)delta);
 
-    #if(0)  //2011-5-20 11:08, suggested by david
-    TMR_REG_IRQ_STAT = (1<<1);
-    #endif
-
     /* time value timer must larger than 50 cycles at least, suggested by david 2011-5-25 11:41 */
     if(delta < 50)
     {
@@ -212,14 +208,14 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
     /* disable timer and clear pending first    */
     TMR_REG_TMR1_CTL &= ~(1<<0);
     /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-    ndelay((1000000000*2+AW_HPET_CLOCK_EVENT_HZ-1)/AW_HPET_CLOCK_EVENT_HZ);
+    __delay(50);
 
     /* set timer intervalue         */
     TMR_REG_TMR1_INTV = delta;
     /* reload the timer intervalue  */
     TMR_REG_TMR1_CTL |= (1<<1);
     /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-    ndelay((1000000000*2+AW_HPET_CLOCK_EVENT_HZ-1)/AW_HPET_CLOCK_EVENT_HZ);
+    __delay(50);
 
     /* enable timer */
     TMR_REG_TMR1_CTL |= (1<<0);
@@ -283,32 +279,61 @@ static int __init aw_clksrc_init(void)
     CLKSRC_DBG("all-winners clock source init!\n");
     /* we use 64bits counter as HPET(High Precision Event Timer) */
     TMR_REG_CNT64_CTL  = 0;
+    __delay(50);
     /* config clock source for 64bits counter */
     #if(AW_HPET_CLK_SRC == TMR_CLK_SRC_24MHOSC)
         TMR_REG_CNT64_CTL |= (0<<2);
     #else
         TMR_REG_CNT64_CTL |= (1<<2);
     #endif
+    __delay(50);
     /* clear 64bits counter */
     TMR_REG_CNT64_CTL |= (1<<0);
+    __delay(50);
     CLKSRC_DBG("register all-winners clock source!\n");
     /* calculate the mult by shift  */
     aw_clocksrc.mult = clocksource_hz2mult(AW_HPET_CLOCK_SOURCE_HZ, aw_clocksrc.shift);
     /* register clock source */
     clocksource_register(&aw_clocksrc);
 
+    return 0;
+}
+
+
+/*
+*********************************************************************************************************
+*                           aw_clkevt_init
+*
+*Description: clock event initialise.
+*
+*Arguments  : none
+*
+*Return     : result,
+*               0,  initiate successed;
+*              !0,  initiate failed;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static int __init aw_clkevt_init(void)
+{
     /* register clock event irq     */
     CLKSRC_DBG("set up all-winners clock event irq!\n");
+    /* clear timer1 setting */
+    TMR_REG_TMR1_CTL = 0;
+    /* initialise timer inter value to 1 tick */
+    TMR_REG_TMR1_INTV = AW_HPET_CLOCK_EVENT_HZ/HZ;
+
     /* config clock source for timer1 */
-    #if(AW_HPET_CLK_EVT == TMR_CLK_SRC_32KLOSC)
-        TMR_REG_TMR1_CTL |= (0<<2);
-    #else
+    #if(AW_HPET_CLK_EVT == TMR_CLK_SRC_24MHOSC)
         TMR_REG_TMR1_CTL |= (1<<2);
+    #else
+        TMR_REG_TMR1_CTL |= (0<<2);
     #endif
-    TMR_REG_TMR1_INTV = AW_HPET_CLOCK_EVENT_HZ>>8;
+    /* reload inter value */
     TMR_REG_TMR1_CTL |= (1<<1);
-    TMR_REG_TMR1_CTL &= ~(3<<2);
-    TMR_REG_TMR1_CTL |= (0<<2);
+    /* install timer irq */
     setup_irq(SW_INT_IRQNO_TIMER1, &aw_clkevt_irqact);
     /* enable timer1 irq            */
     TMR_REG_IRQ_EN |= (1<<1);
@@ -325,3 +350,6 @@ static int __init aw_clksrc_init(void)
 }
 
 arch_initcall(aw_clksrc_init);
+#if 0
+arch_initcall(aw_clkevt_init);
+#endif

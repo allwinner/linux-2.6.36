@@ -466,6 +466,7 @@ static int sun4i_cpufreq_settarget(struct cpufreq_policy *policy, struct sun4i_c
 */
 static int sun4i_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32 relation)
 {
+    int                     ret;
     unsigned int            index;
     struct sun4i_cpu_freq_t freq_cfg;
 
@@ -486,16 +487,20 @@ static int sun4i_cpufreq_target(struct cpufreq_policy *policy, __u32 freq, __u32
         /* frequency is same as the value last set, need not adjust */
 		return 0;
 	}
-	last_target = sun4i_freq_tbl[index].frequency;
+	freq = sun4i_freq_tbl[index].frequency;
 
     /* update the target frequency */
     freq_cfg.pll = sun4i_freq_tbl[index].frequency * 1000;
     freq_cfg.div = *(struct sun4i_clk_div_t *)&sun4i_freq_tbl[index].index;
     CPUFREQ_DBG("%s: target frequency find is %u, entry %u\n", __func__, freq_cfg.pll, index);
 
-
     /* try to set target frequency */
-    return sun4i_cpufreq_settarget(policy, &freq_cfg);
+    ret = sun4i_cpufreq_settarget(policy, &freq_cfg);
+    if(!ret) {
+        last_target = freq;
+    }
+
+    return ret;
 }
 
 
