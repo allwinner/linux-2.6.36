@@ -884,8 +884,8 @@ nrx_init(struct sdio_func *func)
    /* Enable high speed */
    mmc_card_set_highspeed(func->card);           
    func->card->host->ios.timing = MMC_TIMING_SD_HS;
-   func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
    sdio_f0_writeb(func, 0x01, CCCR_HISPEED_EN, &err);
+   func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
    KDEBUG(TRACE, "CCCR_HISPEED_EN, err %d", err);
 #endif
 
