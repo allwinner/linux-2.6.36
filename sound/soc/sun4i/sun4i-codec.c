@@ -331,7 +331,7 @@ static  int codec_init(void)
 	codec_wr_control(SW_DAC_DPC, 0x1, DAC_EN, 0x1);  
 	//codec version seting
 	//codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
-	codec_wr_control(SW_DAC_FIFOC, 0x1, 28, 0x0);
+	codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x1);
 	//set digital volume to maximum
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_DPC, 0x6, DIGITAL_VOL, 0x0);
