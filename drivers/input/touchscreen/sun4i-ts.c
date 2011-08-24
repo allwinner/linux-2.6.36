@@ -38,6 +38,8 @@
 #include <linux/jiffies.h>
 #include <linux/tick.h>
 #include <asm-generic/cputime.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
     #include <linux/pm.h>
@@ -1325,20 +1327,12 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
 {
 	int err =0;
 	int irq = platform_get_irq(pdev, 0);
-	int tp_screen_size = 0;
 	struct sun4i_ts_data *ts_data;	
 	tp_flag = 0;
 
     #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 	    printk( "sun4i-ts.c: sun4i_ts_probe: start...\n");
 	#endif
-//get the config para
-    tp_screen_size = 7;
-    if(7 == tp_screen_size){
-        dual_touch_distance = 20;
-    }else if(5 == tp_screen_size){
-        dual_touch_distance = 50;
-    }
 
 	ts_data = sun4i_ts_data_alloc(pdev);
 	if (!ts_data) {
@@ -1493,11 +1487,45 @@ struct platform_device sun4i_ts_device = {
 
 static int __init sun4i_ts_init(void)
 {
-    #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG     
+  int device_used = 0;
+  int ret = -1;
+  //get the config para
+  int tp_screen_size = 0;
+
+  #ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG     
 	    printk("sun4i-ts.c: sun4i_ts_init: start ...\n");
 	#endif
+	
+	//config rtp
+	if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_used", &device_used, sizeof(device_used)/sizeof(int))){
+	    pr_err("sun4i_ts_init: script_parser_fetch err. \n");
+	    goto script_parser_fetch_err;
+	}
+	printk("rtp_used == %d. \n", device_used);
+	if(1 == device_used){
+		if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_screen_size", &tp_screen_size, 1)){
+	        pr_err("sun4i_ts_init: script_parser_fetch err. \n");
+	        goto script_parser_fetch_err;
+	    }
+	    printk("sun4i-ts: tp_screen_size is %d inch.\n", tp_screen_size);
+	    if(7 == tp_screen_size){
+                dual_touch_distance = 20;
+      }else if(5 == tp_screen_size){
+          dual_touch_distance = 50;
+      }else{
+          pr_err("sun4i-ts: tp_screen_size is not supported. \n");
+          goto script_parser_fetch_err;
+      }
+
+	}else{
+		goto script_parser_fetch_err;
+	}
+	
 	platform_device_register(&sun4i_ts_device);
-	return platform_driver_register(&sun4i_ts_driver);
+	ret = platform_driver_register(&sun4i_ts_driver);
+
+script_parser_fetch_err:
+	return ret;
 }
 
 static void __exit sun4i_ts_exit(void)
