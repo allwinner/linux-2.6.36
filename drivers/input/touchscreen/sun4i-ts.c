@@ -108,7 +108,7 @@ static int tp_flag = 0;
 #define ADC_CHAN_SELECT        (0)
 
 #define TP_SENSITIVE_ADJUST    (0xf<<28)
-//#define TP_SENSITIVE_ADJUST    (0xc<<28) mark by young for test angda 5"
+//#define TP_SENSITIVE_ADJUST    (0xc<<28)       //mark by young for test angda 5"
 #define TP_MODE_SELECT         (0x1<<26)
 #define PRE_MEA_EN             (0x1<<24)
 #define PRE_MEA_THRE_CNT       (0xFFF<<0)
@@ -150,7 +150,7 @@ static int tp_flag = 0;
 #define Y_CENTER_COORDINATE     (2048)
 
 #define CYCLE_BUFFER_SIZE       (64)          //must be 2^n
-#define DELAY_PERIOD            (5)          //delay 90 ms, unit is 10ms  
+#define DELAY_PERIOD            (7)          //delay 90 ms, unit is 10ms  
 
 #define ZOOM_CHANGE_LIMIT_CNT  (3)
 #define ZOOM_IN                                       (1)
@@ -284,6 +284,8 @@ static int zoom_in_count = 0;
 static int zoom_out_count = 0;
 static int zoom_change_cnt = 0;
 static int hold_cnt = 0;
+static int glide_delta_ds_max_limit = 0;
+static int tp_regidity_level = 0;
 
 #define ZOOM_IN_OUT_BUFFER_SIZE_TIMES (2)
 #define ZOOM_IN_OUT_BUFFER_SIZE (1<<ZOOM_IN_OUT_BUFFER_SIZE_TIMES)
@@ -611,12 +613,12 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
     static int cur_sample_ds = 0;
     static int delta_ds = 0;
     
-    #define DELTA_DS_LIMIT                     (1)
-    #define HOLD_DS_LIMIT                      (3)
-    #define ZOOM_IN_CNT_LIMIT                  (3)
-    #define ZOOM_OUT_CNT_LIMIT         (7)
-    #define GLIDE_DELTA_DS_MAX_TIMES                   (4)
-    #define GLIDE_DELTA_DS_MAX_LIMIT   (90)
+    #define DELTA_DS_LIMIT                               (1)
+    #define HOLD_DS_LIMIT                                 (3)
+    #define ZOOM_IN_CNT_LIMIT                       (3)
+    #define ZOOM_OUT_CNT_LIMIT                   (tp_regidity_level)                             //related with screen's regidity
+    #define GLIDE_DELTA_DS_MAX_TIMES     (4)
+    #define GLIDE_DELTA_DS_MAX_LIMIT     (glide_delta_ds_max_limit)
     
     if(ZOOM_INIT_STATE == zoom_flag && (0 == zoom_out_count && 0 ==  zoom_in_count)){
         prev_sample_ds = int_sqrt((prev_double_sample_data.dx)*(prev_double_sample_data.dx) + (prev_double_sample_data.dy)*(prev_double_sample_data.dy));
@@ -1510,8 +1512,12 @@ static int __init sun4i_ts_init(void)
 	    printk("sun4i-ts: tp_screen_size is %d inch.\n", tp_screen_size);
 	    if(7 == tp_screen_size){
                 dual_touch_distance = 20;
+                glide_delta_ds_max_limit = 90;
+                tp_regidity_level = 7;
       }else if(5 == tp_screen_size){
-          dual_touch_distance = 50;
+          dual_touch_distance = 35;
+          glide_delta_ds_max_limit = 150;
+          tp_regidity_level = 5;
       }else{
           pr_err("sun4i-ts: tp_screen_size is not supported. \n");
           goto script_parser_fetch_err;
