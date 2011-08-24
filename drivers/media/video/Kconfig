@@ -1101,5 +1101,21 @@ config CSI_HI704
 	---help---
 	  This is a Video4Linux2 sensor-level driver for the Hynix
 	  HI704 VGA camera.
-	  
+
+config CSI_SP0838
+	tristate "Superpix SP0838 VGA sensor support"
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the Superpix 
+	  SP0838 VGA camera.
+
+config CSI_MT9M112
+	tristate "Micron MT9M112 SXGA sensor support"
+	depends on I2C && VIDEO_V4L2
+	select	CSI_DEV_SEL
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the Micron 
+	  MT9M112 SXGA camera.
+	  	  
 endif

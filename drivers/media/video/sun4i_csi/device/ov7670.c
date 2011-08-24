@@ -627,6 +627,39 @@ static int ov7670_reset(struct v4l2_subdev *sd, u32 val)
 	return 0;
 }
 
+static int ov7670_detect(struct v4l2_subdev *sd)
+{
+	unsigned char v;
+	int ret;
+
+//	ret = ov7670_init(sd, 0);
+//	if (ret < 0)
+//		return ret;
+	ret = ov7670_read(sd, REG_MIDH, &v);
+	if (ret < 0)
+		return ret;
+	if (v != 0x7f) /* OV manuf. id. */
+		return -ENODEV;
+	ret = ov7670_read(sd, REG_MIDL, &v);
+	if (ret < 0)
+		return ret;
+	if (v != 0xa2)
+		return -ENODEV;
+	/*
+	 * OK, we know we have an OmniVision chip...but which one?
+	 */
+	ret = ov7670_read(sd, REG_PID, &v);
+	if (ret < 0)
+		return ret;
+	if (v != 0x76)  /* PID + VER = 0x76 / 0x73 */
+		return -ENODEV;
+	ret = ov7670_read(sd, REG_VER, &v);
+	if (ret < 0)
+		return ret;
+	if (v != 0x73)  /* PID + VER = 0x76 / 0x73 */
+		return -ENODEV;
+	return 0;
+}
 
 static int ov7670_init(struct v4l2_subdev *sd, u32 val)
 {
@@ -648,6 +681,13 @@ static int ov7670_init(struct v4l2_subdev *sd, u32 val)
 			break;
 		default:
 			return -EINVAL;
+	}
+	
+	/* Make sure it's an ov7670 */
+	ret = ov7670_detect(sd);
+	if (ret) {
+		csi_err("chip found is not an ov7670 chip.\n");
+		return ret;
 	}
 	return ov7670_write_array(sd, ov7670_default_regs);
 }
@@ -721,39 +761,8 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 	}		
 		return ret;
 }
-//static int ov7670_detect(struct v4l2_subdev *sd)
-//{
-//	unsigned char v;
-//	int ret;
-//
-//	ret = ov7670_init(sd, 0);
-//	if (ret < 0)
-//		return ret;
-//	ret = ov7670_read(sd, REG_MIDH, &v);
-//	if (ret < 0)
-//		return ret;
-//	if (v != 0x7f) /* OV manuf. id. */
-//		return -ENODEV;
-//	ret = ov7670_read(sd, REG_MIDL, &v);
-//	if (ret < 0)
-//		return ret;
-//	if (v != 0xa2)
-//		return -ENODEV;
-//	/*
-//	 * OK, we know we have an OmniVision chip...but which one?
-//	 */
-//	ret = ov7670_read(sd, REG_PID, &v);
-//	if (ret < 0)
-//		return ret;
-//	if (v != 0x76)  /* PID + VER = 0x76 / 0x73 */
-//		return -ENODEV;
-//	ret = ov7670_read(sd, REG_VER, &v);
-//	if (ret < 0)
-//		return ret;
-//	if (v != 0x73)  /* PID + VER = 0x76 / 0x73 */
-//		return -ENODEV;
-//	return 0;
-//}
+
+
 
 
 /*
@@ -1686,19 +1695,6 @@ static int ov7670_probe(struct i2c_client *client,
 	sd = &info->sd;
 	v4l2_i2c_subdev_init(sd, client, &ov7670_ops);
 
-	/* Make sure it's an ov7670 */
-	/*
-	ret = ov7670_detect(sd);
-	if (ret) {
-		v4l_dbg(1, debug, client,
-			"chip found @ 0x%x (%s) is not an ov7670 chip.\n",
-			client->addr << 1, client->adapter->name);
-		kfree(info);
-		return ret;
-	}
-	v4l_info(client, "chip found @ 0x%02x (%s)\n",
-			client->addr << 1, client->adapter->name);
-	*/	
 	info->fmt = &ov7670_formats[0];
 	info->ccm_info = &ccm_info_con;
 	info->sat = 128;	/* Review this */

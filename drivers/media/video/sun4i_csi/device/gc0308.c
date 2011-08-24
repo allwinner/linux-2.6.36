@@ -906,6 +906,32 @@ static int sensor_reset(struct v4l2_subdev *sd, u32 val)
 	return 0;
 }
 
+static int sensor_detect(struct v4l2_subdev *sd)
+{
+	int ret;
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfe;
+	regs.value[0] = 0x00; //PAGE 0x00
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_detect!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x00;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_detect!\n");
+		return ret;
+	}
+
+	if(regs.value[0] != 0x9b)
+		return -ENODEV;
+	
+	return 0;
+}
+
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
@@ -926,6 +952,13 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 			break;
 		default:
 			return -EINVAL;
+	}
+	
+	/*Make sure it is a target sensor*/
+	ret = sensor_detect(sd);
+	if (ret) {
+		csi_err("chip found is not an target chip.\n");
+		return ret;
 	}
 	return sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 }
@@ -990,36 +1023,42 @@ static struct sensor_format_struct {
 	__u8 *desc;
 	__u32 pixelformat;
 	struct regval_list *regs;
+	int	regs_size;
 	int bpp;   /* Bytes per pixel */
 } sensor_formats[] = {
 	{
 		.desc		= "YUYV 4:2:2",
 		.pixelformat	= V4L2_PIX_FMT_YUYV,
 		.regs 		= sensor_fmt_yuv422_yuyv,
+		.regs_size = ARRAY_SIZE(sensor_fmt_yuv422_yuyv),
 		.bpp		= 2,
 	},
 	{
 		.desc		= "YVYU 4:2:2",
 		.pixelformat	= V4L2_PIX_FMT_YVYU,
 		.regs 		= sensor_fmt_yuv422_yvyu,
+		.regs_size = ARRAY_SIZE(sensor_fmt_yuv422_yvyu),
 		.bpp		= 2,
 	},
 	{
 		.desc		= "UYVY 4:2:2",
 		.pixelformat	= V4L2_PIX_FMT_UYVY,
 		.regs 		= sensor_fmt_yuv422_uyvy,
+		.regs_size = ARRAY_SIZE(sensor_fmt_yuv422_uyvy),
 		.bpp		= 2,
 	},
 	{
 		.desc		= "VYUY 4:2:2",
 		.pixelformat	= V4L2_PIX_FMT_VYUY,
 		.regs 		= sensor_fmt_yuv422_vyuy,
+		.regs_size = ARRAY_SIZE(sensor_fmt_yuv422_vyuy),
 		.bpp		= 2,
 	},
 	{
 		.desc		= "Raw RGB Bayer",
 		.pixelformat	= V4L2_PIX_FMT_SBGGR8,
 		.regs 		= sensor_fmt_raw,
+		.regs_size = ARRAY_SIZE(sensor_fmt_raw),
 		.bpp		= 1
 	},
 };
@@ -1143,12 +1182,12 @@ static int sensor_s_fmt(struct v4l2_subdev *sd, struct v4l2_format *fmt)
 		return ret;
 	
 		
-	sensor_write_array(sd, sensor_fmt->regs , sizeof((sensor_fmt->regs)[0]) / REG_STEP);
+	sensor_write_array(sd, sensor_fmt->regs , sensor_fmt->regs_size);
 	
 	ret = 0;
 	if (wsize->regs)
 		{
-			ret = sensor_write_array(sd, wsize->regs , sizeof((wsize->regs)[0]) / REG_STEP);
+			ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
 		}
 	
 	info->fmt = sensor_fmt;
@@ -1221,17 +1260,17 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 	/* see sensor_s_parm and sensor_g_parm for the meaning of value */
 	
 	switch (qc->id) {
-	case V4L2_CID_BRIGHTNESS:
-		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
-	case V4L2_CID_CONTRAST:
-		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
-	case V4L2_CID_SATURATION:
-		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
+//	case V4L2_CID_BRIGHTNESS:
+//		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
+//	case V4L2_CID_CONTRAST:
+//		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
+//	case V4L2_CID_SATURATION:
+//		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
 //	case V4L2_CID_HUE:
 //		return v4l2_ctrl_query_fill(qc, -180, 180, 5, 0);
-	case V4L2_CID_VFLIP:
-	case V4L2_CID_HFLIP:
-		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
+//	case V4L2_CID_VFLIP:
+//	case V4L2_CID_HFLIP:
+//		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
 //	case V4L2_CID_GAIN:
 //		return v4l2_ctrl_query_fill(qc, 0, 255, 1, 128);
 //	case V4L2_CID_AUTOGAIN:
@@ -1289,12 +1328,10 @@ static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 	regs.reg_num[0] = 0xd2;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
-		csi_err("sensor_read err at sensor_s_autoexp!\n");
+		csi_err("sensor_read err at sensor_g_autoexp!\n");
 		return ret;
 	}
 
-	printk("read_val = %x\n",regs.value[0]);
-	
 	regs.value[0] &= 0x80;
 	if (regs.value[0] == 0x80) {
 		*value = V4L2_EXPOSURE_AUTO;
@@ -1322,8 +1359,6 @@ static int sensor_s_autoexp(struct v4l2_subdev *sd,
 		return ret;
 	}
 
-	printk("read_val = %x\n",regs.value[0]);
-	
 	switch (value) {
 		case V4L2_EXPOSURE_AUTO:
 		  regs.value[0] |= 0x80;
@@ -1359,12 +1394,10 @@ static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 	regs.reg_num[0] = 0x22;
 	ret = sensor_read(sd, regs.reg_num, regs.value);
 	if (ret < 0) {
-		csi_err("sensor_read err at sensor_s_autowb!\n");
+		csi_err("sensor_read err at sensor_g_autowb!\n");
 		return ret;
 	}
 
-	printk("read_val = %x\n",regs.value[0]);
-	
 	regs.value[0] &= (1<<1);
 	regs.value[0] = regs.value[0]>>1;		//0x22 bit1 is awb enable
 		
@@ -1393,8 +1426,6 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 
-	printk("read_val = %x\n",regs.value[0]);
-	
 	switch(value) {
 	case 0:
 		regs.value[0] &= 0xfd;
@@ -1673,12 +1704,14 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 	} 
 	else {
 		ret = sensor_s_autowb(sd, 0);
-		if(ret < 0) {
-			csi_err("sensor_s_autowb error, return %x!\n",ret);
-			return ret;
-		}
+	}
+	
+	if(ret < 0) {
+		csi_err("sensor_s_autowb error, return %x!\n",ret);
+		return ret;
+	}
 		
-		switch (value) {
+	switch (value) {
 		case V4L2_WB_CLOUD:
 		  ret = sensor_write_array(sd, sensor_wb_cloud_regs, ARRAY_SIZE(sensor_wb_cloud_regs));
 			break;
@@ -1696,8 +1729,7 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 			break;
 		default:
 			return -EINVAL;
-		} 
-	}
+	} 
 	
 	if (ret < 0) {
 		csi_err("sensor_s_wb error, return %x!\n",ret);

@@ -29,6 +29,8 @@
 
 //#define READ_NUM 5000
 #define DISPLAY
+#define LCD_WIDTH		1024
+#define LCD_HEIGHT	768
 
 #define CLEAR(x) memset (&(x), 0, sizeof (x))
 
@@ -345,14 +347,17 @@ enum v4l2_ctrl_type qc_ctrl[]=
 {
 	V4L2_CID_BRIGHTNESS,
 	V4L2_CID_CONTRAST,
-	V4L2_CID_VFLIP,
-	V4L2_CID_HFLIP,
 	V4L2_CID_SATURATION,
 	V4L2_CID_HUE,
+	V4L2_CID_VFLIP,
+	V4L2_CID_HFLIP,
 	V4L2_CID_GAIN,
 	V4L2_CID_AUTOGAIN,
 	V4L2_CID_EXPOSURE,
 	V4L2_CID_EXPOSURE_AUTO,
+	V4L2_CID_DO_WHITE_BALANCE,
+	V4L2_CID_AUTO_WHITE_BALANCE,
+	(V4L2_CID_BASE+31)
 };
 
 //////////////////////////////////////////////////////
@@ -454,8 +459,8 @@ int disp_int(int w,int h)
     layer_para.src_win.height   = h;
     layer_para.scn_win.x        = 0;
     layer_para.scn_win.y        = 0;
-    layer_para.scn_win.width    = 800;
-    layer_para.scn_win.height   = 480;
+    layer_para.scn_win.width    = LCD_WIDTH;//800;
+    layer_para.scn_win.height   = LCD_HEIGHT;//480;
 	arg[0] = sel;
     arg[1] = hlay;
     arg[2] = (__u32)&layer_para;
@@ -478,9 +483,9 @@ int disp_int(int w,int h)
 		printf("get fb layer handel\n");	
 	}
 	
-	addr = malloc(800*480*3);
-	memset(addr, 0xff, 800*480*3);
-	write(fb_fd, addr, 800*480*3);
+	addr = malloc(LCD_WIDTH*LCD_HEIGHT*3);
+	memset(addr, 0xff, LCD_WIDTH*LCD_HEIGHT*3);
+	write(fb_fd, addr, LCD_WIDTH*LCD_HEIGHT*3);
 	//memset(addr, 0x12, 800*480*3);
 
 	printf("fb_layer hdl: %ld\n", fb_layer);
@@ -873,7 +878,7 @@ int main_test (void)
 		struct v4l2_queryctrl qc;
 		struct v4l2_control ctrl;
 		
-		for(i=0;i<10;i++)
+		for(i=0;i<sizeof(qc_ctrl);i++)
 		{
 			CLEAR(qc);
 			qc.id = qc_ctrl[i];
@@ -988,10 +993,10 @@ main(void)
 		read_num=200;
 		
 		req_frame_num = 5;
-		input_size.width = 640;//1600;//640;
-		input_size.height = 480;//1200;//480;
-		disp_size.width = 640;//1600;//640;
-		disp_size.height = 480;//1200;//480;
+		input_size.width = 1280;//1600;//640;
+		input_size.height = 1024;//1200;//480;
+//		disp_size.width = 1280;//1600;//640;
+//		disp_size.height = 1024;//1200;//480;
 		csi_format=V4L2_PIX_FMT_NV16;
 		disp_format=DISP_FORMAT_YUV422;
 		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
@@ -1058,15 +1063,15 @@ printf("********************************************************************fps 
 //
 //
 //
-//printf("********************************************************************V4L2 control test start,press to continue\n");
-//	 	getchar();
-//	 	control_test=1;
-//	 	csi_format=V4L2_PIX_FMT_NV16;
-//		disp_format=DISP_FORMAT_YUV422;
-//		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
-//		disp_seq=DISP_SEQ_UVUV;
-//	 	main_test();
-//		control_test=0;
+printf("********************************************************************V4L2 control test start,press to continue\n");
+	 	getchar();
+	 	control_test=1;
+	 	csi_format=V4L2_PIX_FMT_NV16;
+		disp_format=DISP_FORMAT_YUV422;
+		disp_mode=DISP_MOD_NON_MB_UV_COMBINED;
+		disp_seq=DISP_SEQ_UVUV;
+	 	main_test();
+		control_test=0;
 //		
 //printf("********************************************************************resolution and format test start,press to continue\n");
 //		getchar();

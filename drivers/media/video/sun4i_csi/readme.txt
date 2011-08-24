@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_30
+Version: V1_31
 
 Author:  raymonxiu
 
-Date:     2011-8-17 14:37:12
+Date:     2011-8-23 13:36:38
 
 Description:
 
@@ -13,6 +13,11 @@ insmod sun4i_csiX.ko ccm="ov7670" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gc0308" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
+insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
+
+V1_31
+1) Add sp0838 module
+2) Fix the bug when using yvyu,uyvy,vyuy and different size in gc0308,hi704
 
 V1_30
 1) Add brightness,contrast,etc interface in gc0308 and gt2005
