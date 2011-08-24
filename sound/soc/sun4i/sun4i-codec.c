@@ -362,14 +362,18 @@ static  int codec_init(void)
 	return 0;
 }
 
-static int codec_play_open(void)
+static int codec_play_open(struct snd_pcm_substream *substream)
 {	
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
 	mdelay(100);
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
 	codec_wr_control(SW_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
-	
+	if(substream->runtime->rate > 32000){
+		codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x0);
+	}else{
+		codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x1);
+	}
 	//set TX FIFO MODE
 	codec_wr_control(SW_DAC_FIFOC ,0x1, TX_FIFO_MODE, 0x1);
 	//send last sample when dac fifo under run
@@ -1030,7 +1034,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
    	 	if (!play_prtd->params)
 		return 0;                              
    	 	//open the dac channel register
-		codec_play_open();    
+		codec_play_open(substream);    
 	  	codec_play_dma_conf->drqsrc_type  = D_DRQSRC_SDRAM;
 		codec_play_dma_conf->drqdst_type  = DRQ_TYPE_AUDIO;
 		codec_play_dma_conf->xfer_type    = DMAXFER_D_BHALF_S_BHALF;
