@@ -1099,7 +1099,8 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 				play_prtd->state |= ST_RUNNING;		
 				codec_play_start();				
 				sw_dma_ctrl(play_prtd->params->channel, SW_DMAOP_START);
-				if(substream->runtime->rate > 22050){	
+				if(substream->runtime->rate >=192000){
+				}else if(substream->runtime->rate > 22050){	
 					mdelay(2);
 				}else{
 					mdelay(7);
