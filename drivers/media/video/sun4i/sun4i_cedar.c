@@ -660,6 +660,49 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             break;
         }
         
+        case IOCTL_ADJUST_AVS2_ABS:
+        {	        
+            int arg_s = (int)arg;		
+            int temp;	
+            int v_dst;
+            
+            switch(arg_s){
+            case -2:
+            	v_dst = 234;
+            	break;
+            case -1:
+            	v_dst = 236;
+            	break;	
+            case 1:
+            	v_dst = 242;
+            	break;
+            case 2:
+            	v_dst = 244;
+            	break;
+            default:
+            	v_dst = 239;
+            	break;
+            }
+            
+            if(MAGIC_VER_A == sw_get_ic_ver()){        
+	            save_context();
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        	
+	            v = (v_dst<<16)  | (v&0x0000ffff);   
+	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
+	            restore_context();
+	        }else if(MAGIC_VER_B == sw_get_ic_ver()){		        
+	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        	
+	            v = (v_dst<<16)  | (v&0x0000ffff);   
+	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
+	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);	        
+	        }else{
+	        	printk("IOCTL_ADJUST_AVS2 error:%s,%d\n", __func__, __LINE__);
+        		return -EFAULT;
+	        }
+            break;
+        }
+        
         case IOCTL_CONFIG_AVS2:
         	if(MAGIC_VER_A == sw_get_ic_ver()){
 	        	save_context();

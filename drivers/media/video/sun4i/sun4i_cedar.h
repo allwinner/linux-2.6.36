@@ -37,6 +37,8 @@ enum IOCTL_CMD {
 	IOCTL_ENGINE_REL,
 	IOCTL_ENGINE_CHECK_DELAY,
 	IOCTL_GET_IC_VER,
+	
+	IOCTL_ADJUST_AVS2_ABS,
 };
 
 struct cedarv_env_infomation{
