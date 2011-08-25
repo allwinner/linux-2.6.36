@@ -84,6 +84,13 @@ static int input_defuzz_abs_event(int value, int old_val, int fuzz)
 	return value;
 }
 
+static const char *gsensor_name_list[] = {
+	"mma7660",
+	"bma250",
+	"ecompass_data",
+	NULL
+};
+
 /*
  * Pass event first through all filters and then, if event has not been
  * filtered out, through all open handles. This function is called with
@@ -94,10 +101,20 @@ static void input_pass_event(struct input_dev *dev,
 {
 	struct input_handler *handler;
 	struct input_handle *handle;
+	int i;
+	bool not_gsensor = true;
 
     #ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+	for(i = 0; i < ARRAY_SIZE(gsensor_name_list) - 1; i++) {
+		if(!strcmp(gsensor_name_list[i], dev->name)) {
+			not_gsensor = false;
+			break;
+		}
+	}
     /* notify cpu-freq sub-system that some user event happend */
-    queue_work(cpufreq_usrevent, &request_cpufreq_notify);
+	if(not_gsensor) {
+		queue_work(cpufreq_usrevent, &request_cpufreq_notify);
+	}
     #endif
 
 	rcu_read_lock();
