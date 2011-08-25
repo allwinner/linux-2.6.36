@@ -298,11 +298,8 @@ static int __videobuf_mmap_mapper(struct videobuf_queue *q,
 	mem->vaddr = dma_alloc_coherent(q->dev, mem->size,
 					&mem->dma_handle, GFP_KERNEL);
 #else
-	/*
-	mem->dma_handle = (CONFIG_SW_SYSMEM_RESERVED_BASE + CONFIG_SW_SYSMEM_RESERVED_SIZE - 16*1024*1024 + buf->i * mem->size + 4095) & (~(4095));	//4k aligned
-	mem->vaddr = (void *)(mem->dma_handle + 0x80000000);	// not used
-	*/
-	mem->dma_handle = (0x4C000000 + buf->i * mem->size + 4095) & (~(4095));	//4k aligned
+	
+	mem->dma_handle = (CONFIG_SW_SYSMEM_RESERVED_BASE + CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 16*1024*1024 + buf->i * mem->size + 4095) & (~(4095));	//4k aligned
 	mem->vaddr = (void *)(mem->dma_handle + 0x80000000);	// not used
 	
 #endif

@@ -1160,6 +1160,7 @@ static int csi_open(struct file *file)
 	ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_FULL);
 	if (ret!=0) {
 		csi_err("sensor initial error when csi open!\n");
+		return ret;
 	} else {
 		csi_print("sensor initial success when csi open!\n");
 	}	
