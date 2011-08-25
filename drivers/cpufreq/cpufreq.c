@@ -622,6 +622,19 @@ static ssize_t show_affected_cpus(struct cpufreq_policy *policy, char *buf)
 	return show_cpus(policy->cpus, buf);
 }
 
+
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+/**
+ * show_user_event_notify - user event notify
+ */
+static ssize_t show_user_event_notify(struct cpufreq_policy *policy, char *buf)
+{
+	cpufreq_user_event_notify();
+	return sprintf(buf, "uevent");;
+}
+#endif
+
+
 static ssize_t store_scaling_setspeed(struct cpufreq_policy *policy,
 					const char *buf, size_t count)
 {
@@ -677,6 +690,9 @@ cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+cpufreq_freq_attr_ro(user_event_notify);
+#endif
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -690,6 +706,9 @@ static struct attribute *default_attrs[] = {
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
+#ifdef CONFIG_CPU_FREQ_USR_EVNT_NOTIFY
+	&user_event_notify.attr,
+#endif
 	NULL
 };
 
