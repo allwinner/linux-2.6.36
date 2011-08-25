@@ -28,15 +28,19 @@
 #include <linux/ktime.h>
 #include <linux/sched.h>
 
+#define FANTASY_CPUFREQ_IDLE_MAX_RATE(freq)         \
+    (freq<=150000? 50 : (freq<=300000? 40 : (freq<=600000? 35 : (freq<=900000? 30 : 25))))    /* idle rate coarse adjust for cpu frequency down   */
+#define FANTASY_CPUFREQ_IDLE_MIN_RATE(freq)         \
+    (freq<=150000? 20 : (freq<=300000? 20 : (freq<=600000? 15 : (freq<=900000? 10 : 10))))    /* minimum rate for idle task, if idle rate is less
+                                                                   than this value, should adjust cpu frequency to
+                                                                   the mauximum value */
 
-#define FANTASY_CPUFREQ_IDLE_MAX_RATE       (30)    /* idle rate coarse adjust for cpu frequency down   */
-#define FANTASY_CPUFREQ_IDLE_MIN_RATE       (5)     /* minimum rate for idle task, if idle rate is less
-                                                       than this value, should adjust cpu frequency to
-                                                       the mauximum value */
 #define LATENCY_MULTIPLIER                  (1000)  /* latency multiplier                               */
 #define TRANSITION_LATENCY_LIMIT            (1 * 1000 * 1000 * 1000)
                                                     /* latency limitation, should be larger than 1 second */
 #define IOWAIT_IS_BUSY                      (1)     /* io wait time should be counted in idle time      */
+
+#define MAX_DECRASE_FREQ_STEP_LIMIT         (300000)   /* the max step for decrase frequency limited to 300Mhz */
 
 
 enum cpufreq_fantasy_step {
@@ -320,15 +324,24 @@ static void do_dbs_timer(struct work_struct *work)
             FANTASY_DBG("wall_time = %d, idle_time = %d, idle rate is:%d\n", wall_time, idle_time, idle_time*100/wall_time);
 
             /* check idle rate */
-            if(idle_time*100 > wall_time*FANTASY_CPUFREQ_IDLE_MAX_RATE) {
+            if(idle_time*100 > wall_time*FANTASY_CPUFREQ_IDLE_MAX_RATE(freq_cur)) {
                 /* idle rate is higher than the max idle rate, so, try to decrase the cpu frequency */
-               freq_target = __ulldiv((u64)freq_cur*(wall_time-idle_time)*100, wall_time*(100-FANTASY_CPUFREQ_IDLE_MAX_RATE));
+              	freq_target = __ulldiv((u64)freq_cur*(wall_time-idle_time)*100, wall_time);
+			   	freq_target = freq_target / ((100-FANTASY_CPUFREQ_IDLE_MAX_RATE( freq_target)));
+			   	FANTASY_DBG("max idle rate is:%d\n", FANTASY_CPUFREQ_IDLE_MAX_RATE( freq_target));
+
+				/* check the step of decrease cpu frequency */
+				if(freq_cur - freq_target > MAX_DECRASE_FREQ_STEP_LIMIT) {
+					freq_target = freq_cur - MAX_DECRASE_FREQ_STEP_LIMIT;
+				}
+
                 /* set target frequency */
                 __cpufreq_driver_target(fantasy_dbs_info.cur_policy, freq_target, CPUFREQ_RELATION_L);
                 FANTASY_DBG("set cpu frequency to %d\n", freq_target);
                 fantasy_dbs_info.step = CPUFREQ_FANTASY_STEP3;
             }
-            else if(idle_time*100 < wall_time*FANTASY_CPUFREQ_IDLE_MIN_RATE) {
+            else if(idle_time*100 < wall_time*FANTASY_CPUFREQ_IDLE_MIN_RATE(freq_cur)) {
+			   	FANTASY_DBG("min idle rate is:%d\n", FANTASY_CPUFREQ_IDLE_MIN_RATE(freq_cur));
                 /* adjust cpu frequncy to the maximum value */
                 __cpufreq_driver_target(fantasy_dbs_info.cur_policy, fantasy_dbs_info.cur_policy->max, CPUFREQ_RELATION_H);
                 FANTASY_DBG("set cpu frequency to %d\n", fantasy_dbs_info.cur_policy->max);
