@@ -31,6 +31,7 @@
 #include <linux/err.h>
 #include <linux/hwmon.h>
 #include <linux/input-polldev.h>
+#include <linux/device.h>
 
 /*
  * Defines
@@ -72,7 +73,6 @@
 
 static struct device *hwmon_dev;
 static struct i2c_client *mma7660_i2c_client;
-//static struct mxc_mma7660_platform_data* plat_data;
 
 static void mma7660_read_xyz(int idx, s8 *pf)
 {
@@ -87,6 +87,72 @@ static void mma7660_read_xyz(int idx, s8 *pf)
 	*pf = (result&(1<<5)) ? (result|(~0x0000003f)) : (result&0x0000003f);
 }
 
+static ssize_t mma7660_value_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int i;
+	s8 xyz[3]; 
+	s16 x, y, z;
+
+	for(i=0; i<3; i++)
+		mma7660_read_xyz(i, &xyz[i]);
+
+	/* convert signed 8bits to signed 16bits */
+	x = (((short)xyz[0]) << 8) >> 8;
+	y = (((short)xyz[1]) << 8) >> 8;
+	z = (((short)xyz[2]) << 8) >> 8;
+
+	return sprintf(buf, "x= %d y= %d z= %d\n", x, y, z);
+
+}
+
+static ssize_t mma7660_enable_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+
+	error = strict_strtoul(buf, 10, &data);
+	
+	if(error) {
+		pr_err("%s strict_strtoul error\n", __FUNCTION__);
+		goto exit;
+	}
+
+	if(data) {
+		error = i2c_smbus_write_byte_data(mma7660_i2c_client, MMA7660_MODE,
+					MK_MMA7660_MODE(0, 1, 0, 0, 0, 0, 1));
+		assert(error==0);
+	} else {
+		error = i2c_smbus_write_byte_data(mma7660_i2c_client, MMA7660_MODE,
+					MK_MMA7660_MODE(0, 0, 0, 0, 0, 0, 0));
+		assert(error==0);
+	}
+
+	return count;
+
+exit:
+	return error;
+}
+
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		NULL, mma7660_enable_store);
+
+static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		mma7660_value_show, NULL);
+
+static struct attribute *mma7660_attributes[] = {
+	&dev_attr_value.attr,
+	&dev_attr_enable.attr,
+	NULL
+};
+
+static struct attribute_group mma7660_attribute_group = {
+	.attrs = mma7660_attributes
+};
+
+
 /*
  * Initialization function
  */
@@ -95,8 +161,6 @@ static int mma7660_init_client(struct i2c_client *client)
 	int result;
 
 	mma7660_i2c_client = client;
-	//plat_data = (struct mxc_mma7660_platform_data *)client->dev.platform_data;
-	//assert(plat_data);
 
 	if(0)
 	{
@@ -169,8 +233,6 @@ static void report_abs(void)
 	input_report_abs(mma7660_idev->input, ABS_X, x);
 	input_report_abs(mma7660_idev->input, ABS_Y, y);
 	input_report_abs(mma7660_idev->input, ABS_Z, z);
-	
-	//printk(KERN_INFO "XYZ Output:,x = %d, y = %d, z = %d\n", x, y, z);	
 
 	input_sync(mma7660_idev->input);
 }
@@ -179,7 +241,6 @@ static void mma7660_dev_poll(struct input_polled_dev *dev)
 {
 	report_abs();
 } 
-/////////////////////////end//////
 
 /*
  * I2C init/probing/exit functions
@@ -192,6 +253,7 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	struct input_dev *idev;
 	struct i2c_adapter *adapter;
  
+	printk(KERN_INFO "mma7660 probe\n");
 	mma7660_i2c_client = client;
 	adapter = to_i2c_adapter(client->dev.parent);
  	result = i2c_check_functionality(adapter,
@@ -226,14 +288,20 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 	input_set_abs_params(idev, ABS_X, -512, 512, INPUT_FUZZ, INPUT_FLAT);
 	input_set_abs_params(idev, ABS_Y, -512, 512, INPUT_FUZZ, INPUT_FLAT);
 	input_set_abs_params(idev, ABS_Z, -512, 512, INPUT_FUZZ, INPUT_FLAT);
+	
 	result = input_register_polled_device(mma7660_idev);
 	if (result) {
 		dev_err(&client->dev, "register poll device failed!\n");
 		return result;
 	}
+	result = sysfs_create_group(&mma7660_idev->input->dev.kobj, &mma7660_attribute_group);
+	//result = device_create_file(&mma7660_idev->input->dev, &dev_attr_enable);
+	//result = device_create_file(&mma7660_idev->input->dev, &dev_attr_value);
 
-	//report_abs();
-	
+	if(result) {
+		dev_err(&client->dev, "create sys failed\n");
+	}
+
 	return result;
 }
 
@@ -244,7 +312,6 @@ static int __devexit mma7660_remove(struct i2c_client *client)
 	result = i2c_smbus_write_byte_data(client,MMA7660_MODE, MK_MMA7660_MODE(0, 0, 0, 0, 0, 0, 0));
 	assert(result==0);
 
-	//free_irq(plat_data->irq, NULL);
 	hwmon_device_unregister(hwmon_dev);
 
 	return result;
@@ -313,6 +380,7 @@ static int __init mma7660_init(void)
 static void __exit mma7660_exit(void)
 {
 	printk(KERN_INFO "remove mma7660 i2c driver.\n");
+	sysfs_remove_group(&mma7660_idev->input->dev.kobj, &mma7660_attribute_group);
 	i2c_del_driver(&mma7660_driver);
 }
 
