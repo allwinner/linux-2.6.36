@@ -590,6 +590,12 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
             //wait_event_interruptible(wait_ve, cedar_devp->irq_flag);
             ve_timeout = (int)arg;
             cedar_devp->irq_value = 0;
+            
+            spin_lock_irqsave(&cedar_spin_lock, flags);
+            if(cedar_devp->irq_flag)
+            	cedar_devp->irq_value = 1;
+            spin_unlock_irqrestore(&cedar_spin_lock, flags);
+            
             wait_event_interruptible_timeout(wait_ve, cedar_devp->irq_flag, ve_timeout*HZ);
             //printk("%s,%d,ve_timeout:%d,cedar_devp->irq_value:%d\n", __func__, __LINE__, ve_timeout, cedar_devp->irq_value);
 	        cedar_devp->irq_flag = 0;	
