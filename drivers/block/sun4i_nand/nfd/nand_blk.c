@@ -579,7 +579,7 @@ static int nand_blktrans_thread(void *arg)
 			#endif
 		}
 	#endif
-		
+
 	}
 
 	if(req)
@@ -1038,15 +1038,28 @@ static int nand_flush(struct nand_blk_dev *dev)
 
 static void nand_flush_all(void)
 {
-	if (0 == down_trylock(&mytr.nand_ops_mutex)){
+    int     i = 0;
+    int     result = 0;
+
+    for(i=0; i<10; i++) {
+        result = down_trylock(&mytr.nand_ops_mutex);
+        if(!result) {
+            break;
+        }
+
+        /* sleep 20 ms, then, try again */
+        msleep(20);
+    }
+
+	if (!result){
 		#ifdef NAND_CACHE_RW
 		NAND_CacheFlush();
 		#else
 		LML_FlushPageCache();
 		#endif
-		BMM_WriteBackAllMapTbl();	
-
-		up(&mytr.nand_ops_mutex);
+		BMM_WriteBackAllMapTbl();
+	} else {
+        printk("ERR: Nand try to get ops mutex failed when shut down!!!\n");
 	}
 }
 
