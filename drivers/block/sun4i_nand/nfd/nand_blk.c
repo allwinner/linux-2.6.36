@@ -1036,10 +1036,25 @@ static int nand_flush(struct nand_blk_dev *dev)
 	return 0;
 }
 
+
 static void nand_flush_all(void)
 {
+    int     timeout = 0;
+
+    /* wait write finish */
+    for(timeout=0; timeout<10; timeout++) {
+        if(after_write) {
+            msleep(500);
+        }
+        else {
+            break;
+        }
+    }
+    printk("nand try to shutdown %d time\n", timeout);
+
     /* get nand ops mutex */
     down(&mytr.nand_ops_mutex);
+
     #ifdef NAND_CACHE_RW
     NAND_CacheFlush();
     #else
@@ -1049,7 +1064,8 @@ static void nand_flush_all(void)
     printk("Nand flash shutdown ok!\n");
 }
 
- int cal_partoff_within_disk(char *name,struct inode *i)
+
+int cal_partoff_within_disk(char *name,struct inode *i)
 {
 	struct gendisk *gd = i->i_bdev->bd_disk;
 	int current_minor = MINOR(i->i_bdev->bd_dev)  ;
