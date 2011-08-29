@@ -682,7 +682,7 @@ static int axp_get_rdc(struct axp_charger *charger)
     DBG_PSY_MSG("CALRDC:averPreVol = %d,averNextVol = %d,averPreCur = %d ,averNextCur = %d\n",averPreVol,averNextVol,averPreCur,averNextCur);
       temp = 1000 * ABS(averPreVol - averNextVol) / ABS(averPreCur + averNextCur);
     DBG_PSY_MSG("CALRDC:temp = %d\n",temp);
-      if((temp < 5) || (temp > 1000))
+      if((temp < 75) || (temp > 1000))
         return pmu_battery_rdc;
       else {
       	axp_set_bits(charger->master,0x04,0x08);
@@ -1084,6 +1084,7 @@ static void axp_charging_monitor(struct work_struct *work)
     int rest_vol;
     uint16_t tmp;
     int Cur_CoulombCounter;
+    int cap_index_p;
 
     charger = container_of(work, struct axp_charger, work.work);
     
@@ -1097,6 +1098,7 @@ static void axp_charging_monitor(struct work_struct *work)
     pre_rest_vol = charger->rest_vol;
     axp_charger_update(charger);
     axp_charger_update_state(charger);
+    
     if((v[0] == 0x11 || v[0] == 0x21) && charger->is_on && axp20_icharge_to_mA(charger->adc->ichar_res) > 200 && charger->vbat > 3600){
         if(((v[1] >> 7) == 0) || (((v[1] >> 3) & 0x1) == 0)){
             axp_set_bits(charger->master,AXP20_CAP,0x80);
@@ -1143,6 +1145,17 @@ static void axp_charging_monitor(struct work_struct *work)
   		}
 
     	Total_Cap -= Bat_Cap_Buffer[Cap_Index];
+    	if(Cap_Index == 0){
+    		cap_index_p = AXP20_VOL_MAX - 1;
+    	}
+    	else{
+    		cap_index_p = Cap_Index - 1;
+    	}
+    	if(ABS(rt_rest_vol - Bat_Cap_Buffer[cap_index_p]) > 5){
+    		DBG_PSY_MSG("-----------correct rdc-----------\n");
+    		axp_clr_bits(charger->master,0x04,0x88);
+    	}
+    	
     	Bat_Cap_Buffer[Cap_Index] = rt_rest_vol;
     	Total_Cap += Bat_Cap_Buffer[Cap_Index];
     	Cap_Index++;
@@ -1531,6 +1544,11 @@ static int axp_battery_probe(struct platform_device *pdev)
     Bat_Cap_Buffer[k] = charger->rest_vol;
   }
   Total_Cap = charger->rest_vol * AXP20_VOL_MAX;
+  
+  /* disable */
+  axp_set_bits(charger->master,AXP20_CAP,0x80);
+  axp_clr_bits(charger->master,0xBA,0x80);
+	axp_clr_bits(charger->master,AXP20_CAP,0x80);
 
   charger->interval = msecs_to_jiffies(10 * 1000);
   INIT_DELAYED_WORK(&charger->work, axp_charging_monitor);
