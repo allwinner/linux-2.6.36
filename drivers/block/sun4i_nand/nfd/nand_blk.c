@@ -1038,29 +1038,15 @@ static int nand_flush(struct nand_blk_dev *dev)
 
 static void nand_flush_all(void)
 {
-    int     i = 0;
-    int     result = 0;
-
-    for(i=0; i<10; i++) {
-        result = down_trylock(&mytr.nand_ops_mutex);
-        if(!result) {
-            break;
-        }
-
-        /* sleep 20 ms, then, try again */
-        msleep(20);
-    }
-
-	if (!result){
-		#ifdef NAND_CACHE_RW
-		NAND_CacheFlush();
-		#else
-		LML_FlushPageCache();
-		#endif
-		BMM_WriteBackAllMapTbl();
-	} else {
-        printk("ERR: Nand try to get ops mutex failed when shut down!!!\n");
-	}
+    /* get nand ops mutex */
+    down(&mytr.nand_ops_mutex);
+    #ifdef NAND_CACHE_RW
+    NAND_CacheFlush();
+    #else
+    LML_FlushPageCache();
+    #endif
+    BMM_WriteBackAllMapTbl();
+    printk("Nand flash shutdown ok!\n");
 }
 
  int cal_partoff_within_disk(char *name,struct inode *i)
