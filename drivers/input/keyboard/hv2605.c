@@ -1,7 +1,7 @@
-/* 
+/*
  * drivers/input/keyboard/hv2605_keypad.c
  *
- * HV2605 KEYPAD driver. 
+ * HV2605 KEYPAD driver.
  *
  * Copyright (c) 2010  Focal tech Ltd.
  *
@@ -59,7 +59,7 @@ struct hv_keypad_data {
   	struct workqueue_struct *queue;
 };
 
-#ifdef PRINT_STATUS_INFO 
+#ifdef PRINT_STATUS_INFO
 #define print_status_info(fmt, args...)   \
         do{                              \
                 printk(fmt, ##args);     \
@@ -71,7 +71,7 @@ struct hv_keypad_data {
 static struct i2c_msg tx_msg[] = {{0},};
 static 	struct i2c_msg rx_msgs[] = {{0},{0},};
 
-#ifdef CONFIG_HAS_EARLYSUSPEND	
+#ifdef CONFIG_HAS_EARLYSUSPEND
 struct hv2605_keyboard_data {
     struct early_suspend early_suspend;
 };
@@ -96,7 +96,7 @@ static void hv2605_keyboard_resume(struct early_suspend *h)
         printk("enter laterresume: hv2605_keyboard_resume. \n");
     #endif
     queue_delayed_work(hv_keypad->queue, &hv_keypad->work, DELAY_PERIOD);
-    return ; 
+    return ;
 }
 #else
 #endif
@@ -115,9 +115,9 @@ static int hv_i2c_rxdata(char *rxdata, int length)
 	//printk("msg i2c read: 0x%x\n", this_client->addr);
 	//printk("HV IIC read data\n");
 	if (ret < 0){
-		pr_info("msg %s i2c read error: 0x%x\n", __func__, this_client->addr);
+		//pr_info("msg %s i2c read error: 0x%x\n", __func__, this_client->addr);
 	}
-	
+
 	return ret;
 }
 
@@ -128,7 +128,7 @@ static int hv_i2c_txdata(char *txdata, int length)
     tx_msg[0].flags  = 0;
     tx_msg[0].len    = length;
     tx_msg[0].buf    = txdata;
-    
+
    	//msleep(1);
 	ret = i2c_transfer(this_client->adapter, tx_msg, 1);
 	if (ret < 0)
@@ -152,7 +152,7 @@ static int hv_init(void)
         printk("write reg failed! %#x ret: %d", buf[0], ret);
         return -1;
     }
-    
+
     return 0;
 }
 
@@ -163,7 +163,7 @@ static void hv_keypad_release(void)
 	input_report_key(data->input_dev,event->key_val, 0);
 	#ifdef KEY_DEBUG
 		printk("======Release the key %d=====\n",event->key_val);
-	#endif	
+	#endif
 	input_sync(data->input_dev);
 	event->key_status = 2;
 	event->key_last = 0;
@@ -185,17 +185,17 @@ static int hv_read_data(void)
             //event->key_val = event->key_last;
             event->key_val    = buf[0];
             //printk("receive 0xff. \n");
-    	}    	
+    	}
     	print_status_info("157 event->key_status = %d\n",event->key_status);
 
     }else{
     	if(event->key_status ==1){
             event->key_status = 0;
-    	}    	
+    	}
         print_status_info("163 event->key_status = %d\n",event->key_status);
 
     }
-    
+
 	return ret;
 }
 
@@ -204,13 +204,13 @@ static void hv_report_value(void)
 	struct hv_keypad_data *data = i2c_get_clientdata(this_client);
 	struct key_event *event = &data->event;
 
-	input_report_key(data->input_dev, event->key_val, 1);	
+	input_report_key(data->input_dev, event->key_val, 1);
 	#ifdef KEY_DEBUG
 		printk("Press the key %d\n",event->key_val);
 	#endif
 	input_sync(data->input_dev);
 	event->key_status = 1;
-}	
+}
 
 static void hv_read_loop(struct work_struct *work)
 {
@@ -223,9 +223,9 @@ static void hv_read_loop(struct work_struct *work)
     {
         	switch(event->key_val)
         	{
-        		case 1:    		
-        		case 2:        		
-        		case 3:    		
+        		case 1:
+        		case 2:
+        		case 3:
         		case 4:
         		case 5:
         		    if(event->key_last != event->key_val){
@@ -233,26 +233,26 @@ static void hv_read_loop(struct work_struct *work)
                         hv_report_value();
                     }
         		    break;
-        		
+
         		case 0xff:
             	    if(event->key_status == 1){
                         event->key_val = event->key_last;
                         hv_keypad_release();
             	    }
             		break;
-        		
+
         		default :
         		    //hv_keypad_release();
         		    break;
-        		
+
         	}
-    	
+
     	    print_status_info("225 event->key_status = %d\n",event->key_status);
     }else if(event->key_status ==0){
-            hv_keypad_release();    		
+            hv_keypad_release();
     		print_status_info("233 event->key_status = %d\n",event->key_status);
     }
-    
+
 	queue_delayed_work(hv_keypad->queue, &hv_keypad->work, DELAY_PERIOD);
 
 }
@@ -263,7 +263,7 @@ static int hv_keypad_probe(struct i2c_client *client, const struct i2c_device_id
 	struct input_dev *input_dev;
 	int err = 0;
 	int i;
-	
+
 	printk("======================================hv_keypad_probe Begin=============================================\n");
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		err = -ENODEV;
@@ -293,12 +293,12 @@ static int hv_keypad_probe(struct i2c_client *client, const struct i2c_device_id
 		dev_err(&client->dev, "failed to allocate input device\n");
 		goto exit_input_dev_alloc_failed;
 	}
-	
+
 	hv_keypad->input_dev = input_dev;
 
 	input_dev->name = HV_NAME;
-	input_dev->phys = "sun4ikbd/inputx"; 
-	input_dev->id.bustype = BUS_HOST;      
+	input_dev->phys = "sun4ikbd/inputx";
+	input_dev->id.bustype = BUS_HOST;
 	input_dev->id.vendor = 0x0001;
 	input_dev->id.product = 0x0001;
 	input_dev->id.version = 0x0100;
@@ -307,7 +307,7 @@ static int hv_keypad_probe(struct i2c_client *client, const struct i2c_device_id
 
 	for (i = 1; i < 6; i++)
 		set_bit(i, input_dev->keybit);
-		
+
 	err = input_register_device(input_dev);
 	if (err) {
 		dev_err(&client->dev,
@@ -317,22 +317,22 @@ static int hv_keypad_probe(struct i2c_client *client, const struct i2c_device_id
 	}
 
     hv_init();
-    
+
 	queue_delayed_work(hv_keypad->queue, &hv_keypad->work, DELAY_PERIOD);
-#ifdef CONFIG_HAS_EARLYSUSPEND	
+#ifdef CONFIG_HAS_EARLYSUSPEND
     printk("==register_early_suspend =\n");
     keyboard_data = kzalloc(sizeof(*keyboard_data), GFP_KERNEL);
 	if (keyboard_data == NULL) {
 		err = -ENOMEM;
 		goto err_alloc_data_failed;
 	}
-    keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
     keyboard_data->early_suspend.suspend = hv2605_keyboard_suspend;
-    keyboard_data->early_suspend.resume	= hv2605_keyboard_resume;	
+    keyboard_data->early_suspend.resume	= hv2605_keyboard_resume;
     register_early_suspend(&keyboard_data->early_suspend);
 #endif
 	printk("==probe ======over =\n");
-  
+
     return 0;
 
 exit_input_register_device_failed:
@@ -352,7 +352,7 @@ exit_check_functionality_failed:
 
 static int __devexit hv_keypad_remove(struct i2c_client *client)
 {
-	
+
 	struct hv_keypad_data *hv_keypadc = i2c_get_clientdata(client);
 	input_unregister_device(hv_keypadc->input_dev);
 	kfree(hv_keypad);
@@ -382,11 +382,11 @@ static struct i2c_driver hv_keypad_driver = {
 
 static int __init hv_keypad_init(void)
 {
-    int ret = -1; 
+    int ret = -1;
     int hv_keypad_used = -1;
-    
-	printk("========HV Inital ===================\n");	
-	
+
+	printk("========HV Inital ===================\n");
+
 	if(SCRIPT_PARSER_OK != script_parser_fetch("tkey_para", "tkey_used", &hv_keypad_used, 1)){
         pr_err("hv_keypad: script_parser_fetch err. \n");
         goto script_parser_fetch_err;
