@@ -932,9 +932,13 @@ static void ft5x_ts_resume(struct early_suspend *handler)
     //gpio i28 output high
 	printk("==ft5x_ts_resume=\n");
     //wake up
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
+        printk("ft5x_ts_resume: err when operate gpio. \n");
+    }
     mdelay(5);
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
+        printk("ft5x_ts_resume: err when operate gpio. \n");
+    }
 
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
