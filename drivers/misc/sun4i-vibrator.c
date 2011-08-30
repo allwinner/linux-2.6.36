@@ -27,23 +27,21 @@
 #include <mach/script_v2.h>
 
 
-#define HTC_PROCEDURE_SET_VIB_ON_OFF	21
-#define PMIC_VIBRATOR_LEVEL		(3000)
-#define PM_LIBPROG 			0x30000061
-
 static struct work_struct vibrator_work;
 static struct hrtimer vibe_timer;
 static spinlock_t vibe_lock;
 static int vibe_state;
+static int vibe_off;
+script_gpio_set_t vibe_gpio;
 static unsigned vibe_gpio_handler;
 
 static void set_sun4i_vibrator(int on)
 {
 	if(on) {
-		gpio_write_one_pin_value(vibe_gpio_handler, 1, NULL); 
+		gpio_write_one_pin_value(vibe_gpio_handler, !vibe_off, NULL);
 	}
 	else{
-		gpio_write_one_pin_value(vibe_gpio_handler, 0, NULL); 
+		gpio_write_one_pin_value(vibe_gpio_handler, vibe_off, NULL);
 	}
 
 }
@@ -106,7 +104,8 @@ static int __init sun4i_vibrator_init(void)
 	err = script_parser_fetch("motor_para", "motor_used", 
 					&vibe_used, sizeof(vibe_used)/sizeof(int));
 	if(err) {
-		pr_err("%s script_parser_fetch \"motor_para\" \"motor_used\" error\n", __FUNCTION__);
+		pr_err("%s script_parser_fetch \"motor_para\" \"motor_used\" error = %d\n",
+				__FUNCTION__, err);
 		goto exit;
 	}
 
@@ -115,6 +114,18 @@ static int __init sun4i_vibrator_init(void)
 		err = -1;
 		goto exit;
 	}
+
+	err = script_parser_fetch("motor_para", "motor_shake",
+					(int *)&vibe_gpio, sizeof(vibe_gpio)/sizeof(int));
+
+	if(err) {
+		pr_err("%s script_parser_fetch \"motor_para\" \"motor_shaked\" error = %d\n",
+				__FUNCTION__, err);
+		goto exit;
+	}
+
+	vibe_off = vibe_gpio.data;
+	pr_debug("vibe_off is %d\n", vibe_off);
 
 	vibe_gpio_handler = gpio_request_ex("motor_para", "motor_shake");
 
