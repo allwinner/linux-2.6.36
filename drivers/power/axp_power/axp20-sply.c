@@ -469,7 +469,7 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
         void *data)
 {
     struct axp_charger *charger =
-      container_of(nb, struct axp_charger, nb);
+    container_of(nb, struct axp_charger, nb);
 
     uint8_t w[9];
 
@@ -483,42 +483,30 @@ static int axp_battery_event(struct notifier_block *nb, unsigned long event,
     w[7] = POWER20_INTSTS5;
     w[8] = (uint8_t) (((uint64_t) event >> 32) & 0xFF);
 
-    switch (event) {
-    case AXP20_IRQ_BATIN:
-    case AXP20_IRQ_BATRE:
+    if(event & (AXP20_IRQ_BATIN|AXP20_IRQ_BATRE)) {
     	axp_capchange(charger);
-    	break;
-    case AXP20_IRQ_ACIN:
-    case AXP20_IRQ_USBIN:
-    case AXP20_IRQ_ACOV:
-    case AXP20_IRQ_USBOV:
-    case AXP20_IRQ_CHAOV:
-    case AXP20_IRQ_CHAST:
-      axp_change(charger);
-    	break;
-    case AXP20_IRQ_ACRE:
-    case AXP20_IRQ_USBRE:
-    	axp_change(charger);
-    	axp_clr_bits(charger->master,0x32,0x38);
-    	break;
-    case AXP20_IRQ_TEMOV:
-		case AXP20_IRQ_TEMLO:
-		  axp_change(charger);
-        break;
-    case AXP20_IRQ_PEKLO:
-    	axp_presslong(charger);
-    	break;
-    case AXP20_IRQ_PEKSH:
-    	axp_pressshort(charger);
-    	break;
-    default:
-    	axp_change(charger);
-        break;
     }
 
-		DBG_PSY_MSG("event = 0x%x\n",(int) event);
+    if(event & (AXP20_IRQ_ACIN|AXP20_IRQ_USBIN|AXP20_IRQ_ACOV|AXP20_IRQ_USBOV|AXP20_IRQ_CHAOV
+               |AXP20_IRQ_CHAST|AXP20_IRQ_TEMOV|AXP20_IRQ_TEMLO)) {
+        axp_change(charger);
+    }
 
-		axp_writes(charger->master,POWER20_INTSTS1,9,w);
+    if(event & (AXP20_IRQ_ACRE|AXP20_IRQ_USBRE)) {
+    	axp_change(charger);
+    	axp_clr_bits(charger->master,0x32,0x38);
+    }
+
+    if(event & AXP20_IRQ_PEKLO) {
+    	axp_presslong(charger);
+    }
+
+    if(event & AXP20_IRQ_PEKSH) {
+    	axp_pressshort(charger);
+    }
+
+    DBG_PSY_MSG("event = 0x%x\n",(int) event);
+    axp_writes(charger->master,POWER20_INTSTS1,9,w);
 
     return 0;
 }
