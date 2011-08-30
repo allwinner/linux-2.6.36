@@ -47,6 +47,7 @@ done
 
 cp Makefile* Module.symvers System.map modules.* vmlinux .config $INSTALL_PATH/
 cp -r scripts tools include $INSTALL_PATH/
+cp drivers/video/sun4i/lcd/*.[hc] $INSTALL_PATH/drivers/video/sun4i/lcd/
 
 echo "Done"
 
