@@ -623,7 +623,7 @@ static int ft5x_i2c_txdata(char *txdata, int length)
 
 	struct i2c_msg msg[] = {
 		{
-			.addr	= this_client->addr>>1,
+			.addr	= this_client->addr,
 			.flags	= 0,
 			.len	= length,
 			.buf	= txdata,
