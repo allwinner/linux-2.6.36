@@ -3634,7 +3634,7 @@ static int sw_udc_resume(struct platform_device *pdev)
 	open_usb_clock(&g_sw_udc_io);
 
 	/* enable usb controller */
-	sw_udc_enable(udc);
+    sw_udc_enable(udc);
 
     /* soft connect */
 	cfg_udc_command(SW_UDC_P_ENABLE);
@@ -3659,14 +3659,28 @@ static struct platform_driver sw_udc_driver = {
 
 static void cfg_udc_command(enum sw_udc_cmd_e cmd)
 {
+	struct sw_udc *udc = the_controller;
+
 	switch (cmd)
 	{
-		case SW_UDC_P_ENABLE :
-			usbd_start_work();
+		case SW_UDC_P_ENABLE:
+		{
+        	if(udc->driver){
+        			usbd_start_work();
+            }else{
+                DMSG_INFO("udc->driver is null, udc is need not start\n");
+            }
+        }
 		break;
 
-		case SW_UDC_P_DISABLE :
-			usbd_stop_work();
+		case SW_UDC_P_DISABLE:
+		{
+        	if(udc->driver){
+        			usbd_stop_work();
+            }else{
+                DMSG_INFO("udc->driver is null, udc is need not stop\n");
+            }
+        }
 		break;
 
 		case SW_UDC_P_RESET :

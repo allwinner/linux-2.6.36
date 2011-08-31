@@ -8,7 +8,7 @@
 *
 * File Name 	: ohci_sun4i.c
 *
-* Author 		: yangnaitian
+* Author 		: javen
 *
 * Description 	: OHCI Driver
 *
@@ -17,6 +17,8 @@
 * History 		:
 *      <author>    		<time>       	<version >    		<desc>
 *    yangnaitian      2011-5-24            1.0          create this file
+*    javen            2011-6-26            1.1          add suspend and resume
+*    javen            2011-7-18            1.2          时钟开关和供电开关从驱动移出来
 *
 *************************************************************************************
 */
@@ -376,6 +378,7 @@ static int sw_ohci_hcd_probe(struct platform_device *pdev)
 
 	sw_ohci->probe = 1;
 
+    /* Disable ohci, when driver probe */
     if(sw_ohci->host_init_state == 0){
         if(ohci_first_probe[sw_ohci->usbc_no]){
             sw_usb_disable_ohci(sw_ohci->usbc_no);

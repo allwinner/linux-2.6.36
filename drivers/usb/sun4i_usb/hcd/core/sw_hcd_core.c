@@ -266,7 +266,7 @@ void sw_hcd_start(struct sw_hcd *sw_hcd)
     sw_hcd->is_active = 0;
 
 	if(!sw_hcd->enable){
-		DMSG_PANIC("ERR: hcd is not enable\n");
+		DMSG_INFO("wrn: hcd is not enable, need not start hcd\n");
 		return;
 	}
 
@@ -365,7 +365,7 @@ EXPORT_SYMBOL(sw_hcd_generic_disable);
 void sw_hcd_stop(struct sw_hcd *sw_hcd)
 {
 	if(!sw_hcd->enable){
-		DMSG_PANIC("ERR: hcd is not enable\n");
+		DMSG_INFO("wrn: hcd is not enable, need not stop hcd\n");
 		return;
 	}
 

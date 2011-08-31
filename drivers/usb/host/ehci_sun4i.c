@@ -8,7 +8,7 @@
 *
 * File Name 	: ehci_sun4i.c
 *
-* Author 		: yangnaitian
+* Author 		: javen
 *
 * Description 	: SoftWinner EHCI Driver
 *
@@ -17,6 +17,8 @@
 * History 		:
 *      <author>    		<time>       	<version >    		<desc>
 *    yangnaitian      2011-5-24            1.0          create this file
+*    javen            2011-6-26            1.1          add suspend and resume
+*    javen            2011-7-18            1.2          时钟开关和供电开关从驱动移出来
 *
 *************************************************************************************
 */
@@ -447,6 +449,7 @@ static int sw_ehci_hcd_probe(struct platform_device *pdev)
 
     sw_ehci->probe = 1;
 
+    /* Disable ehci, when driver probe */
     if(sw_ehci->host_init_state == 0){
         if(ehci_first_probe[sw_ehci->usbc_no]){
             sw_usb_disable_ehci(sw_ehci->usbc_no);

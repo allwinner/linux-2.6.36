@@ -186,7 +186,7 @@ static s32 usb_clock_exit(sw_hcd_io_t *sw_hcd_io)
 */
 static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
- 	DMSG_INFO_HCD0("[%s]: open_usb_clock\n", sw_hcd_driver_name);
+ 	DMSG_INFO_HCD0("open_usb_clock\n");
 
 	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->phy0_clk && !sw_hcd_io->clk_is_open){
 	   	clk_enable(sw_hcd_io->sie_clk);
@@ -234,7 +234,7 @@ static s32 open_usb_clock(sw_hcd_io_t *sw_hcd_io)
 */
 static s32 close_usb_clock(sw_hcd_io_t *sw_hcd_io)
 {
- 	DMSG_INFO_HCD0("[%s]: close_usb_clock\n", sw_hcd_driver_name);
+ 	DMSG_INFO_HCD0("close_usb_clock\n");
 
 	if(sw_hcd_io->sie_clk && sw_hcd_io->phy_clk && sw_hcd_io->phy0_clk && sw_hcd_io->clk_is_open){
 		clk_reset(sw_hcd_io->phy0_clk, 1);
@@ -574,8 +574,8 @@ static __s32 sw_hcd_io_init(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 	sw_hcd_io->usb_vbase  = (void __iomem *)SW_VA_USB0_IO_BASE;
 	sw_hcd_io->sram_vbase = (void __iomem *)SW_VA_SRAM_IO_BASE;
 
-	DMSG_INFO_HCD0("[usb host]: usb_vbase    = 0x%x\n", (u32)sw_hcd_io->usb_vbase);
-	DMSG_INFO_HCD0("[usb host]: sram_vbase   = 0x%x\n", (u32)sw_hcd_io->sram_vbase);
+//	DMSG_INFO_HCD0("[usb host]: usb_vbase    = 0x%x\n", (u32)sw_hcd_io->usb_vbase);
+//	DMSG_INFO_HCD0("[usb host]: sram_vbase   = 0x%x\n", (u32)sw_hcd_io->sram_vbase);
 
     /* open usb lock */
 	ret = usb_clock_init(sw_hcd_io);
@@ -1027,7 +1027,7 @@ static int sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		strcat(aInfo, ", SoftConn");
 	}
 
-	DMSG_INFO_HCD0("%s: ConfigData=0x%02x (%s)\n", sw_hcd_driver_name, reg, aInfo);
+//	DMSG_INFO_HCD0("%s: ConfigData=0x%02x (%s)\n", sw_hcd_driver_name, reg, aInfo);
 
 	aDate[0] = 0;
 
@@ -1079,6 +1079,7 @@ static int sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
 		hw_ep->rx_reinit    = 1;
 		hw_ep->tx_reinit    = 1;
 
+/*
 		if (hw_ep->max_packet_sz_tx) {
 			DMSG_INFO_HCD0("%s: hw_ep %d%s, %smax %d\n",
         				sw_hcd_driver_name, i,
@@ -1098,6 +1099,7 @@ static int sw_hcd_core_init(u16 sw_hcd_type, struct sw_hcd *sw_hcd)
         if (!(hw_ep->max_packet_sz_tx || hw_ep->max_packet_sz_rx)){
 			DMSG_INFO_HCD0("hw_ep %d not configured\n", i);
         }
+*/
     }
 
     return 0;
@@ -2055,8 +2057,6 @@ int sw_usb_disable_hcd0(void)
 		return 0;
 	}
 
-	sw_hcd->enable = 0;
-
 	if(!sw_hcd->sw_hcd_io->clk_is_open){
 		DMSG_PANIC("ERR: sw_usb_disable_hcd0, usb clock is close, can't close again\n");
 		return 0;
@@ -2065,6 +2065,7 @@ int sw_usb_disable_hcd0(void)
 	spin_lock_irqsave(&sw_hcd->lock, flags);
 	sw_hcd_port_suspend_ex(sw_hcd);
 	sw_hcd_stop(sw_hcd);
+	sw_hcd->enable = 0;
 	sw_hcd_set_vbus(sw_hcd, 0);
 	sw_hcd_save_context(sw_hcd);
 	close_usb_clock(sw_hcd->sw_hcd_io);
@@ -2137,18 +2138,16 @@ int sw_usb_enable_hcd0(void)
 		return 0;
 	}
 
-	sw_hcd->enable = 1;
-
 	if(sw_hcd->sw_hcd_io->clk_is_open){
 		DMSG_PANIC("ERR: sw_usb_enable_hcd0, usb clock is open, can't open again\n");
 		return 0;
 	}
 
 	spin_lock_irqsave(&sw_hcd->lock, flags);
+	sw_hcd->enable = 1;
 	open_usb_clock(sw_hcd->sw_hcd_io);
 	sw_hcd_restore_context(sw_hcd);
 	sw_hcd_start(sw_hcd);
-
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
 	DMSG_INFO("sw_usb_enable_hcd0 end\n");
@@ -2182,16 +2181,15 @@ static int sw_hcd_suspend(struct device *dev)
 	unsigned long	flags = 0;
 	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
 
-	DMSG_INFO_HCD0("[%s]: sw_hcd_suspend start, clk_is_open = %d\n",
-		      sw_hcd_driver_name, sw_hcd->sw_hcd_io->clk_is_open);
+	DMSG_INFO_HCD0("sw_hcd_suspend start\n");
 
 	if(!sw_hcd->enable){
-		DMSG_PANIC("WRN: hcd is disable, can not enter to suspend\n");
+		DMSG_INFO("wrn: hcd is disable, need not enter to suspend\n");
 		return 0;
 	}
 
 	if(!sw_hcd->sw_hcd_io->clk_is_open){
-		DMSG_PANIC("ERR: sw_hcd_suspend, usb clock is close, can't close again\n");
+		DMSG_INFO("wrn: sw_hcd_suspend, usb clock is close, can't close again\n");
 		return 0;
 	}
 
@@ -2204,7 +2202,7 @@ static int sw_hcd_suspend(struct device *dev)
 	close_usb_clock(sw_hcd->sw_hcd_io);
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
-	DMSG_INFO_HCD0("[%s]: sw_hcd_suspend end\n", sw_hcd_driver_name);
+	DMSG_INFO_HCD0("sw_hcd_suspend end\n");
 
 	return 0;
 }
@@ -2227,21 +2225,20 @@ static int sw_hcd_suspend(struct device *dev)
 *
 *******************************************************************************
 */
-static int sw_hcd_resume_early(struct device *dev)
+static int sw_hcd_resume(struct device *dev)
 {	struct platform_device *pdev = to_platform_device(dev);
 	unsigned long	flags = 0;
 	struct sw_hcd	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
 
-	DMSG_INFO_HCD0("[%s]: sw_hcd_resume_early start, clk_is_open = %d\n",
-		      sw_hcd_driver_name, sw_hcd->sw_hcd_io->clk_is_open);
+	DMSG_INFO_HCD0("sw_hcd_resume start\n");
 
 	if(!sw_hcd->enable){
-		DMSG_PANIC("WRN: hcd is disable, can not resume\n");
+		DMSG_INFO("wrn: hcd is disable, need not resume\n");
 		return 0;
 	}
 
 	if(sw_hcd->sw_hcd_io->clk_is_open){
-		DMSG_PANIC("ERR: sw_hcd_suspend, usb clock is open, can't open again\n");
+		DMSG_INFO("wrn: sw_hcd_suspend, usb clock is open, can't open again\n");
 		return 0;
 	}
 
@@ -2253,14 +2250,14 @@ static int sw_hcd_resume_early(struct device *dev)
 	sw_hcd->suspend = 0;
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
-	DMSG_INFO_HCD0("[%s]: sw_hcd_resume_early end\n", sw_hcd_driver_name);
+	DMSG_INFO_HCD0("sw_hcd_resume_early end\n");
 
 	return 0;
 }
 
 static const struct dev_pm_ops sw_hcd_dev_pm_ops = {
 	.suspend		= sw_hcd_suspend,
-	.resume     	= sw_hcd_resume_early,
+	.resume     	= sw_hcd_resume,
 };
 
 static struct platform_driver sw_hcd_driver = {
