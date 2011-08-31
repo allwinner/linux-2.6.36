@@ -24,6 +24,7 @@
 #include "ft5x_ts.h"
 #ifdef CONFIG_HAS_EARLYSUSPEND
     #include <linux/pm.h>
+    #include <linux/earlysuspend.h>
 #endif
 #include <linux/interrupt.h>
 #include <linux/delay.h>
@@ -42,7 +43,7 @@
 #include <mach/script_v2.h>
 
 #define FOR_TSLIB_TEST
-//#define PRINT_POINT_INFO
+//#define PRINT_INT_INFO
 //#define PRINT_POINT_INFO
 #define DEBUG
 
@@ -50,6 +51,8 @@ static struct i2c_client *this_client;
 
 static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
+static int gpio_reset_hdle = 0;
+
 
 static void* __iomem gpio_addr = NULL;
 
@@ -614,43 +617,43 @@ static int ft5x_i2c_rxdata(char *rxdata, int length)
 	return ret;
 }
 
-//static int ft5x_i2c_txdata(char *txdata, int length)
-//{
-//	int ret;
-//
-//	struct i2c_msg msg[] = {
-//		{
-//			.addr	= this_client->addr>>1,
-//			.flags	= 0,
-//			.len	= length,
-//			.buf	= txdata,
-//		},
-//	};
-//
-//   	//msleep(1);
-//	ret = i2c_transfer(this_client->adapter, msg, 1);
-//	if (ret < 0)
-//		pr_err("%s i2c write error: %d\n", __func__, ret);
-//
-//	return ret;
-//}
-//
-//static int ft5x_set_reg(u8 addr, u8 para)
-//{
-//    u8 buf[3];
-//    int ret = -1;
-//
-//    buf[0] = addr;
-//    buf[1] = para;
-//    ret = ft5x_i2c_txdata(buf, 2);
-//    if (ret < 0) {
-//        pr_err("write reg failed! %#x ret: %d", buf[0], ret);
-//        return -1;
-//    }
-//    
-//    return 0;
-//}
-//
+static int ft5x_i2c_txdata(char *txdata, int length)
+{
+	int ret;
+
+	struct i2c_msg msg[] = {
+		{
+			.addr	= this_client->addr>>1,
+			.flags	= 0,
+			.len	= length,
+			.buf	= txdata,
+		},
+	};
+
+   	//msleep(1);
+	ret = i2c_transfer(this_client->adapter, msg, 1);
+	if (ret < 0)
+		pr_err("%s i2c write error: %d\n", __func__, ret);
+
+	return ret;
+}
+
+static int ft5x_set_reg(u8 addr, u8 para)
+{
+    u8 buf[3];
+    int ret = -1;
+
+    buf[0] = addr;
+    buf[1] = para;
+    ret = ft5x_i2c_txdata(buf, 2);
+    if (ret < 0) {
+        pr_err("write reg failed! %#x ret: %d", buf[0], ret);
+        return -1;
+    }
+    
+    return 0;
+}
+
 
 static void ft5x_ts_release(void)
 {
@@ -887,13 +890,27 @@ static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 	    #endif
 	    //For Debug 
 	    //writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
-		//enable_irq(IRQ_EINT);
+	   //enable_irq(IRQ_EINT);
 	}
 
 	return IRQ_HANDLED;
 }
 
+static void ft5x_ts_reset(void)
+{
+    printk("ft5x_ts_reset. \n");
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
+        printk("ft5x_ts_reset: err when operate gpio. \n");
+    }
+    mdelay(15);
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
+        printk("ft5x_ts_reset: err when operate gpio. \n");
+    }
+    mdelay(15);
+}
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
+
 static void ft5x_ts_suspend(struct early_suspend *handler)
 {
 //	struct ft5x_ts_data *ts;
@@ -913,12 +930,15 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
     ft5x_set_reg(0x3a,PMODE_HIBERNATE);
 	*/
     //suspend 
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");        
+    //gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
+    // ==set mode ==, 
+    printk("ft5x_ts_suspend: write FT5X0X_REG_PMODE .\n");
+    ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);       
 }
 
 static void ft5x_ts_resume(struct early_suspend *handler)
 {
-	printk("==ft5x_ts_resume=\n");
+	printk("==ft5x_ts_resume=\n v 0.1");
 	// wake the mode
 //	__gpio_as_output(GPIO_FT5X0X_WAKE);		
 //	__gpio_clear_pin(GPIO_FT5X0X_WAKE);		//set wake = 0,base on system
@@ -927,19 +947,23 @@ static void ft5x_ts_resume(struct early_suspend *handler)
 //	msleep(100);
 //	enable_irq(this_client->irq);
 //	enable_irq(IRQ_EINT(6));
-***************
 
     //gpio i28 output high
-	printk("==ft5x_ts_resume=\n");
+	//printk("==ft5x_ts_resume=\n");
     //wake up
+    /*
     if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
         printk("ft5x_ts_resume: err when operate gpio. \n");
     }
-    mdelay(5);
+    mdelay(10);
     if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
         printk("ft5x_ts_resume: err when operate gpio. \n");
     }
-
+    mdelay(10);
+    */
+    //reset
+    ft5x_ts_reset();
+    
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
 
@@ -998,6 +1022,12 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         pr_warning("touch panel tp_wakeup request gpio fail!\n");
         goto exit_gpio_wakeup_request_failed;
     }
+
+    gpio_reset_hdle = gpio_request_ex("ctp_para", "ctp_reset");
+    if(!gpio_reset_hdle) {
+        pr_warning("touch panel tp_reset request gpio fail!\n");
+        goto exit_gpio_reset_request_failed;
+    }
     
 #ifdef AW_GPIO_INT_API_ENABLE
 
@@ -1014,11 +1044,14 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
 	    //disable_irq(IRQ_EINT);
 #endif
+
+    /*
     gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
     mdelay(5);
+  */  
     gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
 
-
+        ft5x_ts_reset();
 	input_dev = input_allocate_device();
 	if (!input_dev) {
 		err = -ENOMEM;
@@ -1127,6 +1160,7 @@ exit_input_register_device_failed:
 	input_free_device(input_dev);
 exit_input_dev_alloc_failed:
 	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
+exit_gpio_reset_request_failed:
 exit_gpio_wakeup_request_failed:
 exit_gpio_int_request_failed:
 exit_create_singlethread:

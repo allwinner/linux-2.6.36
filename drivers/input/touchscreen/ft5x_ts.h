@@ -22,7 +22,7 @@
 
 #define FT5X_NAME	"ft5x_ts"//"synaptics_i2c_rmi"//"synaptics-rmi-ts"// 
 #define AW_GPIO_API_ENABLE
-#undef CONFIG_HAS_EARLYSUSPEND
+//#undef CONFIG_HAS_EARLYSUSPEND
 //#define CONFIG_HAS_EARLYSUSPEND
 struct ft5x_ts_platform_data{
 	u16	intr;		/* irq number	*/
