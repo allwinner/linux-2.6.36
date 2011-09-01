@@ -1859,7 +1859,7 @@ static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 	regs.value[0] = regs.value[0]>>7;		//0x10 bit7 is awb enable
 		
 	*value = regs.value[0];
-	info->autowb = regs.value[0];
+	info->autowb = *value;
 	
 	return 0;
 }
@@ -2158,35 +2158,35 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 	
 	if (value == V4L2_WB_AUTO) {
 		ret = sensor_s_autowb(sd, 1);
+		return ret;
 	} 
 	else {
 		ret = sensor_s_autowb(sd, 0);
-	}
-	
-	if(ret < 0) {
-		csi_err("sensor_s_autowb error, return %x!\n",ret);
-		return ret;
-	}
+		if(ret < 0) {
+			csi_err("sensor_s_autowb error, return %x!\n",ret);
+			return ret;
+		}
 		
-	switch (value) {
-		case V4L2_WB_CLOUD:
-		  ret = sensor_write_array(sd, sensor_wb_cloud_regs, ARRAY_SIZE(sensor_wb_cloud_regs));
-			break;
-		case V4L2_WB_DAYLIGHT:
-			ret = sensor_write_array(sd, sensor_wb_daylight_regs, ARRAY_SIZE(sensor_wb_daylight_regs));
-			break;
-		case V4L2_WB_INCANDESCENCE:
-			ret = sensor_write_array(sd, sensor_wb_incandescence_regs, ARRAY_SIZE(sensor_wb_incandescence_regs));
-			break;    
-		case V4L2_WB_FLUORESCENT:
-			ret = sensor_write_array(sd, sensor_wb_fluorescent_regs, ARRAY_SIZE(sensor_wb_fluorescent_regs));
-			break;
-		case V4L2_WB_TUNGSTEN:   
-			ret = sensor_write_array(sd, sensor_wb_tungsten_regs, ARRAY_SIZE(sensor_wb_tungsten_regs));
-			break;
-		default:
-			return -EINVAL;
-	} 
+		switch (value) {
+			case V4L2_WB_CLOUD:
+			  ret = sensor_write_array(sd, sensor_wb_cloud_regs, ARRAY_SIZE(sensor_wb_cloud_regs));
+				break;
+			case V4L2_WB_DAYLIGHT:
+				ret = sensor_write_array(sd, sensor_wb_daylight_regs, ARRAY_SIZE(sensor_wb_daylight_regs));
+				break;
+			case V4L2_WB_INCANDESCENCE:
+				ret = sensor_write_array(sd, sensor_wb_incandescence_regs, ARRAY_SIZE(sensor_wb_incandescence_regs));
+				break;    
+			case V4L2_WB_FLUORESCENT:
+				ret = sensor_write_array(sd, sensor_wb_fluorescent_regs, ARRAY_SIZE(sensor_wb_fluorescent_regs));
+				break;
+			case V4L2_WB_TUNGSTEN:   
+				ret = sensor_write_array(sd, sensor_wb_tungsten_regs, ARRAY_SIZE(sensor_wb_tungsten_regs));
+				break;
+			default:
+				return -EINVAL;
+		} 
+	}
 	
 	if (ret < 0) {
 		csi_err("sensor_s_wb error, return %x!\n",ret);

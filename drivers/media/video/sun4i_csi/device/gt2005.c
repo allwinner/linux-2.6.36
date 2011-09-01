@@ -337,7 +337,7 @@ static struct regval_list sensor_default_regs[] = {
 	{{0x03,	0x17}, {0x02}},
 	{{0x03,	0x18}, {0x08}},
 	{{0x03,	0x19}, {0x0C}},
-
+	
 #ifndef A_LIGHT_CORRECTION
 	//Normal AWB Setting
 	{{0x03,	0x1A} , {0x81}},
@@ -769,50 +769,94 @@ static struct regval_list sensor_vga_regs[] = {
  * The white balance enalbe bit is modified in sensor_s_autowb and sensor_s_wb
  */
 static struct regval_list sensor_wb_auto_regs[] = {
-//NULL
+	{{0x03,	0x20} , {0x24}},
+	{{0x03,	0x21} , {0x14}},
+	{{0x03,	0x22} , {0x1a}},
+	{{0x03,	0x23} , {0x24}},
+	{{0x04,	0x41} , {0x4B}},
+	{{0x04,	0x42} , {0x00}},
+	{{0x04,	0x43} , {0x00}},
+	{{0x04,	0x44} , {0x31}},
 };
 
 static struct regval_list sensor_wb_cloud_regs[] = {
-//NULL
+	{{0x03,	0x20} , {0x02}},
+	{{0x03,	0x21} , {0x02}},
+	{{0x03,	0x22} , {0x02}},
+	{{0x03,	0x23} , {0x02}},
+	{{0x04,	0x41} , {0x80}},
+	{{0x04,	0x42} , {0x00}},
+	{{0x04,	0x43} , {0x00}},
+	{{0x04,	0x44} , {0x0D}},
 };
 
 static struct regval_list sensor_wb_daylight_regs[] = {
 	//tai yang guang
-//NULL
+	{{0x03,	0x20} , {0x02}},
+	{{0x03,	0x21} , {0x02}},
+	{{0x03,	0x22} , {0x02}},
+	{{0x03,	0x23} , {0x02}},
+	{{0x04,	0x41} , {0x60}},
+	{{0x04,	0x42} , {0x00}},
+	{{0x04,	0x43} , {0x00}},
+	{{0x04,	0x44} , {0x14}},
 };
 
 static struct regval_list sensor_wb_incandescence_regs[] = {
 	//bai re guang
-//NULL
+	{{0x03,	0x20} , {0x02}},
+	{{0x03,	0x21} , {0x02}},
+	{{0x03,	0x22} , {0x02}},
+	{{0x03,	0x23} , {0x02}},
+	{{0x04,	0x41} , {0x50}},
+	{{0x04,	0x42} , {0x00}},
+	{{0x04,	0x43} , {0x00}},
+	{{0x04,	0x44} , {0x30}},
 };
 
 static struct regval_list sensor_wb_fluorescent_regs[] = {
 	//ri guang deng
-//NULL
+	{{0x03,	0x20} , {0x02}},
+	{{0x03,	0x21} , {0x02}},
+	{{0x03,	0x22} , {0x02}},
+	{{0x03,	0x23} , {0x02}},
+	{{0x04,	0x41} , {0x43}},
+	{{0x04,	0x42} , {0x00}},
+	{{0x04,	0x43} , {0x00}},
+	{{0x04,	0x44} , {0x4B}},
 };
 
 static struct regval_list sensor_wb_tungsten_regs[] = {
 	//wu si deng
-//NULL
+	{{0x03,	0x20} , {0x02}},
+	{{0x03,	0x21} , {0x02}},
+	{{0x03,	0x22} , {0x02}},
+	{{0x03,	0x23} , {0x02}},
+	{{0x04,	0x41} , {0x0B}},
+	{{0x04,	0x42} , {0x00}},
+	{{0x04,	0x43} , {0x00}},
+	{{0x04,	0x44} , {0x5E}},
 };
 
 /*
  * The color effect settings
  */
 static struct regval_list sensor_colorfx_none_regs[] = {
-//NULL
+	{{0x01,	0x15}	,	{0x00}},
 };
 
 static struct regval_list sensor_colorfx_bw_regs[] = {
-//NULL
+	{{0x01,	0x15}	,	{0x06}},
 };
 
 static struct regval_list sensor_colorfx_sepia_regs[] = {
-//NULL
+	{{0x01,	0x15}	,	{0x0a}},
+	{{0x02,	0x6e}	,	{0x60}},
+	{{0x02,	0x6f}	,	{0xa0}},
 };
 
 static struct regval_list sensor_colorfx_negative_regs[] = {
-//NULL
+	{{0x01,	0x15}	,	{0x09}},
 };
 
 static struct regval_list sensor_colorfx_emboss_regs[] = {
@@ -824,11 +868,15 @@ static struct regval_list sensor_colorfx_sketch_regs[] = {
 };
 
 static struct regval_list sensor_colorfx_sky_blue_regs[] = {
-//NULL
+	{{0x01,	0x15}	,	{0x0a}},
+	{{0x02,	0x6e}	,	{0xfb}},
+	{{0x02,	0x6f}	,	{0x00}},
 };
 
 static struct regval_list sensor_colorfx_grass_green_regs[] = {
-//NULL
+	{{0x01,	0x15}	,	{0x0a}},
+	{{0x02,	0x6e}	,	{0x20}},
+	{{0x02,	0x6f}	,	{0x00}},
 };
 
 static struct regval_list sensor_colorfx_skin_whiten_regs[] = {
@@ -960,39 +1008,48 @@ static struct regval_list sensor_saturation_pos4_regs[] = {
  * The exposure target setttings
  */
 static struct regval_list sensor_ev_neg4_regs[] = {
-//NULL
+	{{0x03,0x01} , {0x40}},
+	{{0x02,0x01} , {0x90}},
 };
 
 static struct regval_list sensor_ev_neg3_regs[] = {
-//NULL
+	{{0x03,0x01} , {0x50}},
+	{{0x02,0x01} , {0xa0}},
 };
 
 static struct regval_list sensor_ev_neg2_regs[] = {
-//NULL
+	{{0x03,0x01} , {0x60}},
+	{{0x02,0x01} , {0xb0}},
 };
 
 static struct regval_list sensor_ev_neg1_regs[] = {
-//NULL
-};
+	{{0x03,0x01} , {0x70}},
+	{{0x02,0x01} , {0xd0}},
+};                     
 
 static struct regval_list sensor_ev_zero_regs[] = {
-//NULL
+	{{0x03,0x01} , {0x80}},
+	{{0x02,0x01} , {0x0c}},
 };
 
 static struct regval_list sensor_ev_pos1_regs[] = {
-//NULL
+	{{0x03,0x01} , {0x90}},
+	{{0x02,0x01} , {0x30}},
 };
 
 static struct regval_list sensor_ev_pos2_regs[] = {
-//NULL
+	{{0x03,0x01} , {0xa0}},
+	{{0x02,0x01} , {0x50}},
 };
 
 static struct regval_list sensor_ev_pos3_regs[] = {
-//NULL
+	{{0x03,0x01} , {0xb0}},
+	{{0x02,0x01} , {0x60}},
 };
 
 static struct regval_list sensor_ev_pos4_regs[] = {
-//NULL
+	{{0x03,0x01} , {0xc0}},
+	{{0x02,0x01} , {0x70}},
 };
 
 
@@ -1040,48 +1097,48 @@ static struct regval_list sensor_fmt_raw[] = {
 /*
  * On most platforms, we'd rather do straight i2c I/O.
  */
-//static int sensor_read(struct v4l2_subdev *sd, unsigned char *reg,
-//		unsigned char *value)
-//{
-//	struct i2c_client *client = v4l2_get_subdevdata(sd);
-//	u8 data[REG_STEP];
-//	struct i2c_msg msg;
-//	int ret,i;
-//	
-//	for(i = 0; i < REG_ADDR_STEP; i++)
-//		data[i] = reg[i];
-//	
-//	for(i = REG_ADDR_STEP; i < REG_STEP; i++)
-//		data[i] = 0xff;
-//	/*
-//	 * Send out the register address...
-//	 */
-//	msg.addr = client->addr;
-//	msg.flags = 0;
-//	msg.len = REG_ADDR_STEP;
-//	msg.buf = data;
-//	ret = i2c_transfer(client->adapter, &msg, 1);
-//	if (ret < 0) {
-//		printk(KERN_ERR "Error %d on register write\n", ret);
-//		return ret;
-//	}
-//	/*
-//	 * ...then read back the result.
-//	 */
-//	
-//	msg.flags = I2C_M_RD;
-//	msg.len = REG_DATA_STEP;
-//	msg.buf = &data[REG_ADDR_STEP];
-//	
-//	ret = i2c_transfer(client->adapter, &msg, 1);
-//	if (ret >= 0) {
-//		for(i = 0; i < REG_DATA_STEP; i++)
-//			value[i] = data[i+REG_ADDR_STEP];
-//		ret = 0;
-//	}
-//
-//	return ret;
-//}
+static int sensor_read(struct v4l2_subdev *sd, unsigned char *reg,
+		unsigned char *value)
+{
+	struct i2c_client *client = v4l2_get_subdevdata(sd);
+	u8 data[REG_STEP];
+	struct i2c_msg msg;
+	int ret,i;
+	
+	for(i = 0; i < REG_ADDR_STEP; i++)
+		data[i] = reg[i];
+	
+	for(i = REG_ADDR_STEP; i < REG_STEP; i++)
+		data[i] = 0xff;
+	/*
+	 * Send out the register address...
+	 */
+	msg.addr = client->addr;
+	msg.flags = 0;
+	msg.len = REG_ADDR_STEP;
+	msg.buf = data;
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret < 0) {
+		printk(KERN_ERR "Error %d on register write\n", ret);
+		return ret;
+	}
+	/*
+	 * ...then read back the result.
+	 */
+	
+	msg.flags = I2C_M_RD;
+	msg.len = REG_DATA_STEP;
+	msg.buf = &data[REG_ADDR_STEP];
+	
+	ret = i2c_transfer(client->adapter, &msg, 1);
+	if (ret >= 0) {
+		for(i = 0; i < REG_DATA_STEP; i++)
+			value[i] = data[i+REG_ADDR_STEP];
+		ret = 0;
+	}
+
+	return ret;
+}
 
 
 static int sensor_write(struct v4l2_subdev *sd, unsigned char *reg,
@@ -1578,16 +1635,16 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 //		return v4l2_ctrl_query_fill(qc, 0, 255, 1, 128);
 //	case V4L2_CID_AUTOGAIN:
 //		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1);
-//	case V4L2_CID_EXPOSURE:
-//		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 0);
-//	case V4L2_CID_EXPOSURE_AUTO:
-//		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
-//	case V4L2_CID_DO_WHITE_BALANCE:
-//		return v4l2_ctrl_query_fill(qc, 0, 5, 1, 0);
-//	case V4L2_CID_AUTO_WHITE_BALANCE:
-//		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1);
-//	case V4L2_CID_COLORFX:
-//		return v4l2_ctrl_query_fill(qc, 0, 9, 1, 0);
+	case V4L2_CID_EXPOSURE:
+		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 0);
+	case V4L2_CID_EXPOSURE_AUTO:
+		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
+	case V4L2_CID_DO_WHITE_BALANCE:
+		return v4l2_ctrl_query_fill(qc, 0, 5, 1, 0);
+	case V4L2_CID_AUTO_WHITE_BALANCE:
+		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 1);
+	case V4L2_CID_COLORFX:
+		return v4l2_ctrl_query_fill(qc, 0, 9, 1, 0);
 	}
 	return -EINVAL;
 }
@@ -1624,23 +1681,100 @@ static int sensor_s_autogain(struct v4l2_subdev *sd, int value)
 
 static int sensor_g_autoexp(struct v4l2_subdev *sd, __s32 *value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x00;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_g_autoexp!\n");
+		return ret;
+	}
+
+	regs.value[0] &= 0x80;
+	if (regs.value[0] == 0x80) {
+		*value = V4L2_EXPOSURE_AUTO;
+	}
+	else
+	{
+		*value = V4L2_EXPOSURE_MANUAL;
+	}
+	
+	info->autoexp = *value;
+	return 0;
 }
 
 static int sensor_s_autoexp(struct v4l2_subdev *sd,
 		enum v4l2_exposure_auto_type value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x00;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_s_autoexp!\n");
+		return ret;
+	}
+
+	switch (value) {
+		case V4L2_EXPOSURE_AUTO:
+		  regs.value[0] |= 0x80;
+			break;
+		case V4L2_EXPOSURE_MANUAL:
+			regs.value[0] &= 0x7f;
+			break;
+		case V4L2_EXPOSURE_SHUTTER_PRIORITY:
+			return -EINVAL;    
+		case V4L2_EXPOSURE_APERTURE_PRIORITY:
+			return -EINVAL;
+		default:
+			return -EINVAL;
+	}
+		
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_s_autoexp!\n");
+		return ret;
+	}
+	
+	info->autoexp = value;
+	
+	return 0;
 }
 
 static int sensor_g_autowb(struct v4l2_subdev *sd, int *value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x1a;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_g_autowb!\n");
+		return ret;
+	}
+
+	regs.value[0] &= (1<<7);
+	regs.value[0] = regs.value[0]>>7;		//0x031a bit7 is awb enable
+		
+	*value = regs.value[0];
+	info->autowb = *value;
+	
+	return 0;
 }
 
 static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 {
 	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
 	
 	ret = sensor_write_array(sd, sensor_wb_auto_regs, ARRAY_SIZE(sensor_wb_auto_regs));
 	if (ret < 0) {
@@ -1648,7 +1782,32 @@ static int sensor_s_autowb(struct v4l2_subdev *sd, int value)
 		return ret;
 	}
 	
-	return -EINVAL;
+	regs.reg_num[0] = 0x03;
+	regs.reg_num[1] = 0x1a;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_s_autowb!\n");
+		return ret;
+	}
+
+	switch(value) {
+	case 0:
+		regs.value[0] &= 0x7f;
+		break;
+	case 1:
+		regs.value[0] |= 0x80;
+		break;
+	default:
+		break;
+	}	
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_s_autowb!\n");
+		return ret;
+	}
+	
+	info->autowb = value;
+	return 0;
 }
 
 static int sensor_g_hue(struct v4l2_subdev *sd, __s32 *value)
@@ -1906,6 +2065,7 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 	
 	if (value == V4L2_WB_AUTO) {
 		ret = sensor_s_autowb(sd, 1);
+		return ret;
 	} 
 	else {
 		ret = sensor_s_autowb(sd, 0);
@@ -1915,23 +2075,23 @@ static int sensor_s_wb(struct v4l2_subdev *sd,
 		}
 		
 		switch (value) {
-		case V4L2_WB_CLOUD:
-		  ret = sensor_write_array(sd, sensor_wb_cloud_regs, ARRAY_SIZE(sensor_wb_cloud_regs));
-			break;
-		case V4L2_WB_DAYLIGHT:
-			ret = sensor_write_array(sd, sensor_wb_daylight_regs, ARRAY_SIZE(sensor_wb_daylight_regs));
-			break;
-		case V4L2_WB_INCANDESCENCE:
-			ret = sensor_write_array(sd, sensor_wb_incandescence_regs, ARRAY_SIZE(sensor_wb_incandescence_regs));
-			break;    
-		case V4L2_WB_FLUORESCENT:
-			ret = sensor_write_array(sd, sensor_wb_fluorescent_regs, ARRAY_SIZE(sensor_wb_fluorescent_regs));
-			break;
-		case V4L2_WB_TUNGSTEN:   
-			ret = sensor_write_array(sd, sensor_wb_tungsten_regs, ARRAY_SIZE(sensor_wb_tungsten_regs));
-			break;
-		default:
-			return -EINVAL;
+			case V4L2_WB_CLOUD:
+			  ret = sensor_write_array(sd, sensor_wb_cloud_regs, ARRAY_SIZE(sensor_wb_cloud_regs));
+				break;
+			case V4L2_WB_DAYLIGHT:
+				ret = sensor_write_array(sd, sensor_wb_daylight_regs, ARRAY_SIZE(sensor_wb_daylight_regs));
+				break;
+			case V4L2_WB_INCANDESCENCE:
+				ret = sensor_write_array(sd, sensor_wb_incandescence_regs, ARRAY_SIZE(sensor_wb_incandescence_regs));
+				break;    
+			case V4L2_WB_FLUORESCENT:
+				ret = sensor_write_array(sd, sensor_wb_fluorescent_regs, ARRAY_SIZE(sensor_wb_fluorescent_regs));
+				break;
+			case V4L2_WB_TUNGSTEN:   
+				ret = sensor_write_array(sd, sensor_wb_tungsten_regs, ARRAY_SIZE(sensor_wb_tungsten_regs));
+				break;
+			default:
+				return -EINVAL;
 		} 
 	}
 	

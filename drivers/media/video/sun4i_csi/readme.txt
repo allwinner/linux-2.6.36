@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_31
+Version: V1_32
 
 Author:  raymonxiu
 
-Date:     2011-8-23 13:36:38
+Date:     2011-9-1 16:28:11
 
 Description:
 
@@ -14,6 +14,12 @@ insmod sun4i_csiX.ko ccm="gc0308" i2c_addr=0x42
 insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
+insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
+
+V1_32
+1) Fix the bug that return error when setting AWB
+2) Flip Y in sp0838 module
+3) Add mt9m112 module
 
 V1_31
 1) Add sp0838 module
