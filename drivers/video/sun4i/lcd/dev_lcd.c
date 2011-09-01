@@ -51,6 +51,9 @@ int lcd_init(void)
 {
 	__lcd_panel_fun_t lcd0_cfg;
 	__lcd_panel_fun_t lcd1_cfg;
+
+	memset(&lcd0_cfg, 0, sizeof(__lcd_panel_fun_t));
+	memset(&lcd1_cfg, 0, sizeof(__lcd_panel_fun_t));
 	
 	LCD_get_panel_funs_0(&lcd0_cfg);
 	LCD_get_panel_funs_1(&lcd1_cfg);

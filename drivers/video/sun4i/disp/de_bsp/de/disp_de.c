@@ -146,8 +146,7 @@ __s32 Disp_de_flicker_enable(__u32 sel, __u32 enable )
 			
 	if(enable)
 	{
-		if((gdisp.screen[sel].de_flicker_status & DE_FLICKER_REQUIRED) && //when set DISP_CMD_DE_FLICKER_ON before
-			(gdisp.screen[sel].output_type == DISP_OUTPUT_TYPE_TV) && (scan_mode == 1))	//when output device is ntsc/pal/480i/576i
+		if((gdisp.screen[sel].de_flicker_status & DE_FLICKER_REQUIRED) && (scan_mode == 1))	//when output device is ntsc/pal/480i/576i
 		{
 			for(i = 0; i < gdisp.screen[sel].max_layers; i++)
 			{

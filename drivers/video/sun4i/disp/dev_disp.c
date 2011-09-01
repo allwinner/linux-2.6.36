@@ -317,11 +317,19 @@ __s32 DRV_disp_int_process(__u32 sel)
     return 0;
 }
 
+__s32 disp_set_hdmi_func(__disp_hdmi_func * func)
+{
+    BSP_disp_set_hdmi_func(func);
+    
+    return 0;
+}
+
 __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
     __u32 i = 0;
 
+    memset(&para, 0, sizeof(__disp_bsp_init_para));
     para.base_image0    = (__u32)g_fbi.io[DISP_IO_IMAGE0];
     para.base_image1    = (__u32)g_fbi.io[DISP_IO_IMAGE1];
     para.base_scaler0   = (__u32)g_fbi.io[DISP_IO_SCALER0];
@@ -334,16 +342,8 @@ __s32 DRV_DISP_Init(void)
     para.base_sdram     = (__u32)g_fbi.base_sdram;
     para.base_pioc      = (__u32)g_fbi.base_pioc;
     para.base_pwm       = (__u32)g_fbi.base_pwm;
-    
     para.scaler_begin   		= DRV_scaler_begin;
     para.scaler_finish  		= DRV_scaler_finish;
-    para.tve_interrup   		= NULL;
-	para.Hdmi_open  			= Hdmi_open;
-	para.Hdmi_close  			= Hdmi_close;
-	para.hdmi_set_mode  		= Hdmi_set_display_mode;
-	para.hdmi_mode_support		= Hdmi_mode_support;
-	para.hdmi_get_HPD_status	= Hdmi_get_HPD_status;
-	para.hdmi_set_pll	        = Hdmi_set_pll;
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
@@ -1509,7 +1509,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
         case DISP_CMD_TV_GET_DAC_STATUS:
-            ret =  BSP_disp_tv_get_dac_status(ubuffer[1]);
+            ret =  BSP_disp_tv_get_dac_status(ubuffer[0], ubuffer[1]);
             break;
 
         case DISP_CMD_TV_SET_DAC_SOURCE:
@@ -1936,6 +1936,7 @@ static void __exit disp_module_exit(void)
 }
 
 EXPORT_SYMBOL(DRV_DISP_Init);
+EXPORT_SYMBOL(disp_set_hdmi_func);
 
 late_initcall(disp_module_init);
 //module_init(disp_module_init);

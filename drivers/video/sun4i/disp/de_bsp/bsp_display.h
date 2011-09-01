@@ -37,23 +37,27 @@
 #include <mach/script_v2.h>
 #include <mach/clock.h>
 #include <mach/aw_ccu.h>
-#include <mach/gpio_v2.h>
 #include <mach/system.h>
+
+typedef unsigned int __hdle;
 
 #include <linux/drv_display.h>
 #include "../OSAL/OSAL.h"
 
-#define OSAL_PRINTF printk
-#define __wrn(msg...) {printk("[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
 #if 1
-#define __inf(msg...) do{}while(0)
-#define __msg(msg...) do{}while(0)
-#define __here__      do{}while(0)
+#define OSAL_PRINTF     printk
+#define __inf(msg...)
+#define __msg(msg...)
+#define __wrn(msg...)
+#define __here__
 #else
-#define __inf(msg...) {printk("[DISP] "); printk(msg);}
-#define __msg(msg...) {printk("[DISP] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-#define __here__      {printk("[DISP] file:%s,line:%d\n",__FILE__,__LINE__);}
+#define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}
+#define __inf(msg...)       {printk(KERN_WARNING "[DISP] ");                                            printk(msg);}
+#define __msg(msg...)       {printk(KERN_WARNING "[DISP] file:%s,line:%d:    ",__FILE__,__LINE__);      printk(msg);}
+#define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
+#define __here__            {printk(KERN_WARNING "[DISP] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
+
 
 #endif//end of define __LINUX_OSAL__
 
@@ -220,7 +224,7 @@ extern __s32 BSP_disp_tv_get_interface(__u32 sel);
 extern __s32 BSP_disp_tv_auto_check_enable(__u32 sel);
 extern __s32 BSP_disp_tv_auto_check_disable(__u32 sel);
 extern __s32 BSP_disp_tv_set_src(__u32 sel, __disp_lcdc_src_t src);
-extern __s32 BSP_disp_tv_get_dac_status(__u32 index);
+extern __s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index);
 extern __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source source);
 extern __s32 BSP_disp_tv_get_dac_source(__u32 sel, __u32 index);
 
@@ -231,6 +235,7 @@ extern __s32 BSP_disp_hdmi_get_mode(__u32 sel);
 extern __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode);
 extern __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel);
 extern __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src);
+extern __s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func);
 
 extern __s32 BSP_disp_vga_open(__u32 sel);
 extern __s32 BSP_disp_vga_close(__u32 sel);

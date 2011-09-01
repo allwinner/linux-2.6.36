@@ -218,9 +218,12 @@ int Hdmi_run_thread(void *parg)
 }
 
 extern void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func);
+extern __s32 disp_set_hdmi_func(__disp_hdmi_func * func);
+
 __s32 Hdmi_init(void)
 {	    
-    __audio_hdmi_func hdmi_func;
+    __audio_hdmi_func audio_func;
+    __disp_hdmi_func disp_func;
     
 	run_sem = kmalloc(sizeof(struct semaphore),GFP_KERNEL | __GFP_ZERO);
 	sema_init((struct semaphore*)run_sem,0);
@@ -240,9 +243,17 @@ __s32 Hdmi_init(void)
     Hdmi_set_reg_base((__u32)ghdmi.io);
 	Hdmi_hal_init();
 
-    hdmi_func.hdmi_audio_enable = Hdmi_Audio_Enable;
-    hdmi_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
-	audio_set_hdmi_func(&hdmi_func);
+    audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;
+    audio_func.hdmi_set_audio_para = Hdmi_Set_Audio_Para;
+	audio_set_hdmi_func(&audio_func);
+
+	disp_func.Hdmi_open = Hdmi_open;
+	disp_func.Hdmi_close = Hdmi_close;
+	disp_func.hdmi_set_mode = Hdmi_set_display_mode;
+	disp_func.hdmi_mode_support = Hdmi_mode_support;
+	disp_func.hdmi_get_HPD_status = Hdmi_get_HPD_status;
+	disp_func.hdmi_set_pll = Hdmi_set_pll;
+	disp_set_hdmi_func(&disp_func);
 
 	return 0;
 }
@@ -264,13 +275,4 @@ __s32 Hdmi_exit(void)
 	}
 	return 0;
 }
-
-EXPORT_SYMBOL(Hdmi_set_display_mode);
-EXPORT_SYMBOL(Hdmi_mode_support);
-EXPORT_SYMBOL(Hdmi_get_HPD_status);
-EXPORT_SYMBOL(Hdmi_open);
-EXPORT_SYMBOL(Hdmi_close);
-EXPORT_SYMBOL(Hdmi_Audio_Enable);
-EXPORT_SYMBOL(Hdmi_Set_Audio_Para);
-EXPORT_SYMBOL(Hdmi_set_pll);
 

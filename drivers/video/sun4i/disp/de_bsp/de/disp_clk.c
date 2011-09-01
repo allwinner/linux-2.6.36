@@ -124,45 +124,6 @@ __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 	{ 74250000	  ,	1	   ,    74250000, 		297000000	,	0	}}	 //    DISP_VGA_H1280_V720                // 0xb	
 	};
 
-
-//===================disp_clk_init===================//
-//description: open AHB clock for display devices
-//===================================================//
-__s32 disp_clk_init(void)
-{
-    h_debe0ahbclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DEBE0);
-    h_debe1ahbclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DEBE1);
-    h_defe0ahbclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DEFE0);
-    h_defe1ahbclk = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_DEFE1);
-    h_tvenc0ahbclk= OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_TVE0);
-    h_tvenc1ahbclk= OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_TVE1);
-    h_lcd0ahbclk  = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_LCD0);
-    h_lcd1ahbclk  = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_LCD1);
-    h_hdmiahbclk  = OSAL_CCMU_OpenMclk(AW_MOD_CLK_AHB_HDMI);	
-    
-    OSAL_CCMU_MclkOnOff(h_debe0ahbclk, CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_debe1ahbclk, CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_defe0ahbclk, CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_defe1ahbclk, CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_tvenc0ahbclk, CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_tvenc1ahbclk, CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_lcd0ahbclk , CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_lcd1ahbclk , CLK_ON);
-    OSAL_CCMU_MclkOnOff(h_hdmiahbclk,  CLK_ON);
- 
- 	g_clk_status |= CLK_DEBE0_AHB_ON;
- 	g_clk_status |= CLK_DEBE1_AHB_ON;
- 	g_clk_status |= CLK_DEFE0_AHB_ON;
- 	g_clk_status |= CLK_DEFE1_AHB_ON;
- 	g_clk_status |= CLK_TVENC0_AHB_ON;
- 	g_clk_status |= CLK_TVENC1_AHB_ON;
- 	g_clk_status |= CLK_LCDC0_AHB_ON;
- 	g_clk_status |= CLK_LCDC1_AHB_ON;
- 	g_clk_status |= CLK_HDMI_AHB_ON;
-	
-	return DIS_SUCCESS;
-}
-
 __s32 image_clk_init(__u32 sel)
 {
 	__u32 dram_pll;
@@ -694,11 +655,7 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 		if (lcd_dclk_freq > 2000000 && lcd_dclk_freq <= 297000000) //MHz 
 		{
 			*divider = 297000000/(lcd_dclk_freq);	//divider for dclk in tcon0
-			pll_freq = ((lcd_dclk_freq * (*divider) + 1500000)/3000000)*3000000;
-		//	if(info->tcon_index == 0)
-		//	{
-		//		TCON0_set_dclk_div(sel, *divider);
-		//	}
+			pll_freq = lcd_dclk_freq * (*divider);
 		}
 		else 
 		{
@@ -708,15 +665,24 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 	}
 	else if(info->lcd_if == 3) // lvds panel
 	{
-		if(lcd_dclk_freq > 108000000)	//pixel clock can't be larger than 108MHz, limited by Video pll frequency
+	    __u32 clk_max;
+
+	    if(OSAL_sw_get_ic_ver() > 0xA)
+	    {
+	        clk_max = 150000000;
+	    }
+	    else
+	    {
+	        clk_max = 108000000;//pixel clock can't be larger than 108MHz, limited by Video pll frequency
+	    }
+		if(lcd_dclk_freq > clk_max)	
 		{
-			lcd_dclk_freq = 108000000;
+			lcd_dclk_freq = clk_max;
 		}
 		
-		if (lcd_dclk_freq > 4000000 && lcd_dclk_freq <= 108000000) //pixel clk
+		if (lcd_dclk_freq > 4000000) //pixel clk
 		{
-			pll_fac = (lcd_dclk_freq * 7 + 1500000)/3000000;
-			pll_freq = pll_fac * 3000000;
+			pll_fac = lcd_dclk_freq * 7;
 			*divider = 7;
 		}
 		else
@@ -753,8 +719,8 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
 	__u32 another_lcdc, another_pll_use_status;
 	another_lcdc = (sel == 0)? 1:0;
 	another_pll_use_status = gdisp.screen[another_lcdc].pll_use_status;
-	
-	if(pll_clk >= 250000000 && pll_clk <= 300000000)
+
+	if((pll_clk >= 250000000 && pll_clk <= 300000000) || (pll_clk >= 500000000 && pll_clk <= 600000000))
 	{
 		if(!(another_pll_use_status & VIDEO_PLL0_USED)) //No lcdc use PLL0
 		{
@@ -770,24 +736,61 @@ static __s32 disp_pll_assign(__u32 sel, __u32 pll_clk)
 		}
 		else	//Normally	wont jump to here
 		{
-			DE_WRN("Can't assign Video PLL for this device\n"); 
+			DE_WRN("Can't assign PLL for this device\n"); 
 			return -1;	//fail to assign
 		}
 	}
-	else//pll_clk not in [270, 300]MHz, must set in PLL1. So when both two devices need to set in PLL1, mostly wont work
+	else if(pll_clk > (381000000 * 2))
 	{
-		if(!(another_pll_use_status & VIDEO_PLL1_USED)) //No lcdc use PLL0
-		{
-			return 1;	//Video pll1 assign
-		}
-		else if(OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL7) == pll_clk)	//PLL1 used by another lcdc, but freq equal to what you want to set
-		{
-			return 1;	//Video pll1 assign
-		}
-		else	// when both two devices need to set in PLL1, mostly wont work 
-		{
-			DE_WRN("Can't assign Video PLL for this device\n");
-			return -1;	//fail to assign
+	    if((OSAL_sw_get_ic_ver() > 0xA) && (pll_clk <= 1200000000))
+	    {
+	        return 2;//sata pll
+	    }
+	    else
+	    {
+	        DE_WRN("Can't assign PLL for this device\n"); 
+	        return -1;
+	    }
+	}
+	else
+	{
+	    if(OSAL_sw_get_ic_ver() > 0xA)
+	    {
+	        if(pll_clk <= 381000000)
+	        {
+        		if(!(another_pll_use_status & VIDEO_PLL1_USED)) //No lcdc use PLL0
+        		{
+        			return 1;	//Video pll1 assign
+        		}
+        		else if(OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL7) == pll_clk)	//PLL1 used by another lcdc, but freq equal to what you want to set
+        		{
+        			return 1;	//Video pll1 assign
+        		}
+        		else	// when both two devices need to set in PLL1, mostly wont work 
+        		{
+        			return 2;	//fail to assign
+        		}
+	        }
+	        else
+	        {
+	            return 2;
+	        }
+	    }
+	    else
+	    {
+    		if(!(another_pll_use_status & VIDEO_PLL1_USED)) //No lcdc use PLL0
+    		{
+    			return 1;	//Video pll1 assign
+    		}
+    		else if(OSAL_CCMU_GetSrcFreq(AW_SYS_CLK_PLL7) == pll_clk)	//PLL1 used by another lcdc, but freq equal to what you want to set
+    		{
+    			return 1;	//Video pll1 assign
+    		}
+    		else	// when both two devices need to set in PLL1, mostly wont work 
+    		{
+    			DE_WRN("Can't assign PLL for this device\n");
+    			return -1;	//fail to assign
+    		}
 		}
 	}
 }
@@ -828,19 +831,30 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 	
 	if(type == DISP_OUTPUT_TYPE_LCD)	//lcd panel
 	{		
-		pll_2x_req = (pll_freq>300000000)?1:0;
+	    if(videopll_sel == 2)
+	    {
+	        videopll = AW_SYS_CLK_PLL7X2;
+	        pll_freq = ((pll_freq + 12000000)/ 24000000) * 24000000;
+	        OSAL_CCMU_SetSrcFreq(AW_SYS_CLK_PLL6, pll_freq);	//Set related Video Pll Frequency
+	    }
+	    else
+	    {
+	        //in 3M unit
+	    	pll_freq = (pll_freq + 1500000)/3000000;
+			pll_freq = pll_freq * 3000000;
+			
+    		pll_2x_req = (pll_freq>381000000)?1:0;
+    		if(pll_2x_req)
+    		{
+    		    pll_freq /= 2;
+    		}
 
-		videopll = 	(videopll_sel == 0)?AW_SYS_CLK_PLL3:AW_SYS_CLK_PLL7;	
-		if(pll_2x_req)
-		{
-		    pll_freq /= 2;
+    		videopll = 	(videopll_sel == 0)?
+    			   		((pll_2x_req)?AW_SYS_CLK_PLL3X2: AW_SYS_CLK_PLL3):
+    					((pll_2x_req)?AW_SYS_CLK_PLL7X2: AW_SYS_CLK_PLL7);	
+    		OSAL_CCMU_SetSrcFreq(videopll,pll_freq);	//Set related Video Pll Frequency
 		}
-		OSAL_CCMU_SetSrcFreq(videopll,pll_freq);	//Set related Video Pll Frequency
-
-		videopll = 	(videopll_sel == 0)?
-			   		((pll_2x_req)?AW_SYS_CLK_PLL3X2: AW_SYS_CLK_PLL3):
-					((pll_2x_req)?AW_SYS_CLK_PLL7X2: AW_SYS_CLK_PLL7);	
-
+		
 		if(gpanel_info[sel].tcon_index == 0)	//tcon0 drive lcd panel
 		{
 			h_lcdmclk0 = (sel == 0)?h_lcd0ch0mclk0 : h_lcd1ch0mclk0;

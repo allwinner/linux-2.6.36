@@ -44,6 +44,9 @@ static char* _sysClkName[AW_SYS_CLK_CNT] =
     "ahb",// 18
     "apb",// 19
     "apb1",// 20
+
+    "sata_pll_m",
+    "sata_pll_2",
 };
 
 static char* _modClkName[AW_MOD_CLK_CNT] =

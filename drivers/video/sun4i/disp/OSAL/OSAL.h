@@ -21,8 +21,7 @@
 #ifndef  __OSAL_H__
 #define  __OSAL_H__
 
-#include "../include/eBSP_common_inc.h"
-#include "csp_include_all_para.h"
+
 #include "../de_bsp/bsp_display.h"
 
 #include  "OSAL_Cache.h"

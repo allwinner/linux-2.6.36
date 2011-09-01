@@ -52,9 +52,6 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
     TVE_set_reg_base(1, para->base_tvec1);
 
 	disp_pll_init();
-	disp_clk_init();
-
-	//de_ccu_set();//tmp
 
     Scaler_Init(0);
     Scaler_Init(1);
@@ -238,11 +235,11 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
 
         if(b_force_on)
         {
-            OSAL_PRINTF("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+            OSAL_PRINTF("0x%04x:%08x,%08x:%08x,%08x\n", i, reg[0], reg[1], reg[2], reg[3]);
         }
         else
         {
-            DE_INF("%08x:%08x,%08x:%08x,%08x\n", base + i, reg[0], reg[1], reg[2], reg[3]);
+            DE_INF("0x%04x:%08x,%08x:%08x,%08x\n", i, reg[0], reg[1], reg[2], reg[3]);
         }
     }
     

@@ -30,16 +30,18 @@
 #include <linux/drv_display.h>
 #include <linux/drv_hdmi.h>
 
-#define __wrn(msg...) {printk( "[HDMI WRN],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-
 #if 1
-#define __inf(msg...) do{}while(0)
-#define __msg(msg...) do{}while(0)
-#define __here__ do{}while(0)
+#define OSAL_PRINTF     printk
+#define __inf(msg...)
+#define __msg(msg...)
+#define __wrn(msg...)
+#define __here__
 #else
-#define __inf(msg...) {printk( "[HDMI] "); printk(msg);}
-#define __msg(msg...) {printk( "[HDMI] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-#define __here__      {printk( "[HDMI] file:%s,line:%d\n",__FILE__,__LINE__);}
+#define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}
+#define __inf(msg...)       {printk(KERN_WARNING "[HDMI] ");                                            printk(msg);}
+#define __msg(msg...)       {printk(KERN_WARNING "[HDMI] file:%s,line:%d:    ",__FILE__,__LINE__);      printk(msg);}
+#define __wrn(msg...)       {printk(KERN_WARNING "[HDMI WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
+#define __here__            {printk(KERN_WARNING "[HDMI] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
 
 

@@ -265,7 +265,22 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	{
 		LCDC_WUINT32(sel, LCDC_LVDS_OFF,(info->lcd_lvds_ch<<30) |(0<<29) |
 							 (0<<28) | (info->lcd_lvds_mode<<27) | (info->lcd_lvds_bitwidth<<26) | (0<<23) );
-	    LCDC_INIT_BIT(sel, LCDC_LVDS_ANA1, 0x1f<<21, info->lcd_lvds_io_cross<<21);
+							 
+							 
+
+		LCDC_WUINT32(sel, LCDC_LVDS_ANA0,(0<<30) + (3<<28) + (3<<26) + (6<<23) +
+					                     (6<<19) + (0<<17) + (1<<16) + (0<<15) +
+					                     (0<<14) + (0<<12));	
+			
+		LCDC_SET_BIT(sel, LCDC_LVDS_ANA0,0x01<<22);		   					//mb     
+		
+		                   
+		LCDC_WUINT32(sel, LCDC_LVDS_ANA1,	(0x1f<<26) + (0x1f<<10));	//pren	
+					 
+		if(info->lcd_lvds_io_cross==0)		
+	    	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,	(0x1f<<26) + (0x1f<<10)+ (0x00<<21)+ (0x00<<5));	
+	    else
+	    	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,	(0x1f<<26) + (0x1f<<10)+ (0x1f<<21)+ (0x1f<<5));		
 	}	
 	else
 	{
@@ -1217,16 +1232,19 @@ void LCD_XY_SWAP(__u32 sel)
 
 __s32 LCD_LVDS_open(__u32 sel)
 {
+	__u32 reg_val;
 	LCDC_SET_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 
-	LCDC_WUINT32(sel, LCDC_LVDS_ANA0,0x3F710000);
-	LCDC_INIT_BIT(sel, LCDC_LVDS_ANA1,~(0x1f<<21),0x7C1F7C1F);
+
+	reg_val = LCDC_RUINT32(sel, LCDC_LVDS_ANA1);
+	reg_val |= (0x1f<<16)| (0x1f<<0); 
+	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,reg_val);
     return 0;
 }
 
 __s32 LCD_LVDS_close(__u32 sel)
 {
 	LCDC_WUINT32(sel, LCDC_LVDS_ANA0,0);
-	LCDC_INIT_BIT(sel, LCDC_LVDS_ANA1,~(0x1f<<21),0);
+	LCDC_WUINT32(sel, LCDC_LVDS_ANA1,0);
 	LCDC_CLR_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 	
 	return 0;
 }

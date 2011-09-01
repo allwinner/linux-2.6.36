@@ -12,23 +12,51 @@ __s32 Disp_Switch_Dram_Mode(__u32 type, __u8 tv_mod)
  
 __s32 Disp_TVEC_Init(__u32 sel)
 {
+    __s32 ret = 0, value = 0;
+    
     tve_clk_init(sel);
-    disp_clk_cfg(0,DISP_OUTPUT_TYPE_TV,DISP_TV_MOD_720P_50HZ);
     tve_clk_on(sel);
 	TVE_init(sel);
     tve_clk_off(sel);
 
-    gdisp.screen[0].dac_source[0] = DISP_TV_DAC_SRC_Y;
-    gdisp.screen[0].dac_source[1] = DISP_TV_DAC_SRC_PB;
-    gdisp.screen[0].dac_source[2] = DISP_TV_DAC_SRC_PR;
-    gdisp.screen[0].dac_source[3] = DISP_TV_DAC_SRC_COMPOSITE;
-    gdisp.screen[1].dac_source[0] = DISP_TV_DAC_SRC_Y;
-    gdisp.screen[1].dac_source[1] = DISP_TV_DAC_SRC_PB;
-    gdisp.screen[1].dac_source[2] = DISP_TV_DAC_SRC_PR;
-    gdisp.screen[1].dac_source[3] = DISP_TV_DAC_SRC_COMPOSITE;
-    
-    gdisp.screen[0].tv_mode = DISP_TV_MOD_720P_50HZ;
-    gdisp.screen[1].tv_mode = DISP_TV_MOD_720P_50HZ;
+    gdisp.screen[sel].dac_source[0] = DISP_TV_DAC_SRC_Y;
+    gdisp.screen[sel].dac_source[1] = DISP_TV_DAC_SRC_PB;
+    gdisp.screen[sel].dac_source[2] = DISP_TV_DAC_SRC_PR;
+    gdisp.screen[sel].dac_source[3] = DISP_TV_DAC_SRC_COMPOSITE;
+
+    ret = OSAL_Script_FetchParser_Data("tv_out_dac_para", "dac_used", &value, 1);
+    if(ret < 0)
+    {
+        DE_WRN("fetch script data tv_out_dac_para.dac_used fail\n");
+    }
+    else
+    {
+        DE_INF("tv_out_dac_para.dac_used=%d\n",value);
+
+	    if(value != 0)
+	    {
+	        __s32 i = 0;
+	        char sub_key[20];
+	        
+	        for(i=0; i<4; i++)
+	        {
+	            sprintf(sub_key, "dac%d_src", i);
+	            
+	            ret = OSAL_Script_FetchParser_Data("tv_out_dac_para", sub_key, &value, 1);
+	            if(ret < 0)
+	            {
+	                DE_WRN("fetch script data tv_out_dac_para.%s fail\n", sub_key);
+	            }
+	            else
+	            {
+	                gdisp.screen[sel].dac_source[i] = value;
+	                DE_INF("tv_out_dac_para.%s = %d\n", sub_key, value);
+	            }
+	        }
+	    }
+    }
+
+    gdisp.screen[sel].tv_mode = DISP_TV_MOD_720P_50HZ;
     return DIS_SUCCESS;
 }
       
@@ -63,6 +91,11 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
 {
     __u32 i = 0;
 
+	TVE_dac_disable(sel, 0);
+	TVE_dac_disable(sel, 1);
+	TVE_dac_disable(sel, 2);
+	TVE_dac_disable(sel, 3);
+    
 	switch(mode)
 	{
 	case DISP_TV_MOD_NTSC:
@@ -339,24 +372,21 @@ __s32 BSP_disp_tv_get_interface(__u32 sel)
       
       
 
-__s32 BSP_disp_tv_get_dac_status( __u32 index)
+__s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index)
 {
-	__u32  ret;
-
-	ret = TVE_get_dac_status(index);
-
-    return  ret;
+	return gdisp.screen[sel].dac_source[index];
 }
 
 __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source source)
 {
-	__u32  ret;
-
-	ret = TVE_dac_set_source(sel, index, source);
-
     gdisp.screen[sel].dac_source[index] = source;
     
-    return  ret;
+    if(gdisp.screen[sel].status & TV_ON)
+    {
+        Disp_TVEC_DacCfg(sel, gdisp.screen[sel].tv_mode);
+    }
+    
+    return  0;
 }
 
 __s32 BSP_disp_tv_get_dac_source(__u32 sel, __u32 index)

@@ -67,7 +67,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
     	}
     	else
     	{
-    	    DE_WRN("gdisp.init_para.Hdmi_open is NULL\n");
+    	    DE_WRN("Hdmi_open is NULL\n");
     	    return -1;
     	}
     	
@@ -94,7 +94,7 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	}
     	else
     	{
-    	    DE_WRN("gdisp.init_para.Hdmi_close is NULL\n");
+    	    DE_WRN("Hdmi_close is NULL\n");
     	    return -1;
     	}
         Image_close(sel);
@@ -133,16 +133,14 @@ __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t  mode)
         DE_WRN("unsupported hdmi mode:%d in BSP_disp_hdmi_set_mode\n", mode);
         return DIS_FAIL;
     }
-	
-	//mode = DISP_TV_MOD_1080P_24HZ_3D_FP;
-	
+		
 	if(gdisp.init_para.hdmi_set_mode)
 	{
 	    gdisp.init_para.hdmi_set_mode(mode);
 	}
 	else
 	{
-	    DE_WRN("gdisp.init_para.hdmi_set_mode is NULL\n");
+	    DE_WRN("hdmi_set_mode is NULL\n");
 	    return -1;
 	}
 
@@ -173,7 +171,7 @@ __s32 BSP_disp_hdmi_check_support_mode(__u32 sel, __u8  mode)
 	}
 	else
 	{
-	    DE_WRN("gdisp.init_para.hdmi_set_mode is NULL\n");
+	    DE_WRN("hdmi_mode_support is NULL\n");
 	    return -1;
 	}
 
@@ -190,7 +188,7 @@ __s32 BSP_disp_hdmi_get_hpd_status(__u32 sel)
 	}
 	else
 	{
-	    DE_WRN("gdisp.init_para.hdmi_set_mode is NULL\n");
+	    DE_WRN("hdmi_get_HPD_status is NULL\n");
 	    return -1;
 	}
 
@@ -220,3 +218,14 @@ __s32 BSP_disp_hdmi_set_src(__u32 sel, __disp_lcdc_src_t src)
     return DIS_SUCCESS;
 }
 
+__s32 BSP_disp_set_hdmi_func(__disp_hdmi_func * func)
+{
+    gdisp.init_para.Hdmi_open = func->Hdmi_open;
+    gdisp.init_para.Hdmi_close = func->Hdmi_close;
+    gdisp.init_para.hdmi_set_mode = func->hdmi_set_mode;
+    gdisp.init_para.hdmi_mode_support = func->hdmi_mode_support;
+    gdisp.init_para.hdmi_get_HPD_status = func->hdmi_get_HPD_status;
+    gdisp.init_para.hdmi_set_pll = func->hdmi_set_pll;
+    
+    return DIS_SUCCESS;
+}

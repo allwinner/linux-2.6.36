@@ -1074,7 +1074,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
                 layer_para.scn_win.width = fb_para->output_width;
                 layer_para.scn_win.height = fb_para->output_height;
             }
-            
+                            
             hdl = BSP_disp_layer_request(sel, layer_para.mode);
             
             layer_para.pipe = 0;

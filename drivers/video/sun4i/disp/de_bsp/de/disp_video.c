@@ -46,8 +46,6 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
     }
     else
     {
-    	g_video[scaler_index].diagintp_en = TRUE;
-
     	if(g_video[scaler_index].field_cnt != 0)
     	{
     		g_video[scaler_index].fetch_bot = (g_video[scaler_index].fetch_bot == 0)?1:0;
@@ -59,11 +57,6 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
     	
 		maf_linestride =  g_video[scaler_index].video_cur.flag_stride;
     }
-    //if(g_video[scaler_index].video_cur.interlace)
-    //{
-    //    g_video[scaler_index].dit_enable = TRUE;
-    //    g_video[scaler_index].dit_mode = DIT_MODE_MAF_BOB;
-    //}
     
 	in_type.fmt= Scaler_sw_para_to_reg(0,scaler->in_fb.format);
 	in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
@@ -171,28 +164,31 @@ __s32 BSP_disp_video_set_fb(__u32 sel, __u32 hid, __disp_video_fb_t *in_addr)
         scaler_index = gdisp.screen[sel].layer_manage[hid].scaler_index;
     	memcpy(&g_video[scaler_index].video_new, in_addr, sizeof(__disp_video_fb_t));
     	g_video[scaler_index].have_got_frame = TRUE;
-    	g_video[scaler_index].case_num = CASE_P_SOURCE;
 
 		if(g_video[scaler_index].video_new.interlace == TRUE)
 		{
-			g_video[scaler_index].dit_enable = FALSE;	//FOR RELEASE VERSION, TURE for debug ver
-			
-			if(g_video[scaler_index].video_new.maf_valid == TRUE)
-			{
-				g_video[scaler_index].dit_mode = DIT_MODE_WEAVE;//FOR RELEASE VERSION, DIT_MODE_MAF for debug ver
-			}
-			else
-			{
-				g_video[scaler_index].dit_mode = DIT_MODE_WEAVE;//FOR RELEASE VERSION, DIT_MODE_MAF_BOB for debug ver
-			}
+			g_video[scaler_index].dit_enable = FALSE;
 
-			if(g_video[scaler_index].video_new.pre_frame_valid == TRUE)
+			if(g_video[scaler_index].dit_enable == TRUE)
 			{
-				g_video[scaler_index].tempdiff_en = FALSE;	//FOR RELEASE VERSION, TURE for debug ver
-			}
-			else
-			{
-				g_video[scaler_index].tempdiff_en = FALSE;
+    			if(g_video[scaler_index].video_new.maf_valid == TRUE)
+    			{
+    				g_video[scaler_index].dit_mode = DIT_MODE_MAF;
+    			}
+    			else
+    			{
+    				g_video[scaler_index].dit_mode = DIT_MODE_MAF_BOB;
+    			}
+
+    			if(g_video[scaler_index].video_new.pre_frame_valid == TRUE)
+    			{
+    				g_video[scaler_index].tempdiff_en = TRUE;
+    			}
+    			else
+    			{
+    				g_video[scaler_index].tempdiff_en = FALSE;
+    			}
+    			g_video[scaler_index].diagintp_en = TRUE;
 			}
 
 			if(g_video[scaler_index].video_new.top_field_first == TRUE)

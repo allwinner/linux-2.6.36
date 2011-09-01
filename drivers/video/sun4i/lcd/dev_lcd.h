@@ -33,16 +33,18 @@ extern void LCD_get_panel_funs_1(__lcd_panel_fun_t * fun);
 extern void LCD_set_panel_funs(__lcd_panel_fun_t * lcd0_cfg, __lcd_panel_fun_t * lcd1_cfg);
 extern __s32 DRV_DISP_Init(void);
 
-#define __wrn(msg...) {printk("[LCD WRN],file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-
 #if 1
-#define __inf(msg...) do{}while(0)
-#define __msg(msg...) do{}while(0)
-#define __here__ do{}while(0)
+#define OSAL_PRINTF     printk
+#define __inf(msg...)
+#define __msg(msg...)
+#define __wrn(msg...)
+#define __here__
 #else
-#define __inf(msg...) {printk("[LCD] "); printk(msg);}
-#define __msg(msg...) {printk("[LCD] file:%s,line:%d:    ",__FILE__,__LINE__); printk(msg);}
-#define __here__      {printk("[LCD] file:%s,line:%d\n",__FILE__,__LINE__);}
+#define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}
+#define __inf(msg...)       {printk(KERN_WARNING "[LCD] ");                                            printk(msg);}
+#define __msg(msg...)       {printk(KERN_WARNING "[LCD] file:%s,line:%d:    ",__FILE__,__LINE__);      printk(msg);}
+#define __wrn(msg...)       {printk(KERN_WARNING "[LCD WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
+#define __here__            {printk(KERN_WARNING "[LCD] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
 
 

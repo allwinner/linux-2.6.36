@@ -8,7 +8,7 @@ static __lcd_flow_t         open_flow[2];
 static __lcd_flow_t         close_flow[2];
 __panel_para_t              gpanel_info[2];
 static __lcd_panel_fun_t    lcd_panel_fun[2];
-static __hdle gpio_hdl[4];
+static __hdle               gpio_hdl[2][4];
 
 void LCD_get_reg_bases(__reg_bases_t *para)
 {
@@ -82,28 +82,6 @@ __s32 LCD_get_panel_para(__u32 sel, __panel_para_t * info)
     {
         info->lcd_pwm_pol = value;
         DE_INF("lcd_pwm_pol = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_srgb", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_srgb fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_srgb = value;
-        DE_INF("lcd_srgb = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_swap", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_swap fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_swap = value;
-        DE_INF("lcd_swap = %d\n", value);
     }
 
     ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_if", &value, 1);
@@ -227,226 +205,6 @@ __s32 LCD_get_panel_para(__u32 sel, __panel_para_t * info)
         DE_INF("lcd_hv_hspw = %d\n", value);
     }
     
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_hv_lde_used", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_hv_lde_used fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_hv_lde_used = value;
-        DE_INF("lcd_hv_lde_used = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_hv_lde_iovalue", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_hv_lde_iovalue fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_hv_lde_iovalue = value;
-        DE_INF("lcd_hv_lde_iovalue = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_stvh", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_stvh fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_stvh = value;
-        DE_INF("lcd_ttl_stvh = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_stvdl", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_stvdl fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_stvdl = value;
-        DE_INF("lcd_ttl_stvdl = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_stvdp", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_stvdp fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_stvdp = value;
-        DE_INF("lcd_ttl_stvdp = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_ckvt", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_ckvt fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_ckvt = value;
-        DE_INF("lcd_ttl_ckvt = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_ckvh", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_ckvh fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_ckvh = value;
-        DE_INF("lcd_ttl_ckvh = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_ckvd", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_ckvd fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_ckvd = value;
-        DE_INF("lcd_ttl_ckvd = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_oevt", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_oevt fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_oevt = value;
-        DE_INF("lcd_ttl_oevt = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_oevh", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_oevh fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_oevh = value;
-        DE_INF("lcd_ttl_oevh = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_oevd", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_oevd fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_oevd = value;
-        DE_INF("lcd_ttl_oevd = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_sthh", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_sthh fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_sthh = value;
-        DE_INF("lcd_ttl_sthh = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_sthd", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_sthd fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_sthd = value;
-        DE_INF("lcd_ttl_sthd = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_oehh", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_oehh fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_oehh = value;
-        DE_INF("lcd_ttl_oehh = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_oehd", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_oehd fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_oehd = value;
-        DE_INF("lcd_ttl_oehd = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_revd", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_revd fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_revd = value;
-        DE_INF("lcd_ttl_revd = %d\n", value);
-    }
-    
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_datarate", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_datarate fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_datarate = value;
-        DE_INF("lcd_ttl_datarate = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_revsel", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_revsel fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_revsel = value;
-        DE_INF("lcd_ttl_revsel = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_datainv_en", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_datainv_en fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_datainv_en = value;
-        DE_INF("lcd_ttl_datainv_en = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_ttl_datainv_sel", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_ttl_datainv_sel fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_ttl_datainv_sel = value;
-        DE_INF("lcd_ttl_datainv_sel = %d\n", value);
-    }
-
     ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_lvds_ch", &value, 1);
     if(ret < 0)
     {
@@ -502,17 +260,6 @@ __s32 LCD_get_panel_para(__u32 sel, __panel_para_t * info)
         DE_INF("lcd_cpu_if = %d\n", value);
     }
 
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_cpu_da", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_cpu_da fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_cpu_da = value;
-        DE_INF("lcd_cpu_da = %d\n", value);
-    }
-
     ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_frm", &value, 1);
     if(ret < 0)
     {
@@ -532,29 +279,7 @@ __s32 LCD_get_panel_para(__u32 sel, __panel_para_t * info)
     else
     {
         info->lcd_io_cfg0 = value;
-        DE_INF("lcd_io_cfg0 = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_io_cfg1", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_io_cfg1 fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_io_cfg1 = value;
-        DE_INF("lcd_io_cfg1 = %d\n", value);
-    }
-
-    ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_io_strength", &value, 1);
-    if(ret < 0)
-    {
-        DE_WRN("fetch script data %s.lcd_io_strength fail\n", primary_key);
-    }
-    else
-    {
-        info->lcd_io_strength = value;
-        DE_INF("lcd_io_strength = %d\n", value);
+        DE_INF("lcd_io_cfg0 = 0x%08x\n", value);
     }
 
     return 0;
@@ -891,7 +616,7 @@ __s32 LCD_GPIO_request(__u32 sel, __u32 io_index)
         DE_INF("%s.%s gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_name,gpio_info->port, gpio_info->port_num, gpio_info->data);
     }
 
-    gpio_hdl[io_index] = OSAL_GPIO_Request(gpio_info, 1);
+    gpio_hdl[sel][io_index] = OSAL_GPIO_Request(gpio_info, 1);
     
     return 0;
 }
@@ -916,7 +641,7 @@ __s32 LCD_GPIO_release(__u32 sel,__u32 io_index)
         DE_INF("%s.%s gpio_port=%d,gpio_port_num:%d, data:%d\n",primary_key, gpio_name,gpio_info->port, gpio_info->port_num, gpio_info->data);
     }
 
-    OSAL_GPIO_Release(gpio_hdl[io_index], 2);
+    OSAL_GPIO_Release(gpio_hdl[sel][io_index], 2);
     
     return 0;
 }
@@ -926,7 +651,7 @@ __s32 LCD_GPIO_set_attr(__u32 sel,__u32 io_index, __bool b_output)
     char gpio_name[20];
 
     sprintf(gpio_name, "lcd_gpio_%d", io_index);
-    return  OSAL_GPIO_DevSetONEPIN_IO_STATUS(gpio_hdl[io_index], b_output, gpio_name);
+    return  OSAL_GPIO_DevSetONEPIN_IO_STATUS(gpio_hdl[sel][io_index], b_output, gpio_name);
 }
 
 __s32 LCD_GPIO_read(__u32 sel,__u32 io_index)
@@ -934,7 +659,7 @@ __s32 LCD_GPIO_read(__u32 sel,__u32 io_index)
     char gpio_name[20];
 
     sprintf(gpio_name, "lcd_gpio_%d", io_index);
-    return OSAL_GPIO_DevREAD_ONEPIN_DATA(gpio_hdl[io_index], gpio_name);
+    return OSAL_GPIO_DevREAD_ONEPIN_DATA(gpio_hdl[sel][io_index], gpio_name);
 }
 
 __s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data)
@@ -942,7 +667,7 @@ __s32 LCD_GPIO_write(__u32 sel,__u32 io_index, __u32 data)
     char gpio_name[20];
 
     sprintf(gpio_name, "lcd_gpio_%d", io_index);
-    return OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_hdl[io_index], data, gpio_name);
+    return OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_hdl[sel][io_index], data, gpio_name);
 }
 
 void LCD_CPU_register_irq(__u32 sel, void (*Lcd_cpuisr_proc) (void))
@@ -1133,8 +858,6 @@ __s32 Disp_lcdc_init(__u32 sel)
     char primary_key[20];
     __s32 value = 0;
 
-    sprintf(primary_key, "lcd%d_para", sel);
-
     lcdc_clk_init(sel);
     lvds_clk_init();
     lcdc_clk_on(sel);	//??need to be open
@@ -1156,6 +879,7 @@ __s32 Disp_lcdc_init(__u32 sel)
 #endif
     }
 
+    sprintf(primary_key, "lcd%d_para", sel);
     ret = OSAL_Script_FetchParser_Data(primary_key, "lcd_used", &value, 1);
     if(ret < 0)
     {
@@ -1167,7 +891,14 @@ __s32 Disp_lcdc_init(__u32 sel)
     }
     if(value != 0)
     {
-        LCD_get_panel_para(sel, &gpanel_info[sel]);
+        if(lcd_panel_fun[sel].cfg_panel_info)
+        {
+            lcd_panel_fun[sel].cfg_panel_info(&gpanel_info[sel]);
+        }
+        else
+        {
+            LCD_get_panel_para(sel, &gpanel_info[sel]);
+        }
         Disp_pwm_cfg(sel);
         gpanel_info[sel].tcon_index = 0;
     }
@@ -1720,8 +1451,13 @@ __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src)
 
 void LCD_set_panel_funs(__lcd_panel_fun_t * lcd0_cfg, __lcd_panel_fun_t * lcd1_cfg)
 {
+    memset(&lcd_panel_fun[0], 0, sizeof(__lcd_panel_fun_t));
+    memset(&lcd_panel_fun[1], 0, sizeof(__lcd_panel_fun_t));
+
+    lcd_panel_fun[0].cfg_panel_info= lcd0_cfg->cfg_panel_info;
     lcd_panel_fun[0].cfg_open_flow = lcd0_cfg->cfg_open_flow;
     lcd_panel_fun[0].cfg_close_flow= lcd0_cfg->cfg_close_flow;
+    lcd_panel_fun[1].cfg_panel_info = lcd1_cfg->cfg_panel_info;
     lcd_panel_fun[1].cfg_open_flow = lcd1_cfg->cfg_open_flow;
     lcd_panel_fun[1].cfg_close_flow= lcd1_cfg->cfg_close_flow;
 }
