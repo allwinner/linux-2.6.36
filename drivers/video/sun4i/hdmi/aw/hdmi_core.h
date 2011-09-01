@@ -59,6 +59,7 @@ __s32 hdmi_core_initial(void);
 __s32 hdmi_core_open(void);
 __s32 hdmi_core_close(void);
 __s32 hdmi_main_task_loop(void);
+__s32 Hpd_Check(void);
 __s32 ParseEDID(void);
 __s32 get_video_info(__s32 vic);
 __s32 get_audio_info(__s32 sample_rate);
@@ -73,7 +74,7 @@ void DDC_Init(void);
 void send_ini_sequence(void);
 __s32 DDC_Read(char cmd,char pointer,char offset,int nbyte,char * pbuf);
 extern 	__u8		EDID_Buf[1024];
-extern 	__u8		Device_Support_VIC[256];
+extern 	__u8		Device_Support_VIC[512];
 
 #endif
 

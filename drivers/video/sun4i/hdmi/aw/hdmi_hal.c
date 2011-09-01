@@ -8,7 +8,6 @@ extern __s32            hdmi_state;
 extern __bool           video_enable;
 extern __s32            video_mode;
 extern HDMI_AUDIO_INFO  audio_info;
-extern __s32            HPD;
 
 void Hdmi_set_reg_base(__u32 base)
 {
@@ -17,6 +16,10 @@ void Hdmi_set_reg_base(__u32 base)
 
 __s32 Hdmi_hal_video_enable(__bool enable)
 {
+	if((video_enable != enable) && (hdmi_state >= HDMI_State_Video_config) )
+	{
+		hdmi_state 			= HDMI_State_Video_config;
+	}
     video_enable = enable;
     
     return 0;
@@ -27,7 +30,9 @@ __s32 Hdmi_hal_set_display_mode(__u32 hdmi_mode)
 	if(hdmi_mode != video_mode)
 	{
 		if(hdmi_state >= HDMI_State_Video_config)
+		{
 			hdmi_state = HDMI_State_Video_config;
+		}
 		video_mode = hdmi_mode;
 	}
     return 0;
@@ -78,7 +83,7 @@ __s32 Hdmi_hal_set_audio_para(hdmi_audio_t * audio_para)
 
 __s32 Hdmi_hal_mode_support(__u32 mode)
 {
-    if(HPD == 0)
+    if(Hpd_Check() == 0)
     {
         return 0;
     }
@@ -94,7 +99,7 @@ __s32 Hdmi_hal_mode_support(__u32 mode)
 
 __s32 Hdmi_hal_get_HPD(void)
 {
-	return HPD;
+	return Hpd_Check();
 }
 
 __s32 Hdmi_hal_get_state(void)

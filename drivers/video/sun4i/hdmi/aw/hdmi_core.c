@@ -2,10 +2,10 @@
 
 __s32 			hdmi_state	=	HDMI_State_Idle;
 __bool          video_enable = 0;
-__s32 			video_mode  = 	HDMI720P_60;
+__s32 			video_mode  = 	HDMI720P_50;
 HDMI_AUDIO_INFO audio_info;
 __u8			EDID_Buf[1024];
-__u8 			Device_Support_VIC[256];
+__u8 			Device_Support_VIC[512];
 __s32           HPD = 0;
 
 __u32 hdmi_pll = 0;//0:video pll 0; 1:video pll 1
@@ -31,7 +31,7 @@ HDMI_VIDE_INFO video_timing[] =
 __s32 hdmi_core_initial(void)
 {
 	hdmi_state	=	HDMI_State_Idle;
-	video_mode  = 	HDMI720P_60;
+	video_mode  = 	HDMI720P_50;
 	memset(&audio_info,0,sizeof(HDMI_AUDIO_INFO));
 	memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
     HDMI_WUINT32(0x004,0x80000000);			//start hdmi controller	
@@ -135,6 +135,21 @@ __s32 hdmi_main_task_loop(void)
 			 __wrn(" unkonwn hdmi state, set to idle\n")
 			 hdmi_state = HDMI_State_Idle;	
 			 return 0;	
+    }
+}
+
+
+__s32 Hpd_Check(void)
+{
+	if(HPD == 0)
+	{
+	   	return 0;
+	}else if(hdmi_state >= HDMI_State_Wait_Video_config)
+	{
+	   	return 1;	
+	}else
+	{
+    	return 0;
     }
 }
 

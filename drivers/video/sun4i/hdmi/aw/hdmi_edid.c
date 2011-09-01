@@ -267,11 +267,42 @@ __s32 Parse_DTD_Block(__u8 *pbuf)
             Device_Support_VIC[HDMI1080P_24] = 1;
         }
     }
-	__inf("PCLK=%d\nXsize=%d\nYsize=%d\nFrame_rate=%d\n",
+	__inf("PCLK=%d\tXsize=%d\tYsize=%d\tFrame_rate=%d\n",
 		  pclk*10000,sizex,sizey,frame_rate);
     
     return 0;
 }
+__s32 Parse_VideoData_Block(__u8 *pbuf,__u8 size)
+{
+	int i=0;
+	while(i<size)
+	{
+		Device_Support_VIC[pbuf[i] &0x7f] = 1;
+		__inf("Parse_VideoData_Block: VIC %d support\n", pbuf[i]);
+		i++;
+	}
+	return 0;
+}
+
+__s32 Parse_AudioData_Block(__u8 *pbuf,__u8 size)
+{
+	__u8 sum = 0;
+	
+	while(sum < size)
+	{
+    	if( (pbuf[sum]&0xf8) == 0x08)
+    	{
+			__inf("Parse_AudioData_Block: max channel=%d\n",(pbuf[sum]&0x7)+1);
+			__inf("Parse_AudioData_Block: SampleRate code=%x\n",pbuf[sum+1]);
+			__inf("Parse_AudioData_Block: WordLen code=%x\n",pbuf[sum+2]);
+    	}
+    	sum += 3;
+	}
+	return 0;
+}
+
+
+
 __s32 ParseEDID(void)
 {
     // collect the EDID ucdata of segment 0
@@ -281,12 +312,16 @@ __s32 ParseEDID(void)
     __inf("ParseEDID\n");
 
     memset(Device_Support_VIC,0,sizeof(Device_Support_VIC));
+    memset(EDID_Buf,0,sizeof(EDID_Buf));
     
 	DDC_Init();
 
     GetEDIDData(0, EDID_Buf);
 
-	EDID_CheckSum(0, EDID_Buf);
+	if( EDID_CheckSum(0, EDID_Buf) != 0)
+	{
+		return 0;
+	}
 
 	EDID_Header_Check(EDID_Buf);
 
@@ -307,12 +342,47 @@ __s32 ParseEDID(void)
 	    for( i = 1 ; i <= BlockCount ; i++ )
 	    {
 	        GetEDIDData(i, EDID_Buf) ;  
-	        EDID_CheckSum(i, EDID_Buf);
+	        if( EDID_CheckSum(i, EDID_Buf)!= 0)
+	        {
+	        	return 0;
+	        }
 
 			if((EDID_Buf[0x80*i+0]==2)/*&&(EDID_Buf[0x80*i+1]==1)*/)
 			{
+				
 				offset = EDID_Buf[0x80*i+2];
-				if(offset != 0)
+				if(offset > 4)		//deal with reserved data block
+				{
+					__u8 bsum = 4;
+					while(bsum < offset)
+					{
+						__u8 tag = EDID_Buf[0x80*i+bsum]>>5;
+						__u8 len = EDID_Buf[0x80*i+bsum]&0x1f;
+						if( (len >0) && ((bsum + len + 1) > offset) )
+						{
+						    __inf("len or bsum size error\n");
+							return 0;
+						}else
+						{
+							if( tag == 1)		//ADB
+							{
+								Parse_AudioData_Block(EDID_Buf+0x80*i+bsum+1,len);
+							}
+							else if( tag == 2)	//VDB
+							{
+								Parse_VideoData_Block(EDID_Buf+0x80*i+bsum+1,len);
+							}
+						}
+
+						bsum += (len +1);
+					}
+					
+				}else
+				{
+					__inf("no data in reserved block%d\n",i);
+				}
+				
+				if(offset >= 4)		//deal with 18-byte timing block
 				{
 					while(offset < (0x80-18))
 					{
