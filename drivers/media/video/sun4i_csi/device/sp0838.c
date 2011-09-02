@@ -369,12 +369,12 @@ static struct regval_list sensor_default_regs[] = {
 
 static struct regval_list sensor_vga_regs[] = {
 	{{0xfd},{0x00}},
-	{{0x31},{0x70}}
+	{{0x31},{0x30}}
 };
 
 static struct regval_list sensor_qvga_regs[] = {
 	{{0xfd},{0x00}},
-	{{0x31},{0x74}}
+	{{0x31},{0x34}}
 };
 
 
