@@ -21,7 +21,7 @@ MODULE_DESCRIPTION("A low-level driver for GalaxyCore GC0308 sensors");
 MODULE_LICENSE("GPL");
 
 
-#define MCLK (24*1000*1000)
+#define MCLK (49.5*1000*1000)
 #define VREF_POL	CSI_HIGH
 #define HREF_POL	CSI_HIGH
 #define CLK_POL		CSI_RISING
@@ -126,6 +126,21 @@ struct regval_list {
  */
 static struct regval_list sensor_default_regs[] = {
 {{0xfe},{0x00}},																					 
+#if 1 //MCLK=49.5MHz
+{{0x01},{0x28}},                                           
+{{0x02},{0x00}},    
+{{0x0f},{0x21}},	                                  
+{{0xe2},{0x00}},                                           
+{{0xe3},{0xFA}},                                           
+{{0xe4},{0x03}},                                           
+{{0xe5},{0xE8}},                                           
+{{0xe6},{0x03}},                                           
+{{0xe7},{0xE8}},                                           
+{{0xe8},{0x03}},                                           
+{{0xe9},{0xE8}},                                           
+{{0xea},{0x09}},                                           
+{{0xeb},{0xC4}},
+#else
 {{0x0f},{0x00}},	                                         
 {{0x01},{0x6a}},                                           
 {{0x02},{0x70}},                                           
@@ -138,7 +153,8 @@ static struct regval_list sensor_default_regs[] = {
 {{0xe8},{0x02}},                                           
 {{0xe9},{0x58}},                                           
 {{0xea},{0x0e}},                                           
-{{0xeb},{0xa6}},                                           
+{{0xeb},{0xa6}},
+#endif                                           
 {{0xec},{0x20}},                                           
 {{0x05},{0x00}},                                           
 {{0x06},{0x00}},                                           
@@ -651,48 +667,48 @@ static struct regval_list sensor_saturation_pos4_regs[] = {
  * The exposure target setttings
  */
 static struct regval_list sensor_ev_neg4_regs[] = {
-	{{0xb5},{0xc0}},
-	{{0xd3},{0x30}}
-};
-
-static struct regval_list sensor_ev_neg3_regs[] = {
 	{{0xb5},{0xd0}},
 	{{0xd3},{0x38}}
 };
 
-static struct regval_list sensor_ev_neg2_regs[] = {
+static struct regval_list sensor_ev_neg3_regs[] = {
 	{{0xb5},{0xe0}},
 	{{0xd3},{0x40}}
 };
 
-static struct regval_list sensor_ev_neg1_regs[] = {
+static struct regval_list sensor_ev_neg2_regs[] = {
 	{{0xb5},{0xf0}},
 	{{0xd3},{0x48}}
 };
 
-static struct regval_list sensor_ev_zero_regs[] = {
+static struct regval_list sensor_ev_neg1_regs[] = {
 	{{0xb5},{0x00}},
 	{{0xd3},{0x50}}
 };
 
-static struct regval_list sensor_ev_pos1_regs[] = {
+static struct regval_list sensor_ev_zero_regs[] = {
 	{{0xb5},{0x20}},
 	{{0xd3},{0x58}}
 };
 
-static struct regval_list sensor_ev_pos2_regs[] = {
+static struct regval_list sensor_ev_pos1_regs[] = {
 	{{0xb5},{0x30}},
 	{{0xd3},{0x60}}
 };
 
-static struct regval_list sensor_ev_pos3_regs[] = {
+static struct regval_list sensor_ev_pos2_regs[] = {
 	{{0xb5},{0x40}},
 	{{0xd3},{0x68}}
 };
 
-static struct regval_list sensor_ev_pos4_regs[] = {
+static struct regval_list sensor_ev_pos3_regs[] = {
 	{{0xb5},{0x50}},
 	{{0xd3},{0x70}}
+};
+
+static struct regval_list sensor_ev_pos4_regs[] = {
+	{{0xb5},{0x60}},
+	{{0xd3},{0x78}}
 };
 
 

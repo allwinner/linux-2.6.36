@@ -16,6 +16,9 @@ insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
 
+V1_33
+1) Fix gc0308 y/c seperation bug
+
 V1_32
 1) Fix the bug that return error when setting AWB
 2) Flip Y in sp0838 module
