@@ -106,6 +106,7 @@ struct nrx_softc {
 
 #ifdef CONFIG_HAS_WAKELOCK
    struct wake_lock nrx_wake_lock;
+   struct wake_lock nrx_scan_wake_lock;
 #endif
 };
 

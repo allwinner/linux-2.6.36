@@ -662,8 +662,10 @@ do_tx(struct nrxdev *nrxdev)
 #endif
       } else {
          err = sdio_writesb(nrxdev->func, 0, skb->data, skb->len);
-         if (err)
+         if (err) {
+            nano_util_printbuf(skb->data, skb->len, "TX");
             printk("TX(%u bytes), err=%d\n", skb->len, err);
+         }
          KDEBUG(TRANSPORT, "TX(%u bytes), err=%d", skb->len, err);
          PRINTBUF(skb->data, skb->len, "TX");
       }
@@ -878,15 +880,18 @@ nrx_init(struct sdio_func *func)
    /* Enable 4bit mode */
    err = mmc_io_rw_direct(func->card, 0x88000E02);
    KDEBUG(TRACE, "mmc_io_rw_direct(enable 4-bit SDIO) = %d", err);
+   func->card->host->ios.bus_width = MMC_BUS_WIDTH_4;
+   func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
 #endif
 
 #ifdef KSDIO_HIGH_SPEED
    /* Enable high speed */
+   sdio_f0_writeb(func, 0x01, CCCR_HISPEED_EN, &err);
+   KDEBUG(TRACE, "CCCR_HISPEED_EN, err %d", err);
+   if (err) printk ("CCCR_HISPEED_EN, err %d\n", err);
    mmc_card_set_highspeed(func->card);           
    func->card->host->ios.timing = MMC_TIMING_SD_HS;
-   sdio_f0_writeb(func, 0x01, CCCR_HISPEED_EN, &err);
    func->card->host->ops->set_ios(func->card->host, &func->card->host->ios);
-   KDEBUG(TRACE, "CCCR_HISPEED_EN, err %d", err);
 #endif
 
 #ifdef KSDIO_FORCE_CLOCK
@@ -950,10 +955,17 @@ nrx_reset(struct sdio_func *func)
 #endif /* KSDIO_HOST_RESET_PIN */
 
    if (!err) {
+      /* Since we have just reset the chip, its SD module goes back to
+       * identification state. We have to reporgram the SD host controller
+       * clock, timing and bus width are compatible with this state.
+       */
       struct mmc_host *host = func->card->host;
       mmc_card_clear_highspeed(func->card);
+      nrxdev->init_mmc_ios.clock = 400000; /* 400kHz */
+      nrxdev->init_mmc_ios.timing = MMC_TIMING_LEGACY;
+      nrxdev->init_mmc_ios.bus_width = MMC_BUS_WIDTH_1;
       host->ops->set_ios(host, &nrxdev->init_mmc_ios);
-      printk("Reseted MMC ios to the initial state\n");
+      KDEBUG(TRACE, "Reseted MMC ios after chip reset\n");
    }
 
    KDEBUG(TRACE, "EXIT: err = %d", err);
@@ -975,7 +987,6 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
 #endif
 
    KDEBUG(TRACE, "Loading firmware %u bytes", size);
-   printk("[nano] Loading firmware %u bytes\n", size);
 
    sdio_claim_host(func);
 
@@ -1035,7 +1046,6 @@ nano_download(const void *buf, size_t size, void *_nrxdev)
       /* Give fw time to restart. Measured req time for NRX700
        * (orfr 090415) was 3.5 ms with some margin
        */
-      printk("[nano] FW Download success\n");
       mdelay(15); 
       
       sdio_f0_writeb(nrxdev->func, 0x02, CCCR_INTACK, &err);
@@ -1155,7 +1165,6 @@ static void nano_netif_off(struct nrxdev *nrxdev)
    nrxdev->netdev = NULL;
 #else /* !KSDIO_IGNORE_REMOVE */
    if (nrxdev->netdev != NULL) {
-   	  printk("[nano] destroy wifi\n");
       nanonet_destroy(nrxdev->netdev);
       nrxdev->netdev = NULL;
    }
@@ -1170,7 +1179,6 @@ static int nano_netif_on(struct nrxdev *nrxdev,
 {
 #ifdef KSDIO_IGNORE_REMOVE
    if (netdev_saved) {
-   	  printk("[nano] netdev_saved\n");
       nrxdev->netdev = netdev_saved;
 #ifndef KSDIO_HOST_RESET_PIN
       nanonet_attach(nrxdev->netdev, nrxdev);
@@ -1294,8 +1302,10 @@ static int sdio_nrx_probe(struct sdio_func *func, const struct sdio_device_id *i
    nrxdev->chip_type = chip_type;
    nrxdev->is_in_hard_shutdown = 0;
    nrxdev->init_mmc_ios = func->card->host->ios;
-   printk("%s: Initial clock %uMHz, timing mode %u\n", sdio_func_id(func),
-          nrxdev->init_mmc_ios.clock/1000000, (unsigned) nrxdev->init_mmc_ios.timing);
+   printk("%s: Initial clock %uMHz, timing mode %u, bus_width %u\n",
+          sdio_func_id(func), nrxdev->init_mmc_ios.clock/1000000,
+          (unsigned) nrxdev->init_mmc_ios.timing,
+          (unsigned) nrxdev->init_mmc_ios.bus_width);
 
 #ifdef KSDIO_SEPARATE_WORKQUEUE
    nrxdev->workqueue = create_workqueue("nano_wq");
@@ -1314,16 +1324,7 @@ static int sdio_nrx_probe(struct sdio_func *func, const struct sdio_device_id *i
     * to overcome that NRX (wrongly) reports max_size 16.
     */
    func->max_blksize = 512;
-#endif /* KSDIO_NO_BLOCK_MODE */
 
-#ifdef KSDIO_NO_4_BIT_MODE
-   printk("Disable 4-bit SDIO mode\n");
-   {
-      struct mmc_host *host = func->card->host;
-      struct mmc_ios *ios = &host->ios;
-      ios->bus_width = MMC_BUS_WIDTH_1;
-      host->ops->set_ios(host, ios);
-   }
 #endif /* KSDIO_NO_4_BIT_MODE */
 
    sdio_claim_host(func);
@@ -1387,6 +1388,7 @@ static void sdio_nrx_remove(struct sdio_func *func)
 {
    struct nrxdev *nrxdev = dev_get_drvdata(&func->dev);
    struct sk_buff *skb;
+   int err;
 
    KDEBUG(TRACE, "%s: sdio_nrx_remove", sdio_func_id(func));
 
@@ -1407,9 +1409,14 @@ static void sdio_nrx_remove(struct sdio_func *func)
     * sleep soon, or our driver will be unloaded. In that case we should
     * shut down to save power.
     */
+#if 0 // allwinner specific
    if (nrx_reset(func) == 0 && nrx_init(func) == 0)
       nrx_soft_shutdown(func);
-   sdio_disable_func(nrxdev->func);
+#endif
+   err = nrx_reset(func);
+   KDEBUG(TRACE, "nrx_reset returned %d", err);
+   if (err) printk("nrx_reset returned %d\n", err);
+   //sdio_disable_func(nrxdev->func);
    sdio_release_host(nrxdev->func);
 
    flush_scheduled_work();

@@ -649,7 +649,10 @@ void DriverEnvironment_indicate(we_indication_t type, void *data, size_t len)
    case WE_IND_CM_DISCONNECTED:
       DE_TRACE1(TR_NOISE, "Indicating Media status disconnected\n");
       netif_carrier_off(dev);
+      //ignore useless event,otherwise it will lead supplicant confuse.
+      if(NRX_STATE_UNPLUG != sc->state){
       nrx_wxevent_ap(dev);
+      }
       wake_up(&sc->mib_wait_queue);
       nrx_wmm_association = 0;
       break;
