@@ -74,6 +74,8 @@ static int tp_flag = 0;
 //#define TP_INT_PERIOD_TEST
 //#define TP_TEMP_DEBUG
 //#define TP_FREQ_DEBUG
+//#define PRINT_UP_SEPARATOR
+#define TP_FIX_CENTER
 
 #define IRQ_TP                 (29)
 #define TP_BASSADDRESS         (0xf1c25000)
@@ -107,17 +109,18 @@ static int tp_flag = 0;
 #define TP_ADC_SELECT          (0<<3)
 #define ADC_CHAN_SELECT        (0)
 
-#define TP_SENSITIVE_ADJUST    (0xf<<28)
-//#define TP_SENSITIVE_ADJUST    (0xc<<28)       //mark by young for test angda 5"
+//#define TP_SENSITIVE_ADJUST    (0xf<<28)
+#define TP_SENSITIVE_ADJUST    (tp_sensitive_level<<28)       //mark by young for test angda 5" 0xc
 #define TP_MODE_SELECT         (0x1<<26)
 #define PRE_MEA_EN             (0x1<<24)
-#define PRE_MEA_THRE_CNT       (0xFFF<<0)
+#define PRE_MEA_THRE_CNT       (tp_press_threshold<<0)         //0x1f40
+
 
 #define FILTER_EN              (1<<2)
 #define FILTER_TYPE            (0x01<<0)
 
 #define TP_DATA_IRQ_EN         (1<<16)
-#define TP_DATA_XY_CHANGE      (1<<13)
+#define TP_DATA_XY_CHANGE      (tp_exchange_x_y<<13)       //tp_exchange_x_y
 #define TP_FIFO_TRIG_LEVEL     (3<<8)
 #define TP_FIFO_FLUSH          (1<<4)
 #define TP_UP_IRQ_EN           (1<<1)
@@ -132,25 +135,30 @@ static int tp_flag = 0;
 #define DOUBLE_TOUCH_MODE      (3)
 #define UP_TOUCH_MODE           (4)
 
-#define SINGLE_CNT_LIMIT       (75)
+#define SINGLE_CNT_LIMIT       (40)
 #define DOUBLE_CNT_LIMIT       (2)
 #define UP_TO_SINGLE_CNT_LIMIT (10)
-
-                               
+                              
 #define TPDATA_MASK            (0xfff)
 #define FILTER_NOISE_LOWER_LIMIT  (2)
 #define MAX_DELTA_X             (700-100)     //    avoid excursion
-#define MAX_DELTA_Y             (1200-200)        
+#define MAX_DELTA_Y             (1200-200)
 #define X_TURN_POINT            (330)         // x1 < (1647 - MAX_DELTA_X) /3
 #define X_COMPENSATE            (4*X_TURN_POINT)
 #define Y_TURN_POINT            (260)         // y1 < (1468 -MAX_DELTA_Y )
 #define Y_COMPENSATE            (2*Y_TURN_POINT)
 
+#ifdef TP_FIX_CENTER
 #define X_CENTER_COORDINATE     (2048)        //for construct two point 
 #define Y_CENTER_COORDINATE     (2048)
+#else
+#define X_CENTER_COORDINATE     (sample_data->x)
+#define Y_CENTER_COORDINATE     (sample_data->y)
+#endif
 
 #define CYCLE_BUFFER_SIZE       (64)          //must be 2^n
-#define DELAY_PERIOD            (7)          //delay 90 ms, unit is 10ms  
+#define DELAY_PERIOD            (6)          //delay 60 ms, unit is 10ms 
+#define DELAY_COMPENSTAE_PEROID  (3)    //the os is busy, can not process the data in time.
 
 #define ZOOM_CHANGE_LIMIT_CNT  (3)
 #define ZOOM_IN                                       (1)
@@ -271,6 +279,7 @@ static cputime64_t cur_wall_time = 0L;
 
 static struct ts_sample_data cycle_buffer[CYCLE_BUFFER_SIZE] = {{0},};
 static struct ts_sample_data *prev_sample;
+static struct ts_sample_data *prev_data_sample;
 static struct timer_list data_timer;
 static int data_timer_status = 0;  //when 1, mean tp driver have recervied data, and begin to report data, and start timer to reduce up&down signal  
 static struct ts_sample_data prev_single_sample;
@@ -284,14 +293,22 @@ static int zoom_in_count = 0;
 static int zoom_out_count = 0;
 static int zoom_change_cnt = 0;
 static int hold_cnt = 0;
+//config from sysconfig files.
 static int glide_delta_ds_max_limit = 0;
 static int tp_regidity_level = 0;
+static int tp_press_threshold_enable = 0;
+static int tp_press_threshold = 0; //usded to adjust sensitivity of touch
+static int tp_sensitive_level = 0; //used to adjust sensitivity of pen down detection
+static int tp_exchange_x_y = 0;
 
 #define ZOOM_IN_OUT_BUFFER_SIZE_TIMES (2)
 #define ZOOM_IN_OUT_BUFFER_SIZE (1<<ZOOM_IN_OUT_BUFFER_SIZE_TIMES)
+#define TRANSFER_DATA_BUFFER_SIZE     (4)
 
 static struct ts_sample_data zoom_in_data_buffer[ZOOM_IN_OUT_BUFFER_SIZE] = {{0},};
 static struct ts_sample_data zoom_out_data_buffer[ZOOM_IN_OUT_BUFFER_SIZE] = {{0},};
+static struct ts_sample_data transfer_data_buffer[TRANSFER_DATA_BUFFER_SIZE] = {{0},};
+
 static int zoom_in_buffer_cnt = 0;
 static int zoom_out_buffer_cnt = 0;
 
@@ -300,6 +317,16 @@ static int tp_do_tasklet_running = 0;
 //for test
 //static int tp_irq = 0;
 static int dual_touch_distance = 0;
+
+#ifdef PRINT_UP_SEPARATOR
+    static int separator_flag = 0;
+#endif
+
+static int reported_single_point_cnt = 0;
+static int reported_data_start_time = 0;
+
+static atomic_t report_up_event_implement_sync = ATOMIC_INIT(1);
+static int report_up_event_implement_running = 0;
 
 void tp_do_tasklet(unsigned long data);
 DECLARE_TASKLET(tp_tasklet,tp_do_tasklet,0);
@@ -368,7 +395,14 @@ static int  tp_init(void)
     writel(ADC_CLK_DIVIDER|FS_DIV|T_ACQ, TP_BASSADDRESS + TP_CTRL0);	   
     #endif
     //TP_CTRL2: 0xc4000000
-    writel(TP_SENSITIVE_ADJUST|TP_MODE_SELECT,TP_BASSADDRESS + TP_CTRL2);
+    if(1 == tp_press_threshold_enable){
+        writel(TP_SENSITIVE_ADJUST |TP_MODE_SELECT | PRE_MEA_EN | PRE_MEA_THRE_CNT, TP_BASSADDRESS + TP_CTRL2);
+    }
+    else{
+        writel(TP_SENSITIVE_ADJUST|TP_MODE_SELECT,TP_BASSADDRESS + TP_CTRL2);
+    }
+    
+
     //TP_CTRL3: 0x05
     #ifdef TP_FREQ_DEBUG
     writel(0x06, TP_BASSADDRESS + TP_CTRL3);
@@ -385,7 +419,7 @@ static int  tp_init(void)
         writel(TP_DATA_IRQ_EN|TP_FIFO_TRIG_LEVEL|TP_FIFO_FLUSH|TP_UP_IRQ_EN|TP_DOWN_IRQ_EN, TP_BASSADDRESS + TP_INT_FIFOC);
     #endif
     //TP_CTRL1: 0x00000070 -> 0x00000030
-    writel(STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
+    writel(TP_DATA_XY_CHANGE|STYLUS_UP_DEBOUNCE|STYLUS_UP_DEBOUCE_EN|TP_DUAL_EN|TP_MODE_EN,TP_BASSADDRESS + TP_CTRL1);
     
 
   /*
@@ -409,8 +443,32 @@ static int  tp_init(void)
     writel(0x00005230,TP_BASSADDRESS + TP_CTRL1);*/
     return (0);
 }
+static void change_to_single_touch_mode(void)
+{
+    touch_mode = SINGLE_TOUCH_MODE;
+    reported_single_point_cnt = 0;
+    return;
+}
 
-static void report_single_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
+static void backup_transfered_data(struct ts_sample_data *sample_data)
+{
+    static int index = 0;
+
+    index = reported_single_point_cnt%TRANSFER_DATA_BUFFER_SIZE;
+    transfer_data_buffer[index].dx = sample_data->dx;
+    transfer_data_buffer[index].dy = sample_data->dy;
+    transfer_data_buffer[index].x = sample_data->x;
+    transfer_data_buffer[index].y = sample_data->y;
+
+    if(reported_single_point_cnt > (TRANSFER_DATA_BUFFER_SIZE<<10)){
+        reported_single_point_cnt -= (TRANSFER_DATA_BUFFER_SIZE<<9);
+    }
+    reported_single_point_cnt++;
+    
+    return;
+}
+
+static void report_single_point_implement(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
 {
     input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,800);
     input_report_abs(ts_data->input, ABS_MT_POSITION_X, sample_data->x);
@@ -420,13 +478,89 @@ static void report_single_point(struct sun4i_ts_data *ts_data, struct ts_sample_
             sample_data->dx = %d, sample_data->dy = %d. \n",      \
             sample_data->x, sample_data->y, sample_data->dx, sample_data->dy);
    */
-    print_report_data_info("report single point: x = %d \n", sample_data->x);
+    print_report_data_info("report single point: x = %d,sample_data->y = %d. \n", sample_data->x, sample_data->y);
     
     input_mt_sync(ts_data->input);                 
     input_sync(ts_data->input);
-   
+
     return;
 }
+
+static void report_single_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
+{
+    backup_transfered_data(sample_data);
+    report_single_point_implement(ts_data, sample_data);
+    return;
+}
+
+static void report_slide_data(struct sun4i_ts_data *ts_data)
+{
+    int start = 0;
+    int end = 0;
+#define  MIN_DX   (DUAL_TOUCH*20)
+#define  MIN_DY   (DUAL_TOUCH*20)
+#define  MAX_DX  (DUAL_TOUCH*40)
+#define  MAX_DY  (DUAL_TOUCH*40)
+    int dx = 0;
+    int dy = 0;
+    int ds_times = 4;
+    //index = reported_single_point_cnt%TRANSFER_DATA_BUFFER_SIZE;
+    struct ts_sample_data sample_data;
+    
+    //printk("reported_single_point_cnt = %d. \n", reported_single_point_cnt);
+    if(reported_single_point_cnt <= 1){
+        //only one reference point, can not judge direction
+        dx = -MIN_DX;
+        dy = MIN_DY;
+        //dy = 0;
+        end = (reported_single_point_cnt-1)%TRANSFER_DATA_BUFFER_SIZE;
+        sample_data.x = max(0, min(4096, (int)(transfer_data_buffer[end].x + dx)));
+        sample_data.y = max(0, min(4096, (int)(transfer_data_buffer[end].y + dy)));
+        //printk("sample_data.x = %d. sample_data.y = %d. \n", sample_data.x, sample_data.y);
+        report_single_point_implement(ts_data, &sample_data);
+
+        sample_data.x = transfer_data_buffer[end].x;
+        sample_data.y = transfer_data_buffer[end].y;
+        //printk("sample_data.x = %d. sample_data.y = %d. \n", sample_data.x, sample_data.y);
+        //report_single_point_implement(ts_data, &sample_data);
+    
+    }else{
+        if(reported_single_point_cnt <=TRANSFER_DATA_BUFFER_SIZE){
+            start = 0;
+        }else{
+            start = reported_single_point_cnt - TRANSFER_DATA_BUFFER_SIZE;
+        }
+        start = start%TRANSFER_DATA_BUFFER_SIZE;
+        end = (reported_single_point_cnt-1)%TRANSFER_DATA_BUFFER_SIZE;
+        
+        dx = transfer_data_buffer[end].x -transfer_data_buffer[start].x;
+        dy = transfer_data_buffer[end].y -transfer_data_buffer[start].y;
+        //printk("dx = %d, dy = %d. \n", dx, dy);
+        if(dx < 0){
+            dx = -dx;
+            dx = min(MAX_DX, max(MIN_DX, dx*ds_times/(end - start)));
+            dx = -dx;
+        }else{
+            dx = min(MAX_DX, max(MIN_DX, dx*ds_times/(end - start)));
+        }
+
+        if(dy < 0){
+            dy = -dy;
+            dy = min(MAX_DY, max(MIN_DY, dy*ds_times/(end - start)));
+            dy = -dy;
+        }else{
+            dy = min(MAX_DY, max(MIN_DY, dy*ds_times/(end - start)));
+        }
+        
+        //printk("dx = %d, dy = %d. \n", dx, dy);
+        sample_data.x = max(0, min(4096, (int)(transfer_data_buffer[end].x + dx)));
+        sample_data.y = max(0, min(4096, (int)(transfer_data_buffer[end].y + dy)));
+        
+        //printk("sample_data.x = %d. sample_data.y = %d. \n", sample_data.x, sample_data.y);
+        report_single_point_implement(ts_data, &sample_data);
+    }
+ }
+
 static int judge_zoom_orientation(struct ts_sample_data *sample_data)
 {
        int dx,dy;
@@ -438,6 +572,7 @@ static int judge_zoom_orientation(struct ts_sample_data *sample_data)
        }else if(dx*dy < 0){
             ret = 1;
        }
+       print_orientation_info("sun4i-ts: orientation_flag == %d . \n", ret);
        return ret;
 }
 static void filter_double_point_init(struct ts_sample_data *sample_data, int backup_samp_flag)
@@ -475,7 +610,7 @@ static void change_to_zoom_in(struct sun4i_ts_data *ts_data, struct ts_sample_da
     zoom_change_cnt = 0;
     accmulate_zoom_out_ds = 0;
     zoom_out_count = 0;
-    orientation_flag = judge_zoom_orientation(sample_data);
+    //orientation_flag = judge_zoom_orientation(sample_data);
     change_to_double_mode(ts_data);
     return;
 }
@@ -486,7 +621,7 @@ static void change_to_zoom_out(struct sun4i_ts_data *ts_data, struct ts_sample_d
     zoom_change_cnt = 0;
     accmulate_zoom_in_ds = 0;
     zoom_in_count = 0;
-    orientation_flag = judge_zoom_orientation(sample_data);
+    //orientation_flag = judge_zoom_orientation(sample_data);
     change_to_double_mode(ts_data);
     return;
 }
@@ -523,13 +658,16 @@ static void filter_zoom_in_data(struct ts_sample_data * report_data, struct ts_s
             zoom_in_buffer_cnt -= (ZOOM_IN_OUT_BUFFER_SIZE<<9);
         }
         
-        count = 1;
         if(zoom_in_buffer_cnt >= ZOOM_IN_OUT_BUFFER_SIZE){
             index = ZOOM_IN_OUT_BUFFER_SIZE - 1;
         } 
         //index mean the real count.
-
-        for(i = 0; i <  index; i++){
+        sample_data->dx = 0;
+        sample_data->dy = 0;
+        sample_data->x = 0;
+        sample_data->y = 0;
+        count = 0;
+        for(i = 0; i <=  index; i++){
             sample_data->dx += zoom_in_data_buffer[i].dx;
             sample_data->dy += zoom_in_data_buffer[i].dy;
             sample_data->x += zoom_in_data_buffer[i].x;
@@ -574,13 +712,17 @@ static void filter_zoom_out_data(struct ts_sample_data * report_data, struct ts_
             zoom_out_buffer_cnt -= (ZOOM_IN_OUT_BUFFER_SIZE<<9);
         }
         
-        count = 1;
         if(zoom_out_buffer_cnt >= ZOOM_IN_OUT_BUFFER_SIZE){
             index = ZOOM_IN_OUT_BUFFER_SIZE - 1;
-        } 
+        }
         //index mean the real count.
-
-        for(i = 0; i <  index; i++){
+        sample_data->dx = 0;
+        sample_data->dy = 0;
+        sample_data->x = 0;
+        sample_data->y = 0;
+        count = 0;
+        
+        for(i = 0; i <=  index; i++){
             sample_data->dx += zoom_out_data_buffer[i].dx;
             sample_data->dy += zoom_out_data_buffer[i].dy;
             sample_data->x += zoom_out_data_buffer[i].x;
@@ -616,6 +758,7 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
     #define DELTA_DS_LIMIT                               (1)
     #define HOLD_DS_LIMIT                                 (3)
     #define ZOOM_IN_CNT_LIMIT                       (3)
+    #define FIRST_ZOOM_IN_COMPENSTATE  (3)                                                      //actually zoom out, usually with zoom in ops first. 
     #define ZOOM_OUT_CNT_LIMIT                   (tp_regidity_level)                             //related with screen's regidity
     #define GLIDE_DELTA_DS_MAX_TIMES     (4)
     #define GLIDE_DELTA_DS_MAX_LIMIT     (glide_delta_ds_max_limit)
@@ -631,9 +774,10 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
     cur_sample_ds = int_sqrt((sample_data->dx)*(sample_data->dx) + (sample_data->dy)*(sample_data->dy));
     delta_ds = cur_sample_ds - prev_sample_ds;
     //print_filter_double_point_status_info("delta_ds = %d, prev_sample_ds = %d, cur_sample_ds = %d. \n", delta_ds, prev_sample_ds, cur_sample_ds);
-    //print_filter_double_point_status_info("zoom_in_count = %d, accmulate_zoom_in_ds = %d, zoom_out_count = %d, accmulate_zoom_out_ds=%d. \n", \
-    //           zoom_in_count, accmulate_zoom_in_ds, zoom_out_count, accmulate_zoom_out_ds);
-
+    /*print_filter_double_point_status_info("zoom_in_count = %d, accmulate_zoom_in_ds = %d, zoom_out_count = %d, accmulate_zoom_out_ds=%d. \n", \
+               zoom_in_count, accmulate_zoom_in_ds, zoom_out_count, accmulate_zoom_out_ds);
+    */
+    
     //update prev_double_sample_data
     memcpy((void*)&prev_double_sample_data, (void*)sample_data, sizeof(*sample_data));
     prev_sample_ds = cur_sample_ds;
@@ -687,9 +831,10 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
              #endif
         }else if(ZOOM_INIT_STATE == zoom_flag){
            zoom_in_count++;
-           if(zoom_in_count > ZOOM_CHANGE_LIMIT_CNT){
+           if(zoom_in_count > (ZOOM_CHANGE_LIMIT_CNT + FIRST_ZOOM_IN_COMPENSTATE)){
                 accmulate_zoom_in_ds = delta_ds;
                 zoom_in_count = 1;
+                orientation_flag = judge_zoom_orientation(sample_data);
                 filter_zoom_in_data_init();
                 filter_zoom_in_data(&prev_report_samp, sample_data);
                 print_filter_double_point_status_info("change to ZOOM_IN from ZOOM_INIT_STATE. \n");
@@ -750,6 +895,7 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
             if(zoom_out_count > ZOOM_CHANGE_LIMIT_CNT){
                 accmulate_zoom_out_ds = delta_ds;
                 zoom_out_count = 1;
+                orientation_flag = judge_zoom_orientation(sample_data);
                 filter_zoom_out_data_init();
                 filter_zoom_out_data(&prev_report_samp, sample_data);
                 print_filter_double_point_status_info("change to ZOOM_OUT from ZOOM_INIT_STATE. \n");
@@ -772,6 +918,7 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
 	cur_sample_ds = prev_sample_ds;
 	if(unlikely(ZOOM_INIT_STATE == zoom_flag)){
 	    if(1 == hold_cnt){
+	            orientation_flag = judge_zoom_orientation(sample_data);
                     memcpy((void*)&prev_report_samp, (void*)sample_data, sizeof(*sample_data));
 	    }else{
                     memcpy((void*)sample_data, (void*)&prev_report_samp, sizeof(*sample_data));
@@ -797,6 +944,9 @@ static void report_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_
         if(TRUE == filter_double_point(ts_data, sample_data)){ //noise
             return;
         }
+        
+        //when report double point, need to clear single_touch_cnt
+        ts_data->single_touch_cnt = 0;
         
 	if(sample_data->dx < X_TURN_POINT){
 	    x1 = X_CENTER_COORDINATE - (sample_data->dx<<2);
@@ -859,9 +1009,8 @@ static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sa
         ts_data->single_touch_cnt++; 
         if(ts_data->single_touch_cnt > UP_TO_SINGLE_CNT_LIMIT){ 
             //change to single touch mode
+            change_to_single_touch_mode();
             report_single_point(ts_data, sample_data);
-            touch_mode = SINGLE_TOUCH_MODE;
-
             print_report_data_info("change touch mode to SINGLE_TOUCH_MODE from UP state. \n");
 
         }
@@ -871,9 +1020,9 @@ static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sa
         ts_data->single_touch_cnt++;        
         if(ts_data->single_touch_cnt > SINGLE_CNT_LIMIT){ 
             //change to single touch mode
+            change_to_single_touch_mode();
             report_single_point(ts_data, sample_data);
-            touch_mode = SINGLE_TOUCH_MODE;
-
+            
             print_report_data_info("change touch mode to SINGLE_TOUCH_MODE from double_touch_mode. \n");
 
         }                                                                              
@@ -882,26 +1031,43 @@ static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sa
     return;
 }
 
-static void report_up_event(unsigned long data)
+static void report_up_event_implement(struct sun4i_ts_data *ts_data)
 {
-    struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)data;
-
-    /*when the time is out, and the buffer data can not affect the timer to re-timing immediately,
-        *this will happen, 
-        *from this we can conclude, the delay_time is not proper, need to be longer
-        */
-    if(ts_data->buffer_head != ts_data->buffer_tail){ 
-        printk("warn: when report_up_event, the buffer is not empty. clear the buffer.\n");
-        printk("ts_data->buffer_head = %lu,  ts_data->buffer_tail = %lu \n", ts_data->buffer_head, ts_data->buffer_tail);
-        //ts_data->buffer_tail = ts_data->buffer_head;
-        //do not discard the data, just let the tasklet to take care of it.
-        mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
-        tp_do_tasklet(ts_data->buffer_head); //direct calling tasklet, do not use int bottom half, may result in some bad behavior.!!!
+    static int up_event_delay_time = 3;
+    static int slide_min_cnt = 5;
+    if(atomic_sub_and_test(1, &report_up_event_implement_sync)){
+        //get the resource
+        if(1 == report_up_event_implement_running){
+    		atomic_inc(&report_up_event_implement_sync);
+    		printk("other thread is running the rountine. \n");
+    		return;	
+    	}else{
+    		report_up_event_implement_running = 1;
+    		atomic_inc(&report_up_event_implement_sync);
+    	}    
+    }else{
+        printk("failed to get the lock. other thread is using the lock. \n");
+    	return;
+    }
+    
+    if(0 == data_timer_status){
+        printk("report_up_event_implement have been called. \n");
+        goto report_up_event_implement_out;
         return;
     }
     
-    print_report_status_info("report_up_event. \n");
+    print_report_status_info("enter report_up_event_implement. jiffies == %lu. \n", jiffies);
 
+    //printk("prev_sample->sample_time =%d, prev_data_sample->sample_time = %d. \n", prev_sample->sample_time, prev_data_sample->sample_time);
+    //printk("touch_mode = %d. reported_single_point_cnt = %d. \n", touch_mode, reported_single_point_cnt);
+    if( (SINGLE_TOUCH_MODE == touch_mode) && \
+          (reported_single_point_cnt<slide_min_cnt) && (reported_single_point_cnt>0) && \
+          (prev_sample->sample_time >= (prev_data_sample->sample_time + up_event_delay_time))){
+        //obvious, a slide, how to compenstate?
+        //printk("report_up_event_implement: obvious, a slide. \n");
+        report_slide_data(ts_data);
+    }
+    
     //note: below operation may be interfere by intterrupt, but it does not matter
     input_report_abs(ts_data->input, ABS_MT_TOUCH_MAJOR,0);
     input_sync(ts_data->input);
@@ -915,7 +1081,39 @@ static void report_up_event(unsigned long data)
     //ts_data->count     = 0;
     touch_mode = UP_TOUCH_MODE;
     change_mode = TRUE;
+    reported_single_point_cnt = 0;
+    reported_data_start_time = 0;
 
+report_up_event_implement_out:
+    report_up_event_implement_running = 0;
+
+#ifdef PRINT_UP_SEPARATOR
+    printk("separator: #######%d, %d, %d###########. \n\n\n\n\n\n\n", separator_flag, separator_flag, separator_flag);
+    separator_flag++;
+#endif
+
+    return;
+}
+
+static void report_up_event(unsigned long data)
+{
+    struct sun4i_ts_data *ts_data = (struct sun4i_ts_data *)data;
+
+    /*when the time is out, and the buffer data can not affect the timer to re-timing immediately,
+        *this will happen, 
+        *from this we can conclude, the delay_time is not proper, need to be longer
+        */
+    if(ts_data->buffer_head != ts_data->buffer_tail){ 
+        //printk("warn: when report_up_event, the buffer is not empty. clear the buffer.\n");
+        //printk("ts_data->buffer_head = %lu,  ts_data->buffer_tail = %lu \n", ts_data->buffer_head, ts_data->buffer_tail);
+        //ts_data->buffer_tail = ts_data->buffer_head;
+        //do not discard the data, just let the tasklet to take care of it.
+        mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
+        tp_do_tasklet(ts_data->buffer_head); //direct calling tasklet, do not use int bottom half, may result in some bad behavior.!!!
+        return;
+    }
+
+    report_up_event_implement(ts_data);
     return;
 }
 
@@ -940,7 +1138,7 @@ static void process_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *s
                         touch_mode = CHANGING_TO_DOUBLE_TOUCH_MODE;
                         orientation_flag = 0;
                         filter_double_point_init(sample_data, 1);
-                        print_orientation_info("sun4i-ts: orientation_flag == %d . \n", orientation_flag);
+                        print_orientation_info("sun4i-ts: CHANGING_TO_DOUBLE_TOUCH_MODE orientation_flag == %d . \n", orientation_flag);
                         return;
                     }                    
                     report_double_point(ts_data, sample_data);
@@ -948,12 +1146,24 @@ static void process_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *s
         }
     
     }else  if(1 == ts_data->touchflag){
-            prev_single_sample.x = sample_data->x;
-            prev_single_sample.y = sample_data->y;
            if(DOUBLE_TOUCH_MODE == touch_mode ){
+           //normally, the duration time between up and down, is about 100ms
+                //printk("receive 1 point when in DOUBLE_TOUCH_MODE, ts_data->single_touch_cnt  = %d. \n", ts_data->single_touch_cnt);
+                if(10 == ts_data->single_touch_cnt ){ //change orientation
+                    filter_zoom_in_data_init();
+                    filter_zoom_out_data_init(); 
+                    hold_cnt = 0;
+                }
                  report_data(ts_data, sample_data);
            }else if(SINGLE_TOUCH_MODE == touch_mode  ||UP_TOUCH_MODE == touch_mode  || CHANGING_TO_DOUBLE_TOUCH_MODE == touch_mode){//remain in single touch mode
-                 touch_mode = SINGLE_TOUCH_MODE;
+                if(SINGLE_TOUCH_MODE == touch_mode  ||UP_TOUCH_MODE == touch_mode){
+                    prev_single_sample.x = sample_data->x;
+                     prev_single_sample.y = sample_data->y;
+                }
+                 if(SINGLE_TOUCH_MODE != touch_mode){
+                    change_to_single_touch_mode();
+                 }
+                 
                  report_single_point(ts_data, sample_data);
            }                    
     }
@@ -995,13 +1205,14 @@ void tp_do_tasklet(unsigned long data)
         goto out;
     }
     
-    print_tasklet_info("enter tasklet. head = %d, tail = %d\n", head, tail);
+    print_tasklet_info("enter tasklet. head = %d, tail = %d. jiffies == %lu. \n", head, tail, jiffies);
     
     while((tail) < (head)){ //when tail == head, mean the buffer is empty
         sample_data = &cycle_buffer[tail&(CYCLE_BUFFER_SIZE-1)];
         tail++;
         print_filter_info("sample_data->sample_status == %d, ts_data->ts_process_status == %d \n", \
                            sample_data->sample_status, ts_data->ts_process_status);
+
         #ifdef TP_INT_PERIOD_TEST
         continue;
         #endif
@@ -1016,11 +1227,12 @@ void tp_do_tasklet(unsigned long data)
                         (sample_data->sample_time) == %u. \n", \
                         (prev_sample->sample_time + ts_data->ts_delay_period), \
                         (sample_data->sample_time));
-      
-                if(time_after_eq((unsigned long)(prev_sample->sample_time + ts_data->ts_delay_period), (unsigned long)(sample_data->sample_time))){
+                print_filter_info("up or down: sample_data->sample_time = %lu.sample_data->sample_status = %d \n", sample_data->sample_time, sample_data->sample_status);
+                if(time_after_eq((unsigned long)(prev_sample->sample_time + ts_data->ts_delay_period - DELAY_COMPENSTAE_PEROID), (unsigned long)(sample_data->sample_time))){
                     //notice: sample_time may overflow
                     print_filter_info("ignore up event & down event. \n");
                     mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
+                    prev_sample->sample_time = sample_data->sample_time;
                     continue;
                 }
                 
@@ -1031,25 +1243,35 @@ void tp_do_tasklet(unsigned long data)
       	{
       		case TP_DOWN:
       		{
+    			if(1 == data_timer_status){
+                                report_up_event_implement(ts_data);
+    			}
     			ts_data->touchflag = 0; 
     			//ts_data->count     = 0;
     			ts_data->ts_process_status = TP_DOWN;
     			ts_data->double_point_cnt = 0;
+    			prev_sample->sample_time = sample_data->sample_time;
+    			reported_data_start_time = sample_data->sample_time;
     			print_report_status_info("actuall TP_DOWN . \n");
       			break;
       		}
       		case TP_DATA_VA:
       		{
       		    //memcpy(prev_sample, sample_date, sizeof(ts_sample_data));
+      		    print_filter_info("data: sample_data->sample_time = %lu. \n", sample_data->sample_time);
+      		    prev_data_sample->sample_time = sample_data->sample_time;
       		    prev_sample->sample_time = sample_data->sample_time;
                 process_data(ts_data, sample_data);
                 if(0 == data_timer_status){
                     mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
                     data_timer_status = 1;
+                    prev_data_sample->x = sample_data->x;
+                    prev_data_sample->y = sample_data->y;
+                    
                     print_report_status_info("timer is start up. \n");
                 }else{
                     mod_timer(&data_timer, jiffies + ts_data->ts_delay_period);
-                   // print_report_info("more ts_data->ts_delay_period ms delay. \n");
+                    print_report_status_info("more ts_data->ts_delay_period ms delay. jiffies + ts_data->ts_delay_period = %lu. \n", jiffies + ts_data->ts_delay_period);
                 }
                 ts_data->ts_process_status = TP_DATA_VA;
       			break;
@@ -1218,7 +1440,7 @@ static unsigned int temp_data = 0;
                 reg_fifoc |= TP_FIFO_FLUSH;
                 writel(reg_fifoc, ts_data->base_addr+TP_INT_FIFOC); 
             }
-            udelay(10); 
+            udelay(1); 
             writel(reg_val&FIFO_DATA_PENDING,TP_BASSADDRESS + TP_INT_FIFOS);   
 
 	   /* }else{ //INITIAL or UP
@@ -1302,7 +1524,7 @@ static struct sun4i_ts_data *sun4i_ts_data_alloc(struct platform_device *pdev)
 	ts_data->ts_process_status = TP_INITIAL;
 	ts_data->double_point_cnt = 0;
 	ts_data->single_touch_cnt = 0;
-	ts_data->ts_delay_period = DELAY_PERIOD;
+	ts_data->ts_delay_period = DELAY_PERIOD  + DELAY_COMPENSTAE_PEROID;
 	
 	ts_data->buffer_head = 0;
 	ts_data->buffer_tail = 0;
@@ -1347,6 +1569,7 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
 
 	//tp_do_tasklet_running = ATOMIC_INIT(1);
 	spin_lock_init(&tp_do_tasklet_sync);
+	//report_up_event_implement_sync = ATOMIC_INIT(1);
 	
 	#ifdef CONFIG_TOUCHSCREEN_SUN4I_DEBUG
 	    printk("begin get platform resourec\n");
@@ -1404,8 +1627,9 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
     data_timer.function = report_up_event;
 
     prev_sample = kzalloc(sizeof(*prev_sample), GFP_KERNEL);
+    prev_data_sample = kzalloc(sizeof(*prev_data_sample), GFP_KERNEL);
     
-	return 0;
+    return 0;
 
  err_out3:
 	if (ts_data->irq)
@@ -1523,6 +1747,63 @@ static int __init sun4i_ts_init(void)
           goto script_parser_fetch_err;
       }
 
+            if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_regidity_level", &tp_regidity_level, 1)){
+                pr_err("sun4i_ts_init: script_parser_fetch err rtp_regidity_level. \n");
+                goto script_parser_fetch_err;
+            }
+            printk("sun4i-ts: tp_regidity_level is %d.\n", tp_regidity_level);
+
+            if(tp_regidity_level < 2 || tp_regidity_level > 10){
+                printk("sun4i-ts: only tp_regidity_level between 2 and 10  is supported. \n");
+                goto script_parser_fetch_err;
+            }
+            
+            if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_press_threshold_enable", &tp_press_threshold_enable, 1)){
+                pr_err("sun4i_ts_init: script_parser_fetch err rtp_press_threshold_enable. \n");
+                goto script_parser_fetch_err;
+            }
+            printk("sun4i-ts: tp_press_threshold_enable is %d.\n", tp_press_threshold_enable);
+
+            if(0 != tp_press_threshold_enable  && 1 != tp_press_threshold_enable){
+                printk("sun4i-ts: only tp_press_threshold_enable  0 or 1  is supported. \n");
+                goto script_parser_fetch_err;
+            }
+
+            if(1 == tp_press_threshold_enable){
+                if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_press_threshold", &tp_press_threshold, 1)){
+                    pr_err("sun4i_ts_init: script_parser_fetch err rtp_press_threshold. \n");
+                    goto script_parser_fetch_err;
+                }
+                printk("sun4i-ts: rtp_press_threshold is %d.\n", tp_press_threshold);
+
+                if(tp_press_threshold < 0 || tp_press_threshold > 0xFFFFFF){
+                    printk("sun4i-ts: only tp_regidity_level between 0 and 0xFFFFFF  is supported. \n");
+                    goto script_parser_fetch_err;
+                }
+            }
+
+            if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_sensitive_level", &tp_sensitive_level, 1)){
+                pr_err("sun4i_ts_init: script_parser_fetch err rtp_sensitive_level. \n");
+                goto script_parser_fetch_err;
+            }
+            printk("sun4i-ts: rtp_sensitive_level is %d.\n", tp_sensitive_level);
+
+            if(tp_sensitive_level < 0 || tp_sensitive_level > 0xf){
+                printk("sun4i-ts: only tp_regidity_level between 0 and 0xf  is supported. \n");
+                goto script_parser_fetch_err;
+            }
+            
+            if(SCRIPT_PARSER_OK != script_parser_fetch("rtp_para", "rtp_exchange_x_y_flag", &tp_exchange_x_y, 1)){
+                pr_err("sun4i_ts_init: script_parser_fetch err rtp_exchange_x_y_flag. \n");
+                goto script_parser_fetch_err;
+            }
+            printk("sun4i-ts: rtp_exchange_x_y_flag is %d.\n", tp_exchange_x_y);
+
+            if(0 != tp_exchange_x_y && 1 != tp_exchange_x_y){
+                printk("sun4i-ts: only tp_exchange_x_y==1 or  tp_exchange_x_y==0 is supported. \n");
+                goto script_parser_fetch_err;
+            }
+            
 	}else{
 		goto script_parser_fetch_err;
 	}
