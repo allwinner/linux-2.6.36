@@ -63,8 +63,13 @@ static void start_drawing_late_resume(struct early_suspend *h)
 
 static struct early_suspend stop_drawing_early_suspend_desc = {
 	.level = EARLY_SUSPEND_LEVEL_STOP_DRAWING,
+#if 0
 	.suspend = stop_drawing_early_suspend,
 	.resume = start_drawing_late_resume,
+#else
+	.suspend = NULL,
+	.resume = NULL,
+#endif
 };
 
 static ssize_t wait_for_fb_sleep_show(struct kobject *kobj,
