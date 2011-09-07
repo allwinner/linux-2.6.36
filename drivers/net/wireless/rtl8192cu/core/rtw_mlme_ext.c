@@ -8504,6 +8504,7 @@ u8 disconnect_hdl(_adapter *padapter, unsigned char *pbuf)
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	WLAN_BSSID_EX		*pnetwork = (WLAN_BSSID_EX*)(&(pmlmeinfo->network));
+	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
 	u8	val8;
 	
 	if (is_client_associated_to_ap(padapter))
@@ -8534,7 +8535,9 @@ u8 disconnect_hdl(_adapter *padapter, unsigned char *pbuf)
 
 	pmlmeinfo->state = WIFI_FW_NULL_STATE;
 	
-	set_channel_bwmode(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset, pmlmeext->cur_bwmode);
+	if(pwrpriv->bInSuspend != _TRUE) { // when suspend ignore this operation, 2011-09-07, allwinner!!!
+		set_channel_bwmode(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset, pmlmeext->cur_bwmode);
+	}
 
 	flush_all_cam_entry(padapter);
 		

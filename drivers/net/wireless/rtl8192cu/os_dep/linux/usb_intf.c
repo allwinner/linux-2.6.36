@@ -60,25 +60,6 @@ static struct usb_interface *pintf;
 int ui_pid[3] = {0, 0, 0};
 #endif
 
-#include <mach/script_v2.h>
-extern int sw_usb_disable_hcd(__u32 usbc_no);
-extern int sw_usb_enable_hcd(__u32 usbc_no);
-static int usb_wifi_host = 2;
-
-#define  USB_WIFI_RESUME_BY_THREAD
-
-#ifdef  USB_WIFI_RESUME_BY_THREAD
-#include <linux/kthread.h>
-
-static struct task_struct *resume_thread = NULL;
-static struct completion resume_event;
-spinlock_t resume_lock = SPIN_LOCK_UNLOCKED;
-
-static __u32 resume_thread_run = 1;
-static __u32 resume_thread_stopped = 1;
-static __u32 resume_flag = 1;
-#endif
-
 extern int pm_netdev_open(struct net_device *pnetdev,u8 bnormal);
 static int rtw_suspend(struct usb_interface *intf, pm_message_t message);
 static int rtw_resume(struct usb_interface *intf);
@@ -273,83 +254,6 @@ static inline int RT_usb_endpoint_num(const struct usb_endpoint_descriptor *epd)
 {
 	return epd->bEndpointAddress & USB_ENDPOINT_NUMBER_MASK;
 }
-
-#ifdef  USB_WIFI_RESUME_BY_THREAD
-
-static void wakeup_thread(struct completion *event)
-{
-	complete(event);
-}
-
-static void sleep_thread(struct completion *event)
-{
-	wait_for_completion(event);
-}
-
-static int wifi_resume_thread(void * pArg)
-{
-	unsigned long flags = 0;
-
-	while(resume_thread_run){
-	    sleep_thread(&resume_event);
-
-        /* disable usb for wifi remove, then enable usb gor wifi probe */
-        if(resume_flag){
-            spin_lock_irqsave(&resume_lock, flags);
-            resume_flag = 0;
-            spin_unlock_irqrestore(&resume_lock, flags);
-
-    		sw_usb_disable_hcd(usb_wifi_host);
-    		sw_usb_enable_hcd(usb_wifi_host);
-		}
-	}
-
-    spin_lock_irqsave(&resume_lock, flags);
-    resume_thread_stopped = 1;
-    spin_unlock_irqrestore(&resume_lock, flags);
-
-	return 0;
-}
-
-static void kill_resume_thread(void)
-{
-	unsigned long flags = 0;
-
-    spin_lock_irqsave(&resume_lock, flags);
-    resume_thread_run = 0;
-    spin_unlock_irqrestore(&resume_lock, flags);
-
-    while(!resume_thread_stopped){
-        wakeup_thread(&resume_event);
-        msleep(10);
-    }
-
-    return;
-}
-
-static void usb_wifi_suspend(void)
-{
-	unsigned long flags = 0;
-
-    spin_lock_irqsave(&resume_lock, flags);
-    resume_flag = 0;
-    spin_unlock_irqrestore(&resume_lock, flags);
-
-    return;
-}
-
-static void usb_wifi_resume(void)
-{
-	unsigned long flags = 0;
-
-    spin_lock_irqsave(&resume_lock, flags);
-    resume_flag = 1;
-    spin_unlock_irqrestore(&resume_lock, flags);
-
-    wakeup_thread(&resume_event);
-}
-
-#endif
 
 #ifdef CONFIG_USB_VENDOR_REQ_PREALLOC
 u8 rtw_init_intf_priv(_adapter * padapter)
@@ -855,7 +759,6 @@ error_exit:
 
 static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 {
-#ifndef  USB_WIFI_RESUME_BY_THREAD
 	struct net_device *pnetdev=usb_get_intfdata(pusb_intf);
 	_adapter *padapter = (_adapter*)rtw_netdev_priv(pnetdev);
 	struct mlme_priv *pmlmepriv = &padapter->mlmepriv;
@@ -951,19 +854,10 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 error_exit:
 	DBG_871X("###########  rtw_suspend  fail !! #################\n");
 	return (-1);
-
-#else  //USB_WIFI_RESUME_BY_THREAD
-
-    usb_wifi_suspend();
-
-    return 0;
-
-#endif
 }
 
 static int rtw_resume(struct usb_interface *pusb_intf)
 {
-#ifndef  USB_WIFI_RESUME_BY_THREAD
 	struct net_device *pnetdev=usb_get_intfdata(pusb_intf);
 	_adapter *padapter = (_adapter*)rtw_netdev_priv(pnetdev);
 	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
@@ -987,14 +881,6 @@ static int rtw_resume(struct usb_interface *pusb_intf)
 	}
 
 	return ret;
-
-#else  //USB_WIFI_RESUME_BY_THREAD
-
-    usb_wifi_resume();
-
-    return 0;
-
-#endif
 }
 
 
@@ -1178,7 +1064,12 @@ error_exit:
 
 	return result;
 }
-#endif
+#endif         
+
+#include <mach/script_v2.h>
+extern int sw_usb_disable_hcd(__u32 usbc_no);
+extern int sw_usb_enable_hcd(__u32 usbc_no);
+static int usb_wifi_host = 2;
 
 extern char* ifname;
 /*
@@ -1535,31 +1426,11 @@ static int __init rtw_drv_entry(void)
 	rtw_suspend_lock_init();
 
 	drvpriv.drv_registered = _TRUE;
-
-#ifdef  USB_WIFI_RESUME_BY_THREAD
-	resume_thread_run = 1;
-	resume_thread_stopped = 0;
-	spin_lock_init(&resume_lock);
-	init_completion(&resume_event);
-
-	resume_thread = kthread_create(wifi_resume_thread, NULL, "usb-wifi-resume");
-	if(IS_ERR(resume_thread)){
-		printk("ERR: kthread_create wifi_resume_thread failed\n");
-		return -1;
-	}
-
-	wake_up_process(resume_thread);
-#endif
-
 	return usb_register(&drvpriv.rtw_usb_drv);
 }
 
 static void __exit rtw_drv_halt(void)
 {
-#ifdef  USB_WIFI_RESUME_BY_THREAD
-    kill_resume_thread();
-#endif
-
 	RT_TRACE(_module_hci_intfs_c_,_drv_err_,("+rtw_drv_halt\n"));
 	DBG_8192C("+rtw_drv_halt\n");
 

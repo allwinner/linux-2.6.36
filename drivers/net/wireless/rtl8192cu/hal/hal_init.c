@@ -95,10 +95,12 @@ uint	 rtw_hal_init(_adapter *padapter)
 uint	 rtw_hal_deinit(_adapter *padapter)
 {
 	uint	status = _SUCCESS;
-	
+	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
 _func_enter_;
-
-	status = padapter->HalFunc.hal_deinit(padapter);
+	
+	if(pwrpriv->bInSuspend != _TRUE) {// when suspend ignore this operation, 2011-09-07, allwinner!!!
+		status = padapter->HalFunc.hal_deinit(padapter);
+	}
 
 	if(status == _SUCCESS){
 		padapter->hw_init_completed = _FALSE;
