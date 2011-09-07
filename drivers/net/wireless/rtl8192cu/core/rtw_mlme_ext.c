@@ -8519,18 +8519,22 @@ u8 disconnect_hdl(_adapter *padapter, unsigned char *pbuf)
 	//switch to the 20M Hz mode after disconnect
 	pmlmeext->cur_bwmode = HT_CHANNEL_WIDTH_20;
 	pmlmeext->cur_ch_offset = HAL_PRIME_CHNL_OFFSET_DONT_CARE;
-		
-	//set MSR to no link state
-	Set_NETYPE0_MSR(padapter, _HW_STATE_NOLINK_);
-
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MLME_DISCONNECT, 0);
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, null_addr);
+	
+	if(pwrpriv->bInSuspend != _TRUE){// when suspend ignore this operation, 2011-09-07, allwinner!!!	
+		//set MSR to no link state
+		Set_NETYPE0_MSR(padapter, _HW_STATE_NOLINK_);
+	
+		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_MLME_DISCONNECT, 0);
+		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BSSID, null_addr);
+	}
 	
 	if(((pmlmeinfo->state&0x03) == WIFI_FW_ADHOC_STATE) || ((pmlmeinfo->state&0x03) == WIFI_FW_AP_STATE))
 	{
 		//Stop BCN
 		val8 = 0;
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BCN_FUNC, (u8 *)(&val8));
+		if(pwrpriv->bInSuspend != _TRUE) {
+			padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_BCN_FUNC, (u8 *)(&val8));
+		}
 	}
 
 	pmlmeinfo->state = WIFI_FW_NULL_STATE;

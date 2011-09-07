@@ -794,7 +794,9 @@ static int rtw_suspend(struct usb_interface *pusb_intf, pm_message_t message)
 		}
 		pwrpriv->bInSuspend = _TRUE;
 		rtw_cancel_all_timer(padapter);
-		LeaveAllPowerSaveMode(padapter);
+		if(pwrpriv->bInSuspend != _TRUE) { // when suspend ignore this operation, 2011-09-07, allwinner!!!
+			LeaveAllPowerSaveMode(padapter);
+		}
 
 		_enter_pwrlock(&pwrpriv->lock);
 		//padapter->net_closed = _TRUE;

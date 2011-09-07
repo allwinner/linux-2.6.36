@@ -586,6 +586,8 @@ void flush_all_cam_entry(_adapter *padapter)
 {
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
+	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
+	
 #if 0
 	unsigned char null_sta[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	unsigned char null_key[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00};
@@ -595,7 +597,9 @@ void flush_all_cam_entry(_adapter *padapter)
 		write_cam(padapter, i, 0, null_sta, null_key);
 	}
 #else
-	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);
+	if(pwrpriv->bInSuspend != _TRUE) { // when suspend ignore this operation, 2011-09-07, allwinner!!!
+		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);
+	}
 #endif
 	_rtw_memset((u8 *)(pmlmeinfo->FW_sta_info), 0, sizeof(pmlmeinfo->FW_sta_info));
 }

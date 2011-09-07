@@ -1329,14 +1329,17 @@ _func_exit_;
 void rtw_indicate_disconnect( _adapter *padapter )
 {
 	struct	mlme_priv *pmlmepriv = &padapter->mlmepriv;	
-
+	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
+	
 _func_enter_;	
 	
 	RT_TRACE(_module_rtl871x_mlme_c_, _drv_err_, ("+rtw_indicate_disconnect\n"));
 
 	_clr_fwstate_(pmlmepriv, _FW_LINKED);
 
-	rtw_led_control(padapter, LED_CTL_NO_LINK);
+	if(pwrpriv->bInSuspend != _TRUE) { // when suspend ignore this operation, 2011-09-07, allwinner!!!
+		rtw_led_control(padapter, LED_CTL_NO_LINK);
+	}	
 
 	#ifdef CONFIG_LAYER2_ROAMING
 	if(pmlmepriv->to_roaming<=0)
