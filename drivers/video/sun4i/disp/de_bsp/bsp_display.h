@@ -44,7 +44,7 @@ typedef unsigned int __hdle;
 #include <linux/drv_display.h>
 #include "../OSAL/OSAL.h"
 
-#if 0
+#if 1
 #define OSAL_PRINTF     printk
 #define __inf(msg...)
 #define __msg(msg...)
