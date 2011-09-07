@@ -165,6 +165,9 @@ static int tp_flag = 0;
 #define ZOOM_OUT                                   (2)
 #define ZOOM_INIT_STATE                    (3)
 
+#define SAMPLE_TIME                            (9.6)                    //unit is ms. ???   
+#define SAMPLE_TIME_FACTOR          (9.6/SAMPLE_TIME)
+
 #ifndef TRUE
 #define TRUE   1
 #define FALSE  0
@@ -1033,8 +1036,8 @@ static void report_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *sa
 
 static void report_up_event_implement(struct sun4i_ts_data *ts_data)
 {
-    static int up_event_delay_time = 3;
-    static int slide_min_cnt = 5;
+    static const int UP_EVENT_DELAY_TIME = 3;
+    static const int SLIDE_MIN_CNT = 3;
     if(atomic_sub_and_test(1, &report_up_event_implement_sync)){
         //get the resource
         if(1 == report_up_event_implement_running){
@@ -1061,8 +1064,8 @@ static void report_up_event_implement(struct sun4i_ts_data *ts_data)
     //printk("prev_sample->sample_time =%d, prev_data_sample->sample_time = %d. \n", prev_sample->sample_time, prev_data_sample->sample_time);
     //printk("touch_mode = %d. reported_single_point_cnt = %d. \n", touch_mode, reported_single_point_cnt);
     if( (SINGLE_TOUCH_MODE == touch_mode) && \
-          (reported_single_point_cnt<slide_min_cnt) && (reported_single_point_cnt>0) && \
-          (prev_sample->sample_time >= (prev_data_sample->sample_time + up_event_delay_time))){
+          (reported_single_point_cnt<SLIDE_MIN_CNT) && (reported_single_point_cnt>0) && \
+          (prev_sample->sample_time >= (prev_data_sample->sample_time + UP_EVENT_DELAY_TIME))){
         //obvious, a slide, how to compenstate?
         //printk("report_up_event_implement: obvious, a slide. \n");
         report_slide_data(ts_data);
@@ -1140,7 +1143,7 @@ static void process_data(struct sun4i_ts_data *ts_data, struct ts_sample_data *s
                         filter_double_point_init(sample_data, 1);
                         print_orientation_info("sun4i-ts: CHANGING_TO_DOUBLE_TOUCH_MODE orientation_flag == %d . \n", orientation_flag);
                         return;
-                    }                    
+                    }
                     report_double_point(ts_data, sample_data);
             }
         }
@@ -1592,7 +1595,7 @@ static int __devinit sun4i_ts_probe(struct platform_device *pdev)
 	if (err) {
 		dev_err(&pdev->dev, "Cannot request keypad IRQ\n");
 		goto err_out2;
-	}	  
+	}
 
 	
 	platform_set_drvdata(pdev, ts_data);	
@@ -1644,9 +1647,6 @@ err_out:
 	
 	return err;
 }
-
-
-
 
 static int __devexit sun4i_ts_remove(struct platform_device *pdev)
 {
