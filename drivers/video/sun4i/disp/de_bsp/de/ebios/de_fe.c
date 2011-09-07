@@ -1547,7 +1547,6 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t
 	switch(inmode)
 	{
 		case DE_SCAL_3DIN_TB:
-		case DE_SCAL_3DIN_FP:
 			singlesize->src_width = fullsize->src_width; 
 			singlesize->scal_width = fullsize->scal_width;
 			singlesize->scal_height = fullsize->scal_height>>1;
@@ -1569,6 +1568,13 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t
 			singlesize->x_off = fullsize->x_off;
 			singlesize->y_off = fullsize->y_off>>1;	
 			break;	
+		case DE_SCAL_3DIN_FP:
+			singlesize->src_width = fullsize->src_width; 
+			singlesize->scal_width = fullsize->scal_width;
+			singlesize->scal_height = fullsize->scal_height;
+			singlesize->x_off = fullsize->x_off;
+			singlesize->y_off = fullsize->y_off;
+			break;		
 		default:
 			//undefine input mode
 			break;

@@ -7,7 +7,6 @@
 
 frame_para_t g_video[2];
 
-
 static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_index)
 {	
 	__scal_buf_addr_t scal_addr;
@@ -32,31 +31,65 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
 		return DIS_FAIL;
 	}
 
+	g_video[scaler_index].pre_frame_addr0 = g_video[scaler_index].video_cur.addr[0];
     memcpy(&g_video[scaler_index].video_cur, &g_video[scaler_index].video_new, sizeof(__disp_video_fb_t));
     scaler = &(gdisp.scaler[scaler_index]);
     video_fb = &(g_video[scaler_index].video_cur);
 
-	if(g_video[scaler_index].dit_enable == FALSE)
+	if(g_video[scaler_index].video_cur.interlace == TRUE)
 	{
+		g_video[scaler_index].dit_enable = FALSE;//todo
+
+        g_video[scaler_index].fetch_field = TRUE;
+    	if(g_video[scaler_index].field_cnt++ == 0)
+    	{
+    	    g_video[scaler_index].fetch_bot = (g_video[scaler_index].video_cur.top_field_first)?0:1;
+    	}
+    	else
+    	{
+    		g_video[scaler_index].fetch_bot = (g_video[scaler_index].video_cur.top_field_first)?1:0;
+    	}
+
+		if(g_video[scaler_index].dit_enable == TRUE)
+		{
+			if(g_video[scaler_index].video_cur.maf_valid == TRUE)
+			{
+				g_video[scaler_index].dit_mode = DIT_MODE_MAF;
+            	maf_flag_addr = (__u32)OSAL_VAtoPA((void*)g_video[scaler_index].video_cur.flag_addr);
+        		maf_linestride =  g_video[scaler_index].video_cur.flag_stride;
+			}
+			else
+			{
+				g_video[scaler_index].dit_mode = DIT_MODE_MAF_BOB;
+			}
+
+			if(g_video[scaler_index].video_cur.pre_frame_valid == TRUE)
+			{
+				g_video[scaler_index].tempdiff_en = TRUE;
+				pre_frame_addr = (__u32)OSAL_VAtoPA((void*)g_video[scaler_index].pre_frame_addr0);
+			}
+			else
+			{
+				g_video[scaler_index].tempdiff_en = FALSE;
+			}
+			g_video[scaler_index].diagintp_en = TRUE;
+		}
+		else
+		{
+    	    g_video[scaler_index].dit_mode = DIT_MODE_WEAVE;
+    	    g_video[scaler_index].tempdiff_en = FALSE;
+    	    g_video[scaler_index].diagintp_en = FALSE;
+		}
+	}
+	else
+	{
+		g_video[scaler_index].dit_enable = FALSE;
 	    g_video[scaler_index].fetch_field = FALSE;
 	    g_video[scaler_index].fetch_bot = FALSE;
 	    g_video[scaler_index].dit_mode = DIT_MODE_WEAVE;
 	    g_video[scaler_index].tempdiff_en = FALSE;
 	    g_video[scaler_index].diagintp_en = FALSE;
-    }
-    else
-    {
-    	if(g_video[scaler_index].field_cnt != 0)
-    	{
-    		g_video[scaler_index].fetch_bot = (g_video[scaler_index].fetch_bot == 0)?1:0;
-    		g_video[scaler_index].field_cnt++;
-    	}
-
-    	pre_frame_addr = (__u32)OSAL_VAtoPA((void*)g_video[scaler_index].pre_frame_addr0);
-    	maf_flag_addr = (__u32)OSAL_VAtoPA((void*)g_video[scaler_index].video_cur.flag_addr);
-    	
-		maf_linestride =  g_video[scaler_index].video_cur.flag_stride;
-    }
+	}
     
 	in_type.fmt= Scaler_sw_para_to_reg(0,scaler->in_fb.format);
 	in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
@@ -127,7 +160,7 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
 	DE_SCAL_Set_Di_MafFlag_Src(scaler_index, maf_flag_addr, maf_linestride);
     DE_SCAL_Set_Out_Size(scaler_index, &out_scan,&out_type, &out_size);
 
-    gdisp.scaler[scaler_index].b_reg_change = TRUE;
+    DE_SCAL_Set_Reg_Rdy(scaler_index);
     
 	return DIS_SUCCESS;
 }
@@ -164,50 +197,8 @@ __s32 BSP_disp_video_set_fb(__u32 sel, __u32 hid, __disp_video_fb_t *in_addr)
         scaler_index = gdisp.screen[sel].layer_manage[hid].scaler_index;
     	memcpy(&g_video[scaler_index].video_new, in_addr, sizeof(__disp_video_fb_t));
     	g_video[scaler_index].have_got_frame = TRUE;
+	    g_video[scaler_index].field_cnt = 0;
 
-		if(g_video[scaler_index].video_new.interlace == TRUE)
-		{
-			g_video[scaler_index].dit_enable = FALSE;
-
-			if(g_video[scaler_index].dit_enable == TRUE)
-			{
-    			if(g_video[scaler_index].video_new.maf_valid == TRUE)
-    			{
-    				g_video[scaler_index].dit_mode = DIT_MODE_MAF;
-    			}
-    			else
-    			{
-    				g_video[scaler_index].dit_mode = DIT_MODE_MAF_BOB;
-    			}
-
-    			if(g_video[scaler_index].video_new.pre_frame_valid == TRUE)
-    			{
-    				g_video[scaler_index].tempdiff_en = TRUE;
-    			}
-    			else
-    			{
-    				g_video[scaler_index].tempdiff_en = FALSE;
-    			}
-    			g_video[scaler_index].diagintp_en = TRUE;
-			}
-
-			if(g_video[scaler_index].video_new.top_field_first == TRUE)
-			{
-				g_video[scaler_index].fetch_bot = FALSE;
-			}
-			else
-			{
-				g_video[scaler_index].fetch_bot = TRUE;
-			}
-			g_video[scaler_index].field_cnt = 0;
-			
-		}
-		else
-		{
-			g_video[scaler_index].dit_enable = FALSE;
-		}
-		
-		g_video[scaler_index].pre_frame_addr0 = g_video[scaler_index].video_cur.addr[0];
     	return DIS_SUCCESS;
     }
     else

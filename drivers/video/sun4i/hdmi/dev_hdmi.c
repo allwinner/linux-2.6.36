@@ -67,8 +67,7 @@ static int __init hdmi_probe(struct platform_device *pdev)
 	__inf("HDMI base 0x%08x\n", (__u32)ghdmi.io);
 
 	Hdmi_init();
-
-
+    Fb_Init(1);
 
 	return 0;
 

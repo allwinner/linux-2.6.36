@@ -980,6 +980,17 @@ __s32 TCON1_set_vga_mode(__u32 sel, __u8 mode)
       cfg.hspw     = 44-1;//HS-1=-1	
       cfg.io_pol   = 0x03000000;	
 		break;
+	case  DISP_VGA_H1280_V720://TBD
+	  cfg.src_x = cfg.scl_x = cfg.out_x = 1280;//HA
+      cfg.src_y = cfg.scl_y = cfg.out_y = 720;//VA
+      cfg.ht       = 1650-1;//HT-1=-1
+      cfg.hbp      = 220+40-1;//HS+HBP-1=+-1
+      cfg.vt       = 750*2;//VT*2=*2
+      cfg.vbp      = 5+20;//VS+VBP-1=+-1
+      cfg.vspw     = 5-1;//VS-1=-1
+      cfg.hspw     = 40-1;//HS-1=-1	
+      cfg.io_pol   = 0x03000000;	
+		break;
 	default:
 		return 0;
 	}

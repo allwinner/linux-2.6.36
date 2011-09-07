@@ -298,7 +298,7 @@ typedef struct
     __disp_layer_work_mode_t    mode;       //layer work mode
     __bool                      b_from_screen;
     __u8                        pipe;       //layer pipe,0/1,if in scaler mode, scaler0 must be pipe0, scaler1 must be pipe1
-    __u8                        prio;       //layer priority,can get layer prio,but never set layer prio,从顶至顶,优先级由低至高
+    __u8                        prio;       //layer priority,can get layer prio,but never set layer prio,从底至顶,优先级由低至高
     __bool                      alpha_en;   //layer global alpha enable
     __u16                       alpha_val;  //layer global alpha value 
     __bool                      ck_enable;  //layer color key enable

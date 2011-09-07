@@ -20,6 +20,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
 
     info->lcd_hv_if         = 0;        //0:hv parallel 1:hv serial 
     info->lcd_hv_smode      = 0;        //0:RGB888 1:CCIR656
+    info->lcd_hv_s888_if    = 0;        //serial RGB format
     info->lcd_hv_syuv_if    = 0;        //serial YUV format
     info->lcd_hv_hspw       = 0;        //hsync plus width
     info->lcd_hv_vspw       = 0;        //vysnc plus width

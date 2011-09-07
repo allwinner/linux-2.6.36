@@ -1048,6 +1048,9 @@ __u32 vga_mode_to_width(__disp_vga_mode_t mode)
     	case DISP_VGA_H1920_V1080:
     		width = 1920;
             break;
+        case DISP_VGA_H1280_V720:
+            width = 1280;
+            break;
     	default:
     		width = 0;
             break;
@@ -1093,6 +1096,9 @@ __u32 vga_mode_to_height(__disp_vga_mode_t mode)
     case DISP_VGA_H1920_V1080_RB:
     case DISP_VGA_H1920_V1080:
         height = 1080;
+        break;
+    case DISP_VGA_H1280_V720:
+        height = 720;
         break;
     default:
         height = 0;

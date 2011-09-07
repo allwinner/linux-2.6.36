@@ -13,7 +13,7 @@ static struct alloc_struct_t boot_heap_head, boot_heap_tail;
 
 static unsigned int gbuffer[4096];
 static __u32 output_type[2] = {0,0};
-static __bool b_in_suspend = 0;
+static __u32 suspend_status = 0;//0:normal; suspend_status&1 != 0:in early_suspend; suspend_status&2 != 0:in suspend;
 
 static struct info_mm  g_disp_mm[2];
 static int g_disp_mm_sel = 0;
@@ -359,7 +359,7 @@ __s32 DRV_DISP_Init(void)
     BSP_disp_init(&para);
     BSP_disp_open();
     
-    Fb_Init();
+    //Fb_Init();
     
     return 0;        
 }
@@ -637,7 +637,7 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
-    //DRV_DISP_Init();
+    DRV_DISP_Init();
 
 	return 0;
 
@@ -743,6 +743,8 @@ void backlight_early_suspend(struct early_suspend *h)
     }
 
     BSP_disp_clk_off(2);
+
+    suspend_status |= 1;
 }
 
 void backlight_late_resume(struct early_suspend *h)
@@ -770,6 +772,8 @@ void backlight_late_resume(struct early_suspend *h)
             BSP_disp_hdmi_open(i);
         }
     }
+
+    suspend_status &= (~1);
 }
 
 static struct early_suspend backlight_early_suspend_handler = 
@@ -813,7 +817,7 @@ int disp_suspend(struct platform_device *pdev, pm_message_t state)
     BSP_disp_clk_off(1);
 #endif
 
-    b_in_suspend = 1;
+    suspend_status |= 2;
 
     return 0;
 }
@@ -850,7 +854,7 @@ int disp_resume(struct platform_device *pdev)
     BSP_disp_clk_on(1);
 #endif
 
-    b_in_suspend = 0;
+    suspend_status &= (~2);
 
     return 0;
 }
@@ -895,7 +899,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             return -1;
         }
     }
-    if(b_in_suspend)
+    if(suspend_status & 2)
     {
         __wrn("ioctl:%x fail when in suspend!\n", cmd);
         return -1;
@@ -1501,7 +1505,14 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
     	case DISP_CMD_TV_GET_INTERFACE:
-    		ret = BSP_disp_tv_get_interface(ubuffer[0]);
+    	    if(suspend_status != 0)
+    	    {
+    	        ret = DISP_TV_NONE;
+    	    }
+    	    else
+    	    {
+    		    ret = BSP_disp_tv_get_interface(ubuffer[0]);
+            }
     		break;
 
     	case DISP_CMD_TV_SET_SRC:
@@ -1509,7 +1520,14 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
         case DISP_CMD_TV_GET_DAC_STATUS:
-            ret =  BSP_disp_tv_get_dac_status(ubuffer[0], ubuffer[1]);
+            if(suspend_status != 0)
+            {
+                ret = 0;
+            }
+            else
+            {
+                ret =  BSP_disp_tv_get_dac_status(ubuffer[0], ubuffer[1]);
+            }
             break;
 
         case DISP_CMD_TV_SET_DAC_SOURCE:
@@ -1530,7 +1548,6 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
     	case DISP_CMD_HDMI_SET_MODE:
-    		//ubuffer[1] = DISP_TV_MOD_1080P_50HZ;
     		ret = BSP_disp_hdmi_set_mode(ubuffer[0], ubuffer[1]);
     		break;
 
@@ -1539,7 +1556,14 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
     	case DISP_CMD_HDMI_GET_HPD_STATUS:
-    	    ret = BSP_disp_hdmi_get_hpd_status(ubuffer[0]);
+    	    if(suspend_status != 0)
+    	    {
+    	        ret = 0;
+    	    }
+    	    else
+    	    {
+    	        ret = BSP_disp_hdmi_get_hpd_status(ubuffer[0]);
+    	    }
     		break;
 
     	case DISP_CMD_HDMI_SUPPORT_MODE:
@@ -1935,7 +1959,6 @@ static void __exit disp_module_exit(void)
     cdev_del(my_cdev);
 }
 
-EXPORT_SYMBOL(DRV_DISP_Init);
 EXPORT_SYMBOL(disp_set_hdmi_func);
 
 late_initcall(disp_module_init);
