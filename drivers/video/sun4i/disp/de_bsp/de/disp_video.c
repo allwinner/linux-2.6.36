@@ -136,9 +136,9 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 scaler_in
         {
             DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
         }
-    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[0]));
-    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[1]));
-    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr[2]));
+    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr_right[0]));
+    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr_right[1]));
+    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(video_fb->addr_right[2]));
 
         DE_SCAL_Set_3D_Ctrl(scaler_index, gdisp.screen[sel].b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(scaler_index, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
