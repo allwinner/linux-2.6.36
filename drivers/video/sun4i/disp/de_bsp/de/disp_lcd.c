@@ -1048,6 +1048,9 @@ __u32 vga_mode_to_width(__disp_vga_mode_t mode)
     	case DISP_VGA_H1920_V1080:
     		width = 1920;
             break;
+        case DISP_VGA_H1280_V720:
+            width = 1280;
+            break;
     	default:
     		width = 0;
             break;
@@ -1093,6 +1096,9 @@ __u32 vga_mode_to_height(__disp_vga_mode_t mode)
     case DISP_VGA_H1920_V1080_RB:
     case DISP_VGA_H1920_V1080:
         height = 1080;
+        break;
+    case DISP_VGA_H1280_V720:
+        height = 720;
         break;
     default:
         height = 0;
@@ -1307,7 +1313,9 @@ __s32 BSP_disp_lcd_close_befor(__u32 sel)
 	lcd_panel_fun[sel].cfg_close_flow(sel);
 
 	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
-	
+
+	gdisp.screen[sel].status &= LCD_OFF;
+	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 	return DIS_SUCCESS;
 }
 
@@ -1318,8 +1326,6 @@ __s32 BSP_disp_lcd_close_after(__u32 sel)
 	image_clk_off(sel);
 	lcdc_clk_off(sel);
 
-	gdisp.screen[sel].status &= LCD_OFF;
-	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 	gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
 	
 	return DIS_SUCCESS;

@@ -236,6 +236,7 @@ void WiFiEngine_HandleCoreDumpPkt(char* pkt)
          Blob_t blob;
          Mlme_CreateMessageContext(msg_ref);
 
+         printk("[nano] W4_SCB_ERROR_CFM parsed\n");
          INIT_BLOB(&blob, pkt, 1500); /* XXX */
          /* Remove HIC header and add type/id info to msg_ref */
          packer_HIC_Unpack(&msg_ref, &blob); 
@@ -398,7 +399,8 @@ void WiFiEngine_HandleCoreDumpPkt(char* pkt)
       break;
 
       default:
-         DE_BUG_ON(TRUE, "Invalid core dump state\n");
+         /* Discard */
+         printk("[nano] Unknown coredump message received\n");
          break;
    }
 }
@@ -583,6 +585,10 @@ static int cmd_timeout_detect_cb(void *data, size_t len)
                     "last command %02x.%02x\n",
                     wifiEngineState.last_sent_msg_type, 
                     wifiEngineState.last_sent_msg_id);
+      printk("[nano] ----> Core dump started by timeout, "
+             "last command %02x.%02x\n",
+             wifiEngineState.last_sent_msg_type, 
+             wifiEngineState.last_sent_msg_id);
       DE_TRACE_INT4(TR_WARN,"Coredump timers: %u - %u = %u < %u\n", 
             (unsigned int)DriverEnvironment_GetTicks(),
             (unsigned int)wifiEngineState.cmd_tx_ts,
@@ -610,6 +616,7 @@ static int timeout_during_coredump(void)
       DE_TRACE_STATIC(TR_ALWAYS,"Target not responding to scb error request\n");
       DE_TRACE_STATIC(TR_ALWAYS,"Try with commit suicide request\n");
       core_dump_state = W4_COMMIT_SUICIDE_REQUESTED;
+      wifiEngineState.core_dump_state = WEI_CORE_DUMP_DISABLED;      
       sendCommitSuicideRequest(); 
    }
    else if(core_dump_state == W4_COMMIT_SUICIDE_REQUESTED)

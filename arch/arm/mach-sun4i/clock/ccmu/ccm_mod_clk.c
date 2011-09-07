@@ -520,7 +520,7 @@ static __aw_ccu_sys_clk_e mod_clk_get_parent(__aw_ccu_mod_clk_e id)
         }
         case AW_MOD_CLK_CSI1:
         {
-            switch(aw_ccu_reg->Csi0Clk.ClkSrc)
+            switch(aw_ccu_reg->Csi1Clk.ClkSrc)
             {
                 case 0:
                     return AW_SYS_CLK_HOSC;

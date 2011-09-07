@@ -12,6 +12,7 @@ long hdmi_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
 
 extern __s32 Hdmi_init(void);
 extern __s32 Hdmi_exit(void);
+extern __s32 Fb_Init(__u32 from);
 
 
 

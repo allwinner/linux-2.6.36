@@ -100,7 +100,7 @@ __s32 hdmi_main_task_loop(void)
 	    		       (1<<25)+ (0<<24)+ (0<<23)+ (4<<20)+ (7<<17)+
 	    		       (15<<12)+ (7<<8)+ (0x0f<<4)+(8<<0) );	  
          	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
-        	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
+        	HDMI_WUINT32(0x204,0x00D8C850);   			//ckss = 1
 
             HDMI_WUINT32(0x20c, 0 << 21);    		 
 
@@ -390,7 +390,7 @@ __s32 video_config(__s32 vic)
 	    		       (15<<12)+ (7<<8)+ (clk_div<<4)+(8<<0) );	
 	// tx driver setting
  	HDMI_WUINT32(0x200,0xfe800000);   			//txen enable
-	HDMI_WUINT32(0x204,0x00D8C860);   			//ckss = 1
+	HDMI_WUINT32(0x204,0x00D8C850);   			//ckss = 1
 
     HDMI_WUINT32(0x20c, hdmi_pll << 21);
     

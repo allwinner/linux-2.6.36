@@ -626,6 +626,9 @@ static struct semaphore scan_sem;
 static void scan_data_release(struct kref *kref)
 {
    struct net_device *dev = WiFiEngine_GetAdapter();
+#ifdef CONFIG_HAS_WAKELOCK	   
+   struct nrx_softc *sc = netdev_priv(dev);
+#endif   
    struct scan_data *sd = container_of(kref, struct scan_data, kref);
    if(sd->sj_id != ~0)
       WiFiEngine_RemoveScanJob(sd->sj_id, NULL);
@@ -633,6 +636,10 @@ static void scan_data_release(struct kref *kref)
    DriverEnvironment_Free(sd);
    nrx_wxevent_scan_complete(dev);
    up(&scan_sem);
+#ifdef CONFIG_HAS_WAKELOCK
+   wake_unlock(&sc->nrx_scan_wake_lock);
+   KDEBUG(TRACE, "Released nrx_scan_wake_lock");
+#endif   
 }
 
 static void scan_req_complete(wi_msg_param_t param, void *priv)
@@ -706,13 +713,23 @@ static int scan_req(__u16 flags, struct iw_scan_req *req)
    uint8_t scan_type = ACTIVE_SCAN;
    channel_list_t channels;
    we_cb_container_t *cbc;
+#ifdef CONFIG_HAS_WAKELOCK   
+   struct net_device *dev = WiFiEngine_GetAdapter();
+   struct nrx_softc *sc = netdev_priv(dev);
+#endif
 
    if(req == NULL)
       flags = 0; /* no parameters so ignore all flags */
 
    if((flags & IW_SCAN_THIS_ESSID) != 0) {
-      if(req->essid_len > sizeof(ssid.ssid))
+      if(req->essid_len > sizeof(ssid.ssid)){
+      	 up(&scan_sem);
+#ifdef CONFIG_HAS_WAKELOCK
+		 wake_unlock(&sc->nrx_scan_wake_lock);
+		 KDEBUG(TRACE, "Released nrx_scan_wake_lock");
+#endif        	 
          return -EINVAL;
+      }   
       DE_MEMCPY(ssid.ssid, req->essid, req->essid_len);
       ssid.hdr.len = req->essid_len;
       ssid.hdr.id = M80211_IE_ID_SSID;
@@ -732,6 +749,10 @@ static int scan_req(__u16 flags, struct iw_scan_req *req)
          if(!convert_iw_freq2channel(&req->channel_list[i], 
                                      &channels.channelList[channels.no_channels])) {
             up(&scan_sem);
+#ifdef CONFIG_HAS_WAKELOCK
+			wake_unlock(&sc->nrx_scan_wake_lock);
+			KDEBUG(TRACE, "Released nrx_scan_wake_lock");
+#endif              
             return -EINVAL;
          }
          channels.no_channels++;
@@ -740,6 +761,10 @@ static int scan_req(__u16 flags, struct iw_scan_req *req)
       status = WiFiEngine_GetRegionalChannels(&channels);
       if(status != WIFI_ENGINE_SUCCESS) {
          up(&scan_sem);
+#ifdef CONFIG_HAS_WAKELOCK
+		 wake_unlock(&sc->nrx_scan_wake_lock);
+		 KDEBUG(TRACE, "Released nrx_scan_wake_lock");
+#endif           
          return -EIO; /* shouldn't happen */
       }
    }
@@ -750,6 +775,10 @@ static int scan_req(__u16 flags, struct iw_scan_req *req)
    sd = DriverEnvironment_Malloc(sizeof(*sd));
    if(sd == NULL) {
       up(&scan_sem);
+#ifdef CONFIG_HAS_WAKELOCK
+      wake_unlock(&sc->nrx_scan_wake_lock);
+      KDEBUG(TRACE, "Released nrx_scan_wake_lock");
+#endif
       return -ENOMEM;
    }
 
@@ -816,6 +845,9 @@ DECLARE_IW(set_scan, point, dummy)
    KDEBUG(TRACE, "ENTRY");
    CHECK_UNPLUG(dev);
 
+#ifdef CONFIG_HAS_WAKELOCK   
+   struct nrx_softc *sc = netdev_priv(dev); 
+#endif
    if(dummy->length != 0 && dummy->length != sizeof(struct iw_scan_req)) {
       KDEBUG(TRACE, "EXIT EINVAL");
       return -EINVAL;
@@ -829,6 +861,10 @@ DECLARE_IW(set_scan, point, dummy)
    /* prevent multiple concurrent scans */
    if(down_interruptible(&scan_sem))
       return -EINTR;
+#endif
+#ifdef CONFIG_HAS_WAKELOCK
+	  wake_lock(&sc->nrx_scan_wake_lock);
+	  KDEBUG(TRACE, "Acquired nrx_scan_wake_lock");
 #endif
 
    status = scan_req(dummy->flags, extra);

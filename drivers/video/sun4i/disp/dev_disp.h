@@ -14,37 +14,6 @@ struct info_mm {
 	__u32 mem_len;			/* Length of frame buffer mem */
 };
 
-
-typedef struct
-{
-	struct device   *dev;
-	struct resource *mem[DISP_IO_NUM];
-	void __iomem    *io[DISP_IO_NUM];
-
-	__u32       base_ccmu;
-	__u32       base_sdram;
-    __u32       base_pioc;
-	__u32       base_pwm;
-
-    __fb_mode_t fb_mode[FB_MAX];
-    __u32       layer_hdl[FB_MAX][2];//[fb_id][0]:screen0 layer handle;[fb_id][1]:screen1 layer handle 
-    struct fb_info * fbinfo[FB_MAX];
-}fb_info_t;
-
-typedef struct
-{
-    __u32         	    mid;
-    __u32         	    used;
-    __u32         	    status;
-    __u32    		    exit_mode;//0:clean all  1:disable interrupt
-    __bool              b_cache[2];
-	__bool			    b_lcd_open[2];
-	wait_queue_head_t   my_queue[2][20];
-	__bool              b_cmd_finished[2][20];
-    wait_queue_head_t   scaler_queue[2];
-    __bool              b_scaler_finished[2];
-}__disp_drv_t;
-
 typedef enum
 {
     DISP_INIT_MODE_SCREEN0 = 0,//fb0
@@ -69,6 +38,40 @@ typedef struct
     __disp_pixel_seq_t      seq[2];
     __bool                  br_swap[2];
 }__disp_init_t;
+
+
+typedef struct
+{
+	struct device   *dev;
+	struct resource *mem[DISP_IO_NUM];
+	void __iomem    *io[DISP_IO_NUM];
+
+	__u32       base_ccmu;
+	__u32       base_sdram;
+    __u32       base_pioc;
+	__u32       base_pwm;
+
+    __fb_mode_t fb_mode[FB_MAX];
+    __u32       layer_hdl[FB_MAX][2];//[fb_id][0]:screen0 layer handle;[fb_id][1]:screen1 layer handle 
+    struct fb_info * fbinfo[FB_MAX];
+
+    __disp_init_t disp_init;
+}fb_info_t;
+
+typedef struct
+{
+    __u32         	    mid;
+    __u32         	    used;
+    __u32         	    status;
+    __u32    		    exit_mode;//0:clean all  1:disable interrupt
+    __bool              b_cache[2];
+	__bool			    b_lcd_open[2];
+	wait_queue_head_t   my_queue[2][20];
+	__bool              b_cmd_finished[2][20];
+    wait_queue_head_t   scaler_queue[2];
+    __bool              b_scaler_finished[2];
+}__disp_drv_t;
+
 
 struct alloc_struct_t
 {
@@ -105,7 +108,7 @@ extern __disp_drv_t    g_disp_drv;
 
 extern __s32 DRV_lcd_open(__u32 sel);
 extern __s32 DRV_lcd_close(__u32 sel);
-extern __s32 Fb_Init(void);
+extern __s32 Fb_Init(__u32 from);
 extern __s32 Fb_Exit(void);
 
 #endif
