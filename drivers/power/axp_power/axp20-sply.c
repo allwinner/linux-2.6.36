@@ -27,6 +27,12 @@
 #include <linux/input.h>
 #include <linux/mfd/axp-mfd.h>
 
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+#include <linux/earlysuspend.h>
+#endif
 
 #include "axp-cfg.h"
 #include "axp-sply.h"
@@ -37,6 +43,15 @@
 #else
 #define DBG_PSY_MSG(format,args...)   do {} while (0)
 #endif
+
+static int pmu_used2 = 0;
+static int gpio_adp_hdle = 0;
+static int pmu_earlysuspend_chgcur = 0;
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static struct early_suspend axp_early_suspend;
+int early_suspend_flag = 0;
+#endif
+
 int ADC_Freq_Get(struct axp_charger *charger)
 {	
 	uint8_t  temp;
@@ -1026,6 +1041,37 @@ static struct device_attribute axp_charger_attrs[] = {
   AXP_CHG_ATTR(ihold),
 };
 
+#if defined CONFIG_HAS_EARLYSUSPEND
+static void axp_earlysuspend(struct early_suspend *h)
+{
+	uint8_t tmp;
+	DBG_PSY_MSG("======early suspend=======\n");
+	
+#if defined (CONFIG_AXP_CHGCHANGE)
+  	early_suspend_flag = 1;
+    if(pmu_earlysuspend_chgcur >= 300000 && pmu_earlysuspend_chgcur <= 1800000){
+    	tmp = (pmu_earlysuspend_chgcur -200001)/100000;
+    	axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
+    }
+#endif
+	
+}
+static void axp_lateresume(struct early_suspend *h)
+{
+	uint8_t tmp;
+	DBG_PSY_MSG("======late resume=======\n");
+	
+#if defined (CONFIG_AXP_CHGCHANGE)
+	early_suspend_flag = 0;
+    if(pmu_resume_chgcur >= 300000 && pmu_resume_chgcur <= 1800000){
+        tmp = (pmu_resume_chgcur -200001)/100000;
+        axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
+    }
+#endif
+
+}
+#endif
+
 int axp_charger_create_attrs(struct power_supply *psy)
 {
   int j,ret;
@@ -1057,7 +1103,7 @@ long Get_Bat_Coulomb_Count(struct axp_charger *charger)
 	DBG_PSY_MSG("Get_Bat_Coulomb_Count -     CHARGINGOULB:[0]=0x%x,[1]=0x%x,[2]=0x%x,[3]=0x%x\n",temp[0],temp[1],temp[2],temp[3]);
 	DBG_PSY_MSG("Get_Bat_Coulomb_Count - DISCHARGINGCLOUB:[4]=0x%x,[5]=0x%x,[6]=0x%x,[7]=0x%x\n",temp[4],temp[5],temp[6],temp[7]);
 	
-	Cur_CoulombCounter_tmp = (65535 * (rValue1 - rValue2) / ADC_Freq_Get(charger) / 3600 / 2);
+	Cur_CoulombCounter_tmp = (4369 * (rValue1 - rValue2) / ADC_Freq_Get(charger) / 240 / 2);
 	return Cur_CoulombCounter_tmp;				//unit mAh
 }
 
@@ -1072,7 +1118,8 @@ static void axp_charging_monitor(struct work_struct *work)
     int rest_vol;
     uint16_t tmp;
     int Cur_CoulombCounter;
-    int cap_index_p;
+    int cap_index_p,var;
+	int gpio_adp_val,ret;
 
     charger = container_of(work, struct axp_charger, work.work);
     
@@ -1209,6 +1256,23 @@ static void axp_charging_monitor(struct work_struct *work)
 
 		}
  		
+		if(pmu_usbcur_limit){
+			axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
+			var = pmu_usbcur * 1000;
+			if(var == 900000)
+				axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x03);
+			else if (var == 500000){
+				axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x02);
+				axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
+ 			}
+			else if (var == 100000){
+				axp_clr_bits(charger->master, AXP20_CHARGE_VBUS, 0x01);
+				axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x02);
+			} 
+		}
+		else
+			axp_set_bits(charger->master, AXP20_CHARGE_VBUS, 0x03);
+ 		
 #if  DBG_AXP_PSY
  		DBG_PSY_MSG("charger->ic_temp = %d\n",charger->ic_temp);
  		DBG_PSY_MSG("charger->vbat = %d\n",charger->vbat);
@@ -1226,6 +1290,88 @@ static void axp_charging_monitor(struct work_struct *work)
  		DBG_PSY_MSG("rdc = %d\n",rdc);
  		DBG_PSY_MSG("charger->is_on = %d\n",charger->is_on);
  		DBG_PSY_MSG("charger->ext_valid = %d\n",charger->ext_valid);
+#endif
+
+#if defined (CONFIG_AXP_CHGCHANGE)
+		if(pmu_used2){
+			gpio_adp_val = gpio_read_one_pin_value(gpio_adp_hdle,"pmu_adpdet");
+			DBG_PSY_MSG("GPIO->H2 = %d\n",gpio_adp_val);
+  		if(gpio_adp_val){
+  			ret = script_parser_fetch("pmu_para", "pmu_init_chgcur2", &pmu_init_chgcur, sizeof(int));
+      	if (ret){
+      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_init_chgcur = INTCHGCUR / 1000;
+      	}
+      	pmu_init_chgcur = pmu_init_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur2", &pmu_earlysuspend_chgcur, sizeof(int));
+      	if (ret){
+      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_earlysuspend_chgcur = SUSCHGCUR / 1000;
+      	}
+      	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_suspend_chgcur2", &pmu_suspend_chgcur, sizeof(int));
+      	if (ret){
+      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_suspend_chgcur = SUSCHGCUR / 1000;
+      	}
+      	pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_resume_chgcur2", &pmu_resume_chgcur, sizeof(int));
+      	if (ret){
+        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_resume_chgcur = RESCHGCUR / 1000;
+      	}
+     		pmu_resume_chgcur = pmu_resume_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_shutdown_chgcur2", &pmu_shutdown_chgcur, sizeof(int));
+      	if (ret){
+        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_shutdown_chgcur = CLSCHGCUR / 1000;
+      	}
+      	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
+  		}
+  		else{
+  			ret = script_parser_fetch("pmu_para", "pmu_init_chgcur", &pmu_init_chgcur, sizeof(int));
+      	if (ret){
+      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_init_chgcur = INTCHGCUR / 1000;
+      	}
+      	pmu_init_chgcur = pmu_init_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur", &pmu_earlysuspend_chgcur, sizeof(int));
+      	if (ret){
+      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_earlysuspend_chgcur = SUSCHGCUR / 1000;
+      	}
+      	pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_suspend_chgcur", &pmu_suspend_chgcur, sizeof(int));
+      	if (ret){
+      		printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_suspend_chgcur = SUSCHGCUR / 1000;
+      	}
+      	pmu_suspend_chgcur = pmu_suspend_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_resume_chgcur", &pmu_resume_chgcur, sizeof(int));
+      	if (ret){
+        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_resume_chgcur = RESCHGCUR / 1000;
+      	}
+      	pmu_resume_chgcur = pmu_resume_chgcur * 1000;
+      	ret = script_parser_fetch("pmu_para", "pmu_shutdown_chgcur", &pmu_shutdown_chgcur, sizeof(int));
+      	if (ret){
+        	printk("axp driver uning configuration failed(%d)\n", __LINE__);
+        	pmu_shutdown_chgcur = CLSCHGCUR / 1000;
+      	}
+      	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
+  		}
+ 
+  		if(pmu_init_chgcur >= 300000 && pmu_init_chgcur <= 1800000){
+#if defined CONFIG_HAS_EARLYSUSPEND
+  		 	if(early_suspend_flag){
+						tmp = (pmu_earlysuspend_chgcur -200001)/100000;
+  		 	}else
+#endif 
+    			tmp = (pmu_init_chgcur -200001)/100000;
+    		charger->chgcur = tmp *100000 + 300000;
+    		axp_update(charger->master, AXP20_CHARGE_CONTROL1, tmp, 0x0F);
+    	}
+  	}
 #endif
 
     /* if battery volume changed, inform uevent */
@@ -1385,13 +1531,13 @@ static int axp_battery_probe(struct platform_device *pdev)
 
   /* 3.5552V--%5 close*/
   axp_write(charger->master, AXP20_APS_WARNING1,0x7A);
-  ocv_cap[0]  = (pmu_bat_para1 > 2) ? 1: pmu_bat_para1;
+  ocv_cap[0]  = pmu_bat_para1;
   ocv_cap[1]  = 0xC1;
-  ocv_cap[2]  = (pmu_bat_para2 > 3) ? 1: pmu_bat_para2;
+  ocv_cap[2]  = pmu_bat_para2;
   ocv_cap[3]  = 0xC2;
-  ocv_cap[4]  = (pmu_bat_para3 > 4) ? 2: pmu_bat_para3;
+  ocv_cap[4]  = pmu_bat_para3;
   ocv_cap[5]  = 0xC3;
-  ocv_cap[6]  = (pmu_bat_para4 > 5) ? 5: pmu_bat_para4;
+  ocv_cap[6]  = pmu_bat_para4;
   ocv_cap[7]  = 0xC4;
   ocv_cap[8]  = pmu_bat_para5;
   ocv_cap[9]  = 0xC5;
@@ -1536,11 +1682,44 @@ static int axp_battery_probe(struct platform_device *pdev)
   /* disable */
   axp_set_bits(charger->master,AXP20_CAP,0x80);
   axp_clr_bits(charger->master,0xBA,0x80);
-	axp_clr_bits(charger->master,AXP20_CAP,0x80);
+  axp_clr_bits(charger->master,AXP20_CAP,0x80);
 
   charger->interval = msecs_to_jiffies(10 * 1000);
   INIT_DELAYED_WORK(&charger->work, axp_charging_monitor);
   schedule_delayed_work(&charger->work, charger->interval);
+  
+  var = script_parser_fetch("pmu_para", "pmu_used2", &pmu_used2, sizeof(int));
+  if (var)
+  {
+     DBG_PSY_MSG("axp driver uning configuration failed(%d)\n", __LINE__);
+     DBG_PSY_MSG("pmu_used2 = %d\n",pmu_used2);
+  }
+  
+  var = script_parser_fetch("pmu_para", "pmu_earlysuspend_chgcur", &pmu_earlysuspend_chgcur, sizeof(int));
+  if (var)
+  {
+     DBG_PSY_MSG("axp driver uning configuration failed(%d)\n", __LINE__);
+     DBG_PSY_MSG("pmu_earlysuspend_chgcur = %d\n",pmu_earlysuspend_chgcur);
+  }
+  pmu_earlysuspend_chgcur = pmu_earlysuspend_chgcur * 1000;
+  
+#if defined (CONFIG_AXP_CHGCHANGE)  
+  if(pmu_used2){
+  	gpio_adp_hdle = gpio_request_ex("pmu_para", "pmu_adpdet");
+  	if (!gpio_adp_hdle)
+    {
+        DBG_PSY_MSG("get adapter parameter failed\n");
+    }
+  }
+#endif
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	axp_charger = charger;
+    axp_early_suspend.suspend = axp_earlysuspend;
+    axp_early_suspend.resume = axp_lateresume;
+    axp_early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 2;
+    register_early_suspend(&axp_early_suspend);
+#endif
 
   return ret;
 
