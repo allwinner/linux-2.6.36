@@ -132,7 +132,7 @@ __s32 hdmi_main_task_loop(void)
     		 return 0;  
     		 
 		default:
-			 __wrn(" unkonwn hdmi state, set to idle\n")
+			 __wrn(" unkonwn hdmi state, set to idle\n");
 			 hdmi_state = HDMI_State_Idle;	
 			 return 0;	
     }

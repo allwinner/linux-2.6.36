@@ -34,7 +34,7 @@
 #define OSAL_PRINTF     printk
 #define __inf(msg...)
 #define __msg(msg...)
-#define __wrn(msg...)
+#define __wrn           printk
 #define __here__
 #else
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}

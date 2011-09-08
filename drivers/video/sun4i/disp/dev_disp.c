@@ -219,7 +219,7 @@ __s32 DRV_lcd_close(__u32 sel)
 
 __s32 DRV_scaler_begin(__u32 sel)
 {
-    long timeout = 500;//500ms
+    long timeout = (500 * HZ)/1000;//500ms
 
     g_disp_drv.b_scaler_finished[sel] = 0;
     timeout = wait_event_interruptible_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 1, msecs_to_jiffies(timeout));
@@ -272,11 +272,11 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
 #endif
 
 #if 1
-	long timeout = 20 * HZ;//20ms
+	long timeout = (20 * HZ)/1000,ret;//20ms
 	__u32 i;
 	spinlock_t mr_lock;
 
-    timeout = (1000 / BSP_disp_get_frame_rate(sel)) * 2 * HZ;//wait two frame
+    timeout = (HZ / BSP_disp_get_frame_rate(sel)) * 2;//wait two frame
     
     if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
     {
@@ -289,11 +289,11 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
         spin_unlock(&mr_lock);
 
         g_disp_drv.b_cmd_finished[sel][i] = 1;
-    	timeout = wait_event_interruptible_timeout(g_disp_drv.my_queue[sel][i], g_disp_drv.b_cmd_finished[sel][i] == 2, timeout);
+    	ret = wait_event_interruptible_timeout(g_disp_drv.my_queue[sel][i], g_disp_drv.b_cmd_finished[sel][i] == 2, timeout);
     	g_disp_drv.b_cmd_finished[sel][i] = 0;
-    	if(timeout == 0)
+    	if(ret == 0)
         {
-            __inf("timeout\n");
+            __inf("timeout,%d,%d\n", sel,timeout);
         }
     }
 #endif
