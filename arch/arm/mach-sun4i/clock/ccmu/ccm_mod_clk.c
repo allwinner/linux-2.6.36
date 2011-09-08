@@ -661,10 +661,13 @@ static __aw_ccu_clk_onff_e mod_clk_get_status(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_SATA:
             return aw_ccu_reg->SataClk.SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_USBPHY:
-        case AW_MOD_CLK_USBPHY0:
-        case AW_MOD_CLK_USBPHY1:
-        case AW_MOD_CLK_USBPHY2:
             return aw_ccu_reg->UsbClk.PhySpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_USBPHY0:
+            return aw_ccu_reg->UsbClk.UsbPhy0Rst? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_USBPHY1:
+            return aw_ccu_reg->UsbClk.UsbPhy1Rst? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
+        case AW_MOD_CLK_USBPHY2:
+            return aw_ccu_reg->UsbClk.UsbPhy2Rst? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_USBOHCI0:
             return aw_ccu_reg->UsbClk.OHCI0SpecClkGate? AW_CCU_CLK_ON : AW_CCU_CLK_OFF;
         case AW_MOD_CLK_USBOHCI1:
@@ -1049,13 +1052,11 @@ static __aw_ccu_clk_reset_e mod_clk_get_reset(__aw_ccu_mod_clk_e id)
         case AW_MOD_CLK_KEYPAD:
         case AW_MOD_CLK_SATA:
         case AW_MOD_CLK_USBPHY:
-            return AW_CCU_CLK_NRESET;
         case AW_MOD_CLK_USBPHY0:
-            return aw_ccu_reg->UsbClk.UsbPhy0Rst? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_USBPHY1:
-            return aw_ccu_reg->UsbClk.UsbPhy1Rst? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
         case AW_MOD_CLK_USBPHY2:
-            return aw_ccu_reg->UsbClk.UsbPhy2Rst? AW_CCU_CLK_NRESET : AW_CCU_CLK_RESET;
+            return AW_CCU_CLK_NRESET;
+
         case AW_MOD_CLK_USBOHCI0:
             return AW_CCU_CLK_NRESET;
         case AW_MOD_CLK_USBOHCI1:
@@ -1556,11 +1557,21 @@ static __s32 mod_clk_set_status(__aw_ccu_mod_clk_e id, __aw_ccu_clk_onff_e statu
             return 0;
         }
         case AW_MOD_CLK_USBPHY0:
-        case AW_MOD_CLK_USBPHY1:
-        case AW_MOD_CLK_USBPHY2:
         {
+            aw_ccu_reg->UsbClk.UsbPhy0Rst = (status == AW_CCU_CLK_OFF)? 0 : 1;
             return 0;
         }
+        case AW_MOD_CLK_USBPHY1:
+        {
+            aw_ccu_reg->UsbClk.UsbPhy1Rst = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            return 0;
+        }
+        case AW_MOD_CLK_USBPHY2:
+        {
+            aw_ccu_reg->UsbClk.UsbPhy2Rst = (status == AW_CCU_CLK_OFF)? 0 : 1;
+            return 0;
+        }
+
         case AW_MOD_CLK_USBOHCI0:
             aw_ccu_reg->UsbClk.OHCI0SpecClkGate = ((status == AW_CCU_CLK_OFF)? 0 : 1);
             return 0;
@@ -2260,22 +2271,10 @@ static __s32 mod_clk_set_reset(__aw_ccu_mod_clk_e id, __aw_ccu_clk_reset_e reset
         case AW_MOD_CLK_USBOHCI0:
         case AW_MOD_CLK_USBOHCI1:
             return (reset == AW_CCU_CLK_NRESET)? 0 : -1;
-
         case AW_MOD_CLK_USBPHY0:
-        {
-            aw_ccu_reg->UsbClk.UsbPhy0Rst = (reset == AW_CCU_CLK_RESET)? 0 : 1;
-            return 0;
-        }
         case AW_MOD_CLK_USBPHY1:
-        {
-            aw_ccu_reg->UsbClk.UsbPhy1Rst = (reset == AW_CCU_CLK_RESET)? 0 : 1;
-            return 0;
-        }
         case AW_MOD_CLK_USBPHY2:
-        {
-            aw_ccu_reg->UsbClk.UsbPhy2Rst = (reset == AW_CCU_CLK_RESET)? 0 : 1;
             return 0;
-        }
         case AW_MOD_CLK_GPS:
         {
             aw_ccu_reg->GpsClk.Reset = (reset == AW_CCU_CLK_RESET)? 0 : 1;
