@@ -82,7 +82,8 @@ kernel/ic/px.o \
 kernel/ic/pcap.o \
 kernel/ic/log_proc.o \
 kernel/ic/registry.o \
-kernel/ic/config.o
+kernel/ic/config.o \
+kernel/ic/mac.o
 
 NANO_IF_INC = \
 kernel/ic
