@@ -686,16 +686,35 @@ static __s32 sw_hcd_io_exit(__u32 usbc_no, struct platform_device *pdev, sw_hcd_
 */
 static void sw_hcd_shutdown(struct platform_device *pdev)
 {
-	struct sw_hcd 	*sw_hcd = dev_to_sw_hcd(&pdev->dev);
+	struct sw_hcd 	*sw_hcd = NULL;
 	unsigned long   flags = 0;
+
+    if(pdev == NULL){
+        DMSG_INFO("err: Invalid argment\n");
+		return ;
+    }
+
+    sw_hcd = dev_to_sw_hcd(&pdev->dev);
+    if(sw_hcd == NULL){
+        DMSG_INFO("err: sw_hcd is null\n");
+		return ;
+    }
+
+	if(!sw_hcd->enable){
+		DMSG_INFO("wrn: hcd is disable, need not shutdown\n");
+		return ;
+	}
+
+	DMSG_INFO_HCD0("sw_hcd shutdown start\n");
 
 	spin_lock_irqsave(&sw_hcd->lock, flags);
 	sw_hcd_platform_disable(sw_hcd);
 	sw_hcd_generic_disable(sw_hcd);
 	close_usb_clock(&g_sw_hcd_io);
+	sw_hcd_set_vbus(sw_hcd, 0);
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
-	/* FIXME power down */
+	DMSG_INFO_HCD0("sw_hcd shutdown end\n");
 
 	return;
 }
@@ -2065,12 +2084,12 @@ int sw_usb_disable_hcd0(void)
 	spin_lock_irqsave(&sw_hcd->lock, flags);
 	sw_hcd_port_suspend_ex(sw_hcd);
 	sw_hcd_stop(sw_hcd);
-	sw_hcd->enable = 0;
 	sw_hcd_set_vbus(sw_hcd, 0);
 	sw_hcd_save_context(sw_hcd);
 	close_usb_clock(sw_hcd->sw_hcd_io);
 
 	sw_hcd_soft_disconnect(sw_hcd);
+	sw_hcd->enable = 0;
 	spin_unlock_irqrestore(&sw_hcd->lock, flags);
 
 	DMSG_INFO("sw_usb_disable_hcd0 end\n");

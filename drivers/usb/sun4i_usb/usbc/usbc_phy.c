@@ -611,11 +611,17 @@ void UsbPhyInit(__u32 usbc_no)
 	if(usbc_no == 0){
 	    USBC_Phy_Write(usbc_no, 0x0c, 0x01, 1);
 	}
+
 //	DMSG_INFO("csr2-0: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x0c, 1));
 
     /* 调整 USB0 PHY 的幅度和速率 */
-	USBC_Phy_Write(usbc_no, 0x20, 0x1d, 5);
-//		DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
+    if(usbc_no == 0){
+    	USBC_Phy_Write(usbc_no, 0x20, 0x1d, 5);
+	}else{
+    	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
+	}
+
+//	DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
 
     /* 调节 disconnect 域值 */
 	USBC_Phy_Write(usbc_no, 0x2a, 3, 2);

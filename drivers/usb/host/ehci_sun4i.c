@@ -534,6 +534,53 @@ static int sw_ehci_hcd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/*
+*******************************************************************************
+*                     sw_ehci_hcd_shutdown
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void sw_ehci_hcd_shutdown(struct platform_device* pdev)
+{
+	struct sw_hci_hcd *sw_ehci = NULL;
+
+	if(pdev == NULL){
+		DMSG_PANIC("ERR: Argment is invalid\n");
+		return;
+	}
+
+	sw_ehci = pdev->dev.platform_data;
+	if(sw_ehci == NULL){
+		DMSG_PANIC("ERR: sw_ehci is null\n");
+		return;
+	}
+
+	if(sw_ehci->probe == 0){
+		DMSG_PANIC("ERR: sw_ehci is disable, need not shutdown\n");
+		return;
+	}
+
+ 	DMSG_INFO("[%s]: ehci shutdown start\n", sw_ehci->hci_name);
+
+    usb_hcd_platform_shutdown(pdev);
+
+ 	DMSG_INFO("[%s]: ehci shutdown end\n", sw_ehci->hci_name);
+
+    return ;
+}
+
 #ifdef CONFIG_PM
 
 /*
@@ -724,7 +771,7 @@ static const struct dev_pm_ops  aw_ehci_pmops = {
 static struct platform_driver sw_ehci_hcd_driver ={
   .probe  	= sw_ehci_hcd_probe,
   .remove	= sw_ehci_hcd_remove,
-//  .shutdown = usb_hcd_platform_shutdown,
+  .shutdown = sw_ehci_hcd_shutdown,
   .driver = {
 		.name	= ehci_name,
 		.owner	= THIS_MODULE,

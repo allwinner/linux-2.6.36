@@ -464,6 +464,47 @@ static int sw_ohci_hcd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/*
+*******************************************************************************
+*                     sw_ohci_hcd_shutdown
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void sw_ohci_hcd_shutdown(struct platform_device* pdev)
+{
+	struct sw_hci_hcd *sw_ohci = NULL;
+
+	sw_ohci = pdev->dev.platform_data;
+	if(sw_ohci == NULL){
+		DMSG_PANIC("ERR: sw_ohci is null\n");
+		return ;
+	}
+
+	if(sw_ohci->probe == 0){
+    	DMSG_PANIC("ERR: sw_ohci is disable, need not shutdown\n");
+    	return ;
+	}
+
+ 	DMSG_INFO("[%s]: ohci shutdown start\n", sw_ohci->hci_name);
+
+    usb_hcd_platform_shutdown(pdev);
+
+ 	DMSG_INFO("[%s]: ohci shutdown end\n", sw_ohci->hci_name);
+
+    return;
+}
 
 #ifdef CONFIG_PM
 
@@ -625,7 +666,7 @@ static const struct dev_pm_ops sw_ohci_pmops = {
 static struct platform_driver sw_ohci_hcd_driver = {
 	.probe		= sw_ohci_hcd_probe,
 	.remove		= sw_ohci_hcd_remove,
-//	.shutdown	= usb_hcd_platform_shutdown,
+	.shutdown	= sw_ohci_hcd_shutdown,
 	.driver		= {
 		.name	= ohci_name,
 		.owner	= THIS_MODULE,
