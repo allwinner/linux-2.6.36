@@ -21,14 +21,15 @@ endif
 
 ARCH ?= arm
 ## @note Should allow overriding of building UMP for non-debug:
-# EXTRA_CFLAGS += -DDEBUG
+#EXTRA_CFLAGS += -DDEBUG -DMALI_STATE_TRACKING=0
+EXTRA_CFLAGS += -DMALI_STATE_TRACKING=0
 
 # linux build system integration
 
 ifneq ($(KERNELRELEASE),)
 # Inside the kernel build system
 
-EXTRA_CFLAGS += -I$(KBUILD_EXTMOD) -I$(KBUILD_EXTMOD)/common -I$(KBUILD_EXTMOD)/linux -I$(KBUILD_EXTMOD)/../mali/common -I$(KBUILD_EXTMOD)/../mali/linux -I$(KBUILD_EXTMOD)/../../../include/ump
+EXTRA_CFLAGS += -I$(KBUILD_EXTMOD) -I$(KBUILD_EXTMOD)/common -I$(KBUILD_EXTMOD)/linux -I$(KBUILD_EXTMOD)/../mali/common -I$(KBUILD_EXTMOD)/../mali/linux -I$(KBUILD_EXTMOD)/../../ump/include/ump
 
 # For customer releases the Linux Device Drivers will be provided as ARM proprietary and GPL releases:
 # The ARM proprietary product will only include the license/proprietary directory

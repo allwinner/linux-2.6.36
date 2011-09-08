@@ -22,11 +22,12 @@
 #include <mach/irqs.h>
 #include <mach/script_v2.h>
 
+
 int mali_clk_div = 3;
 module_param(mali_clk_div, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH);
 MODULE_PARM_DESC(mali_clk_div, "Clock divisor for mali");
 
-struct clk *h_ahb_mali, *h_mali_clk, *h_ve_pll;;
+struct clk *h_ahb_mali, *h_mali_clk, *h_ve_pll;
 
 #if USING_MALI_PMM
 
@@ -124,15 +125,10 @@ _mali_osk_errcode_t mali_platform_init(_mali_osk_resource_t *resource)
 		MALI_PRINT(("try to set mali clock failed!\n"));
 	}
 	
-	if(clk_enable(h_ahb_mali)){
-		MALI_PRINT(("try to enable mali ahb failed!\n"));
-	}
-	if(clk_enable(h_mali_clk)){
-		MALI_PRINT(("try to enable mali clock failed!\n"));
-	}
 	if(clk_reset(h_mali_clk,0)){
 		MALI_PRINT(("try to reset release failed!\n"));
 	}
+	
 	MALI_PRINT(("mali clock set completed, clock is  %d Mhz\n", rate));
 	
 #if USING_MALI_PMM
@@ -221,6 +217,7 @@ cleanup:
 
 _mali_osk_errcode_t mali_platform_deinit(_mali_osk_resource_type_t *type)
 {
+	
 #if USING_MALI_PMM
 	if( type == NULL )
 	{
@@ -243,33 +240,28 @@ _mali_osk_errcode_t mali_platform_deinit(_mali_osk_resource_type_t *type)
 		/* Didn't expect a different resource */
 		MALI_ERROR(_MALI_OSK_ERR_INVALID_ARGS);
 	}	
-	//close clock
-	MALI_PRINT(("free mali clk\n"));
-	clk_disable(h_mali_clk);
-	clk_disable(h_ahb_mali);	
+		
 	MALI_SUCCESS;
 
 #else
 	/* Nothing to do when not using PMM */
-	//close clock
-	MALI_PRINT(("free mali clk\n"));
-	clk_disable(h_mali_clk);
-	clk_disable(h_ahb_mali);
 	MALI_SUCCESS;
 #endif
 }
 
 _mali_osk_errcode_t mali_platform_powerdown(u32 cores)
 {
+	
 #if USING_MALI_PMM
 	u32 stat;
 	u32 timeout;
 	u32 cores_pmu;
-
+	
 	MALI_DEBUG_ASSERT_POINTER(pmu_info);
 	MALI_DEBUG_ASSERT( cores != 0 ); /* Shouldn't receive zero from PMM */
 	MALI_DEBUG_PRINT( 4, ("PLATFORM mali400-pmu: power down (0x%x)\n", cores) );
 
+	
 	cores_pmu = pmu_translate_cores_to_pmu(cores);
 	pmu_reg_write( pmu_info, (u32)PMU_REG_ADDR_MGMT_POWER_DOWN, cores_pmu );
 
@@ -286,7 +278,12 @@ _mali_osk_errcode_t mali_platform_powerdown(u32 cores)
 	} while( timeout > 0 );
 
 	if( timeout == 0 ) MALI_ERROR(_MALI_OSK_ERR_TIMEOUT);
-
+	
+	/*close mali axi/apb clock
+	MALI_PRINT(("disable mali clock\n"));*/
+	clk_disable(h_mali_clk);
+	clk_disable(h_ahb_mali);
+	
 	MALI_SUCCESS;
 
 #else
@@ -305,7 +302,16 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 	MALI_DEBUG_ASSERT_POINTER(pmu_info);
 	MALI_DEBUG_ASSERT( cores != 0 ); /* Shouldn't receive zero from PMM */
 	MALI_DEBUG_PRINT( 4, ("PLATFORM mali400-pmu: power up (0x%x)\n", cores) );
-
+	
+	/*enable mali axi/apb clock
+	MALI_PRINT(("enable mali clock\n"));*/
+	if(clk_enable(h_ahb_mali)){
+		MALI_PRINT(("try to enable mali ahb failed!\n"));
+	}
+	if(clk_enable(h_mali_clk)){
+		MALI_PRINT(("try to enable mali clock failed!\n"));
+	}
+	
 	/* Don't use interrupts - just poll status */
 	pmu_reg_write( pmu_info, (u32)PMU_REG_ADDR_MGMT_INT_MASK, 0 );
 	cores_pmu = pmu_translate_cores_to_pmu(cores);
@@ -323,7 +329,7 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 	} while( timeout > 0 );
 
 	if( timeout == 0 ) MALI_ERROR(_MALI_OSK_ERR_TIMEOUT);
-
+	
 	MALI_SUCCESS;
 
 #else

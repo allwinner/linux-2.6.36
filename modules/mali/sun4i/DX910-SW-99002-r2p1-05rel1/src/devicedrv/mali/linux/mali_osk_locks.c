@@ -61,7 +61,6 @@ struct _mali_osk_lock_t_struct
 	MALI_DEBUG_CODE(
 				  /** original flags for debug checking */
 				  _mali_osk_lock_flags_t orig_flags;
-				  _mali_osk_lock_mode_t locked_as;
 	); /* MALI_DEBUG_CODE */
 };
 
@@ -124,13 +123,12 @@ _mali_osk_lock_t *_mali_osk_lock_init( _mali_osk_lock_flags_t flags, u32 initial
 		}
 
 		/* Initially unlocked */
-		init_MUTEX( &lock->obj.sema );
+		sema_init( &lock->obj.sema, 1 );
 	}
 
 	MALI_DEBUG_CODE(
 				  /* Debug tracking of flags */
 				  lock->orig_flags = flags;
-				  lock->locked_as = _MALI_OSK_LOCKMODE_UNDEF;
 				  ); /* MALI_DEBUG_CODE */
 
     return lock;
@@ -190,17 +188,6 @@ _mali_osk_errcode_t _mali_osk_lock_wait( _mali_osk_lock_t *lock, _mali_osk_lock_
 		break;
 	}
 
-	/* DEBUG tracking of previously locked state - occurs after lock obtained */
-	MALI_DEBUG_CODE(
-				  if ( _MALI_OSK_ERR_OK == err )
-				  {
-					  /* Assert that this is not currently locked */
-					  MALI_DEBUG_ASSERT( _MALI_OSK_LOCKMODE_UNDEF == lock->locked_as );
-
-					  lock->locked_as = mode;
-				  }
-				  ); /* MALI_DEBUG_CODE */
-
     return err;
 }
 
@@ -217,12 +204,6 @@ void _mali_osk_lock_signal( _mali_osk_lock_t *lock, _mali_osk_lock_mode_t mode )
 	 * information, which is only stored when built for DEBUG */
 	MALI_DEBUG_ASSERT( _MALI_OSK_LOCKMODE_RW == mode
 					 || (_MALI_OSK_LOCKMODE_RO == mode && (_MALI_OSK_LOCKFLAG_READERWRITER & lock->orig_flags)) );
-
-	/* For DEBUG only, assert that we previously locked this, and in the same way (RW/RO) */
-	MALI_DEBUG_ASSERT( mode == lock->locked_as );
-
-	/* DEBUG tracking of previously locked state - occurs before lock released */
-	MALI_DEBUG_CODE( lock->locked_as = _MALI_OSK_LOCKMODE_UNDEF );
 
 	switch ( lock->type )
 	{
@@ -262,9 +243,6 @@ void _mali_osk_lock_term( _mali_osk_lock_t *lock )
 {
 	/* Parameter validation  */
 	MALI_DEBUG_ASSERT_POINTER( lock );
-
-	/* For DEBUG only, assert that this is not currently locked */
-	MALI_DEBUG_ASSERT( _MALI_OSK_LOCKMODE_UNDEF == lock->locked_as );
 
 	/* Linux requires no explicit termination of spinlocks, semaphores, or rw_semaphores */
     kfree(lock);

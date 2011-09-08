@@ -25,13 +25,12 @@ endif
 ARCH ?= arm
 USING_MMU ?= 1
 USING_UMP ?= 0
-ONLY_ZBT ?= 0
-USING_ZBT ?= 1
 USING_OS_MEMORY ?= 0
 USING_PMM ?= 0
 USING_GPU_UTILIZATION ?= 0
 USING_MALI_RUN_TIME_PM ?= 0
 USING_MALI_PMM_TESTSUITE ?= 0
+OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB ?= 6
 USING_PROFILING ?= 0
 TIMESTAMP ?= default
 BUILD ?= debug
@@ -53,20 +52,26 @@ ifneq ($(KERNELRELEASE),)
 -include ../../../arm_internal.mak
 
 # Set up our defines, which will be passed to gcc
-DEFINES += -DUSING_ZBT=$(USING_ZBT)
 DEFINES += -DUSING_OS_MEMORY=$(USING_OS_MEMORY)
 DEFINES += -DUSING_MMU=$(USING_MMU)
 DEFINES += -DUSING_UMP=$(USING_UMP)
-DEFINES += -DONLY_ZBT=$(ONLY_ZBT)
 DEFINES += -D_MALI_OSK_SPECIFIC_INDIRECT_MMAP
 DEFINES += -DMALI_TIMELINE_PROFILING_ENABLED=$(USING_PROFILING)
 DEFINES += -DMALI_POWER_MGMT_TEST_SUITE=$(USING_MALI_PMM_TESTSUITE)
 DEFINES += -DMALI_PMM_RUNTIME_JOB_CONTROL_ON=$(USING_MALI_RUN_TIME_PM)
 
+ifeq ($(shell test $(SUBLEVEL) -gt 32 && echo "OK"),OK)
+# MALI_STATE_TRACKING is only supported on Linux kernels from version 2.6.32.
+DEFINES += -DMALI_STATE_TRACKING=1
+else
+DEFINES += -DMALI_STATE_TRACKING=0
+endif
+DEFINES += -DMALI_OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB=$(OS_MEMORY_KERNEL_BUFFER_SIZE_IN_MB)
+
 ifneq ($(call submodule_enabled, $M, PMU),0)
         MALI_PLATFORM_FILE = platform/mali400-pmu/mali_platform.c
 else
-        MALI_PLATFORM_FILE = platform/$(TARGET_PLATFORM)/mali_platform.c
+	MALI_PLATFORM_FILE = platform/$(TARGET_PLATFORM)/mali_platform.c
 endif
 
 DEFINES += -DUSING_MALI_PMM=$(USING_PMM)
@@ -83,7 +88,7 @@ DEFINES += -DMALI_UKK_HAS_IMPLICIT_MMAP_CLEANUP
 
 ifeq ($(USING_UMP),1)
 	DEFINES += -DMALI_USE_UNIFIED_MEMORY_PROVIDER=1
-	EXTRA_CFLAGS += -I$(KBUILD_EXTMOD)/../../../include/ump
+	EXTRA_CFLAGS += -I$(KBUILD_EXTMOD)/../../ump/include/ump
 else
 	DEFINES += -DMALI_USE_UNIFIED_MEMORY_PROVIDER=0
 endif
@@ -109,6 +114,9 @@ SRC = \
 	$(OSKOS)/mali_osk_indir_mmap.c \
 	common/mali_kernel_rendercore.c \
 	common/mali_kernel_descriptor_mapping.c \
+	common/mali_kernel_vsync.c \
+	linux/mali_ukk_vsync.c \
+	linux/mali_kernel_sysfs.c \
 	$(MALI_PLATFORM_FILE) \
 	$(OSKFILES) \
 	$(UKKFILES) \
@@ -212,7 +220,7 @@ KDIR-$(shell uname -m):=/lib/modules/$(shell uname -r)/build
 
 ifeq ($(ARCH), arm)
 	# when compiling for ARM we're cross compiling
-	#export CROSS_COMPILE ?= arm-none-linux-gnueabi-
+	export CROSS_COMPILE ?= arm-none-linux-gnueabi-
 	# default to Virtex5
 	CONFIG ?= pb-virtex5-m200
 else

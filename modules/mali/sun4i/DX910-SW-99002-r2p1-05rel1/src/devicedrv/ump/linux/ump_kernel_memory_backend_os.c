@@ -60,7 +60,7 @@ ump_memory_backend * ump_os_memory_backend_create(const int max_allocation)
 	info->num_pages_max = max_allocation >> PAGE_SHIFT;
 	info->num_pages_allocated = 0;
 
-	init_MUTEX(&info->mutex);
+	sema_init(&info->mutex, 1);
 
 	backend = kmalloc(sizeof(ump_memory_backend), GFP_KERNEL);
 	if (NULL == backend)
@@ -138,10 +138,11 @@ static int os_allocate(void* ctx, ump_dd_mem * descriptor)
 
 		if (is_cached)
 		{
-			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_NORETRY | __GFP_NOWARN );
+			/* Only allocate lowmem pages when using cached memory. */
+			new_page = alloc_page(GFP_USER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN);
 		} else
 		{
-			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_NORETRY | __GFP_NOWARN | __GFP_COLD);
+			new_page = alloc_page(GFP_HIGHUSER | __GFP_ZERO | __GFP_REPEAT | __GFP_NOWARN | __GFP_COLD);
 		}
 		if (NULL == new_page)
 		{

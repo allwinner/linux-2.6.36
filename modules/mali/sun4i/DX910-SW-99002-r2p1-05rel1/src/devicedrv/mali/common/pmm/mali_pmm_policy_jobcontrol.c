@@ -173,6 +173,10 @@ _mali_osk_errcode_t pmm_policy_process_job_control( _mali_pmm_internal_state_t *
 	/* Mainly the data is the cores */
 	cores = pmm_cores_from_event_data( pmm, event );
 
+#if MALI_STATE_TRACKING
+	pmm->mali_last_pmm_status = pmm->status;
+#endif /* MALI_STATE_TRACKING */
+
 	switch( pmm->status )
 	{
 	/**************** IDLE ****************/
@@ -436,6 +440,10 @@ _mali_osk_errcode_t pmm_policy_process_job_control( _mali_pmm_internal_state_t *
 
 	/* Update the PMM state */
 	pmm_update_system_state( pmm );
+#if MALI_STATE_TRACKING
+	pmm->mali_new_event_status = event->id;
+#endif /* MALI_STATE_TRACKING */
+
 	MALIPMM_DEBUG_PRINT( ("PMM: Job control policy process end - status=%d and event=%d\n", pmm->status,event->id) );
 
 	MALI_SUCCESS;

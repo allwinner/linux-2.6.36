@@ -11,7 +11,7 @@
 #ifndef __ARCH_CONFIG_H__
 #define __ARCH_CONFIG_H__
 
-/* Configuration for the EB platform with ZBT memory enabled */
+/* Configuration for the PB platform with ZBT memory enabled */
 
 static _mali_osk_resource_t arch_configuration [] =
 {
@@ -73,23 +73,15 @@ static _mali_osk_resource_t arch_configuration [] =
 		.mmu_id = 4
 	},
 #endif
-#if ! ONLY_ZBT
 	{
 		.type = MEMORY,
 		.description = "Mali SDRAM remapped to baseboard",
 		.cpu_usage_adjust = -0x50000000,
 		.alloc_order = 0, /* Highest preference for this memory */
-#if MALI_USE_UNIFIED_MEMORY_PROVIDER != 0
-		.base = 0xD2000000, /* Reserving 32MB for UMP devicedriver */
-		.size = 0x0E000000,
-#else
 		.base = 0xD0000000,
 		.size = 0x10000000,
-#endif /* MALI_USE_UNIFIED_MEMORY_PROVIDER != 0 */
 		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_PP_READABLE | _MALI_PP_WRITEABLE |_MALI_GP_READABLE | _MALI_GP_WRITEABLE
 	},
-#endif
-#if USING_ZBT
 	{
 		.type = MEMORY,
 		.description = "Mali ZBT",
@@ -98,7 +90,6 @@ static _mali_osk_resource_t arch_configuration [] =
 		.size = 0x01000000,
 		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_PP_READABLE | _MALI_PP_WRITEABLE |_MALI_GP_READABLE | _MALI_GP_WRITEABLE
 	},
-#endif
 	{
 		.type = MEM_VALIDATION,
 		.description = "Framebuffer",

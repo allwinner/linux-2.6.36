@@ -92,7 +92,7 @@ ump_memory_backend * ump_block_allocator_create(u32 base_address, u32 size)
 				allocator->num_blocks = num_blocks;
 				allocator->num_free = num_blocks;
 				allocator->base = base_address;
-				init_MUTEX(&allocator->mutex);
+				sema_init(&allocator->mutex, 1);
 
 				for (i = 0; i < num_blocks; i++)
 				{
@@ -218,6 +218,7 @@ static int block_allocator_allocate(void* ctx, ump_dd_mem * mem)
 	mem->backend_info = last_allocated;
 
 	up(&allocator->mutex);
+	mem->is_cached=0;
 
 	return 1;
 }
