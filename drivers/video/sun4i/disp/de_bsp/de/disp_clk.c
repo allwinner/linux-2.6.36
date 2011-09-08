@@ -1083,6 +1083,19 @@ __s32 BSP_disp_clk_on(__u32 type)
     		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_ON);
     	}
     }
+    
+    if(type == 2)
+    {
+    	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
+    	{
+    		OSAL_CCMU_SetMclkDiv(h_debe0mclk, 2);
+    	}
+    	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
+    	{
+    		OSAL_CCMU_SetMclkDiv(h_debe1mclk, 2);
+    	}
+    }
+
 	return DIS_SUCCESS;
 }
 
@@ -1187,6 +1200,19 @@ __s32 BSP_disp_clk_off(__u32 type)
     		OSAL_CCMU_MclkOnOff(h_hdmimclk, CLK_OFF);
     	}
     }
+
+    if(type == 2)
+    {
+    	if((g_clk_status & CLK_DEBE0_MOD_ON) == CLK_DEBE0_MOD_ON)
+    	{
+    		OSAL_CCMU_SetMclkDiv(h_debe0mclk, 16);
+    	}
+    	if((g_clk_status & CLK_DEBE1_MOD_ON) == CLK_DEBE1_MOD_ON)
+    	{
+    		OSAL_CCMU_SetMclkDiv(h_debe1mclk, 16);
+    	}
+    }
+    
 	return DIS_SUCCESS;
 }
 	
