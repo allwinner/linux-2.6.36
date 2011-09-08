@@ -17,12 +17,13 @@
 #include "px.h"
 
 static int nrx_mib_release(struct nrx_px_softc*, struct inode*, struct file*);
+static int nrx_mib_init(struct nrx_px_softc *psc);
 
 struct nrx_px_entry mib_px_entry = {
    .name = "mib", 
    .mode = S_IRUSR|S_IWUSR, 
    .blocksize = 1024, 
-   .init = NULL,
+   .init = nrx_mib_init,
    .open = NULL,
    .release = nrx_mib_release
 };
@@ -50,7 +51,36 @@ nrx_mib_release(struct nrx_px_softc *psc,
                 struct inode *inode, 
                 struct file *file)
 {
+    printk("[nano] Send mib\n");
    nano_mib_download(psc);
 
    return 0;
 }
+
+static inline void make_filename(char *filename, size_t len, const char *name)
+{
+    const char *sep = "";
+    if (*nrx_config == '\0' || nrx_config[strlen(nrx_config) - 1] != '/')
+        sep = "/";
+    snprintf(filename, len, "%s%s%s", nrx_config, sep, name);
+}
+
+static int
+nrx_mib_init(struct nrx_px_softc *psc)
+{
+    int status;
+    char filename[128];
+    nrx_px_wlock(psc);
+    make_filename(filename, sizeof(filename), "mib.bin");
+    status = nrx_px_read_file(psc, filename);
+    if (status != 0) {
+        printk("[nano] read mib file: %s failed\n", filename);
+    }
+    if (status == 0) {
+        printk("loaded mib file: %s\n", filename);
+        nrx_mib_release(psc, NULL, NULL);
+    }
+    nrx_px_wunlock(psc);
+    return 0;
+}
+

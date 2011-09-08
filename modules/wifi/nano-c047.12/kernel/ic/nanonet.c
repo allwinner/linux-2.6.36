@@ -1693,9 +1693,13 @@ nanonet_create(struct device *pdev, void *data, struct nanonet_create_param *par
 
    /* this is the default mac address, if we don't find a real one */
    dev->addr_len = 6;
-   WiFiEngine_RandomMAC(0, dev->dev_addr, dev->addr_len);
-   memcpy(dev->dev_addr, "\x2\x3\x4", 3);
-   
+   //WiFiEngine_RandomMAC(0, dev->dev_addr, dev->addr_len);
+   //memcpy(dev->dev_addr, "\x2\x3\x4", 3);
+   {
+        extern int get_mac_addr(char* mac);
+        get_mac_addr(dev->dev_addr);
+   }
+
    add_mib_call(MIB_dot11MACAddress, mac_callback);
    add_mib_call(MIB_dot11OperationalRatesSet, rates_callback);
 

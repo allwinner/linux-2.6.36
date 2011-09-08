@@ -694,7 +694,7 @@ static int awsmc_proc_read_dbglevel(char *page, char **start, off_t off, int cou
 
 static int awsmc_proc_write_dbglevel(struct file *file, const char __user *buffer, unsigned long count, void *data)
 {
-    smc_debug = simple_strtoul(buffer, NULL, sizeof(smc_debug));
+    smc_debug = simple_strtoul(buffer, NULL, 10);
 
     return sizeof(smc_debug);
 }
@@ -718,7 +718,7 @@ static int awsmc_proc_read_insert_status(char *page, char **start, off_t off, in
 
 static int awsmc_proc_card_insert_ctrl(struct file *file, const char __user *buffer, unsigned long count, void *data)
 {
-	u32 insert = simple_strtoul(buffer, NULL, sizeof(unsigned));
+	u32 insert = simple_strtoul(buffer, NULL, 10);
     struct awsmc_host *smc_host = (struct awsmc_host *)data;
 	u32 present = insert ? 1 : 0;
 
