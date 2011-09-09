@@ -43,6 +43,7 @@
 
 /*Crystal Control*/
 #define REG_LOSCCTRL_MAGIC		    0x16aa0000
+#define REG_CLK32K_AUTO_SWT_EN  (0x00004000)
 #define RTC_SOURCE_INTERNAL         0x00000000
 #define RTC_SOURCE_EXTERNAL         0x00000001
 #define ALM_DDHHMMSS_ACCESS         0x00000200

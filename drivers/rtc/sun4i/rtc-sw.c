@@ -504,7 +504,8 @@ static int __devinit f23_rtc_probe(struct platform_device *pdev)
 
         //upate by kevin, 2011-9-7 18:23
         //step1: set keyfiled
-        tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);     
+        tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG); 
+        tmp_data &= (~REG_CLK32K_AUTO_SWT_EN);            //disable auto switch
         tmp_data |= (RTC_SOURCE_EXTERNAL | REG_LOSCCTRL_MAGIC); //external     32768hz osc
         writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);
         __udelay(100);
