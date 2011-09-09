@@ -646,7 +646,6 @@ __s32 disp_pll_init(void)
 static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 {
 	__u32 lcd_dclk_freq;	//Hz
-	__u32 pll_fac;
 	__s32 pll_freq = -1;
 	
 	lcd_dclk_freq = info->lcd_dclk_freq * 1000000;
@@ -682,7 +681,7 @@ static __s32 LCD_PLL_Calc(__u32 sel, __panel_para_t * info, __u32 *divider)
 		
 		if (lcd_dclk_freq > 4000000) //pixel clk
 		{
-			pll_fac = lcd_dclk_freq * 7;
+			pll_freq = lcd_dclk_freq * 7;
 			*divider = 7;
 		}
 		else
