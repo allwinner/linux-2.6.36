@@ -32,6 +32,7 @@
 #include <linux/hwmon.h>
 #include <linux/input-polldev.h>
 #include <linux/device.h>
+#include <linux/earlysuspend.h>
 
 /*
  * Defines
@@ -73,6 +74,18 @@
 
 static struct device *hwmon_dev;
 static struct i2c_client *mma7660_i2c_client;
+
+struct mma7660_data_s {
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	struct early_suspend early_suspend;
+	volatile int suspend_indator;
+#endif
+} mma7660_data;
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static int mma7660_early_suspend(struct early_suspend *h);
+static int mma7660_late_resume(struct early_suspend *h);
+#endif
 
 static void mma7660_read_xyz(int idx, s8 *pf)
 {
@@ -239,7 +252,13 @@ static void report_abs(void)
 
 static void mma7660_dev_poll(struct input_polled_dev *dev)
 {
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	if(0 == mma7660_data.suspend_indator){
+		report_abs();
+	}
+#else
 	report_abs();
+#endif
 } 
 
 /*
@@ -302,6 +321,14 @@ static int __devinit mma7660_probe(struct i2c_client *client,
 		dev_err(&client->dev, "create sys failed\n");
 	}
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+	mma7660_data.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
+	mma7660_data.early_suspend.suspend = mma7660_early_suspend;
+	mma7660_data.early_suspend.resume = mma7660_late_resume;
+	register_early_suspend(&mma7660_data.early_suspend);
+	mma7660_data.suspend_indator = 0;
+#endif
+
 	return result;
 }
 
@@ -317,32 +344,29 @@ static int __devexit mma7660_remove(struct i2c_client *client)
 	return result;
 }
 
-#ifdef CONFIG_PM
-
-static int mma7660_suspend(struct i2c_client *client, pm_message_t mesg)
+#ifdef CONFIG_HAS_EARLYSUSPEND
+static int mma7660_early_suspend(struct early_suspend *h)
 {
 	int result;
-	result = i2c_smbus_write_byte_data(client, 
+	printk(KERN_INFO "mma7660 early suspend\n");
+	mma7660_data.suspend_indator = 1;
+	result = i2c_smbus_write_byte_data(mma7660_i2c_client, 
 		MMA7660_MODE, MK_MMA7660_MODE(0, 0, 0, 0, 0, 0, 0));
 	assert(result==0);
 	return result;
 }
 
-static int mma7660_resume(struct i2c_client *client)
+static int mma7660_late_resume(struct early_suspend *h)
 {
 	int result;
-	result = i2c_smbus_write_byte_data(client, 
+	printk(KERN_INFO "mma7660 late resume\n");
+	mma7660_data.suspend_indator = 0;
+	result = i2c_smbus_write_byte_data(mma7660_i2c_client, 
 		MMA7660_MODE, MK_MMA7660_MODE(0, 1, 0, 0, 0, 0, 1));
 	assert(result==0);
 	return result;
 }
-
-#else
-
-#define mma7660_suspend		NULL
-#define mma7660_resume		NULL
-
-#endif /* CONFIG_PM */
+#endif /* CONFIG_HAS_EARLYSUSPEND */
 
 static const struct i2c_device_id mma7660_id[] = {
 	{ MMA7660_DRV_NAME, 1 },
@@ -355,8 +379,8 @@ static struct i2c_driver mma7660_driver = {
 		.name	= MMA7660_DRV_NAME,
 		.owner	= THIS_MODULE,
 	},
-	.suspend = mma7660_suspend,
-	.resume	= mma7660_resume,
+	//.suspend = mma7660_suspend,
+	//.resume	= mma7660_resume,
 	.probe	= mma7660_probe,
 	.remove	= __devexit_p(mma7660_remove),
 	.id_table = mma7660_id,
@@ -391,3 +415,4 @@ MODULE_VERSION("1.1");
 
 module_init(mma7660_init);
 module_exit(mma7660_exit);
+
