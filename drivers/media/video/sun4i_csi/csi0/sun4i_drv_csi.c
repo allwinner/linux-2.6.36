@@ -118,6 +118,24 @@ static struct csi_fmt formats[] = {
 		.planes_cnt		= 2,
 	},
 	{
+		.name     		= "planar YUV 422 VU combined",
+		.ccm_fmt			= V4L2_PIX_FMT_YUYV,	
+		.fourcc   		= V4L2_PIX_FMT_NV61,
+		.input_fmt		= CSI_YUV422,
+		.output_fmt		= CSI_UV_CB_YUV422,
+		.depth    		= 16,
+		.planes_cnt		= 2,
+	},
+	{
+		.name     		= "planar YUV 420 VU combined",
+		.ccm_fmt			= V4L2_PIX_FMT_YUYV,	
+		.fourcc   		= V4L2_PIX_FMT_NV21,
+		.input_fmt		= CSI_YUV422,
+		.output_fmt		= CSI_UV_CB_YUV420,
+		.depth    		= 12,
+		.planes_cnt		= 2,
+	},
+	{
 		.name     		= "MB YUV420",
 		.ccm_fmt			= V4L2_PIX_FMT_YUYV,	
 		.fourcc   		= V4L2_PIX_FMT_HM12,
@@ -814,7 +832,10 @@ static int vidioc_s_fmt_vid_cap(struct file *file, void *priv,
 	
 	switch(dev->fmt->ccm_fmt) {
 	case V4L2_PIX_FMT_YUYV:
-		dev->csi_mode.seq = CSI_YUYV;
+		if ((dev->fmt->fourcc == V4L2_PIX_FMT_NV61) || (dev->fmt->fourcc == V4L2_PIX_FMT_NV21))
+			dev->csi_mode.seq = CSI_YVYU;
+		else
+			dev->csi_mode.seq = CSI_YUYV;
 		break;
 	case V4L2_PIX_FMT_YVYU:
 		dev->csi_mode.seq = CSI_YVYU;

@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_32
+Version: V1_34
 
 Author:  raymonxiu
 
-Date:     2011-9-1 16:28:11
+Date:     2011-9-13 10:39:46
 
 Description:
 
@@ -15,6 +15,9 @@ insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
+
+V1_34
+1) Support V4L2_PIX_FMT_NV61 and V4L2_PIX_FMT_NV21 format
 
 V1_33
 1) Fix gc0308 y/c seperation bug
@@ -47,9 +50,7 @@ V1_10
 4) Add DMA Contig memory reserved MACRO define
 5) Fix the bug that when capture off, the fist_flag should reset to 0
 
-
 V1_00
-
 1) Support YUV422/YUV420 planar/UV combined YUYV,YVYU,UYVY,VYUY, RAW format  
 2) Support OV7670 module
 3) V4L2 API standard
