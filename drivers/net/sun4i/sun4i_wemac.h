@@ -5,10 +5,9 @@
 #ifndef _WEMACX_H_
 #define _WEMACX_H_
 
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~registers define~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//EMAC register
-#define EMAC_BASE			           0x01C0B000   //form aw1615 fpga
+/*   registers define  */
+/*  EMAC register  */
+#define EMAC_BASE		0x01C0B000
 
 #define EMAC_CTL_REG             (0x00)
 #define EMAC_TX_MODE_REG         (0x04)
@@ -60,79 +59,79 @@
 #define EMAC_SAFX_L_REG3         (0xBC)
 #define EMAC_SAFX_H_REG3         (0xC0)
 
-//PIO register
-//#define PIO_BASE            		0x01c20800
+/*  PIO register  */
+#define PIO_BASE            	0x01c20800
 
-#define PA_CFG0_REG        			(0x00)
-#define PA_CFG1_REG           		(0x04)
-#define PA_CFG2_REG         		(0x08)
-#define PA_DAT_REG         			(0x0c)
-#define PA_DRV0_REG        			(0x10)
-#define PA_DRV1_REG        			(0x14)
-#define PA_PULLUP0_REG     			(0x18)
-#define PA_PULLUP1_REG     			(0x1c)
-#define PB_CFG0_REG        			(0x20)
-#define PB_CFG1_REG        			(0x24)
-#define PB_CFG2_REG        			(0x28)
-#define PB_DAT_REG         			(0x2c)
-#define PB_DRV0_REG        			(0x30)
-#define PB_DRV1_REG        			(0x34)
-#define PB_PULLUP0_REG     			(0x38)
-#define PB_PULLUP1_REG     			(0x3c)
-#define PC_CFG0_REG        			(0x40)
-#define PC_CFG1_REG        			(0x44)
-#define PC_CFG2_REG        			(0x48)
-#define PC_DAT_REG         			(0x4c)
-#define PC_DRV0_REG        			(0x50)
-#define PC_DRV1_REG        			(0x54)
-#define PC_PULLUP0_REG     			(0x58)
-#define PC_PULLUP1_REG     			(0x5c)
-#define PD_CFG0_REG        			(0x60)
-#define PD_CFG1_REG        			(0x64)
-#define PD_CFG2_REG        			(0x68)
-#define PD_CFG3_REG        			(0x6c)
-#define PD_DAT_REG         			(0x70)
-#define PD_DRV0_REG        			(0x74)
-#define PD_DRV1_REG        			(0x78)
-#define PD_PULLUP0_REG     			(0x7c)
-#define PD_PULLUP1_REG     			(0x80)
-#define PE_CFG0_REG        			(0x84)
-#define PE_CFG1_REG        			(0x88)
-#define PE_DAT_REG         			(0x8c)
-#define PE_DRV_REG         			(0x90)
-#define PE_PULLUP_REG      			(0x94)
-#define PF_DRV_REG         			(0x98)
-#define PF_PULLUP_REG      			(0x9c)
-#define PD_INT_REG         			(0xa0)
+#define PA_CFG0_REG        	(0x00)
+#define PA_CFG1_REG        	(0x04)
+#define PA_CFG2_REG        	(0x08)
+#define PA_DAT_REG         	(0x0c)
+#define PA_DRV0_REG        	(0x10)
+#define PA_DRV1_REG        	(0x14)
+#define PA_PULLUP0_REG     	(0x18)
+#define PA_PULLUP1_REG     	(0x1c)
+#define PB_CFG0_REG        	(0x20)
+#define PB_CFG1_REG        	(0x24)
+#define PB_CFG2_REG        	(0x28)
+#define PB_DAT_REG         	(0x2c)
+#define PB_DRV0_REG        	(0x30)
+#define PB_DRV1_REG        	(0x34)
+#define PB_PULLUP0_REG     	(0x38)
+#define PB_PULLUP1_REG     	(0x3c)
+#define PC_CFG0_REG        	(0x40)
+#define PC_CFG1_REG        	(0x44)
+#define PC_CFG2_REG        	(0x48)
+#define PC_DAT_REG         	(0x4c)
+#define PC_DRV0_REG        	(0x50)
+#define PC_DRV1_REG        	(0x54)
+#define PC_PULLUP0_REG     	(0x58)
+#define PC_PULLUP1_REG     	(0x5c)
+#define PD_CFG0_REG        	(0x60)
+#define PD_CFG1_REG        	(0x64)
+#define PD_CFG2_REG        	(0x68)
+#define PD_CFG3_REG        	(0x6c)
+#define PD_DAT_REG         	(0x70)
+#define PD_DRV0_REG        	(0x74)
+#define PD_DRV1_REG        	(0x78)
+#define PD_PULLUP0_REG     	(0x7c)
+#define PD_PULLUP1_REG     	(0x80)
+#define PE_CFG0_REG        	(0x84)
+#define PE_CFG1_REG        	(0x88)
+#define PE_DAT_REG         	(0x8c)
+#define PE_DRV_REG         	(0x90)
+#define PE_PULLUP_REG      	(0x94)
+#define PF_DRV_REG         	(0x98)
+#define PF_PULLUP_REG      	(0x9c)
+#define PD_INT_REG         	(0xa0)
 
 
 //CCM register
-#define CCM_BASE           			0x01c20000
+#define CCM_BASE           	0x01c20000
 
-#define CCM_AC320_MACC_REG 			(0x00)
-#define CCM_AUDIO_HOSC_REG 			(0x04)
-#define CCM_AHB_APB_REG    			(0x08)
-#define CCM_AHB_GATING_REG 			(0x0c)
-#define CCM_APB_GATING_REG 			(0x10)
-#define CCM_NFC_MS_REG     			(0x14)
-#define CCM_SD01_REG       			(0x18)
-#define CCM_SD23_REG			 	(0x1c)
-#define CCM_DRAM_PLL_REG   			(0x20)
-#define CCM_DE_REG         			(0x24)
-#define CCM_LCD_MACC_REG   			(0x28)
-#define CCM_TV_CSI_REG     			(0x2c)
-#define CCM_VIDEO_PLL_REG  			(0x30)
-#define CCM_IR_CLK_REG     			(0x34)
-#define CCM_AUDIO_CLK_REG  			(0x38)
-#define CCM_TS_CLK_REG   			(0x3c)
-#define CCM_AVS_USB_CLK_REG 		(0x40)
-#define CCM_PID_CLK_REG       		(0xd0)
-#define CCM_WAKEUP_PENDING_REG		(0xd4)
+#define CCM_AC320_MACC_REG 	(0x00)
+#define CCM_AUDIO_HOSC_REG 	(0x04)
+#define CCM_AHB_APB_REG    	(0x08)
+#define CCM_AHB_GATING_REG 	(0x0c)
+#define CCM_APB_GATING_REG 	(0x10)
+#define CCM_NFC_MS_REG     	(0x14)
+#define CCM_SD01_REG       	(0x18)
+#define CCM_SD23_REG	    	(0x1c)
+#define CCM_DRAM_PLL_REG   	(0x20)
+#define CCM_DE_REG         	(0x24)
+#define CCM_LCD_MACC_REG   	(0x28)
+#define CCM_TV_CSI_REG     	(0x2c)
+#define CCM_VIDEO_PLL_REG  	(0x30)
+#define CCM_IR_CLK_REG     	(0x34)
+#define CCM_AUDIO_CLK_REG  	(0x38)
+#define CCM_TS_CLK_REG   	(0x3c)
+#define CCM_AVS_USB_CLK_REG 	(0x40)
+#define CCM_PID_CLK_REG       	(0xd0)
+#define CCM_WAKEUP_PENDING_REG	(0xd4)
 
 
 //SRAMC register
-#define SRAMC_BASE	            0x01c00000
-#define SRAMC_CFG_REG			     (0x04)
+#define SRAMC_BASE		0x01c00000
+#define SRAMC_CFG_REG		(0x04)
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~registers define~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
