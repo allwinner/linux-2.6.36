@@ -227,6 +227,7 @@ __s32 BSP_disp_tv_open(__u32 sel)
             user_gpio_set_t  gpio_info[1];
             __hdle gpio_pa_shutdown;
             __s32 ret;
+            __u32 reg_val;
 
             memset(gpio_info, 0, sizeof(user_gpio_set_t));
             ret = OSAL_Script_FetchParser_Data("audio_para","audio_pa_ctrl", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
@@ -246,6 +247,9 @@ __s32 BSP_disp_tv_open(__u32 sel)
                     OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 0, "audio_pa_ctrl");
                 }
             }
+        	reg_val = sys_get_wvalue(gdisp.init_para.base_pioc + 0x410);
+        	reg_val |=(1<<27);
+        	sys_put_wvalue(reg_val, gdisp.init_para.base_pioc + 0x410);
         }
 	 
         gdisp.screen[sel].b_out_interlace = Disp_get_screen_scan_mode(tv_mod);
@@ -283,6 +287,7 @@ __s32 BSP_disp_tv_close(__u32 sel)
             user_gpio_set_t  gpio_info[1];
             __hdle gpio_pa_shutdown;
             __s32 ret;
+            __u32 reg_val;
 
             memset(gpio_info, 0, sizeof(user_gpio_set_t));
             ret = OSAL_Script_FetchParser_Data("audio_para","audio_pa_ctrl", (int *)gpio_info, sizeof(user_gpio_set_t)/sizeof(int));
@@ -302,6 +307,9 @@ __s32 BSP_disp_tv_close(__u32 sel)
                     OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 1, "audio_pa_ctrl");
                 }
             }
+        	reg_val = sys_get_wvalue(gdisp.init_para.base_pioc + 0x410);
+        	reg_val &= (~(1<<27));
+        	sys_put_wvalue(reg_val, gdisp.init_para.base_pioc + 0x410);
         }
         
 		gdisp.screen[sel].b_out_interlace = 0;
