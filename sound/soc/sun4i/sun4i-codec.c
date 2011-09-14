@@ -415,7 +415,8 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
+	if(0 == test_bit(27, (void *)(volatile int *)0xf1c22c10))
+		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	//flush TX FIFO
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
