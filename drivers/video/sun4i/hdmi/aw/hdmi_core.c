@@ -88,11 +88,12 @@ __s32 hdmi_main_task_loop(void)
     		 {
     		 	hdmi_state = 	HDMI_State_EDID_Parse;
     		 	__inf("plugin\n");
-    		 }
-    		 return 0; 
+    		 }else
+    		 {
+    		 	return 0;
+    		 } 
     		 
     	case HDMI_State_Rx_Sense:
-    		 return 0;    
     		 
     	case HDMI_State_EDID_Parse:
     	     HDMI_WUINT32(0x004,0x80000000);
@@ -109,24 +110,23 @@ __s32 hdmi_main_task_loop(void)
     		 HDMI_RUINT32(0x5f0);
 
     		 hdmi_state = HDMI_State_Wait_Video_config;
-    		 return 0;   
 
     	case HDMI_State_Wait_Video_config:
     	    if(video_enable)
     		 {
     		    hdmi_state = 	HDMI_State_Video_config;
+    		 }else
+    		 {
+    		 	return 0;
     		 }
-    		 return 0;
     		 
     	case HDMI_State_Video_config:
     		 video_config(video_mode);
     		 hdmi_state = 	HDMI_State_Audio_config;    	
-    		 return 0;    
     		 
     	case HDMI_State_Audio_config:
     		 audio_config();
     		 hdmi_state = 	HDMI_State_Playback;    
-    		 return 0;    	
     		 
     	case HDMI_State_Playback:
     		 return 0;  

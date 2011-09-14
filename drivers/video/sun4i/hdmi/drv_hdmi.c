@@ -210,7 +210,7 @@ int Hdmi_run_thread(void *parg)
 		}
 		else
 		{
-			hdmi_delay_ms(1000);   
+			hdmi_delay_ms(200);   
 		}
 	}
 

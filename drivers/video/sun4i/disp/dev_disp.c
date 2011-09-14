@@ -276,7 +276,7 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
 	__u32 i;
 	spinlock_t mr_lock;
 
-    timeout = (HZ / BSP_disp_get_frame_rate(sel)) * 2;//wait two frame
+    timeout = (HZ * 2) / BSP_disp_get_frame_rate(sel);//wait two frame
     
     if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
     {
