@@ -49,6 +49,7 @@
 #define ALM_DDHHMMSS_ACCESS         0x00000200
 #define RTC_HHMMSS_ACCESS           0x00000100
 #define RTC_YYMMDD_ACCESS           0x00000080
+#define EXT_LOSC_GSM                          (0x00000008)
 
 /*Date Value*/
 #define DATE_GET_DAY_VALUE(x)       ((x) &0x0000001f)
