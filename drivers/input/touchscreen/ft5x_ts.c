@@ -60,6 +60,8 @@ static int screen_max_x = 0;
 static int screen_max_y = 0;
 static int revert_x_flag = 0;
 static int revert_y_flag = 0;
+static int ctp_reset_enable = 0;
+static int ctp_wakeup_enable = 0;
 
 #define SCREEN_MAX_X    (screen_max_x)
 #define SCREEN_MAX_Y    (screen_max_y)
@@ -896,17 +898,48 @@ static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static void ft5x_ts_wakeup(void)
+{
+    printk("ft5x_ts_wakeup. \n");
+    if(1 == ctp_wakeup_enable){
+        //wake up
+    
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
+        printk("ft5x_ts_resume: err when operate gpio. \n");
+    }
+    mdelay(10);
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
+        printk("ft5x_ts_resume: err when operate gpio. \n");
+    }
+    mdelay(10);
+    /*
+           if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_wakeup")){
+                printk("ft5x_ts_reset: err when operate gpio. \n");
+            }
+            mdelay(15);
+            if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_wakeup")){
+                printk("ft5x_ts_reset: err when operate gpio. \n");
+            }
+            mdelay(15);*/
+    }
+    
+    return;
+}
+
 static void ft5x_ts_reset(void)
 {
     printk("ft5x_ts_reset. \n");
-    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
-        printk("ft5x_ts_reset: err when operate gpio. \n");
+    if(1 == ctp_reset_enable){
+           if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
+                printk("ft5x_ts_reset: err when operate gpio. \n");
+            }
+            mdelay(15);
+            if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
+                printk("ft5x_ts_reset: err when operate gpio. \n");
+            }
+            mdelay(15);
     }
-    mdelay(15);
-    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
-        printk("ft5x_ts_reset: err when operate gpio. \n");
-    }
-    mdelay(15);
+    return;
 }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -950,19 +983,11 @@ static void ft5x_ts_resume(struct early_suspend *handler)
 
     //gpio i28 output high
 	//printk("==ft5x_ts_resume=\n");
-    //wake up
-    /*
-    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
-        printk("ft5x_ts_resume: err when operate gpio. \n");
-    }
-    mdelay(10);
-    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
-        printk("ft5x_ts_resume: err when operate gpio. \n");
-    }
-    mdelay(10);
-    */
+
     //reset
     ft5x_ts_reset();
+    //wakeup
+    ft5x_ts_wakeup();
     
 }
 #endif  //CONFIG_HAS_EARLYSUSPEND
@@ -1017,17 +1042,23 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
         goto exit_gpio_int_request_failed;
     }
+    
     gpio_wakeup_hdle = gpio_request_ex("ctp_para", "ctp_wakeup");
     if(!gpio_wakeup_hdle) {
-        pr_warning("touch panel tp_wakeup request gpio fail!\n");
-        goto exit_gpio_wakeup_request_failed;
+        ctp_wakeup_enable = 0; 
+    }else{
+        ctp_wakeup_enable = 1; 
     }
-
+    printk("ctp_wakeup_enable = %d. \n", ctp_wakeup_enable);
+ 
     gpio_reset_hdle = gpio_request_ex("ctp_para", "ctp_reset");
     if(!gpio_reset_hdle) {
-        pr_warning("touch panel tp_reset request gpio fail!\n");
-        goto exit_gpio_reset_request_failed;
+        ctp_reset_enable = 0;
+    }else{
+        ctp_reset_enable = 1;
     }
+    printk("ctp_reset_enable = %d. \n", ctp_reset_enable);
+
     
 #ifdef AW_GPIO_INT_API_ENABLE
 
@@ -1044,14 +1075,10 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
 	    //disable_irq(IRQ_EINT);
 #endif
-
-    /*
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup");
-    mdelay(5);
-  */  
-    gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup");
-
+    
         ft5x_ts_reset();
+        ft5x_ts_wakeup();
+        
 	input_dev = input_allocate_device();
 	if (!input_dev) {
 		err = -ENOMEM;
@@ -1160,8 +1187,6 @@ exit_input_register_device_failed:
 	input_free_device(input_dev);
 exit_input_dev_alloc_failed:
 	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
-exit_gpio_reset_request_failed:
-exit_gpio_wakeup_request_failed:
 exit_gpio_int_request_failed:
 exit_create_singlethread:
 	printk("==singlethread error =\n");
@@ -1265,7 +1290,7 @@ static int __init ft5x_ts_init(void)
         goto script_parser_fetch_err;
     }
     pr_info("ft5x_ts: revert_y_flag = %d. \n", revert_y_flag);
-
+    
     ret = i2c_add_driver(&ft5x_ts_driver);
 	
 script_parser_fetch_err:
