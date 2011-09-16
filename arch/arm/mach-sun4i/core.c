@@ -230,6 +230,7 @@ static struct map_desc softwinner_io_desc[] __initdata = {
     { SW_VA_USB0_IO_BASE,       __phys_to_pfn(SW_PA_USB0_IO_BASE),      SZ_4K,  MT_DEVICE       },
     { SW_VA_USB1_IO_BASE,       __phys_to_pfn(SW_PA_USB1_IO_BASE),      SZ_4K,  MT_DEVICE       },
     { SW_VA_USB2_IO_BASE,       __phys_to_pfn(SW_PA_USB2_IO_BASE),      SZ_4K,  MT_DEVICE       },
+	{ SW_VA_GPS_IO_BASE,        __phys_to_pfn(SW_PA_GPS_IO_BASE),       SZ_64K, MT_DEVICE       },
 
 };
 
@@ -280,6 +281,8 @@ static u32 DRAMC_get_dram_size(void)
 extern unsigned long fb_start;
 extern unsigned long fb_size;
 
+#define GPS_RESERVE_MEM_BASE	0x49000000
+#define GPS_RESERVE_MEM_SIZE	8 * 1024 * 1024
 int sw_plat_init(void)
 {
     pr_info("SUN4i Platform Init\n");
@@ -287,9 +290,11 @@ int sw_plat_init(void)
 
     memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
     memblock_reserve(fb_start, fb_size);
-	
+	memblock_reserve(GPS_RESERVE_MEM_BASE, GPS_RESERVE_MEM_SIZE);
+
     pr_info("reserve: base=0x%08x, size=0x%08x\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
     pr_info("reserve: base=0x%08x, size=0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
+    pr_info("reserve: base=0x%08x, size=0x%08x\n", GPS_RESERVE_MEM_BASE, GPS_RESERVE_MEM_SIZE);
 
     return 0;
 }
