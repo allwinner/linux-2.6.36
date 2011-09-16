@@ -65,7 +65,7 @@
 #endif
 
 //define the max value of the count of the log block in a zone, the recommended value is 8
-#define MAX_LOG_BLK_CNT                     (8)
+#define MAX_LOG_BLK_CNT                     (16)
 
 //define the frequency of the doing wear-levelling
 #define WEAR_LEVELLING_FREQUENCY            (10)
@@ -161,65 +161,65 @@
 #if PHY_DBG_MESSAGE_ON
 #define	   PHY_DBG(...)        			PRINT(__VA_ARGS__)
 #else
-#define     PHY_DBG(...)			
+#define     PHY_DBG(...)
 #endif
 
 #if PHY_ERR_MESSAGE_ON
 #define     PHY_ERR(...)        		PRINT(__VA_ARGS__)
 #else
-#define     PHY_ERR(...)				
+#define     PHY_ERR(...)
 #endif
 
 
 #if SCAN_DBG_MESSAGE_ON
 #define     SCAN_DBG(...)          		PRINT(__VA_ARGS__)
 #else
-#define     SCAN_DBG(...)							
+#define     SCAN_DBG(...)
 #endif
 
 #if SCAN_ERR_MESSAGE_ON
 #define     SCAN_ERR(...)         		PRINT(__VA_ARGS__)
 #else
-#define     SCAN_ERR(...)				
+#define     SCAN_ERR(...)
 #endif
 
 
 #if FORMAT_DBG_MESSAGE_ON
 #define     FORMAT_DBG(...)         	PRINT(__VA_ARGS__)
 #else
-#define     FORMAT_DBG(...)				
+#define     FORMAT_DBG(...)
 #endif
 
 #if FORMAT_ERR_MESSAGE_ON
 #define     FORMAT_ERR(...)        		PRINT(__VA_ARGS__)
 #else
-#define     FORMAT_ERR(...)			
+#define     FORMAT_ERR(...)
 #endif
 
 
 #if MAPPING_DBG_MESSAGE_ON
 #define     MAPPING_DBG(...)        	PRINT(__VA_ARGS__)
 #else
-#define     MAPPING_DBG(...)				
+#define     MAPPING_DBG(...)
 #endif
 
 #if MAPPING_ERR_MESSAGE_ON
 #define     MAPPING_ERR(...)       		PRINT(__VA_ARGS__)
 #else
-#define     MAPPING_ERR(...)				
+#define     MAPPING_ERR(...)
 #endif
 
 
 #if LOGICCTL_DBG_MESSAGE_ON
 #define     LOGICCTL_DBG(...)       	PRINT(__VA_ARGS__)
 #else
-#define     LOGICCTL_DBG(...)			
+#define     LOGICCTL_DBG(...)
 #endif
 
 #if LOGICCTL_ERR_MESSAGE_ON
 #define     LOGICCTL_ERR(...)       	PRINT(__VA_ARGS__)
 #else
-#define     LOGICCTL_ERR(...)				
+#define     LOGICCTL_ERR(...)
 #endif
 
 
