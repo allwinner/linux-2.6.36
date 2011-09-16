@@ -16,6 +16,7 @@
 *															select DQS passive window mode
 *															tune port priority level
 *			2011-08-05					Berg		1.4		change mctl_ddr3_reset() for different die
+*			2011-09-16					Berg		1.5		disable dqs drfit compensation for low tempature
 *********************************************************************************************************
 */
 #include "dram_i.h"
@@ -339,10 +340,11 @@ __s32 DRAMC_init(__dram_para_t *para)
     reg_val = 0x0;
 		mctl_write_w(SDR_EMR3, para->dram_emr3);
 
-		//set DQS window mode
-		reg_val = mctl_read_w(SDR_CCR);
-		reg_val |= 0x1U<<14;
-		mctl_write_w(SDR_CCR, reg_val);
+	//set DQS window mode
+	reg_val = mctl_read_w(SDR_CCR);
+	reg_val |= 0x1U<<14;
+	reg_val &= ~(0x1U<<17);
+	mctl_write_w(SDR_CCR, reg_val);
 
     //initial external DRAM
     reg_val = mctl_read_w(SDR_CCR);
