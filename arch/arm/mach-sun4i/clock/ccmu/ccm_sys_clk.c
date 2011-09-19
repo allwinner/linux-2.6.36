@@ -743,7 +743,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
             tmp_pll.PLLDivP = factor.FactorP;
             aw_ccu_reg->Pll1Ctl = tmp_pll;
             /* delay 500us for pll be stably */
-            __delay((rate >> 20) * 500);
+            __delay((rate >> 20) * 500 / 2);
 
             return 0;
         }
