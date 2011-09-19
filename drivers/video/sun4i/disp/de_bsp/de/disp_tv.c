@@ -247,9 +247,12 @@ __s32 BSP_disp_tv_open(__u32 sel)
                     OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 0, "audio_pa_ctrl");
                 }
             }
-        	reg_val = sys_get_wvalue(gdisp.init_para.base_pioc + 0x410);
-        	reg_val |=(1<<27);
-        	sys_put_wvalue(reg_val, gdisp.init_para.base_pioc + 0x410);
+            /************for audio*****************/
+			reg_val = readl(0xf1c22c10);
+			reg_val &=~(1<<27);
+			reg_val |=(1<<27);
+			writel(reg_val, 0xf1c22c10);
+			/************for audio*****************/
         }
 	 
         gdisp.screen[sel].b_out_interlace = Disp_get_screen_scan_mode(tv_mod);
@@ -307,9 +310,11 @@ __s32 BSP_disp_tv_close(__u32 sel)
                     OSAL_GPIO_DevWRITE_ONEPIN_DATA(gpio_pa_shutdown, 1, "audio_pa_ctrl");
                 }
             }
-        	reg_val = sys_get_wvalue(gdisp.init_para.base_pioc + 0x410);
-        	reg_val &= (~(1<<27));
-        	sys_put_wvalue(reg_val, gdisp.init_para.base_pioc + 0x410);
+            /************for audio*****************/
+			reg_val = readl(0xf1c22c10);
+			reg_val &=~(1<<27);
+			writel(reg_val, 0xf1c22c10);
+			/************for audio*****************/
         }
         
 		gdisp.screen[sel].b_out_interlace = 0;
