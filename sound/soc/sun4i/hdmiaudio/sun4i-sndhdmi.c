@@ -4,7 +4,7 @@
 *                   (c) Copyright 2002-2004, All winners Co,Ld.
 *                          All Right Reserved
 *
-* FileName: sun4i-anx7150.h   author:chenpailin  date:2011-07-19 
+* FileName: sun4i-sndhdmi.h   author:chenpailin  date:2011-07-19 
 * Description: 
 * Others: 
 * History:
@@ -26,7 +26,7 @@
 #include "sun4i-hdmiaudio.h"
 #include "sun4i-hdmipcm.h"
 
-#include "anx7150.h"
+#include "sndhdmi.h"
 
 
 static struct clk *xtal;
@@ -42,9 +42,9 @@ static struct snd_pcm_hw_constraint_list hw_constraints_rates = {
 };
 #endif
 
-static struct platform_device *sun4i_anx7150_snd_device;
+static struct platform_device *sun4i_sndhdmi_snd_device;
 
-static int sun4i_anx7150_startup(struct snd_pcm_substream *substream)
+static int sun4i_sndhdmi_startup(struct snd_pcm_substream *substream)
 {
 	int ret = 0;
 	#ifdef ENFORCE_RATES
@@ -64,7 +64,7 @@ static int sun4i_anx7150_startup(struct snd_pcm_substream *substream)
 	return ret;
 }
 
-static void sun4i_anx7150_shutdown(struct snd_pcm_substream *substream)
+static void sun4i_sndhdmi_shutdown(struct snd_pcm_substream *substream)
 {
 	mutex_lock(&clk_lock);
 	clk_users -= 1;
@@ -200,7 +200,7 @@ static s32 get_clock_divder(u32 sample_rate, u32 sample_width, u32 * mclk_div,
 	return ret;
 }
 
-static int sun4i_anx7150_hw_params(struct snd_pcm_substream *substream,
+static int sun4i_sndhdmi_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -245,99 +245,99 @@ static int sun4i_anx7150_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static struct snd_soc_ops sun4i_anx7150_ops = {
-	.startup = sun4i_anx7150_startup,
-	.shutdown = sun4i_anx7150_shutdown,
-	.hw_params = sun4i_anx7150_hw_params,
+static struct snd_soc_ops sun4i_sndhdmi_ops = {
+	.startup = sun4i_sndhdmi_startup,
+	.shutdown = sun4i_sndhdmi_shutdown,
+	.hw_params = sun4i_sndhdmi_hw_params,
 };
 
-static struct snd_soc_dai_link sun4i_anx7150_dai_link = {
-	.name = "ANX7150",
-	.stream_name = "ANX7150",
-	.codec_dai = &anx7150_dai,
+static struct snd_soc_dai_link sun4i_sndhdmi_dai_link = {
+	.name = "SNDHDMI",
+	.stream_name = "SNDHDMI",
+	.codec_dai = &sndhdmi_dai,
 	.cpu_dai = &sun4i_hdmiaudio_dai,
-	.ops = &sun4i_anx7150_ops,
+	.ops = &sun4i_sndhdmi_ops,
 };
 
-static struct snd_soc_card snd_soc_sun4i_anx7150 = {
-	.name = "SUN4I_ANX7150",
+static struct snd_soc_card snd_soc_sun4i_sndhdmi = {
+	.name = "SUN4I_SNDHDMI",
 	.platform = &sun4i_soc_platform_hdmiaudio,
-	.dai_link = &sun4i_anx7150_dai_link,
+	.dai_link = &sun4i_sndhdmi_dai_link,
 	.num_links = 1,
 };
 
-static struct snd_soc_device sun4i_anx7150_snd_devdata = {
-	.card = &snd_soc_sun4i_anx7150,
-	.codec_dev = &soc_codec_dev_anx7150,
+static struct snd_soc_device sun4i_sndhdmi_snd_devdata = {
+	.card = &snd_soc_sun4i_sndhdmi,
+	.codec_dev = &soc_codec_dev_sndhdmi,
 };
 
-static int sun4i_anx7150_probe(struct platform_device *pdev)
+static int sun4i_sndhdmi_probe(struct platform_device *pdev)
 {
 	int ret;
 	
-	sun4i_anx7150_snd_device = platform_device_alloc("soc-audio", 0);
-	if (!sun4i_anx7150_snd_device) {
+	sun4i_sndhdmi_snd_device = platform_device_alloc("soc-audio", 0);
+	if (!sun4i_sndhdmi_snd_device) {
 		return -ENOMEM;
 	}
 
-	platform_set_drvdata(sun4i_anx7150_snd_device,
-			     &sun4i_anx7150_snd_devdata);
-	sun4i_anx7150_snd_devdata.dev = &sun4i_anx7150_snd_device->dev;
+	platform_set_drvdata(sun4i_sndhdmi_snd_device,
+			     &sun4i_sndhdmi_snd_devdata);
+	sun4i_sndhdmi_snd_devdata.dev = &sun4i_sndhdmi_snd_device->dev;
 
-	ret = platform_device_add(sun4i_anx7150_snd_device);
+	ret = platform_device_add(sun4i_sndhdmi_snd_device);
 
 	if (ret) {
-		platform_device_put(sun4i_anx7150_snd_device);
+		platform_device_put(sun4i_sndhdmi_snd_device);
 	}
 
 	return ret;
 }
 
-static int sun4i_anx7150_remove(struct platform_device *pdev)
+static int sun4i_sndhdmi_remove(struct platform_device *pdev)
 {
-	platform_device_unregister(sun4i_anx7150_snd_device);
+	platform_device_unregister(sun4i_sndhdmi_snd_device);
 	return 0;
 }
 
-static struct platform_driver sun4i_anx7150_driver = {
-	.probe  = sun4i_anx7150_probe,
-	.remove = sun4i_anx7150_remove,
+static struct platform_driver sun4i_sndhdmi_driver = {
+	.probe  = sun4i_sndhdmi_probe,
+	.remove = sun4i_sndhdmi_remove,
 	.driver = {
-		.name = "sun4i_anx7150",
+		.name = "sun4i_sndhdmi",
 		.owner = THIS_MODULE,
 	},
 };
 
-struct platform_device sun4i_anx7150_device = {
-	.name		= "sun4i_anx7150",
+struct platform_device sun4i_sndhdmi_device = {
+	.name		= "sun4i_sndhdmi",
 };
 
-static int __init sun4i_anx7150_init(void)
+static int __init sun4i_sndhdmi_init(void)
 {
 	int ret;
-	ret = platform_driver_register(&sun4i_anx7150_driver);
+	ret = platform_driver_register(&sun4i_sndhdmi_driver);
 	if (ret != 0){
 		goto err;
 	}
 
-	ret = platform_device_register(&sun4i_anx7150_device);
+	ret = platform_device_register(&sun4i_sndhdmi_device);
 	if (ret != 0){
-		platform_driver_unregister(&sun4i_anx7150_driver);
+		platform_driver_unregister(&sun4i_sndhdmi_driver);
 	}
 
 err:
 	return ret;
 }
 
-static void __exit sun4i_anx7150_exit(void)
+static void __exit sun4i_sndhdmi_exit(void)
 {
-	platform_driver_unregister(&sun4i_anx7150_driver);
+	platform_driver_unregister(&sun4i_sndhdmi_driver);
 }
 
 
-module_init(sun4i_anx7150_init);
-module_exit(sun4i_anx7150_exit);
+module_init(sun4i_sndhdmi_init);
+module_exit(sun4i_sndhdmi_exit);
 
 MODULE_AUTHOR("ALL WINNER");
-MODULE_DESCRIPTION("SUN4I_ANX7150 ALSA SoC audio driver");
+MODULE_DESCRIPTION("SUN4I_SNDHDMI ALSA SoC audio driver");
 MODULE_LICENSE("GPL");

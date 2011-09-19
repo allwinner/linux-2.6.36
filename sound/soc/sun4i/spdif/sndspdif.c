@@ -4,7 +4,7 @@
 *                   (c) Copyright 2002-2004, All winners Co,Ld.
 *                          All Right Reserved
 *
-* FileName: anx7150sp.c   author:chenpailin  date:2011-07-19 
+* FileName: sndspdif.c   author:chenpailin  date:2011-07-19 
 * Description: 
 * Others: 
 * History:
@@ -24,76 +24,76 @@
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 #include <linux/io.h>
-#include "anx7150sp.h"
+#include "sndspdif.h"
 
 static int spdif_used = 0;
-#define ANX7150SP_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
-#define ANX7150SP_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
+#define SNDSPDIF_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
+#define SNDSPDIF_FORMATS (SNDRV_PCM_FMTBIT_S16_LE)
 
-static int anx7150sp_mute(struct snd_soc_dai *dai, int mute)
+static int sndspdif_mute(struct snd_soc_dai *dai, int mute)
 {
 	return 0;
 }
 
-static int anx7150sp_startup(struct snd_pcm_substream *substream,
+static int sndspdif_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
-static void anx7150sp_shutdown(struct snd_pcm_substream *substream,
+static void sndspdif_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 }
 
-static int anx7150sp_hw_params(struct snd_pcm_substream *substream,
+static int sndspdif_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
 	struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
-static int anx7150sp_set_dai_sysclk(struct snd_soc_dai *codec_dai,
+static int sndspdif_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 				  int clk_id, unsigned int freq, int dir)
 {
 	return 0;
 }
 
-static int anx7150sp_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int div)
+static int sndspdif_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int div)
 {
 	return 0;
 }
 
-static int anx7150sp_set_dai_fmt(struct snd_soc_dai *codec_dai,
+static int sndspdif_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			       unsigned int fmt)
 {
 	return 0;
 }
-struct snd_soc_dai_ops anx7150sp_dai_ops = {
-		.startup = anx7150sp_startup,
-		.shutdown = anx7150sp_shutdown,
-		.hw_params = anx7150sp_hw_params,
-		.digital_mute = anx7150sp_mute,
-		.set_sysclk = anx7150sp_set_dai_sysclk,
-		.set_clkdiv = anx7150sp_set_dai_clkdiv,
-		.set_fmt = anx7150sp_set_dai_fmt,
+struct snd_soc_dai_ops sndspdif_dai_ops = {
+		.startup = sndspdif_startup,
+		.shutdown = sndspdif_shutdown,
+		.hw_params = sndspdif_hw_params,
+		.digital_mute = sndspdif_mute,
+		.set_sysclk = sndspdif_set_dai_sysclk,
+		.set_clkdiv = sndspdif_set_dai_clkdiv,
+		.set_fmt = sndspdif_set_dai_fmt,
 };
-struct snd_soc_dai anx7150sp_dai = {
-	.name = "ANX7150SP",
+struct snd_soc_dai sndspdif_dai = {
+	.name = "SNDSPDIF",
 	/* playback capabilities */
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
 		.channels_max = 2,
-		.rates = ANX7150SP_RATES,
-		.formats = ANX7150SP_FORMATS,
+		.rates = SNDSPDIF_RATES,
+		.formats = SNDSPDIF_FORMATS,
 	},
 	/* pcm operations */
-	.ops = &anx7150sp_dai_ops,
+	.ops = &sndspdif_dai_ops,
 };
-EXPORT_SYMBOL(anx7150sp_dai);
+EXPORT_SYMBOL(sndspdif_dai);
 
-static int anx7150sp_soc_probe(struct platform_device *pdev)
+static int sndspdif_soc_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec;
@@ -107,9 +107,9 @@ static int anx7150sp_soc_probe(struct platform_device *pdev)
 
 	mutex_init(&codec->mutex);
 
-	codec->name = "ANX7150SP";
+	codec->name = "SNDSPDIF";
 	codec->owner = THIS_MODULE;
-	codec->dai = &anx7150sp_dai;
+	codec->dai = &sndspdif_dai;
 	codec->num_dai = 1;
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
@@ -129,7 +129,7 @@ pcm_err:
 }
 
 /* power down chip */
-static int anx7150sp_soc_remove(struct platform_device *pdev)
+static int sndspdif_soc_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
@@ -140,45 +140,45 @@ static int anx7150sp_soc_remove(struct platform_device *pdev)
 	return 0;
 }
 
-struct snd_soc_codec_device soc_codec_dev_anx7150sp = {
-	.probe =        anx7150sp_soc_probe,
-	.remove =       anx7150sp_soc_remove,
+struct snd_soc_codec_device soc_codec_dev_sndspdif = {
+	.probe =        sndspdif_soc_probe,
+	.remove =       sndspdif_soc_remove,
 };
-EXPORT_SYMBOL_GPL(soc_codec_dev_anx7150sp);
+EXPORT_SYMBOL_GPL(soc_codec_dev_sndspdif);
 
 
-static int __init anx7150sp_init(void)
+static int __init sndspdif_init(void)
 {
 	int ret;
 	
 	ret = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
 	if (ret)
     {
-        printk("[SPDIF]anx7150sp_init fetch spdif using configuration failed\n");
+        printk("[SPDIF]sndspdif_init fetch spdif using configuration failed\n");
     } 
 	 
 	if (spdif_used) 
 	{
-		return snd_soc_register_dai(&anx7150sp_dai);
+		return snd_soc_register_dai(&sndspdif_dai);
 	}else
     {
-        printk("[SPDIF]anx7150sp cannot find any using configuration for controllers, return directly!\n");
+        printk("[SPDIF]sndspdif cannot find any using configuration for controllers, return directly!\n");
         return 0;
     }
 	
 }
-module_init(anx7150sp_init);
+module_init(sndspdif_init);
 
-static void __exit anx7150sp_exit(void)
+static void __exit sndspdif_exit(void)
 {
 	if(spdif_used)
 	{	
 		spdif_used = 0;
-		snd_soc_unregister_dai(&anx7150sp_dai);
+		snd_soc_unregister_dai(&sndspdif_dai);
 	}
 }
-module_exit(anx7150sp_exit);
+module_exit(sndspdif_exit);
 
-MODULE_DESCRIPTION("ANX7150SP ALSA soc codec driver");
+MODULE_DESCRIPTION("SNDSPDIF ALSA soc codec driver");
 MODULE_AUTHOR("Zoltan Devai, Christian Pellegrin <chripell@evolware.org>");
 MODULE_LICENSE("GPL");

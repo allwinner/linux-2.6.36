@@ -4,7 +4,7 @@
 *                   (c) Copyright 2002-2004, All winners Co,Ld.
 *                          All Right Reserved
 *
-* FileName: anx7150.c   author:chenpailin 
+* FileName: sndhdmi.c   author:chenpailin 
 * Description: 
 * Others: 
 * History:
@@ -21,7 +21,7 @@
 #include <sound/soc-dapm.h>
 #include <sound/initval.h>
 
-#include "anx7150.h"
+#include "sndhdmi.h"
 
 #define HDMI
 
@@ -37,32 +37,32 @@ void audio_set_hdmi_func(__audio_hdmi_func * hdmi_func)
 EXPORT_SYMBOL(audio_set_hdmi_func);
 #endif
 
-#define ANX7150_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
-#define ANX7150_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
+#define SNDHDMI_RATES  (SNDRV_PCM_RATE_8000_192000|SNDRV_PCM_RATE_KNOT)
+#define SNDHDMI_FORMATS (SNDRV_PCM_FMTBIT_S8 | SNDRV_PCM_FMTBIT_S16_LE | \
 		                     SNDRV_PCM_FMTBIT_S18_3LE | SNDRV_PCM_FMTBIT_S20_3LE)
 
 hdmi_audio_t hdmi_para;
 
-static int anx7150_mute(struct snd_soc_dai *dai, int mute)
+static int sndhdmi_mute(struct snd_soc_dai *dai, int mute)
 {
 	return 0;
 }
 
 
-static int anx7150_startup(struct snd_pcm_substream *substream,
+static int sndhdmi_startup(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 	return 0;
 }
 
 
-static void anx7150_shutdown(struct snd_pcm_substream *substream,
+static void sndhdmi_shutdown(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *dai)
 {
 }
 
 
-static int anx7150_hw_params(struct snd_pcm_substream *substream,
+static int sndhdmi_hw_params(struct snd_pcm_substream *substream,
 	struct snd_pcm_hw_params *params,
 	struct snd_soc_dai *dai)
 {
@@ -76,13 +76,13 @@ static int anx7150_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static int anx7150_set_dai_sysclk(struct snd_soc_dai *codec_dai,
+static int sndhdmi_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 				  int clk_id, unsigned int freq, int dir)
 {
 	return 0;
 }
 
-static int anx7150_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int div)
+static int sndhdmi_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int div)
 {
 
 	hdmi_para.fs_between = div;
@@ -91,40 +91,40 @@ static int anx7150_set_dai_clkdiv(struct snd_soc_dai *codec_dai, int div_id, int
 }
 
 
-static int anx7150_set_dai_fmt(struct snd_soc_dai *codec_dai,
+static int sndhdmi_set_dai_fmt(struct snd_soc_dai *codec_dai,
 			       unsigned int fmt)
 {
 	return 0;
 }
 
 //codec dai operation
-struct snd_soc_dai_ops anx7150_dai_ops = {
-		.startup = anx7150_startup,
-		.shutdown = anx7150_shutdown,
-		.hw_params = anx7150_hw_params,
-		.digital_mute = anx7150_mute,
-		.set_sysclk = anx7150_set_dai_sysclk,
-		.set_clkdiv = anx7150_set_dai_clkdiv,
-		.set_fmt = anx7150_set_dai_fmt,
+struct snd_soc_dai_ops sndhdmi_dai_ops = {
+		.startup = sndhdmi_startup,
+		.shutdown = sndhdmi_shutdown,
+		.hw_params = sndhdmi_hw_params,
+		.digital_mute = sndhdmi_mute,
+		.set_sysclk = sndhdmi_set_dai_sysclk,
+		.set_clkdiv = sndhdmi_set_dai_clkdiv,
+		.set_fmt = sndhdmi_set_dai_fmt,
 };
 
 //codec dai
-struct snd_soc_dai anx7150_dai = {
-	.name = "ANX7150",
+struct snd_soc_dai sndhdmi_dai = {
+	.name = "SNDHDMI",
 	/* playback capabilities */
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 1,
 		.channels_max = 2,
-		.rates = ANX7150_RATES,
-		.formats = ANX7150_FORMATS,
+		.rates = SNDHDMI_RATES,
+		.formats = SNDHDMI_FORMATS,
 	},
 	/* pcm operations */
-	.ops = &anx7150_dai_ops,
+	.ops = &sndhdmi_dai_ops,
 };
-EXPORT_SYMBOL(anx7150_dai);
+EXPORT_SYMBOL(sndhdmi_dai);
 
-static int anx7150_soc_probe(struct platform_device *pdev)
+static int sndhdmi_soc_probe(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec;
@@ -138,9 +138,9 @@ static int anx7150_soc_probe(struct platform_device *pdev)
 
 	mutex_init(&codec->mutex);
 
-	codec->name = "ANX7150";
+	codec->name = "SNDHDMI";
 	codec->owner = THIS_MODULE;
-	codec->dai = &anx7150_dai;
+	codec->dai = &sndhdmi_dai;
 	codec->num_dai = 1;
 	INIT_LIST_HEAD(&codec->dapm_widgets);
 	INIT_LIST_HEAD(&codec->dapm_paths);
@@ -158,7 +158,7 @@ pcm_err:
 	return ret;
 }
 
-static int anx7150_soc_remove(struct platform_device *pdev)
+static int sndhdmi_soc_remove(struct platform_device *pdev)
 {
 	struct snd_soc_device *socdev = platform_get_drvdata(pdev);
 	struct snd_soc_codec *codec = socdev->card->codec;
@@ -169,24 +169,24 @@ static int anx7150_soc_remove(struct platform_device *pdev)
 	return 0;
 }
 
-struct snd_soc_codec_device soc_codec_dev_anx7150 = {
-	.probe =        anx7150_soc_probe,
-	.remove =       anx7150_soc_remove,
+struct snd_soc_codec_device soc_codec_dev_sndhdmi = {
+	.probe =        sndhdmi_soc_probe,
+	.remove =       sndhdmi_soc_remove,
 };
-EXPORT_SYMBOL_GPL(soc_codec_dev_anx7150);
+EXPORT_SYMBOL_GPL(soc_codec_dev_sndhdmi);
 
-static int __init anx7150_init(void)
+static int __init sndhdmi_init(void)
 {
-	return snd_soc_register_dai(&anx7150_dai);
+	return snd_soc_register_dai(&sndhdmi_dai);
 }
-module_init(anx7150_init);
+module_init(sndhdmi_init);
 
-static void __exit anx7150_exit(void)
+static void __exit sndhdmi_exit(void)
 {
-	snd_soc_unregister_dai(&anx7150_dai);
+	snd_soc_unregister_dai(&sndhdmi_dai);
 }
-module_exit(anx7150_exit);
+module_exit(sndhdmi_exit);
 
-MODULE_DESCRIPTION("ANX7150 ALSA soc codec driver");
+MODULE_DESCRIPTION("SNDHDMI ALSA soc codec driver");
 MODULE_AUTHOR("Zoltan Devai, Christian Pellegrin <chripell@evolware.org>");
 MODULE_LICENSE("GPL");
