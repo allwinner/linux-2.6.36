@@ -1142,7 +1142,9 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			capture_prtd->state |= ST_RUNNING;		 
 			codec_capture_start();
-			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_START);		
+			mdelay(1);
+			codec_wr_control(SW_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
+			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_START);
 			break;
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 			codec_capture_stop();		
