@@ -281,6 +281,8 @@ static void sw_hcd_port_reset(struct sw_hcd *sw_hcd, bool do_reset)
     }else{
         DMSG_INFO("[sw_hcd]: reset port stopped.\n");
 
+        UsbPhyEndReset(0);
+
         power &= ~(1 << USBC_BP_POWER_H_RESET);
         USBC_Writeb(power, USBC_REG_PCTL(usbc_base));
 
