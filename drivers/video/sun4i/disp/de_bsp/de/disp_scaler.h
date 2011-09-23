@@ -45,6 +45,9 @@ typedef struct
     __u32                   chroma_sharpe_level;
     __u32                   while_exten_level;
     __u32                   black_exten_level;
+
+    __bool                  b_trd_out;
+    __disp_3d_out_mode_t    out_trd_mode;
 }__disp_scaler_t;
 
 extern __disp_scaler_t    gscl;

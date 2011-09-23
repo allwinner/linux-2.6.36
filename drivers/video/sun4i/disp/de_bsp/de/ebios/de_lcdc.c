@@ -238,7 +238,15 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 
 	if(info->lcd_if == LCDC_LCDIF_HV)
 	{
-		LCDC_WUINT32(sel, LCDC_BASIC3_OFF,(info->lcd_hv_hspw <<16) | info->lcd_hv_vspw);
+	    __u32 hspw_tmp = 0;
+		__u32 vspw_tmp = 0;
+		
+		if(info->lcd_hv_hspw != 0)
+			hspw_tmp --;
+		if(info->lcd_hv_vspw != 0)
+			vspw_tmp --;
+		LCDC_WUINT32(sel, LCDC_BASIC3_OFF,(hspw_tmp <<16) | vspw_tmp);
+
 		LCDC_WUINT32(sel, LCDC_HVIF_OFF,(info->lcd_hv_if<<31) | (info->lcd_hv_smode<<30) |(info->lcd_hv_s888_if<<24) |
                                     (info->lcd_hv_syuv_if<<20));		
 	}
@@ -313,6 +321,12 @@ void TCON0_cfg(__u32 sel, __panel_para_t * info)
 	 	LCDC_WUINT32(sel, LCDC_FRM2_OFF+0x08,0x57575555);	
 		LCDC_WUINT32(sel, LCDC_FRM2_OFF+0x0c,0x7f7f7777);
 		LCDC_SET_BIT(sel,LCDC_FRM0_OFF,LCDC_BIT31);
+	}
+    
+	if(info->lcd_gamma_correction_en)
+	{
+	    TCON1_set_gamma_table(sel, (__u32)(info->lcd_gamma_tbl), 1024);
+	    TCON1_set_gamma_Enable(sel, 1);
 	}
 
 	LCDC_WUINT32(sel, LCDC_IOCTL0_OFF,info->lcd_io_cfg0);

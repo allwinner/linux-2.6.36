@@ -152,7 +152,7 @@ __s32 Disp_de_flicker_enable(__u32 sel, __u32 enable )
 			{
 				if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 	//when a layer using scaler layer
 					(gdisp.screen[sel].layer_manage[i].scaler_index == sel) && 						//when this scaler is the same channel with be
-					(g_video[gdisp.screen[sel].layer_manage[i].scaler_index].dit_enable == TRUE))	//when this scaler is using de-interlaced
+					(g_video[sel][i].dit_enable == TRUE))	//when this scaler is using de-interlaced
 				{
 					DE_INF("de: CANNOT OPEN de-flicker due to scaler de-interlaced using!\n");
 					DE_INF("de: Will OPEN de-flicker when scaler de-interlaced disable automatic!\n");
