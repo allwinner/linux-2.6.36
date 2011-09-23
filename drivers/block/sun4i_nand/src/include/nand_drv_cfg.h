@@ -52,20 +52,23 @@
 //define the max value the count of the zone
 #define MAX_ZONE_CNT                        (32)
 
+//define the max value of the count of the log block in a zone, the recommended value is 8
+#define MAX_LOG_BLK_CNT                     (16)
+
 //define the value of the count of the block mapping table cache
-#define BLOCK_MAP_TBL_CACHE_CNT             (4)
+#define BLOCK_MAP_TBL_CACHE_CNT             (MAX_ZONE_CNT)
+
+//define the max value of the count of the page mapping table cache
+#define PAGE_MAP_TBL_CACHE_CNT              (MAX_LOG_BLK_CNT * MAX_ZONE_CNT)
+
+//check if block mapping table cache is valid
 #if (BLOCK_MAP_TBL_CACHE_CNT < 1)
 #error BLOCK_MAP_TBL_CACHE_CNT config error, the value must be larger than 0!!!
 #endif
-
-//define the max value of the count of the page mapping table cache
-#define PAGE_MAP_TBL_CACHE_CNT              (4)
+//check if page mapping table cache is valid
 #if (PAGE_MAP_TBL_CACHE_CNT < 1)
 #error PAGE_MAP_TBL_CACHE_CNT config error, the value must be larger than 0!!!
 #endif
-
-//define the max value of the count of the log block in a zone, the recommended value is 8
-#define MAX_LOG_BLK_CNT                     (16)
 
 //define the frequency of the doing wear-levelling
 #define WEAR_LEVELLING_FREQUENCY            (10)
