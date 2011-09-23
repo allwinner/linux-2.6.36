@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Wed Sep 21 17:04:08 2011
+# Fri Sep 23 20:17:33 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -888,7 +888,7 @@ CONFIG_RTL8192CU=m
 # CONFIG_USB_CATC is not set
 # CONFIG_USB_KAWETH is not set
 # CONFIG_USB_PEGASUS is not set
-# CONFIG_USB_RTL8150 is not set
+CONFIG_USB_RTL8150=m
 CONFIG_USB_USBNET=m
 CONFIG_USB_NET_AX8817X=m
 # CONFIG_USB_NET_CDCETHER is not set
