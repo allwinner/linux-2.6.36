@@ -74,8 +74,6 @@ typedef struct
 	__disp_tv_mode_t        tv_mode;
 	__disp_tv_mode_t        hdmi_mode;
 	__disp_tv_dac_source    dac_source[4];
-	__bool                  b_trd_out;
-	__disp_3d_out_mode_t    trd_out_mode;
 
     __s32                   (*LCD_CPUIF_XY_Swap)(__s32 mode);
     void                    (*LCD_CPUIF_ISR)(void);
@@ -87,12 +85,24 @@ typedef struct
 
 typedef struct
 {
+    __bool enable;
+    __u32 freq;
+    __u32 pre_scal;
+    __u32 active_state;
+    __u32 duty_ns;
+    __u32 period_ns;
+    __u32 entire_cycle;
+    __u32 active_cycle;
+}__disp_pwm_t;
+
+typedef struct
+{
     __disp_bsp_init_para    init_para;//para from driver
     __disp_screen_t         screen[2];
     __disp_scaler_t         scaler[2];
+    __disp_pwm_t            pwm[2];
 }__disp_dev_t;
 
 extern __disp_dev_t gdisp;
-extern frame_para_t g_video[2];
 
 #endif

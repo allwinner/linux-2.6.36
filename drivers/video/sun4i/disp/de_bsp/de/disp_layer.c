@@ -69,7 +69,7 @@ __disp_pixel_type_t get_fb_type(__disp_pixel_fmt_t  format)
 // 0: yuv channel format
 // 1: yuv channel pixel sequence
 // 3: image0 pixel sequence
-static __s32 img_sw_para_to_reg(__u8 type, __u8 mode, __u8 value)
+__s32 img_sw_para_to_reg(__u8 type, __u8 mode, __u8 value)
 {
     if(type == 0)//yuv channel format
     {
@@ -301,7 +301,7 @@ static __s32 Yuv_Channel_Release(__u32 sel, __u8 hid)
     return DIS_SUCCESS;
 }
 
-static __s32 Yuv_Channel_Set_framebuffer(__u32 sel, __disp_fb_t * pfb, __u32 xoffset, __u32 yoffset)
+__s32 Yuv_Channel_Set_framebuffer(__u32 sel, __disp_fb_t * pfb, __u32 xoffset, __u32 yoffset)
 {
     de_yuv_ch_src_t yuv_src;
     
@@ -320,7 +320,7 @@ static __s32 Yuv_Channel_Set_framebuffer(__u32 sel, __disp_fb_t * pfb, __u32 xof
     return DIS_SUCCESS;
 }
 
-static __s32 Yuv_Channel_adjusting(__u32 sel, __u32 mode,__u32 format, __s32 *src_x, __u32 *scn_width)
+__s32 Yuv_Channel_adjusting(__u32 sel, __u32 mode,__u32 format, __s32 *src_x, __u32 *scn_width)
 {
 	__u32 w_shift;
 	__u32 reg_format;
@@ -734,7 +734,8 @@ __s32 BSP_disp_layer_set_screen_window(__u32 sel, __u32 hid,__disp_rect_t * regn
     __disp_rectsz_t      outsize;
     __u32           cpu_sr;
     __layer_man_t * layer_man;
-    
+
+
     hid = HANDTOID(hid);
     HLID_ASSERT(hid, gdisp.screen[sel].max_layers);
 
@@ -933,6 +934,8 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
                 memcpy(&scaler.in_fb, &player->fb, sizeof(__disp_fb_t));
                 DE_SCAL_Input_Select(layer_man->scaler_index, 0);
             }
+            scaler.b_trd_out = layer_man->para.b_trd_out;
+            scaler.out_trd_mode = layer_man->para.out_trd_mode;
             DE_SCAL_Output_Select(layer_man->scaler_index, sel);
             Scaler_Set_Para(layer_man->scaler_index, &scaler);
         }

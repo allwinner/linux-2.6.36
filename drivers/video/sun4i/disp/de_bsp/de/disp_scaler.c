@@ -459,13 +459,19 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
         __scal_buf_addr_t scal_addr_right;
 
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
-
+        outmode = Scaler_3d_sw_para_to_reg(1, scaler->out_trd_mode, gdisp.screen[screen_index].b_out_interlace);
+        
+        DE_SCAL_Get_3D_In_Single_Size(inmode, &in_size, &in_size);
+        if(scaler->b_trd_out)
+        {
+            DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
+        }
+        
     	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[screen_index].b_trd_out, inmode, outmode);
+        DE_SCAL_Set_3D_Ctrl(sel, scaler->b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else
@@ -621,13 +627,19 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
         __scal_buf_addr_t scal_addr_right;
 
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
-
+        outmode = Scaler_3d_sw_para_to_reg(1, scaler->out_trd_mode, gdisp.screen[screen_index].b_out_interlace);
+        
+        DE_SCAL_Get_3D_In_Single_Size(inmode, &in_size, &in_size);
+        if(scaler->b_trd_out)
+        {
+            DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
+        }
+        
     	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[0]));
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[screen_index].b_trd_out, inmode, outmode);
+        DE_SCAL_Set_3D_Ctrl(sel, scaler->b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else
@@ -724,10 +736,10 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
         __scal_buf_addr_t scal_addr_right;
 
         inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-        outmode = Scaler_3d_sw_para_to_reg(1, gdisp.screen[screen_index].trd_out_mode,gdisp.screen[screen_index].b_out_interlace);
+        outmode = Scaler_3d_sw_para_to_reg(1, scaler->out_trd_mode, gdisp.screen[screen_index].b_out_interlace);
         
         DE_SCAL_Get_3D_In_Single_Size(inmode, &in_size, &in_size);
-        if(gdisp.screen[sel].b_trd_out)
+        if(scaler->b_trd_out)
         {
             DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
         }
@@ -736,7 +748,7 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
     	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[1]));
     	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.trd_right_addr[2]));
 
-        DE_SCAL_Set_3D_Ctrl(sel, gdisp.screen[screen_index].b_trd_out, inmode, outmode);
+        DE_SCAL_Set_3D_Ctrl(sel, scaler->b_trd_out, inmode, outmode);
         DE_SCAL_Config_3D_Src(sel, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
     }
     else

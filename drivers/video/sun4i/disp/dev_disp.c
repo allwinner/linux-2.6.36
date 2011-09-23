@@ -272,7 +272,7 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
 #endif
 
 #if 1
-	long timeout = (20 * HZ)/1000,ret;//20ms
+	__u32 timeout = (20 * HZ)/1000,ret;//20ms
 	__u32 i;
 	spinlock_t mr_lock;
 
@@ -293,7 +293,7 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
     	g_disp_drv.b_cmd_finished[sel][i] = 0;
     	if(ret == 0)
         {
-            __inf("timeout,%d,%d\n", sel,timeout);
+            __inf("timeout,%d,%d,%d\n", sel,BSP_disp_get_frame_rate(sel),timeout);
         }
     }
 #endif
@@ -358,8 +358,6 @@ __s32 DRV_DISP_Init(void)
 
     BSP_disp_init(&para);
     BSP_disp_open();
-
-    //Fb_Init();
 
     return 0;
 }
@@ -637,7 +635,6 @@ static int __init disp_probe(struct platform_device *pdev)//called when platform
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
-    DRV_DISP_Init();
 
 	return 0;
 
@@ -1485,6 +1482,20 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		ret = BSP_disp_lcd_set_src(ubuffer[0], (__disp_lcdc_src_t)ubuffer[1]);
     		break;
 
+        case DISP_CMD_LCD_USER_DEFINED_FUNC:
+            ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1]);
+            break;
+
+	//----pwm----
+        case DISP_CMD_PWM_SET_PARA:
+            ret = pwm_set_para(ubuffer[0], (__pwm_info_t *)ubuffer[1]);
+            break;
+
+        case DISP_CMD_PWM_GET_PARA:
+            ret = pwm_get_para(ubuffer[0], (__pwm_info_t *)ubuffer[1]);
+            break;
+
+
     //----tv----
     	case DISP_CMD_TV_ON:
     		ret = BSP_disp_tv_open(ubuffer[0]);
@@ -1966,6 +1977,8 @@ static void __exit disp_module_exit(void)
 }
 
 EXPORT_SYMBOL(disp_set_hdmi_func);
+EXPORT_SYMBOL(DRV_DISP_Init);
+
 
 late_initcall(disp_module_init);
 //module_init(disp_module_init);

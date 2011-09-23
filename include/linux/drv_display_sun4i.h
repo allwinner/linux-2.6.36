@@ -280,17 +280,16 @@ typedef enum//only for debug!!!
 
 typedef struct
 {
-    __u32               addr[3];    // frame buffer的内容地址，对于rgb类型，只有addr[0]有效
-    __disp_rectsz_t     size;//单位是pixel
-    __disp_pixel_fmt_t  format;
-    __disp_pixel_seq_t  seq;
-    __disp_pixel_mod_t  mode;
-    __bool              br_swap;    // blue red color swap flag, FALSE:RGB; TRUE:BGR,only used in rgb format
-    __disp_cs_mode_t    cs_mode;    //color space 
-    __bool              b_trd_src;
-    __bool              b_interlace;
-    __disp_3d_src_mode_t    trd_mode;
-    __u32               trd_right_addr[3];//used when in frame packing 3d mode
+    __u32                   addr[3];    // frame buffer的内容地址，对于rgb类型，只有addr[0]有效
+    __disp_rectsz_t         size;//单位是pixel
+    __disp_pixel_fmt_t      format;
+    __disp_pixel_seq_t      seq;
+    __disp_pixel_mod_t      mode;
+    __bool                  br_swap;    // blue red color swap flag, FALSE:RGB; TRUE:BGR,only used in rgb format
+    __disp_cs_mode_t        cs_mode;    //color space 
+    __bool                  b_trd_src; //if 3d source, used for scaler mode layer
+    __disp_3d_src_mode_t    trd_mode; //source 3d mode, used for scaler mode layer
+    __u32                   trd_right_addr[3];//used when in frame packing 3d mode
 }__disp_fb_t;
 
 typedef struct
@@ -305,6 +304,8 @@ typedef struct
     __disp_rect_t               src_win;    // framebuffer source window,only care x,y if is not scaler mode
     __disp_rect_t               scn_win;    // screen window
     __disp_fb_t                 fb;         //framebuffer
+    __bool                      b_trd_out;  //if output 3d mode, used for scaler mode layer
+    __disp_3d_out_mode_t        out_trd_mode; //output 3d mode, used for scaler mode layer
 }__disp_layer_info_t;
 
 typedef struct
@@ -378,6 +379,8 @@ typedef struct
 	__u32   lcd_x;
 	__u32   lcd_y;
 	__u32   lcd_dclk_freq;
+	__u32   lcd_pwm_not_used;
+	__u32   lcd_pwm_ch;
 	__u32   lcd_pwm_freq;
 	__u32   lcd_pwm_pol;
 	__u32   lcd_srgb;
@@ -432,6 +435,9 @@ typedef struct
 	__u32   lcd_io_cfg1;
 	__u32   lcd_io_strength;
 
+	__u32   lcd_gamma_correction_en;
+	__u32   lcd_gamma_tbl[256];
+
 	__u32   port_index;
 	__u32   start_delay;//not need to config for user
 	__u32   tcon_index; //not need to config for user
@@ -464,7 +470,16 @@ typedef struct
     void (*cfg_panel_info)(__panel_para_t * info);
     __s32 (*cfg_open_flow)(__u32 sel);
     __s32 (*cfg_close_flow)(__u32 sel);
+    __s32 (*lcd_user_defined_func)(__u32 sel, __u32 para);
 }__lcd_panel_fun_t;
+
+typedef struct
+{
+    __bool enable;
+    __u32 active_state;
+    __u32 duty_ns;
+    __u32 period_ns;
+}__pwm_info_t;
 
 #endif
 
@@ -617,6 +632,7 @@ typedef enum tag_DISP_CMD
     DISP_CMD_LCD_CHECK_OPEN_FINISH = 0x14a,
     DISP_CMD_LCD_CHECK_CLOSE_FINISH = 0x14b,
     DISP_CMD_LCD_SET_SRC = 0x14c,
+    DISP_CMD_LCD_USER_DEFINED_FUNC = 0x14d,
 
 //----tv----
     DISP_CMD_TV_ON = 0x180,
@@ -693,8 +709,10 @@ typedef enum tag_DISP_CMD
 	DISP_CMD_RESUME = 0x2d1,
 
 	DISP_CMD_PRINT_REG = 0x2e0,
-	 
 
+//---pwm --------	
+    DISP_CMD_PWM_SET_PARA = 0x300,
+    DISP_CMD_PWM_GET_PARA = 0x301,
 }__disp_cmd_t;
 
 #define FBIOGET_LAYER_HDL_0 0x4700
