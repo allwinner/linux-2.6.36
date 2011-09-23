@@ -615,11 +615,7 @@ void UsbPhyInit(__u32 usbc_no)
 //	DMSG_INFO("csr2-0: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x0c, 1));
 
     /* 调整 USB0 PHY 的幅度和速率 */
-    if(usbc_no == 0){
-    	USBC_Phy_Write(usbc_no, 0x20, 0x1d, 5);
-	}else{
-    	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
-	}
+	USBC_Phy_Write(usbc_no, 0x20, 0x14, 5);
 
 //	DMSG_INFO("csr2-1: usbc%d: 0x%x\n", usbc_no, (u32)USBC_Phy_Read(usbc_no, 0x20, 5));
 
@@ -632,5 +628,35 @@ void UsbPhyInit(__u32 usbc_no)
 	return;
 }
 
+/*
+*******************************************************************************
+*                     UsbPhyEndReset
+*
+* Description:
+*    void
+*
+* Parameters:
+*    void
+*
+* Return value:
+*    void
+*
+* note:
+*    void
+*
+*******************************************************************************
+*/
+void UsbPhyEndReset(__u32 usbc_no)
+{
+	int i;
 
+	if(usbc_no == 0){
+		//Disable Sequelch Detect for a while before Release USB Reset
+		USBC_Phy_Write(usbc_no, 0x3c, 0x2, 2);
+		for(i=0; i<0x100; i++);
+		USBC_Phy_Write(usbc_no, 0x3c, 0x0, 2);
+	}
+
+	return;
+}
 
