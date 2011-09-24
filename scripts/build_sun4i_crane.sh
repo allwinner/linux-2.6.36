@@ -74,8 +74,8 @@ build_kernel()
     done
     cp -f Module.symvers modules.* ${LICHEE_MOD_DIR}
 
-    rm -rf output/kernel-source
-    scripts/gen_kernel_src.sh output/kernel-source
+    #rm -rf output/kernel-source
+    #scripts/gen_kernel_src.sh output/kernel-source
 }
 
 build_modules()
@@ -123,13 +123,13 @@ clean_modules()
     make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
     make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 	CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} clean
-	make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
-			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
-			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
-			INSTALL_DIR=${LICHEE_MOD_DIR} clean 
-	 make -C modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host CROSS_COMPILE=${CROSS_COMPILE} \
-			ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
-			clean
+    make -C modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux \
+	CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+	LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+	INSTALL_DIR=${LICHEE_MOD_DIR} clean 
+     make -C modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host CROSS_COMPILE=${CROSS_COMPILE} \
+	ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
+	clean
 }
 
 #####################################################################
