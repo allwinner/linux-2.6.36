@@ -1490,7 +1490,7 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 {	    
     __u32 duty_ns;
     
-    if(gpanel_info[sel].lcd_pwm_not_used == 0)
+    if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0))
     {
         if(bright != 0)
         {
