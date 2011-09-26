@@ -1575,9 +1575,9 @@ __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src)
     return DIS_SUCCESS;
 }
 
-__s32 BSP_disp_lcd_user_defined_func(__u32 sel, __u32 mode)
+__s32 BSP_disp_lcd_user_defined_func(__u32 sel, __u32 para0, __u32 para1, __u32 para2)
 {
-    return lcd_panel_fun[sel].lcd_user_defined_func(sel, mode);
+    return lcd_panel_fun[sel].lcd_user_defined_func(sel, para0, para1, para2);
 }
 
 void LCD_set_panel_funs(__lcd_panel_fun_t * lcd0_cfg, __lcd_panel_fun_t * lcd1_cfg)

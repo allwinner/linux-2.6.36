@@ -215,7 +215,7 @@ extern __s32 BSP_disp_lcd_get_bright(__u32 sel);
 extern __s32 BSP_disp_lcd_set_src(__u32 sel, __disp_lcdc_src_t src);
 extern __s32 LCD_PWM_EN(__u32 sel, __bool b_en);
 extern __s32 LCD_BL_EN(__u32 sel, __bool b_en);
-extern __s32 BSP_disp_lcd_user_defined_func(__u32 sel, __u32 mode);
+extern __s32 BSP_disp_lcd_user_defined_func(__u32 sel, __u32 para0, __u32 para1, __u32 para2);
 extern __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info);
 extern __s32 pwm_get_para(__u32 channel, __pwm_info_t * pwm_info);
 

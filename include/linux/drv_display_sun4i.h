@@ -470,7 +470,7 @@ typedef struct
     void (*cfg_panel_info)(__panel_para_t * info);
     __s32 (*cfg_open_flow)(__u32 sel);
     __s32 (*cfg_close_flow)(__u32 sel);
-    __s32 (*lcd_user_defined_func)(__u32 sel, __u32 para);
+    __s32 (*lcd_user_defined_func)(__u32 sel, __u32 para1, __u32 para2, __u32 para3);
 }__lcd_panel_fun_t;
 
 typedef struct

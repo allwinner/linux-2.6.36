@@ -1483,7 +1483,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
         case DISP_CMD_LCD_USER_DEFINED_FUNC:
-            ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1], ubuffer[2], ubuffer[3]);
             break;
 
 	//----pwm----
