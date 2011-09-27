@@ -371,7 +371,7 @@ static int csi_clk_get(struct csi_dev *dev)
 static int csi_clk_out_set(struct csi_dev *dev)
 {
 	int ret;
-	ret = clk_set_rate(dev->csi_module_clk, CSI_OUT_RATE);
+	ret = clk_set_rate(dev->csi_module_clk, dev->ccm_info.mclk);
 	if (ret == -1) {
 		csi_err("set csi0 module clock error\n");
 		return -1;
@@ -1157,8 +1157,9 @@ static unsigned int csi_poll(struct file *file, struct poll_table_struct *wait)
 static int csi_open(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
-	int ret;
-
+	int ret,vflip,hflip;
+	struct v4l2_control ctrl;
+	
 	csi_dbg(0,"csi_open\n");
 
 	if (dev->opened == 1) {
@@ -1185,6 +1186,29 @@ static int csi_open(struct file *file)
 		csi_print("sensor initial success when csi open!\n");
 	}	
 
+	ret = script_parser_fetch("csi0_para","csi_vflip", &vflip , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi0 vflip from sys_config failed\n");
+	}
+	
+	ctrl.id = V4L2_CID_VFLIP;
+	ctrl.value = vflip;
+	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
+	if (ret!=0) {
+		csi_err("sensor sensor_s_ctrl V4L2_CID_VFLIP error when csi open!\n");
+	}
+	
+	ret = script_parser_fetch("csi0_para","csi_hflip", &hflip , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi0 hflip from sys_config failed\n");
+	}
+	
+	ctrl.id = V4L2_CID_HFLIP;
+	ctrl.value = hflip;
+	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
+	if (ret!=0) {
+		csi_err("sensor sensor_s_ctrl V4L2_CID_HFLIP error when csi open!\n");
+	}
 	
 	dev->input=0;//default input
 	dev->opened=1;

@@ -1385,6 +1385,7 @@ static struct sensor_win_size {
 	int	vstop;		/* will do the right thing... */
 	struct regval_list *regs; /* Regs to tweak */
 	int regs_size;
+	int (*set_size) (struct v4l2_subdev *sd);
 /* h/vref stuff */
 } sensor_win_sizes[] = {
 	/* VGA */
@@ -1393,6 +1394,7 @@ static struct sensor_win_size {
 		.height		= VGA_HEIGHT,
 		.regs 		= sensor_vga_regs,
 		.regs_size	= ARRAY_SIZE(sensor_vga_regs),
+		.set_size		= NULL,
 	},
 	/* QVGA */
 	{
@@ -1400,6 +1402,7 @@ static struct sensor_win_size {
 		.height		= QVGA_HEIGHT,
 		.regs 		= sensor_qvga_regs,
 		.regs_size	= ARRAY_SIZE(sensor_qvga_regs),
+		.set_size		= NULL,
 	}
 };
 
@@ -1499,11 +1502,22 @@ static int sensor_s_fmt(struct v4l2_subdev *sd, struct v4l2_format *fmt)
 	
 	ret = 0;
 	if (wsize->regs)
-		{
-			ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
-		}
+	{
+		ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
+		if (ret < 0)
+			return ret;
+	}
+	
+	if (wsize->set_size)
+	{
+		ret = wsize->set_size(sd);
+		if (ret < 0)
+			return ret;
+	}
 	
 	info->fmt = sensor_fmt;
+	info->width = wsize->width;
+	info->height = wsize->height;
 	
 	return ret;
 }

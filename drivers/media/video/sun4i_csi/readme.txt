@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_34
+Version: V1_40
 
 Author:  raymonxiu
 
-Date:     2011-9-13 10:39:46
+Date:     2011-9-27 17:04:50
 
 Description:
 
@@ -15,6 +15,13 @@ insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
+
+V1_40 CSI: Fetch "csi_vflip" and "csi_hflip" from sys_config1, modify Kconfig and Makefile
+1) Fetch "csi_vflip" and "csi_hflip" from sys_config1
+2) Add vflip and hflip default setting at sensor initial
+3) Add a function poiter set_size at sensor_win_size struct 
+4) Modify the drivers/media/video/Kconfig and Makefile
+5) Add Kconfig and Makefile in sun4i_csi
 
 V1_34
 1) Support V4L2_PIX_FMT_NV61 and V4L2_PIX_FMT_NV21 format

@@ -368,13 +368,11 @@ static struct regval_list sensor_default_regs[] = {
 };
 
 static struct regval_list sensor_vga_regs[] = {
-	{{0xfd},{0x00}},
-	{{0x31},{0x30}}
+	{{0xfd},{0x00}}
 };
 
 static struct regval_list sensor_qvga_regs[] = {
-	{{0xfd},{0x00}},
-	{{0x31},{0x34}}
+	{{0xfd},{0x00}}
 };
 
 
@@ -1093,6 +1091,67 @@ static struct sensor_format_struct {
  * Then there is the issue of window sizes.  Try to capture the info here.
  */
 
+int __sensor_set_vga(struct v4l2_subdev *sd) 
+{
+	int ret;
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfd;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at __sensor_set_vga!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x31;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at __sensor_set_vga!\n");
+		return ret;
+	}
+	
+	regs.value[0] &= 0xfb;
+	
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at __sensor_set_vga!\n");
+		return ret;
+	}
+	
+	return 0;
+}
+
+int __sensor_set_qvga(struct v4l2_subdev *sd) 
+{
+	int ret;
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfd;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at __sensor_set_qvga!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x31;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at __sensor_set_qvga!\n");
+		return ret;
+	}
+	
+	regs.value[0] |= 0x04;
+	
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at __sensor_set_qvga!\n");
+		return ret;
+	}
+	
+	return 0;
+}
 
 static struct sensor_win_size {
 	int	width;
@@ -1103,6 +1162,7 @@ static struct sensor_win_size {
 	int	vstop;		/* will do the right thing... */
 	struct regval_list *regs; /* Regs to tweak */
 	int regs_size;
+	int (*set_size) (struct v4l2_subdev *sd);
 /* h/vref stuff */
 } sensor_win_sizes[] = {
 	/* VGA */
@@ -1111,6 +1171,7 @@ static struct sensor_win_size {
 		.height		= VGA_HEIGHT,
 		.regs 		= sensor_vga_regs,
 		.regs_size	= ARRAY_SIZE(sensor_vga_regs),
+		.set_size	= __sensor_set_vga,
 	},
 	/* QVGA */
 	{
@@ -1118,13 +1179,14 @@ static struct sensor_win_size {
 		.height		= QVGA_HEIGHT,
 		.regs 		= sensor_qvga_regs,
 		.regs_size	= ARRAY_SIZE(sensor_qvga_regs),
+		.set_size	= __sensor_set_qvga,
 	}
 };
 
 #define N_WIN_SIZES (ARRAY_SIZE(sensor_win_sizes))
 
  
- 
+
  
 static int sensor_enum_fmt(struct v4l2_subdev *sd, struct v4l2_fmtdesc *fmt)
 {
@@ -1217,11 +1279,22 @@ static int sensor_s_fmt(struct v4l2_subdev *sd, struct v4l2_format *fmt)
 	
 	ret = 0;
 	if (wsize->regs)
-		{
-			ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
-		}
+	{
+		ret = sensor_write_array(sd, wsize->regs , wsize->regs_size);
+		if (ret < 0)
+			return ret;
+	}
+	
+	if (wsize->set_size)
+	{
+		ret = wsize->set_size(sd);
+		if (ret < 0)
+			return ret;
+	}
 	
 	info->fmt = sensor_fmt;
+	info->width = wsize->width;
+	info->height = wsize->height;
 	
 	return ret;
 }
@@ -1276,9 +1349,9 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 		return v4l2_ctrl_query_fill(qc, -4, 4, 1, 1);
 //	case V4L2_CID_HUE:
 //		return v4l2_ctrl_query_fill(qc, -180, 180, 5, 0);
-//	case V4L2_CID_VFLIP:
-//	case V4L2_CID_HFLIP:
-//		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
+	case V4L2_CID_VFLIP:
+	case V4L2_CID_HFLIP:
+		return v4l2_ctrl_query_fill(qc, 0, 1, 1, 0);
 //	case V4L2_CID_GAIN:
 //		return v4l2_ctrl_query_fill(qc, 0, 255, 1, 128);
 //	case V4L2_CID_AUTOGAIN:
@@ -1299,22 +1372,144 @@ static int sensor_queryctrl(struct v4l2_subdev *sd,
 
 static int sensor_g_hflip(struct v4l2_subdev *sd, __s32 *value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfd;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_g_hflip!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x31;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_g_hflip!\n");
+		return ret;
+	}
+	
+	regs.value[0] &= (1<<5);
+	regs.value[0] = regs.value[0]>>5;		//0x31 bit5 is mirror
+		
+	*value = regs.value[0];
+
+	info->hflip = *value;
+	return 0;
 }
 
 static int sensor_s_hflip(struct v4l2_subdev *sd, int value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfd;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_s_hflip!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x31;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_s_hflip!\n");
+		return ret;
+	}
+	
+	switch (value) {
+		case 0:
+		  regs.value[0] &= 0xdf;
+			break;
+		case 1:
+			regs.value[0] |= 0x20;
+			break;
+		default:
+			return -EINVAL;
+	}
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_s_hflip!\n");
+		return ret;
+	}
+	
+	info->hflip = value;
+	return 0;
 }
 
 static int sensor_g_vflip(struct v4l2_subdev *sd, __s32 *value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfd;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_g_vflip!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x31;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_g_vflip!\n");
+		return ret;
+	}
+	
+	regs.value[0] &= (1<<6);
+	regs.value[0] = regs.value[0]>>6;		//0x31 bit6 is upsidedown
+		
+	*value = regs.value[0];
+
+	info->vflip = *value;
+	return 0;
 }
 
 static int sensor_s_vflip(struct v4l2_subdev *sd, int value)
 {
-	return -EINVAL;
+	int ret;
+	struct sensor_info *info = to_state(sd);
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0xfd;
+	regs.value[0] = 0x00;		//page 0
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_s_vflip!\n");
+		return ret;
+	}
+	
+	regs.reg_num[0] = 0x31;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_s_vflip!\n");
+		return ret;
+	}
+	
+	switch (value) {
+		case 0:
+		  regs.value[0] &= 0xbf;
+			break;
+		case 1:
+			regs.value[0] |= 0x40;
+			break;
+		default:
+			return -EINVAL;
+	}
+	ret = sensor_write(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_write err at sensor_s_vflip!\n");
+		return ret;
+	}
+	
+	info->vflip = value;
+	return 0;
 }
 
 static int sensor_g_autogain(struct v4l2_subdev *sd, __s32 *value)
