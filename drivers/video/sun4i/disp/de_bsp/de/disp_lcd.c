@@ -1018,6 +1018,24 @@ __s32 Disp_lcdc_init(__u32 sel)
             LCD_get_panel_para(sel, &gpanel_info[sel]);
         }
         gpanel_info[sel].tcon_index = 0;
+
+        if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0))
+        {
+            __pwm_info_t pwm_info;
+
+            pwm_info.enable = 0;
+            pwm_info.active_state = 1;
+            pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
+            if(gpanel_info[sel].lcd_pwm_pol == 0)
+            {
+                pwm_info.duty_ns = (DISP_LCD_BRIGHT_LEVEL12 * pwm_info.period_ns) / 16;
+            }
+            else
+            {
+                pwm_info.duty_ns = ((16 - DISP_LCD_BRIGHT_LEVEL12) * pwm_info.period_ns) / 16;
+            }
+            pwm_set_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
+        }
     }
     return DIS_SUCCESS;
 }
@@ -1402,23 +1420,6 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     BSP_disp_set_yuv_output(sel, FALSE);
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);
-    if((OSAL_sw_get_ic_ver() != 0xA) && (gpanel_info[sel].lcd_pwm_not_used == 0))
-    {
-        __pwm_info_t pwm_info;
-
-        pwm_info.enable = 0;
-        pwm_info.active_state = 1;
-        pwm_info.period_ns = 1000000 / gpanel_info[sel].lcd_pwm_freq;
-        if(gpanel_info[sel].lcd_pwm_pol == 0)
-        {
-            pwm_info.duty_ns = (DISP_LCD_BRIGHT_LEVEL12 * pwm_info.period_ns) / 16;
-        }
-        else
-        {
-            pwm_info.duty_ns = ((16 - DISP_LCD_BRIGHT_LEVEL12) * pwm_info.period_ns) / 16;
-        }
-        pwm_set_para(gpanel_info[sel].lcd_pwm_ch, &pwm_info);
-    }
 
     open_flow[sel].func_num = 0;
     lcd_panel_fun[sel].cfg_open_flow(sel);
