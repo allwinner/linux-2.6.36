@@ -840,7 +840,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
     __layer_man_t * layer_man;
     __u32 prio_tmp = 0;
     __u32 size;    
-
+    
     player->b_from_screen = 0;
     
     hid = HANDTOID(hid);
@@ -875,7 +875,7 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
 
         if(player->mode == DISP_LAYER_WORK_MODE_SCALER)
         {
-            __disp_scaler_t scaler;
+            __disp_scaler_t * scaler;
 
             if(layer_man->para.mode != DISP_LAYER_WORK_MODE_SCALER)
             {
@@ -898,27 +898,27 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
         	    layer_man->para.mode = DISP_LAYER_WORK_MODE_SCALER;
         	    gdisp.scaler[ret].screen_index = sel;
         	}
-        	scaler = gdisp.scaler[layer_man->scaler_index] ;
+        	scaler = &(gdisp.scaler[layer_man->scaler_index]) ;
 
         	player->scn_win.y &= ((gdisp.screen[sel].b_out_interlace== 1)?0xfffffffe:0xffffffff);
-            scaler.out_fb.seq= DISP_SEQ_ARGB;
-            scaler.out_fb.format= DISP_FORMAT_RGB888;
-            scaler.out_size.height  = player->scn_win.height;
-            scaler.out_size.width   = player->scn_win.width;
+            scaler->out_fb.seq= DISP_SEQ_ARGB;
+            scaler->out_fb.format= DISP_FORMAT_RGB888;
+            scaler->out_size.height  = player->scn_win.height;
+            scaler->out_size.width   = player->scn_win.width;
         	if(player->b_from_screen)
         	{
-        	    scaler.src_win.x = 0;
-        	    scaler.src_win.y = 0;
-        	    scaler.src_win.width = BSP_disp_get_screen_width(1-sel);
-        	    scaler.src_win.height = BSP_disp_get_screen_height(1-sel);
-        	    scaler.in_fb.addr[0] = 0;
-        	    scaler.in_fb.size.width = BSP_disp_get_screen_width(1-sel);
-        	    scaler.in_fb.size.height = BSP_disp_get_screen_height(1-sel);
-        	    scaler.in_fb.format = DISP_FORMAT_ARGB8888;
-        	    scaler.in_fb.seq = DISP_SEQ_ARGB;
-        	    scaler.in_fb.mode = DISP_MOD_INTERLEAVED;
-        	    scaler.in_fb.br_swap = FALSE;
-        	    scaler.in_fb.cs_mode = DISP_BT601;
+        	    scaler->src_win.x = 0;
+        	    scaler->src_win.y = 0;
+        	    scaler->src_win.width = BSP_disp_get_screen_width(1-sel);
+        	    scaler->src_win.height = BSP_disp_get_screen_height(1-sel);
+        	    scaler->in_fb.addr[0] = 0;
+        	    scaler->in_fb.size.width = BSP_disp_get_screen_width(1-sel);
+        	    scaler->in_fb.size.height = BSP_disp_get_screen_height(1-sel);
+        	    scaler->in_fb.format = DISP_FORMAT_ARGB8888;
+        	    scaler->in_fb.seq = DISP_SEQ_ARGB;
+        	    scaler->in_fb.mode = DISP_MOD_INTERLEAVED;
+        	    scaler->in_fb.br_swap = FALSE;
+        	    scaler->in_fb.cs_mode = DISP_BT601;
         	    image_clk_on(sel);
         	    Image_open(1 - sel);
         	    DE_BE_Output_Select(1-sel, 6+layer_man->scaler_index);
@@ -927,17 +927,17 @@ __s32 BSP_disp_layer_set_para(__u32 sel, __u32 hid,__disp_layer_info_t *player)
         	}
         	else
         	{
-                scaler.src_win.x       = player->src_win.x;
-                scaler.src_win.y       = player->src_win.y;
-                scaler.src_win.width   = player->src_win.width;
-                scaler.src_win.height  = player->src_win.height;
-                memcpy(&scaler.in_fb, &player->fb, sizeof(__disp_fb_t));
+                scaler->src_win.x       = player->src_win.x;
+                scaler->src_win.y       = player->src_win.y;
+                scaler->src_win.width   = player->src_win.width;
+                scaler->src_win.height  = player->src_win.height;
+                memcpy(&scaler->in_fb, &player->fb, sizeof(__disp_fb_t));
                 DE_SCAL_Input_Select(layer_man->scaler_index, 0);
             }
-            scaler.b_trd_out = layer_man->para.b_trd_out;
-            scaler.out_trd_mode = layer_man->para.out_trd_mode;
+            scaler->b_trd_out = layer_man->para.b_trd_out;
+            scaler->out_trd_mode = layer_man->para.out_trd_mode;
             DE_SCAL_Output_Select(layer_man->scaler_index, sel);
-            Scaler_Set_Para(layer_man->scaler_index, &scaler);
+            Scaler_Set_Para(layer_man->scaler_index, scaler);
         }
         else
         {
