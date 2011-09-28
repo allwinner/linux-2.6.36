@@ -402,7 +402,7 @@ struct axp_charger {
 
 static struct task_struct *main_task;
 //static uint8_t coulomb_flag;
-static struct axp_charger *axp_charger;
+//static struct axp_charger *axp_charger;
 static int Total_Cap = 0;
 static int Cap_Index = 0;
 static int flag_state_change = 0;

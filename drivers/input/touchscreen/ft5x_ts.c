@@ -619,6 +619,7 @@ static int ft5x_i2c_rxdata(char *rxdata, int length)
 	return ret;
 }
 
+#if 0
 static int ft5x_i2c_txdata(char *txdata, int length)
 {
 	int ret;
@@ -655,6 +656,7 @@ static int ft5x_set_reg(u8 addr, u8 para)
     
     return 0;
 }
+#endif
 
 
 static void ft5x_ts_release(void)

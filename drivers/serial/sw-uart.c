@@ -48,7 +48,11 @@
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 
+//#define DEBUG_UART
+
+#ifdef DEBUG_UART
 #include "sw-uart-dbg.h"
+#endif
 
 /* Register base define */
 #define UART_BASE       (0x01C28000)
@@ -58,7 +62,6 @@
 #define UART_USR        31
 
 /* debug control */
-//#define DEBUG_UART
 #define DEBUG_NO        2
 #ifdef DEBUG_UART
 #define UART_DBG(up,...)   do { \

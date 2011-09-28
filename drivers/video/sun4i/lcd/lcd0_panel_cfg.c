@@ -1,6 +1,9 @@
 
 #include "lcd_panel_cfg.h"
 
+//delete this line if you want to use the lcd para define in sys_config1.fex
+//#define LCD_PARA_USE_CONFIG
+#ifdef LCD_PARA_USE_CONFIG
 static void LCD_cfg_panel_info(__panel_para_t * info)
 {
     __u32 i = 0;
@@ -46,6 +49,7 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
         info->lcd_gamma_tbl[i] = (i<<16) | (i<<8) | i;
     }
 }
+#endif
 
 static __s32 LCD_open_flow(__u32 sel)
 {
@@ -94,7 +98,9 @@ static __s32 LCD_user_defined_func(__u32 sel, __u32 para)
 
 void LCD_get_panel_funs_0(__lcd_panel_fun_t * fun)
 {
-    //fun->cfg_panel_info = LCD_cfg_panel_info;//delete this line if you want to use the lcd para define in sys_config1.fex
+#ifdef LCD_PARA_USE_CONFIG
+    fun->cfg_panel_info = LCD_cfg_panel_info;//delete this line if you want to use the lcd para define in sys_config1.fex
+#endif
     fun->cfg_open_flow = LCD_open_flow;
     fun->cfg_close_flow = LCD_close_flow;
     fun->lcd_user_defined_func = LCD_user_defined_func;

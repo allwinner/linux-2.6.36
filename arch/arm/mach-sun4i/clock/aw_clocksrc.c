@@ -39,10 +39,11 @@
 #endif
 
 static cycle_t aw_clksrc_read(struct clocksource *cs);
+#if 0
 static irqreturn_t aw_clkevt_irq(int irq, void *handle);
-static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev);
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev);
-
+static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev);
+#endif
 
 static struct clocksource aw_clocksrc =
 {
@@ -59,7 +60,7 @@ static struct clocksource aw_clocksrc =
     .flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
-
+#if 0
 static struct clock_event_device aw_clock_event =
 {
     .name = "aw clock event device",
@@ -76,7 +77,6 @@ static struct clock_event_device aw_clock_event =
     .event_handler = 0,             /* be alloced by system framework   */
 };
 
-
 static struct irqaction aw_clkevt_irqact =
 {
     .handler = aw_clkevt_irq,
@@ -85,6 +85,7 @@ static struct irqaction aw_clkevt_irqact =
     .dev_id = &aw_clock_event,
     .irq = SW_INT_IRQNO_TIMER1,
 };
+#endif
 
 
 /*
@@ -139,6 +140,7 @@ static cycle_t aw_clksrc_read(struct clocksource *cs)
 *
 *********************************************************************************************************
 */
+#if 0
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
 {
     CLKSRC_DBG("aw_set_clkevt_mode:%u\n", mode);
@@ -176,6 +178,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
         }
     }
 }
+#endif
 
 
 /*
@@ -195,6 +198,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
 *
 *********************************************************************************************************
 */
+#if 0
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev)
 {
     CLKSRC_DBG("aw_set_next_clkevt: %u\n", (unsigned int)delta);
@@ -222,7 +226,7 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 
     return 0;
 }
-
+#endif
 
 /*
 *********************************************************************************************************
@@ -241,6 +245,7 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 *
 *********************************************************************************************************
 */
+#if 0
 static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 {
     if(TMR_REG_IRQ_STAT & (1<<1))
@@ -256,6 +261,7 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 
     return IRQ_NONE;
 }
+#endif
 
 
 /*
@@ -316,6 +322,7 @@ static int __init aw_clksrc_init(void)
 *
 *********************************************************************************************************
 */
+#if 0
 static int __init aw_clkevt_init(void)
 {
     /* register clock event irq     */
@@ -348,6 +355,7 @@ static int __init aw_clkevt_init(void)
 
     return 0;
 }
+#endif
 
 arch_initcall(aw_clksrc_init);
 #if 0

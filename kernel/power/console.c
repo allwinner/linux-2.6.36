@@ -13,7 +13,7 @@
 #if defined(CONFIG_VT) && defined(CONFIG_VT_CONSOLE)
 #define SUSPEND_CONSOLE	(MAX_NR_CONSOLES-1)
 
-static int orig_fgconsole, orig_kmsg;
+//static int orig_fgconsole, orig_kmsg;
 
 int pm_prepare_console(void)
 {
@@ -23,6 +23,7 @@ int pm_prepare_console(void)
 //
 //	orig_kmsg = vt_kmsg_redirect(SUSPEND_CONSOLE);
 //	return 0;
+	return 0;
 }
 
 void pm_restore_console(void)
