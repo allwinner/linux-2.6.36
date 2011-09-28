@@ -619,7 +619,7 @@ static int ft5x_i2c_rxdata(char *rxdata, int length)
 	return ret;
 }
 
-#if 0
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static int ft5x_i2c_txdata(char *txdata, int length)
 {
 	int ret;
