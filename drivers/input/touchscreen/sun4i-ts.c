@@ -1030,6 +1030,10 @@ static int filter_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_d
 static void report_double_point(struct sun4i_ts_data *ts_data, struct ts_sample_data *sample_data)
 {
 	int x1,x2,y1,y2;
+
+	y1 = 0;
+	y2 = 0;
+
 	//int tmp;
     //tmp = X_TURN_POINT<<2;
         //printk("enter report_double_point . \n");
