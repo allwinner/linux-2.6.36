@@ -46,13 +46,16 @@
 //#define PRINT_INT_INFO
 //#define PRINT_POINT_INFO
 #define DEBUG
-
+//#define TOUCH_KEY_SUPPORT
 static struct i2c_client *this_client;
 
 static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
 static int gpio_reset_hdle = 0;
-
+#ifdef TOUCH_KEY_SUPPORT
+static int key_tp  = 0;
+static int key_val = 0;
+#endif
 
 static void* __iomem gpio_addr = NULL;
 
@@ -357,6 +360,7 @@ E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
 
     /*********Step 1:Reset  CTPM *****/
     /*write 0xaa to register 0xfc*/
+    delay_ms(1500);
     fts_register_write(0xfc,0xaa);
     delay_ms(50);
      /*write 0x55 to register 0xfc*/
@@ -386,7 +390,7 @@ E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
 		  return ERR_READID; 
         }
         /*read out the CTPM ID*/
-        
+        printk("====Step 3:check READ-ID====");
         cmd_write(0x90,0x00,0x00,0x00,4);
         byte_read(reg_val,2);
         i++;
@@ -481,7 +485,7 @@ E_UPGRADE_ERR_TYPE  fts_ctpm_fw_upgrade(u8* pbt_buf, u16 dw_lenth)
 
     /*********Step 7: reset the new FW***********************/
     cmd_write(0x07,0x00,0x00,0x00,1);
-
+    msleep(1500);
     return ERR_OK;
 }
 
@@ -554,7 +558,9 @@ int fts_ctpm_fw_upgrade_with_i_file(void)
    
 	//=========FW upgrade========================*/
 	pbt_buf = CTPM_FW;
-	
+	msleep(1500);
+	cmd_write(0x07,0x00,0x00,0x00,1);
+	msleep(1500);
 	getVerNo(buf, BUFFER_LEN);
 	a = buf[0];
 	b = pbt_buf[0];
@@ -619,7 +625,7 @@ static int ft5x_i2c_rxdata(char *rxdata, int length)
 	return ret;
 }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
+ #ifdef CONFIG_HAS_EARLYSUSPEND
 static int ft5x_i2c_txdata(char *txdata, int length)
 {
 	int ret;
@@ -658,12 +664,23 @@ static int ft5x_set_reg(u8 addr, u8 para)
 }
 #endif
 
-
 static void ft5x_ts_release(void)
 {
 	struct ft5x_ts_data *data = i2c_get_clientdata(this_client);
 #ifdef CONFIG_FT5X0X_MULTITOUCH	
+#ifdef TOUCH_KEY_SUPPORT
+  if(1 == key_tp)
+  {
+		input_report_key(data->input_dev, key_val, 0);
+#ifdef PRINT_POINT_INFO
+		printk("Release Key = %d\n",key_val);
+#endif		
+	}
+	else
+	  input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+#else
 	input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, 0);
+#endif
 #else
 	input_report_abs(data->input_dev, ABS_PRESSURE, 0);
 	input_report_key(data->input_dev, BTN_TOUCH, 0);
@@ -779,6 +796,41 @@ static void ft5x_report_value(void)
 
 		//printk("==ft5x_report_value =\n");
 #ifdef CONFIG_FT5X0X_MULTITOUCH
+#ifdef TOUCH_KEY_SUPPORT
+  if((1==event->touch_point)&&(event->x1 > 60000))
+  {
+  	key_tp = 1;
+  	if(event->y1 < 40)
+  	{
+  		key_val = 1;
+	    input_report_key(data->input_dev, key_val, 1);
+	    input_sync(data->input_dev);  
+			#ifdef PRINT_POINT_INFO
+			    printk("===KEY 1====\n");
+			#endif	     
+  	}else if(event->y1 < 90)
+  	{
+  		key_val = 2;
+      input_report_key(data->input_dev, key_val, 1);
+      input_sync(data->input_dev);     
+			#ifdef PRINT_POINT_INFO
+			    printk("===KEY 2 ====\n");
+			#endif     		
+  	}else
+  	{
+  		key_val = 3;
+      input_report_key(data->input_dev, key_val, 1);
+      input_sync(data->input_dev);     
+			#ifdef PRINT_POINT_INFO
+			    printk("===KEY 3====\n");
+			#endif		
+  	}
+  	
+  	
+  }
+  else
+  {
+  	key_tp = 0;
 	switch(event->touch_point) {
 		case 5:
 			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID5);	
@@ -833,7 +885,65 @@ static void ft5x_report_value(void)
 		default:
 //			printk("==touch_point default =\n");
 			break;
+		}
 	}
+#else
+		switch(event->touch_point) {
+			case 5:
+				input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID5);	
+				input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x5);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y5);
+				input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
+				input_mt_sync(data->input_dev);
+				#ifdef PRINT_POINT_INFO
+				    printk("===x5 = %d,y5 = %d ====\n",event->x2,event->y2);
+				#endif
+			case 4:
+				input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID4);	
+				input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x4);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y4);
+				input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
+				input_mt_sync(data->input_dev);
+				#ifdef PRINT_POINT_INFO
+				    printk("===x4 = %d,y4 = %d ====\n",event->x2,event->y2);
+				#endif
+			case 3:
+				input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID3);	
+				input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x3);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y3);
+				input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
+				input_mt_sync(data->input_dev);
+	            #ifdef PRINT_POINT_INFO
+				    printk("===x3 = %d,y3 = %d ====\n",event->x2,event->y2);
+				#endif
+			case 2:
+				input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID2);	
+				input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x2);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y2);
+				input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
+				input_mt_sync(data->input_dev);
+				#ifdef PRINT_POINT_INFO
+				    printk("===x2 = %d,y2 = %d ====\n",event->x2,event->y2);
+				#endif
+			case 1:
+				input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID1);	
+				input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x1);
+				input_report_abs(data->input_dev, ABS_MT_POSITION_Y, event->y1);
+				input_report_abs(data->input_dev, ABS_MT_WIDTH_MAJOR, 1);
+				input_mt_sync(data->input_dev);
+				#ifdef PRINT_POINT_INFO
+				    printk("===x1 = %d,y1 = %d ====\n",event->x1,event->y1);
+				#endif
+			default:
+	//			printk("==touch_point default =\n");
+				break;
+		}
+#endif
 #else	/* CONFIG_FT5X0X_MULTITOUCH*/
 	if (event->touch_point == 1) {
 		input_report_abs(data->input_dev, ABS_X, event->x1);
@@ -902,27 +1012,19 @@ static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 
 static void ft5x_ts_wakeup(void)
 {
-    printk("ft5x_ts_wakeup. \n");
+
     if(1 == ctp_wakeup_enable){
         //wake up
-    
-    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
-        printk("ft5x_ts_resume: err when operate gpio. \n");
-    }
-    mdelay(10);
-    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
-        printk("ft5x_ts_resume: err when operate gpio. \n");
-    }
-    mdelay(10);
-    /*
-           if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_wakeup")){
-                printk("ft5x_ts_reset: err when operate gpio. \n");
-            }
-            mdelay(15);
-            if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_wakeup")){
-                printk("ft5x_ts_reset: err when operate gpio. \n");
-            }
-            mdelay(15);*/
+        printk("ft5x_ts_wakeup. \n");
+        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
+            printk("ft5x_ts_resume: err when operate gpio. \n");
+        }
+        mdelay(15);
+        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
+            printk("ft5x_ts_resume: err when operate gpio. \n");
+        }
+        mdelay(15);
+
     }
     
     return;
@@ -930,14 +1032,14 @@ static void ft5x_ts_wakeup(void)
 
 static void ft5x_ts_reset(void)
 {
-    printk("ft5x_ts_reset. \n");
     if(1 == ctp_reset_enable){
-           if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
-                printk("ft5x_ts_reset: err when operate gpio. \n");
-            }
-            mdelay(15);
-            if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
-                printk("ft5x_ts_reset: err when operate gpio. \n");
+        printk("ft5x_ts_reset. \n");
+       if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
+            printk("ft5x_ts_reset: err when operate gpio. \n");
+        }
+        mdelay(15);
+        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
+            printk("ft5x_ts_reset: err when operate gpio. \n");
             }
             mdelay(15);
     }
@@ -973,7 +1075,7 @@ static void ft5x_ts_suspend(struct early_suspend *handler)
 
 static void ft5x_ts_resume(struct early_suspend *handler)
 {
-	printk("==ft5x_ts_resume=\n v 0.1");
+	printk("==ft5x_ts_resume== \n");
 	// wake the mode
 //	__gpio_as_output(GPIO_FT5X0X_WAKE);		
 //	__gpio_clear_pin(GPIO_FT5X0X_WAKE);		//set wake = 0,base on system
@@ -1001,11 +1103,14 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	struct input_dev *input_dev;
 	int err = 0;
 	int reg_val;
+#ifdef TOUCH_KEY_SUPPORT
+	int i = 0;
+#endif
 
 
 
 	printk("=====capacitor touchscreen driver register ================\n");
-	printk("===================ft5x_ts_probe========================\n");
+	printk("===================ft5x_ts_probe v1.0========================\n");
 	
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		err = -ENODEV;
@@ -1026,19 +1131,13 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	}
 	//printk("touch panel gpio addr: = 0x%x", gpio_addr);
 	this_client = client;
-	this_client->addr = client->addr>>1;
 	
+	//printk("ft5x_ts_probe : client->addr = %d. \n", client->addr);
+	this_client->addr = client->addr;
+	//printk("ft5x_ts_probe : client->addr = %d. \n", client->addr);
 	i2c_set_clientdata(client, ft5x_ts);
-
-//	printk("==INIT_WORK=\n");
-	INIT_WORK(&ft5x_ts->pen_event_work, ft5x_ts_pen_irq_work);
-
-	ft5x_ts->ts_workqueue = create_singlethread_workqueue(dev_name(&client->dev));
-	if (!ft5x_ts->ts_workqueue) {
-		err = -ESRCH;
-		goto exit_create_singlethread;
-	}
-    //config gpio:
+	
+	    //config gpio:
     gpio_int_hdle = gpio_request_ex("ctp_para", "ctp_int_port");
     if(!gpio_int_hdle) {
         pr_warning("touch panel IRQ_EINT21_para request gpio fail!\n");
@@ -1061,8 +1160,12 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
     }
     printk("ctp_reset_enable = %d. \n", ctp_reset_enable);
 
-    
+        //reset
+    ft5x_ts_reset();
+    //wakeup
+    ft5x_ts_wakeup();
 #ifdef AW_GPIO_INT_API_ENABLE
+
 
 #else
         //Config IRQ_EINT21 Negative Edge Interrupt
@@ -1077,10 +1180,43 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
         writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
 	    //disable_irq(IRQ_EINT);
 #endif
-    
-        ft5x_ts_reset();
-        ft5x_ts_wakeup();
-        
+#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
+
+	#if 0
+
+	#define PROBE_BUFFER_LEN  (1)
+	        unsigned char up_flg=0;
+	        unsigned char buf[PROBE_BUFFER_LEN] = {0};
+
+	        up_flg = fts_ctpm_get_upg_ver();
+	        if(FTS_FALSE == fts_register_read(0xa6, buf, PROBE_BUFFER_LEN)){
+	            printk("ft5x_ts_probe: fts_register_read failed. \n");
+	            goto exit_upgrade_failed;
+	        }
+	        
+	        printk("up_flg == %hu, buf[0] == %hu \n", up_flg, buf[0]);
+	        if(FTS_FALSE == fts_register_read(0xa8, buf, PROBE_BUFFER_LEN)){
+	            printk("ft5x_ts_probe: fts_register_read failed. \n");
+	            goto exit_upgrade_failed;
+	        }
+	        printk("buf[0] == %hu \n", buf[0]);
+
+	#endif
+
+	  	fts_ctpm_fw_upgrade_with_i_file();
+
+#endif
+
+
+//	printk("==INIT_WORK=\n");
+	INIT_WORK(&ft5x_ts->pen_event_work, ft5x_ts_pen_irq_work);
+
+	ft5x_ts->ts_workqueue = create_singlethread_workqueue(dev_name(&client->dev));
+	if (!ft5x_ts->ts_workqueue) {
+		err = -ESRCH;
+		goto exit_create_singlethread;
+	}
+
 	input_dev = input_allocate_device();
 	if (!input_dev) {
 		err = -ENOMEM;
@@ -1108,6 +1244,14 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 			     ABS_MT_TOUCH_MAJOR, 0, PRESS_MAX, 0, 0);
 	input_set_abs_params(input_dev,
 			     ABS_MT_WIDTH_MAJOR, 0, 200, 0, 0);
+	input_set_abs_params(input_dev,
+			     ABS_MT_TRACKING_ID, 0, 4, 0, 0);
+#ifdef TOUCH_KEY_SUPPORT
+	key_tp = 0;
+	input_dev->evbit[0] = BIT_MASK(EV_KEY);
+	for (i = 1; i < 4; i++)
+		set_bit(i, input_dev->keybit);
+#endif
 #else
 	set_bit(ABS_X, input_dev->absbit);
 	set_bit(ABS_Y, input_dev->absbit);
@@ -1151,32 +1295,7 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto exit_irq_request_failed;
 	}
 
-#ifdef CONFIG_SUPPORT_FTS_CTP_UPG
 
-#if 0
-
-#define PROBE_BUFFER_LEN  (1)
-        unsigned char up_flg=0;
-        unsigned char buf[PROBE_BUFFER_LEN] = {0};
-
-        up_flg = fts_ctpm_get_upg_ver();
-        if(FTS_FALSE == fts_register_read(0xa6, buf, PROBE_BUFFER_LEN)){
-            printk("ft5x_ts_probe: fts_register_read failed. \n");
-            goto exit_upgrade_failed;
-        }
-        
-        printk("up_flg == %hu, buf[0] == %hu \n", up_flg, buf[0]);
-        if(FTS_FALSE == fts_register_read(0xa8, buf, PROBE_BUFFER_LEN)){
-            printk("ft5x_ts_probe: fts_register_read failed. \n");
-            goto exit_upgrade_failed;
-        }
-        printk("buf[0] == %hu \n", buf[0]);
-
-#endif
-
-  	fts_ctpm_fw_upgrade_with_i_file();
-
-#endif
 
 	printk("==probe over =\n");
     return 0;
@@ -1205,25 +1324,32 @@ exit_check_functionality_failed:
 
 static int __devexit ft5x_ts_remove(struct i2c_client *client)
 {
-	
-	struct ft5x_ts_data *ft5x_ts = i2c_get_clientdata(client);  
-	printk("==ft5x_ts_remove=\n");
-	#ifdef CONFIG_HAS_EARLYSUSPEND
-	unregister_early_suspend(&ft5x_ts->early_suspend);
+
+    struct ft5x_ts_data *ft5x_ts = i2c_get_clientdata(client);
+    
+    ft5x_set_reg(FT5X0X_REG_PMODE, PMODE_HIBERNATE);	
+
+   
+
+    printk("==ft5x_ts_remove=\n");
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    unregister_early_suspend(&ft5x_ts->early_suspend);
 	#endif
 	free_irq(SW_INT_IRQNO_PIO, ft5x_ts);
 	input_unregister_device(ft5x_ts->input_dev);
 	kfree(ft5x_ts);
 	cancel_work_sync(&ft5x_ts->pen_event_work);
 	destroy_workqueue(ft5x_ts->ts_workqueue);
-	i2c_set_clientdata(client, NULL);
-    if(gpio_addr)
+    
+    i2c_set_clientdata(client, NULL);
+     if(gpio_addr)
     {
         iounmap(gpio_addr);
-    }	
-    gpio_release(gpio_int_hdle, 0);
-    gpio_release(gpio_wakeup_hdle, 0);
-	return 0;
+    }
+    gpio_release(gpio_int_hdle, 2);
+    gpio_release(gpio_wakeup_hdle, 2);
+    return 0;
+
 }
 
 static const struct i2c_device_id ft5x_ts_id[] = {
