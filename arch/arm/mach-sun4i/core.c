@@ -34,6 +34,9 @@
 #include <mach/hardware.h>
 #include <mach/platform.h>
 #include <mach/system.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
+
 
 #include "core.h"
 
@@ -98,7 +101,7 @@ static struct clock_event_device timer0_clockevent = {
 };
 
 
-static irqreturn_t softwinner_timer_interrupt(int irq, void *dev_id)
+static irqreturn_t sw_timer_interrupt(int irq, void *dev_id)
 {
     struct clock_event_device *evt = &timer0_clockevent;
 
@@ -109,13 +112,13 @@ static irqreturn_t softwinner_timer_interrupt(int irq, void *dev_id)
     return IRQ_HANDLED;
 }
 
-static struct irqaction softwinner_timer_irq = {
+static struct irqaction sw_timer_irq = {
     .name = "Softwinner Timer Tick",
     .flags = IRQF_DISABLED | IRQF_TIMER | IRQF_IRQPOLL,
-    .handler = softwinner_timer_interrupt,
+    .handler = sw_timer_interrupt,
 };
 
-void softwinner_irq_ack(unsigned int irq)
+void sw_irq_ack(unsigned int irq)
 {
     if (irq < 32){
         writel(readl(SW_INT_ENABLE_REG0) & ~(1<<irq), SW_INT_ENABLE_REG0);
@@ -135,7 +138,7 @@ void softwinner_irq_ack(unsigned int irq)
 }
 
 /* Disable irq */
-static void softwinner_irq_mask(unsigned int irq)
+static void sw_irq_mask(unsigned int irq)
 {
     if(irq < 32){
         writel(readl(SW_INT_ENABLE_REG0) & ~(1<<irq), SW_INT_ENABLE_REG0);
@@ -152,7 +155,7 @@ static void softwinner_irq_mask(unsigned int irq)
 }
 
 /* Enable irq */
-static void softwinner_irq_unmask(unsigned int irq)
+static void sw_irq_unmask(unsigned int irq)
 {
     if(irq < 32){
         writel(readl(SW_INT_ENABLE_REG0) | (1<<irq), SW_INT_ENABLE_REG0);
@@ -172,12 +175,12 @@ static void softwinner_irq_unmask(unsigned int irq)
 
 static struct irq_chip sw_f23_sic_chip = {
     .name   = "SW_F23_SIC",
-    .ack    = softwinner_irq_ack,
-    .mask   = softwinner_irq_mask,
-    .unmask = softwinner_irq_unmask,
+    .ack    = sw_irq_ack,
+    .mask   = sw_irq_mask,
+    .unmask = sw_irq_unmask,
 };
 
-void __init softwinner_init_irq(void)
+void __init sw_init_irq(void)
 {
     u32 i = 0;
 
@@ -209,7 +212,7 @@ void __init softwinner_init_irq(void)
     }
 }
 
-static struct map_desc softwinner_io_desc[] __initdata = {
+static struct map_desc sw_io_desc[] __initdata = {
     { SW_VA_SRAM_BASE,          __phys_to_pfn(SW_PA_SRAM_BASE),         SZ_32K, MT_MEMORY_ITCM  },
     { SW_VA_CCM_IO_BASE,        __phys_to_pfn(SW_PA_CCM_IO_BASE),        SZ_1K,  MT_DEVICE       },
     { SW_VA_SRAM_IO_BASE,       __phys_to_pfn(SW_PA_SRAM_IO_BASE),      SZ_4K,  MT_DEVICE       },
@@ -234,9 +237,9 @@ static struct map_desc softwinner_io_desc[] __initdata = {
 
 };
 
-void __init softwinner_map_io(void)
+void __init sw_map_io(void)
 {
-    iotable_init(softwinner_io_desc, ARRAY_SIZE(softwinner_io_desc));
+    iotable_init(sw_io_desc, ARRAY_SIZE(sw_io_desc));
 }
 
 struct sysdev_class sw_sysclass = {
@@ -287,10 +290,9 @@ int sw_plat_init(void)
 {
     pr_info("SUN4i Platform Init\n");
 
-
     memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
     memblock_reserve(fb_start, fb_size);
-	memblock_reserve(GPS_RESERVE_MEM_BASE, GPS_RESERVE_MEM_SIZE);
+    memblock_reserve(GPS_RESERVE_MEM_BASE, GPS_RESERVE_MEM_SIZE);
 
     pr_info("reserve: base=0x%08x, size=0x%08x\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
     pr_info("reserve: base=0x%08x, size=0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
@@ -307,12 +309,12 @@ static int __init sw_core_init(void)
 core_initcall(sw_core_init);
 
 extern int sw_register_clocks(void);
-void __init softwinner_init(void)
+void __init sw_init(void)
 {
     sysdev_register(&sw_sysdev);
 }
 
-static void __init softwinner_timer_init(void)
+static void __init sw_timer_init(void)
 {
     volatile u32  val = 0;
 
@@ -327,7 +329,7 @@ static void __init softwinner_timer_init(void)
     val = readl(SW_TIMER0_CTL_REG);
     val |= (1<<1);
     writel(val, SW_TIMER0_CTL_REG);
-    setup_irq(SW_INT_IRQNO_TIMER0, &softwinner_timer_irq);
+    setup_irq(SW_INT_IRQNO_TIMER0, &sw_timer_irq);
 
     /* Enable time0 interrupt */
     val = readl(SW_TIMER_INT_CTL_REG);
@@ -341,22 +343,33 @@ static void __init softwinner_timer_init(void)
     clockevents_register_device(&timer0_clockevent);
 }
 
-static void __init softwinner_fixup(struct machine_desc *desc,
+extern int gpio_init(void);
+static void __init sw_fixup(struct machine_desc *desc,
                   struct tag *tags, char **cmdline,
                   struct meminfo *mi)
 {
     u32 size;
+
+    pr_info("Lichee System fixup\n");
     size = DRAMC_get_dram_size();
-    if( size ) {
-        mi->nr_banks=1;
-        mi->bank[0].start = 0x40000000;
-        mi->bank[0].size = SZ_1M * size;
+
+    if (size <= 512) {
+	    mi->nr_banks=1;
+	    mi->bank[0].start = 0x40000000;
+	    mi->bank[0].size = SZ_1M * (size - 64);
+    } else {
+	    mi->nr_banks=2;
+	    mi->bank[0].start = 0x40000000;
+	    mi->bank[0].size = SZ_1M * (512 - 64);
+	    mi->bank[1].start = 0x60000000;
+	    mi->bank[1].size = SZ_1M * (size - 512);
     }
-    pr_info("__init softwinner_fixup\n");
+
+    pr_info("Total Detected Memory: %uMB with %d banks\n", size, mi->nr_banks);
 }
 
-struct sys_timer softwinner_timer = {
-    .init = softwinner_timer_init,
+struct sys_timer sw_timer = {
+    .init = sw_timer_init,
 };
 
 enum sw_ic_ver sw_get_ic_ver(void)
@@ -378,11 +391,11 @@ MACHINE_START(SUN4I, "sun4i")
     /* Maintainer: ARM Ltd/Deep Blue Solutions Ltd */
     .phys_io        = 0x01c00000,
     .io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
-    .map_io         = softwinner_map_io,
-    .fixup          = softwinner_fixup,
-    .init_irq       = softwinner_init_irq,
-    .timer          = &softwinner_timer,
-    .init_machine   = softwinner_init,
+    .map_io         = sw_map_io,
+    .fixup          = sw_fixup,
+    .init_irq       = sw_init_irq,
+    .timer          = &sw_timer,
+    .init_machine   = sw_init,
     .boot_params    = (unsigned long)(0x40000000),
 MACHINE_END
 

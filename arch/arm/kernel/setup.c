@@ -846,7 +846,7 @@ void __init setup_arch(char **cmdline_p)
 	from = mbp;
         //strlcpy(boot_command_line, mbp, COMMAND_LINE_SIZE);
         //strlcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-        printk("User defined parameters:\n%s at %p\n", boot_command_line, mbp);
+        //printk("User defined parameters:\n%s at %p\n", boot_command_line, mbp);
 #endif
 
 #ifdef USE_TAG
