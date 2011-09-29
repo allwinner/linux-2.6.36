@@ -432,6 +432,11 @@ static void i2c_awxx_addr_byte(struct awxx_i2c *i2c)
     else
     {
         addr = (i2c->msg[i2c->msg_idx].addr & 0x7f) << 1;// 7-1bits addr,xxxx_xxx0
+        #ifdef PRINT_TRANSFER_INFO
+        if(i2c->bus_num == CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
+            printk("i2c->msg->addr = 0x%x. \n", addr);
+        }
+        #endif
     }
     //read,default value is write
     if (i2c->msg[i2c->msg_idx].flags & I2C_M_RD)
@@ -456,8 +461,11 @@ static int i2c_awxx_core_process(struct awxx_i2c *i2c)
     state = aw_twi_query_irq_status(base_addr);
 
     #ifdef PRINT_TRANSFER_INFO
-    printk("awxx_i2c->bus_num = %d, awxx_i2c->msg->addr = (0x%x) state = (0x%x)\n",\
-               i2c->bus_num, i2c->msg->addr, state);
+    if(i2c->bus_num == CONFIG_SUN4I_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM){
+        printk("awxx_i2c->bus_num = %d, awxx_i2c->msg->addr = (0x%x) state = (0x%x)\n",\
+                       i2c->bus_num, i2c->msg->addr, state);
+    }
+    
     #endif
 
     switch(state)
