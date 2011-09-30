@@ -71,11 +71,11 @@ static struct resource disp_resource[DISP_IO_NUM] =
 
 __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
 {
-	if(pHeapHead <0xc0000000)
-	{
-	    __wrn("pHeapHead:%x <0xc0000000\n", pHeapHead);
-	    return -1;                             //检查Head地址是否合法
-	}
+    pr_info("va(0x40000000)=%x\n", __va(0x40000000));
+    if(pHeapHead <__va(0x40000000)) {
+        pr_warning("Invalid pHeapHead:%x\n", pHeapHead);
+        return -1;    //检查Head地址是否合法
+    }
 
     boot_heap_head.size    = boot_heap_tail.size = 0;
     boot_heap_head.address = pHeapHead;
@@ -83,7 +83,7 @@ __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
     boot_heap_head.next    = &boot_heap_tail;
     boot_heap_tail.next    = 0;
 
-    __inf("head:%x,tail:%x\n" ,boot_heap_head.address, boot_heap_tail.address);
+    pr_info("head:%x,tail:%x\n" ,boot_heap_head.address, boot_heap_tail.address);
     return 0;
 }
 

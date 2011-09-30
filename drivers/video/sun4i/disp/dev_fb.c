@@ -21,14 +21,14 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     
     if(OSAL_Script_FetchParser_Data("disp_init", "disp_init_enable", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.disp_init_enable fail\n");
+        pr_warning("fetch script data disp_init.disp_init_enable fail\n");
         return -1;
     }
     init_para->b_init = value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "disp_mode", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.disp_mode fail\n");
+        pr_warning("fetch script data disp_init.disp_mode fail\n");
         return -1;
     }
     init_para->disp_mode= value;
@@ -36,7 +36,7 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
 //screen0
     if(OSAL_Script_FetchParser_Data("disp_init", "screen0_output_type", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.screen0_output_type fail\n");
+        pr_warning("fetch script data disp_init.screen0_output_type fail\n");
         return -1;
     }
     if(value == 0)
@@ -61,13 +61,13 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     }
     else
     {
-        __wrn("invalid screen0_output_type %d\n", init_para->output_type[0]);
+        pr_warning("invalid screen0_output_type %d\n", init_para->output_type[0]);
         return -1;
     }
     
     if(OSAL_Script_FetchParser_Data("disp_init", "screen0_output_mode", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.screen0_output_mode fail\n");
+        pr_warning("fetch script data disp_init.screen0_output_mode fail\n");
         return -1;
     }
     if(init_para->output_type[0] == DISP_OUTPUT_TYPE_TV || init_para->output_type[0] == DISP_OUTPUT_TYPE_HDMI)
@@ -82,7 +82,7 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
 //screen1
     if(OSAL_Script_FetchParser_Data("disp_init", "screen1_output_type", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.screen1_output_type fail\n");
+        pr_warning("fetch script data disp_init.screen1_output_type fail\n");
         return -1;
     }
     if(value == 0)
@@ -107,13 +107,13 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
     }
     else
     {
-        __wrn("invalid screen1_output_type %d\n", init_para->output_type[1]);
+        pr_warning("invalid screen1_output_type %d\n", init_para->output_type[1]);
         return -1;
     }
     
     if(OSAL_Script_FetchParser_Data("disp_init", "screen1_output_mode", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.screen1_output_mode fail\n");
+        pr_warning("fetch script data disp_init.screen1_output_mode fail\n");
         return -1;
     }
     if(init_para->output_type[1] == DISP_OUTPUT_TYPE_TV || init_para->output_type[1] == DISP_OUTPUT_TYPE_HDMI)
@@ -128,28 +128,28 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
 //fb0
     if(OSAL_Script_FetchParser_Data("disp_init", "fb0_framebuffer_num", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb0_framebuffer_num fail\n");
+        pr_warning("fetch script data disp_init.fb0_framebuffer_num fail\n");
         return -1;
     }
     init_para->buffer_num[0]= value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb0_format", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb0_format fail\n");
+        pr_warning("fetch script data disp_init.fb0_format fail\n");
         return -1;
     }
     init_para->format[0]= value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb0_pixel_sequence", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb0_pixel_sequence fail\n");
+        pr_warning("fetch script data disp_init.fb0_pixel_sequence fail\n");
         return -1;
     }
     init_para->seq[0]= value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb0_scaler_mode_enable", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb0_scaler_mode_enable fail\n");
+        pr_warning("fetch script data disp_init.fb0_scaler_mode_enable fail\n");
         return -1;
     }
     init_para->scaler_mode[0]= value;
@@ -157,51 +157,51 @@ __s32 parser_disp_init_para(__disp_init_t * init_para)
 //fb1
     if(OSAL_Script_FetchParser_Data("disp_init", "fb1_framebuffer_num", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb1_framebuffer_num fail\n");
+        pr_warning("fetch script data disp_init.fb1_framebuffer_num fail\n");
         return -1;
     }
     init_para->buffer_num[1]= value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb1_format", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb1_format fail\n");
+        pr_warning("fetch script data disp_init.fb1_format fail\n");
         return -1;
     }
     init_para->format[1]= value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb1_pixel_sequence", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb1_pixel_sequence fail\n");
+        pr_warning("fetch script data disp_init.fb1_pixel_sequence fail\n");
         return -1;
     }
     init_para->seq[1]= value;
 
     if(OSAL_Script_FetchParser_Data("disp_init", "fb1_scaler_mode_enable", &value, 1) < 0)
     {
-        __wrn("fetch script data disp_init.fb1_scaler_mode_enable fail\n");
+        pr_warning("fetch script data disp_init.fb1_scaler_mode_enable fail\n");
         return -1;
     }
     init_para->scaler_mode[1]= value;
 
 
-    __inf("====display init para begin====\n");
-    __inf("b_init:%d\n", init_para->b_init);
-    __inf("disp_mode:%d\n\n", init_para->disp_mode);
+    pr_info("====display init para begin====\n");
+    pr_info("b_init:%d\n", init_para->b_init);
+    pr_info("disp_mode:%d\n\n", init_para->disp_mode);
     for(i=0; i<2; i++)
     {
-        __inf("output_type[%d]:%d\n", i, init_para->output_type[i]);
-        __inf("tv_mode[%d]:%d\n", i, init_para->tv_mode[i]);
-        __inf("vga_mode[%d]:%d\n\n", i, init_para->vga_mode[i]);
+        pr_info("output_type[%d]:%d\n", i, init_para->output_type[i]);
+        pr_info("tv_mode[%d]:%d\n", i, init_para->tv_mode[i]);
+        pr_info("vga_mode[%d]:%d\n\n", i, init_para->vga_mode[i]);
     }
     for(i=0; i<2; i++)
     {
-        __inf("buffer_num[%d]:%d\n", i, init_para->buffer_num[i]);
-        __inf("format[%d]:%d\n", i, init_para->format[i]);
-        __inf("seq[%d]:%d\n", i, init_para->seq[i]);
-        __inf("br_swap[%d]:%d\n", i, init_para->br_swap[i]);
-        __inf("b_scaler_mode[%d]:%d\n", i, init_para->scaler_mode[i]);
+        pr_info("buffer_num[%d]:%d\n", i, init_para->buffer_num[i]);
+        pr_info("format[%d]:%d\n", i, init_para->format[i]);
+        pr_info("seq[%d]:%d\n", i, init_para->seq[i]);
+        pr_info("br_swap[%d]:%d\n", i, init_para->br_swap[i]);
+        pr_info("b_scaler_mode[%d]:%d\n", i, init_para->scaler_mode[i]);
     }
-    __inf("====display init para end====\n");
+    pr_info("====display init para end====\n");
 
     return 0;
 }
@@ -264,20 +264,20 @@ static int __init Fb_map_video_memory(struct fb_info *info)
 		info->screen_base = page_address(page);
 		info->fix.smem_start = virt_to_phys(info->screen_base);
 		memset(info->screen_base,0,info->fix.smem_len);
-		__inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+		pr_info("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
 		return 0;
 	}
 	else
 	{
-		__wrn("alloc_pages fail!\n");
+		pr_warning("alloc_pages fail!\n");
 		return -ENOMEM;
 	}
 #else        
     info->screen_base = (char __iomem *)disp_malloc(info->fix.smem_len);
-    info->fix.smem_start = (unsigned long)info->screen_base - 0x80000000;
+    info->fix.smem_start = (unsigned long)__pa(info->screen_base);
     memset(info->screen_base,0,info->fix.smem_len);
 
-    __inf("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
+    pr_info("Fb_map_video_memory, pa=0x%08lx size:0x%x\n",info->fix.smem_start, info->fix.smem_len);
 
     return 0;
 #endif
@@ -536,7 +536,7 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 			    }
 			    else
 			    {
-			        __wrn("invalid RGB655 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
+			        pr_warning("invalid RGB655 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
 			        var->reserved[2] = DISP_SEQ_ARGB;
 			        var->reserved[3] = 0;
 			    }
@@ -557,7 +557,7 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 			    }
 			    else
 			    {
-			        __wrn("invalid RGB565 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
+			        pr_warning("invalid RGB565 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
 			        var->reserved[2] = DISP_SEQ_ARGB;
 			        var->reserved[3] = 0;
 			    }
@@ -577,7 +577,7 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 			    }
 			    else
 			    {
-			        __wrn("invalid RGB556 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
+			        pr_warning("invalid RGB556 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
 			        var->reserved[2] = DISP_SEQ_ARGB;
 			        var->reserved[3] = 0;
 			    }
@@ -597,7 +597,7 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 			    }
 			    else
 			    {
-			        __wrn("invalid ARGB1555 format<transp.offset:%d,red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->transp.offset,var->red.offset,var->green.offset,var->blue.offset);
+			        pr_warning("invalid ARGB1555 format<transp.offset:%d,red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->transp.offset,var->red.offset,var->green.offset,var->blue.offset);
 			        var->reserved[2] = DISP_SEQ_ARGB;
 			        var->reserved[3] = 0;
 			    }
@@ -617,14 +617,14 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 			    }
 			    else
 			    {
-			        __wrn("invalid ARGB4444 format<transp.offset:%d,red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->transp.offset,var->red.offset,var->green.offset,var->blue.offset);
+			        pr_warning("invalid ARGB4444 format<transp.offset:%d,red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->transp.offset,var->red.offset,var->green.offset,var->blue.offset);
 			        var->reserved[2] = DISP_SEQ_ARGB;
 			        var->reserved[3] = 0;
 			    }
 			}
 			else
 			{
-			    __wrn("invalid bits_per_pixel :%d\n", var->bits_per_pixel);
+			    pr_warning("invalid bits_per_pixel :%d\n", var->bits_per_pixel);
 				return -EINVAL;
 			}
 			break;
@@ -646,7 +646,7 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 		    }
 		    else
 		    {
-		        __wrn("invalid RGB888 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
+		        pr_warning("invalid RGB888 format<red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->red.offset,var->green.offset,var->blue.offset);
 		        var->reserved[2] = DISP_SEQ_ARGB;
 		        var->reserved[3] = 0;
 		    }
@@ -681,14 +681,14 @@ __s32 var_to_disp_fb(__disp_fb_t *fb, struct fb_var_screeninfo *var, struct fb_f
 			}
 			else
 			{
-			    __wrn("invalid argb format<transp.offset:%d,red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->transp.offset,var->red.offset,var->green.offset,var->blue.offset);
+			    pr_warning("invalid argb format<transp.offset:%d,red.offset:%d,green.offset:%d,blue.offset:%d>\n",var->transp.offset,var->red.offset,var->green.offset,var->blue.offset);
 			    var->reserved[2] = DISP_SEQ_ARGB;
 			    var->reserved[3] = 0;
 			}
 			break;
 			
 		default:
-		    __wrn("invalid bits_per_pixel :%d\n", var->bits_per_pixel);
+		    pr_warning("invalid bits_per_pixel :%d\n", var->bits_per_pixel);
 			return -EINVAL;
 		}
 	}
@@ -718,7 +718,7 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
 {
 	__u32 sel = 0;
 
-	//__inf("Fb_pan_display\n");
+	//pr_info("Fb_pan_display\n");
 
     for(sel = 0; sel < 2; sel++)
     {
@@ -780,7 +780,7 @@ static int Fb_set_par(struct fb_info *info)//todo
 {
 	__u32 sel = 0;
     
-	__inf("Fb_set_par\n"); 
+	pr_info("Fb_set_par\n"); 
 
     for(sel = 0; sel < 2; sel++)
     {
@@ -825,7 +825,7 @@ static int Fb_setcolreg(unsigned regno,unsigned red, unsigned green, unsigned bl
 {
     __u32 sel = 0;
     
-	 __inf("Fb_setcolreg,regno=%d,a=%d,r=%d,g=%d,b=%d\n",regno, transp,red, green, blue); 
+	 pr_info("Fb_setcolreg,regno=%d,a=%d,r=%d,g=%d,b=%d\n",regno, transp,red, green, blue); 
 
     for(sel = 0; sel < 2; sel++)
     {
@@ -857,7 +857,7 @@ static int Fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
 {
     __u32 sel = 0;
     
-	__inf("Fb_setcmap\n"); 
+	pr_info("Fb_setcmap\n"); 
 	
     for(sel = 0; sel < 2; sel++)
     {
@@ -899,7 +899,7 @@ int Fb_blank(int blank_mode, struct fb_info *info)
 {    
     __u32 sel = 0;
     
-	__inf("Fb_blank,mode:%d\n",blank_mode); 
+	pr_info("Fb_blank,mode:%d\n",blank_mode); 
 
     for(sel = 0; sel < 2; sel++)
     {
@@ -924,7 +924,7 @@ int Fb_blank(int blank_mode, struct fb_info *info)
 
 static int Fb_cursor(struct fb_info *info, struct fb_cursor *cursor)
 {
-    __inf("Fb_cursor\n"); 
+    pr_info("Fb_cursor\n"); 
 
     return 0;
 }
@@ -989,7 +989,7 @@ static int Fb_ioctl(struct fb_info *info, unsigned int cmd,unsigned long arg)
         break;
 
    	default:
-   	    //__inf("not supported fb io cmd:%x\n", cmd);
+   	    //pr_info("not supported fb io cmd:%x\n", cmd);
 		break;
 	}
 	return ret;
@@ -1018,7 +1018,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
 	__u32 sel;
 	__u32 xres, yres;
     
-	__inf("Display_Fb_Request,fb_id:%d\n", fb_id);
+	pr_info("Display_Fb_Request,fb_id:%d\n", fb_id);
 
     info = g_fbi.fbinfo[fb_id];
 
@@ -1110,7 +1110,7 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
 
 __s32 Display_Fb_Release(__u32 fb_id)
 {
-    __inf("Display_Fb_Release, fb_id:%d\n", fb_id);
+    pr_info("Display_Fb_Release, fb_id:%d\n", fb_id);
     
 	if((fb_id >= 0) && (g_fbi.fbinfo[fb_id] != NULL))
 	{
@@ -1137,7 +1137,7 @@ __s32 Display_Fb_Release(__u32 fb_id)
 	}
 	else
 	{
-	    __wrn("invalid paras fb_id:%d in Display_Fb_Release\n", fb_id);
+	    pr_warning("invalid paras fb_id:%d in Display_Fb_Release\n", fb_id);
 	    return DIS_FAIL;
 	}
 
@@ -1155,8 +1155,8 @@ __s32 Fb_Init(__u32 from)
     if(from == 0)//call from lcd driver
     {
 #ifdef FB_RESERVED_MEM
-        __inf("fbmem: fb_start=%lu, fb_size=%lu\n", fb_start, fb_size);
-        disp_create_heap(fb_start + 0x80000000,  fb_size);
+        pr_info("fbmem: fb_start=%lu, fb_size=%lu\n", fb_start, fb_size);
+        disp_create_heap((unsigned long)(__va(fb_start)),  fb_size);
 #endif
 
         for(i=0; i<8; i++)
@@ -1192,8 +1192,8 @@ __s32 Fb_Init(__u32 from)
         	g_fbi.fbinfo[i]->fix.accel	    = FB_ACCEL_NONE;
             g_fbi.fbinfo[i]->fix.line_length = g_fbi.fbinfo[i]->var.xres_virtual * 4;
             g_fbi.fbinfo[i]->fix.smem_len = g_fbi.fbinfo[i]->fix.line_length * g_fbi.fbinfo[i]->var.yres_virtual * 2;
-            g_fbi.fbinfo[i]->screen_base = (char __iomem *)(CONFIG_ANDROID_PMEM_BASE + 0x80000000 - 0x2000000);
-            g_fbi.fbinfo[i]->fix.smem_start = CONFIG_ANDROID_PMEM_BASE - 0x2000000;
+            g_fbi.fbinfo[i]->screen_base = 0x0;
+            g_fbi.fbinfo[i]->fix.smem_start = 0x0;
 
         	register_framebuffer(g_fbi.fbinfo[i]);
         }
