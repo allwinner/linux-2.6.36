@@ -60,7 +60,7 @@
 #define EMAC_SAFX_H_REG3         (0xC0)
 
 /*  PIO register  */
-#define PIO_BASE            	0x01c20800
+//#define PIO_BASE            	0x01c20800
 
 #define PA_CFG0_REG        	(0x00)
 #define PA_CFG1_REG        	(0x04)

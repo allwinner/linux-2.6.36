@@ -26,7 +26,7 @@ typedef struct frame_para
     __bool  have_got_frame;
 	__bool	fetch_field;//for scaler
 	__bool	fetch_bot;//for dit if dit enable,else for scaler
-	__u32   field_cnt; //for dit:  counter of current display time after set framebuffer
+	__u32   display_cnt;
 	__bool	out_field;
 	__bool	out_bot;
 	__bool  dit_enable;
@@ -48,7 +48,7 @@ typedef struct tv_mode_info
 }tv_mode_info_t;
 
 __s32 Video_Operation_In_Vblanking(__u32 sel, __u32 tcon_index);
-extern frame_para_t g_video[2];
+extern frame_para_t g_video[2][4];
 
 
 #endif

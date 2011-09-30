@@ -786,7 +786,7 @@ __u32 USBC_PHY_GetCommonConfig(void);
 void USBC_phy_Standby(__hdle hUSB, __u32 phy_index);
 void USBC_Phy_Standby_Recover(__hdle hUSB, __u32 phy_index);
 void UsbPhyInit(__u32 usbc_no);
-
+void UsbPhyEndReset(__u32 usbc_no);
 
 /* usb ≤‚ ‘ƒ£ Ω */
 void USBC_EnterMode_TestPacket(__hdle hUSB);

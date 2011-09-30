@@ -347,7 +347,7 @@ static  int codec_init(void)
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
 	}else if(codec_chip_ver == MAGIC_VER_B){
-		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3c);
+		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3b);
 	}else{
 		printk("[audio codec] chip version is unknown!\n");
 		return -1;
@@ -415,6 +415,7 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
+	/*if the address of bit 27 is 0,means that the tv is close, so open pa*/
 	if(0 == test_bit(27, (void *)(volatile int *)0xf1c22c10))
 		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	//flush TX FIFO
@@ -1141,7 +1142,9 @@ static int snd_sw_codec_trigger(struct snd_pcm_substream *substream, int cmd)
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
 			capture_prtd->state |= ST_RUNNING;		 
 			codec_capture_start();
-			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_START);		
+			mdelay(1);
+			codec_wr_control(SW_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x1);
+			sw_dma_ctrl(capture_prtd->params->channel, SW_DMAOP_START);
 			break;
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 			codec_capture_stop();		
@@ -1313,7 +1316,8 @@ static void codec_resume_events(struct work_struct *work)
 //	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);
     msleep(50);
 	printk("====pa turn on===\n");
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
+	if(0 == test_bit(27, (void *)(volatile int *)0xf1c22c10))
+		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
 	/*for clk test*/
 	//printk("[codec resume reg]\n");
 	//printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);

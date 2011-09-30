@@ -27,12 +27,13 @@
 #if (0)
     #define CPUFREQ_DBG(format,args...)   printk("[cpu_freq] DBG:"format,##args)
     #define CPUFREQ_ERR(format,args...)   printk("[cpu_freq] ERR:"format,##args)
+    #define CPUFREQ_INF(format,args...)   printk("[cpu_freq] INF:"format,##args)
 #else
     #define CPUFREQ_DBG(format,args...)   do{}while(0)
     #define CPUFREQ_ERR(format,args...)   do{}while(0)
+    #define CPUFREQ_INF(format,args...)   do{}while(0)
 #endif
 
-#define CPUFREQ_INF(format,args...)   printk("[cpu_freq] INF:"format,##args)
 
 #define SUN4I_CPUFREQ_MAX       (1008000000)    /* config the maximum frequency of sun4i core */
 #define SUN4I_CPUFREQ_MIN       (600000000)     /* config the minimum frequency of sun4i core */

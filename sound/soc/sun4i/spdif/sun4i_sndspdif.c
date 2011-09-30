@@ -4,7 +4,7 @@
 *                   (c) Copyright 2002-2004, All winners Co,Ld.
 *                          All Right Reserved
 *
-* FileName: sun4i-anx7150sp.c   author:chenpailin  date:2011-07-19 
+* FileName: sun4i-sndspdif.c   author:chenpailin  date:2011-07-19 
 * Description: 
 * Others: 
 * History:
@@ -29,7 +29,7 @@
 #include "sun4i_spdif.h"
 #include "sun4i_spdma.h"
 
-#include "anx7150sp.h"
+#include "sndspdif.h"
 
 
 static int spdif_used = 0;
@@ -37,9 +37,9 @@ static struct clk *xtal;
 static int clk_users;
 static DEFINE_MUTEX(clk_lock);
 
-static struct platform_device *sun4i_anx7150sp_snd_device;
+static struct platform_device *sun4i_sndspdif_snd_device;
 
-static int sun4i_anx7150sp_startup(struct snd_pcm_substream *substream)
+static int sun4i_sndspdif_startup(struct snd_pcm_substream *substream)
 {
 	int ret = 0;
 	mutex_lock(&clk_lock);
@@ -47,7 +47,7 @@ static int sun4i_anx7150sp_startup(struct snd_pcm_substream *substream)
 	return ret;
 }
 
-static void sun4i_anx7150sp_shutdown(struct snd_pcm_substream *substream)
+static void sun4i_sndspdif_shutdown(struct snd_pcm_substream *substream)
 {
 	mutex_lock(&clk_lock);
 	clk_users -= 1;
@@ -159,7 +159,7 @@ static s32 get_clock_divder(u32 sample_rate, u32 sample_width, u32 * mclk_div, u
 	return ret;
 }
 
-static int sun4i_anx7150sp_hw_params(struct snd_pcm_substream *substream,
+static int sun4i_sndspdif_hw_params(struct snd_pcm_substream *substream,
 					struct snd_pcm_hw_params *params)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
@@ -203,74 +203,74 @@ static int sun4i_anx7150sp_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
-static struct snd_soc_ops sun4i_anx7150sp_ops = {
-	.startup = sun4i_anx7150sp_startup,
-	.shutdown = sun4i_anx7150sp_shutdown,
-	.hw_params = sun4i_anx7150sp_hw_params,
+static struct snd_soc_ops sun4i_sndspdif_ops = {
+	.startup = sun4i_sndspdif_startup,
+	.shutdown = sun4i_sndspdif_shutdown,
+	.hw_params = sun4i_sndspdif_hw_params,
 };
 
-static struct snd_soc_dai_link sun4i_anx7150sp_dai_link = {
-	.name = "ANX7150SP",
-	.stream_name = "ANX7150SP",
-	.codec_dai = &anx7150sp_dai,
+static struct snd_soc_dai_link sun4i_sndspdif_dai_link = {
+	.name = "SNDSPDIF",
+	.stream_name = "SNDSPDIF",
+	.codec_dai = &sndspdif_dai,
 	.cpu_dai = &sun4i_spdif_dai,
-	.ops = &sun4i_anx7150sp_ops,
+	.ops = &sun4i_sndspdif_ops,
 };
 
-static struct snd_soc_card snd_soc_sun4i_anx7150sp = {
-	.name = "SUN4I_ANX7150SP",
+static struct snd_soc_card snd_soc_sun4i_sndspdif = {
+	.name = "SUN4I_SNDSPDIF",
 	.platform = &sun4i_soc_platform,
-	.dai_link = &sun4i_anx7150sp_dai_link,
+	.dai_link = &sun4i_sndspdif_dai_link,
 	.num_links = 1,
 };
 
-static struct snd_soc_device sun4i_anx7150sp_snd_devdata = {
-	.card = &snd_soc_sun4i_anx7150sp,
-	.codec_dev = &soc_codec_dev_anx7150sp,
+static struct snd_soc_device sun4i_sndspdif_snd_devdata = {
+	.card = &snd_soc_sun4i_sndspdif,
+	.codec_dev = &soc_codec_dev_sndspdif,
 };
 
-static int sun4i_anx7150sp_probe(struct platform_device *pdev)
+static int sun4i_sndspdif_probe(struct platform_device *pdev)
 {
 	int ret;
 	
-	sun4i_anx7150sp_snd_device = platform_device_alloc("soc-audio", 1);
-	if (!sun4i_anx7150sp_snd_device) {
+	sun4i_sndspdif_snd_device = platform_device_alloc("soc-audio", 1);
+	if (!sun4i_sndspdif_snd_device) {
 		return -ENOMEM;
 	}
 
-	platform_set_drvdata(sun4i_anx7150sp_snd_device,
-			     &sun4i_anx7150sp_snd_devdata);
-	sun4i_anx7150sp_snd_devdata.dev = &sun4i_anx7150sp_snd_device->dev;
+	platform_set_drvdata(sun4i_sndspdif_snd_device,
+			     &sun4i_sndspdif_snd_devdata);
+	sun4i_sndspdif_snd_devdata.dev = &sun4i_sndspdif_snd_device->dev;
 
-	ret = platform_device_add(sun4i_anx7150sp_snd_device);
+	ret = platform_device_add(sun4i_sndspdif_snd_device);
 
 	if (ret) {
-		platform_device_put(sun4i_anx7150sp_snd_device);
+		platform_device_put(sun4i_sndspdif_snd_device);
 	}
 
 	return ret;
 }
 
-static int sun4i_anx7150sp_remove(struct platform_device *pdev)
+static int sun4i_sndspdif_remove(struct platform_device *pdev)
 {
-	platform_device_unregister(sun4i_anx7150sp_snd_device);
+	platform_device_unregister(sun4i_sndspdif_snd_device);
 	return 0;
 }
 
-static struct platform_driver sun4i_anx7150sp_driver = {
-	.probe  = sun4i_anx7150sp_probe,
-	.remove = sun4i_anx7150sp_remove,
+static struct platform_driver sun4i_sndspdif_driver = {
+	.probe  = sun4i_sndspdif_probe,
+	.remove = sun4i_sndspdif_remove,
 	.driver = {
-		.name = "sun4i_anx7150sp",
+		.name = "sun4i_sndspdif",
 		.owner = THIS_MODULE,
 	},
 };
 
-struct platform_device sun4i_anx7150sp_device = {
-	.name		= "sun4i_anx7150sp",
+struct platform_device sun4i_sndspdif_device = {
+	.name		= "sun4i_sndspdif",
 };
 
-static int __init sun4i_anx7150sp_init(void)
+static int __init sun4i_sndspdif_init(void)
 {
 	int ret;
 	int ret2;
@@ -278,45 +278,45 @@ static int __init sun4i_anx7150sp_init(void)
 	ret2 = script_parser_fetch("spdif_para","spdif_used", &spdif_used, sizeof(int));
 	if (ret2)
     {
-        printk("[SPDIF]sun4i_anx7150sp_init fetch spdif using configuration failed\n");
+        printk("[SPDIF]sun4i_sndspdif_init fetch spdif using configuration failed\n");
     } 
     
     if (spdif_used)
     {
-		ret = platform_driver_register(&sun4i_anx7150sp_driver);
+		ret = platform_driver_register(&sun4i_sndspdif_driver);
 		if (ret != 0){
 			goto err;
 		}
 	
 	
-		ret = platform_device_register(&sun4i_anx7150sp_device);
+		ret = platform_device_register(&sun4i_sndspdif_device);
 		if (ret != 0){
-			platform_driver_unregister(&sun4i_anx7150sp_driver);
+			platform_driver_unregister(&sun4i_sndspdif_driver);
 		}
 	
 		err:
 			return ret;
 	}else
 	{
-		printk("[SPDIF]sun4i_anx7150sp cannot find any using configuration for controllers, return directly!\n");
+		printk("[SPDIF]sun4i_sndspdif cannot find any using configuration for controllers, return directly!\n");
         return 0;
 	}
 }
 
-static void __exit sun4i_anx7150sp_exit(void)
+static void __exit sun4i_sndspdif_exit(void)
 {
 	if(spdif_used)
 	{
 		spdif_used = 0;
-		platform_driver_unregister(&sun4i_anx7150sp_driver);
+		platform_driver_unregister(&sun4i_sndspdif_driver);
 	}
 }
 
 
-module_init(sun4i_anx7150sp_init);
-module_exit(sun4i_anx7150sp_exit);
+module_init(sun4i_sndspdif_init);
+module_exit(sun4i_sndspdif_exit);
 
 MODULE_AUTHOR("ALL WINNER");
-MODULE_DESCRIPTION("SUN4I_ANX7150SP ALSA SoC audio driver");
+MODULE_DESCRIPTION("SUN4I_SNDSPDIF ALSA SoC audio driver");
 MODULE_LICENSE("GPL");
 

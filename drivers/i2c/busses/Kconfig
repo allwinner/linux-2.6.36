@@ -826,5 +826,10 @@ config SUN4I_IIC_PRINT_TRANSFER_INFO
 	help
 	  "SUN4I i2c bus driver"
 
+config SUN4I_IIC_PRINT_TRANSFER_INFO_WITH_BUS_NUM
+	depends on SUN4I_IIC_PRINT_TRANSFER_INFO
+	int "bus num id(accepatable input:0,1,2)"  
+    ---help---                                  
+    default 2                                   
 
 endmenu

@@ -19,7 +19,7 @@ export OBJCOPY=${CROSS_COMPILE}objcopy
 export OBJDUMP=${CROSS_COMPILE}objdump
 
 #KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`
-KERNEL_VERSION="2.6.36-android+"
+KERNEL_VERSION="2.6.36-android"
 
 if [ -r include/generated/utsrelease.h ]; then
     KERNEL_VERSION=`cat include/generated/utsrelease.h |awk -F\" '{print $2}'`

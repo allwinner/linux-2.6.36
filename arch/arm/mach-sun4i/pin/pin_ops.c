@@ -95,7 +95,7 @@ int gpio_init(void)          //gpio初始化函数接口
     #ifdef FPGA_RUNTIME_ENV
         return script_parser_init((char *)(sys_cofig_data));
     #else
-        return script_parser_init((char *)(CONFIG_SW_SYSMEM_RESERVED_BASE + 0x80000000));
+        return script_parser_init((char *)__va(CONFIG_SW_SYSMEM_RESERVED_BASE));
     #endif
 }
 fs_initcall(gpio_init);

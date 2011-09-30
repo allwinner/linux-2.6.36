@@ -118,8 +118,6 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 		gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
 
-        gdisp.screen[sel].b_trd_out = 0;
-
 		Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_HDMI, 0);
     }
 
@@ -143,12 +141,6 @@ __s32 BSP_disp_hdmi_set_mode(__u32 sel, __disp_tv_mode_t  mode)
 	    DE_WRN("hdmi_set_mode is NULL\n");
 	    return -1;
 	}
-
-    if(mode == DISP_TV_MOD_1080P_24HZ_3D_FP)
-    {
-        gdisp.screen[sel].b_trd_out = 1;
-        gdisp.screen[sel].trd_out_mode = DISP_3D_OUT_MODE_FP;
-    }
     
 	gdisp.screen[sel].hdmi_mode = mode;
 	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_HDMI;

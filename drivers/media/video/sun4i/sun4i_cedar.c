@@ -669,7 +669,6 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         case IOCTL_ADJUST_AVS2_ABS:
         {	        
             int arg_s = (int)arg;		
-            int temp;	
             int v_dst;
             
             switch(arg_s){
