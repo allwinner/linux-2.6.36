@@ -244,7 +244,6 @@ void usbnet_skb_return (struct usbnet *dev, struct sk_buff *skb)
 }
 EXPORT_SYMBOL_GPL(usbnet_skb_return);
 
-
 /*-------------------------------------------------------------------------
  *
  * Network Device Driver (peer link to "Host Device", from USB host)
@@ -1318,7 +1317,9 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 	mutex_init (&dev->phy_mutex);
 
 	dev->net = net;
+#if 0
 	strcpy (net->name, "usb%d");
+#endif
 	memcpy (net->dev_addr, node_id, sizeof node_id);
 
 	/* rx and tx sides can use different message sizes;
