@@ -89,7 +89,7 @@ int nano_sdio_powerup(u32 id, char* mname)
     }
     
     /* delay 5 micro seconds */
-    udelay(5);
+    udelay(100);
     ret = gpio_write_one_pin_value(sw_sdio_card.pio_hdle, 1, "sdio_wifi_shdn");
     if (ret)
     {
@@ -100,7 +100,7 @@ int nano_sdio_powerup(u32 id, char* mname)
     }
     
     /* delay 150 microseconds */
-    udelay(150);
+    udelay(50);
     /* enable vdd */
     ret = gpio_write_one_pin_value(sw_sdio_card.pio_hdle, 1, "sdio_wifi_vdd_en");
     if (ret)
