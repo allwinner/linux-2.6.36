@@ -36,6 +36,7 @@ int nrx_raw_rx(struct net_device * dev, char * data, size_t *max_len);
 
 extern int nano_scan_wait;
 extern char *nrx_config;
+extern char *nrx_macpath;
 
 int nrx_trsp_ctrl(void *dev, uint32_t command, uint32_t mode);
 

@@ -43,9 +43,9 @@ extern rRegistry registry;
 static inline void make_filename(char *filename, size_t len, const char *name)
 {
    const char *sep = "";
-   if(*nrx_config == '\0' || nrx_config[strlen(nrx_config) - 1] != '/')
+   if(*nrx_macpath == '\0' || nrx_macpath[strlen(nrx_macpath) - 1] != '/')
       sep = "/";
-   snprintf(filename, len, "%s%s%s", nrx_config, sep, name);
+   snprintf(filename, len, "%s%s%s", nrx_macpath, sep, name);
 }
 
 static int mac_read_file(void *buf, const char *filename)
@@ -84,7 +84,7 @@ static int mac_write_file(void *buf, ssize_t len, const char *filename)
 	ssize_t n;
 
 	if((status = nrx_stream_open_file(filename, O_CREAT, 0600, &fd)) < 0) {
-		printk("Create file %s failed, please be sure directory %s is exist!\n", filename, nrx_config);
+		printk("Create file %s failed, please be sure directory %s is exist!\n", filename, nrx_macpath);
 		return status;
 	}
 

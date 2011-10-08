@@ -25,6 +25,7 @@
 
 char *nrx_ifname = "wlan0";
 char *nrx_config = "/nanoradio";
+char *nrx_macpath = "/data/misc";
 int nrx_unplug = 0;
 
 #ifdef MODULE_PARM
@@ -40,6 +41,9 @@ MODULE_PARM_DESC(nrx_ifname, "NRX interface name");
 
 NRX_MODULE_PARM(nrx_config, charp, "s", 0644);
 MODULE_PARM_DESC(nrx_config, "NRX config directory");
+
+NRX_MODULE_PARM(nrx_macpath, charp, "s", 0644);
+MODULE_PARM_DESC(nrx_macpath, "NRX mac file directory");
 
 NRX_MODULE_PARM(nrx_unplug, int, "i", 0644);
 MODULE_PARM_DESC(nrx_unplug, "NRX unplugged mode");
