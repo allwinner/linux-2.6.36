@@ -15,7 +15,7 @@ static unsigned int gbuffer[4096];
 static __u32 output_type[2] = {0,0};
 static __u32 suspend_status = 0;//0:normal; suspend_status&1 != 0:in early_suspend; suspend_status&2 != 0:in suspend;
 
-static struct info_mm  g_disp_mm[2];
+static struct info_mm  g_disp_mm[10];
 static int g_disp_mm_sel = 0;
 
 static __u32 cmd_index = 0;
@@ -71,9 +71,9 @@ static struct resource disp_resource[DISP_IO_NUM] =
 
 __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
 {
-    pr_info("va(0x40000000)=%x\n", __va(0x40000000));
-    if(pHeapHead <__va(0x40000000)) {
-        pr_warning("Invalid pHeapHead:%x\n", pHeapHead);
+    __inf("va(0x40000000)=%x\n", __va(0x40000000));
+    if(pHeapHead <(__u32)__va(0x40000000)) {
+        __wrn("Invalid pHeapHead:%x\n", pHeapHead);
         return -1;    //检查Head地址是否合法
     }
 
@@ -83,7 +83,7 @@ __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
     boot_heap_head.next    = &boot_heap_tail;
     boot_heap_tail.next    = 0;
 
-    pr_info("head:%x,tail:%x\n" ,boot_heap_head.address, boot_heap_tail.address);
+    __inf("head:%x,tail:%x\n" ,boot_heap_head.address, boot_heap_tail.address);
     return 0;
 }
 
@@ -1066,6 +1066,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     	case DISP_CMD_LAYER_RELEASE:
     		ret = BSP_disp_layer_release(ubuffer[0], ubuffer[1]);
+    		DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
 
     	case DISP_CMD_LAYER_OPEN:
@@ -1483,7 +1484,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     		break;
 
         case DISP_CMD_LCD_USER_DEFINED_FUNC:
-            ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1]);
+            ret = BSP_disp_lcd_user_defined_func(ubuffer[0], ubuffer[1], ubuffer[2], ubuffer[3]);
             break;
 
 	//----pwm----

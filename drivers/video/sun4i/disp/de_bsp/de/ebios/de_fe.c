@@ -11,6 +11,8 @@
 //                 2011/05/25      zchmin       v1.2    redefine 3d inmode
 //                 2011/07/01      zchmin       v1.3    modify set scal coef error
 //                 2011/07/14      zchmin       v1.4    added input/output rg swap
+//                 2011/08/04      zchmin       v1.5    added divisor no-zero limited
+//                 2011/09/28      zchmin       v1.6    added 3D interleaved input format support
 //******************************************************************************
 
 
@@ -88,7 +90,7 @@ __s32 DE_SCAL_Config_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t *s
 	x_off0 = size->x_off;
 	y_off0 = (field | dien) ? (size->y_off & 0xfffffffe) : size->y_off;  //scan mod enable or deinterlace, odd dy un-support
 
-    if(sel == 0)   //scaler 0
+//    if(sel == 0)   //scaler 0 scaler 1
     {
         if(type->fmt == DE_SCAL_INYUV422 || type->fmt == DE_SCAL_INYUV420)
         {
@@ -133,51 +135,12 @@ __s32 DE_SCAL_Config_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t *s
         	y_off1 = y_off0;
         }
     }
-    else   //sel == 1, scaler 1,
-    {
-        if(type->fmt == DE_SCAL_INYUV422 || type->fmt == DE_SCAL_INYUV420)
-        {
-            w_shift = 1;
-            image_w0 = (image_w0 + 1)&0xfffffffe;
-        	image_w1 = (image_w0)>>w_shift;
-            in_w0 = in_w0 & 0xfffffffe;
-        	in_w1 = (in_w0 + 0x1)>>w_shift;
-            x_off0 = x_off0 & 0xfffffffe;
-        	x_off1 = (x_off0)>>w_shift;
-        	
-        }
-        else if(type->fmt == DE_SCAL_INYUV411)
-        {
-            w_shift = 2;
-        	image_w1 = (image_w0 + 0x3)>>w_shift;
-            in_w0 &= 0xfffffffc;
-        	in_w1 = (in_w0 + 0x3)>>w_shift;
-            x_off0 &= 0xfffffffc;
-        	x_off1 = (x_off0)>>w_shift;
-        }
-        else
-        {
-            w_shift = 0;
-        	image_w1 = image_w0;
-        	in_w1 = in_w0;
-        	x_off1 = x_off0;
-        }
-        if(type->fmt == DE_SCAL_INYUV420 || type->fmt == DE_SCAL_INCSIRGB)
-        {
-            h_shift = 1;
-            in_h0 &= 0xfffffffe;
-        	in_h1 = (in_h0 + 0x1)>>h_shift;
-            y_off0 &= 0xfffffffe;
-        	y_off1 = (y_off0)>>h_shift;
-        }
-        else
-        {
-            h_shift = 0;
-        	in_h1 = in_h0;
-        	y_off1 = y_off0;
-        }
-    }
-
+    //added no-zero limited
+    in_h0 = (in_h0!=0) ? in_h0 : 1;
+	in_h1 = (in_h1!=0) ? in_h1 : 1;
+	in_w0 = (in_w0!=0) ? in_w0 : 1;
+	in_w1 = (in_w1!=0) ? in_w1 : 1;
+	
 	if(type->mod == DE_SCAL_PLANNAR)
 	{
 	    scal_dev[sel]->linestrd0.dwval = image_w0;
@@ -401,6 +364,13 @@ __s32 DE_SCAL_Set_Init_Phase(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_si
          in_h1 = (in_type->fmt == DE_SCAL_INYUV420) ? (in_h0+0x1)>>1: in_h0;
          out_h0 = out_size->height;
          out_h1 = (out_type->fmt == DE_SCAL_OUTPYUV420) ? (out_h0+0x1)>>1 : out_h0;
+
+		 //added no-zero limited
+		in_h0 = (in_h0!=0) ? in_h0 : 1;
+		in_h1 = (in_h1!=0) ? in_h1 : 1;
+		out_h0 = (out_h0!=0) ? out_h0 : 1;
+		out_h1 = (out_h1!=0) ? out_h1 : 1;
+			 
          if(in_scan->bottom == 0x0)
          {
 	         scal_dev[sel]->ch0_vertphase0.bits.phase = ch0_v_phase0;
@@ -503,6 +473,12 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
     {
         h_shift -= 0;
     }
+	//added no-zero limited
+    in_h0 = (in_h0!=0) ? in_h0 : 1;
+	in_w0 = (in_w0!=0) ? in_w0 : 1;
+	out_h0 = (out_h0!=0) ? out_h0 : 1;
+	out_w0 = (out_w0!=0) ? out_w0 : 1;
+	
     //step factor
     ch0_hstep = (in_w0<<16)/out_w0;
     ch0_vstep = ((in_h0>>in_scan->field)<<16)/( out_h0 );
@@ -608,7 +584,16 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
         out_h1 = out_h0;
     }
     
-    //
+    //added no-zero limited
+    in_h0 = (in_h0!=0) ? in_h0 : 1;
+	in_h1 = (in_h1!=0) ? in_h1 : 1;
+	in_w0 = (in_w0!=0) ? in_w0 : 1;
+	in_w1 = (in_w1!=0) ? in_w1 : 1;
+	out_h0 = (out_h0!=0) ? out_h0 : 1;
+	out_h1 = (out_h1!=0) ? out_h1 : 1;
+	out_w0 = (out_w0!=0) ? out_w0 : 1;
+	out_w1 = (out_w1!=0) ? out_w1 : 1;
+	    
     //smooth level for channel 0,1 in vertical and horizontal direction
     ch0h_smth_level = (smth_mode&0x40)  ?  0 - (smth_mode&0x3f) : smth_mode&0x3f;
     ch0v_smth_level = ch0h_smth_level;
@@ -627,9 +612,9 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     }
     //
     ch0h_sc = (in_w0<<3)/out_w0;
-    ch0v_sc = ((in_h0>>in_scan->field)<<3)/(out_h0);
+    ch0v_sc = (in_h0<<(3-in_scan->field))/(out_h0);
     ch1h_sc = (in_w1<<3)/out_w1;
-    ch1v_sc = ((in_h1>>in_scan->field)<<3)/(out_h1);
+    ch1v_sc = (in_h1<<(3-in_scan->field))/(out_h1);
 
     //modify ch1 smooth level according to ratio to ch0
     if(((smth_mode>>31)&0x01)==0x0)
@@ -834,7 +819,7 @@ __s32 DE_SCAL_Set_Out_Format(__u8 sel, __scal_out_type_t *out_type)
 __s32 DE_SCAL_Set_Out_Size(__u8 sel, __scal_scan_mod_t *out_scan, __scal_out_type_t *out_type, 
                            __scal_out_size_t *out_size)
 {
-    __u32 out_w1, out_h1;
+    __u32 out_w1, out_h1, out_w0, out_h0;
 	//sc0
     if((out_type->fmt == DE_SCAL_OUTPYUV420) || (out_type->fmt == DE_SCAL_OUTPYUV422))
     {
@@ -857,9 +842,16 @@ __s32 DE_SCAL_Set_Out_Size(__u8 sel, __scal_scan_mod_t *out_scan, __scal_out_typ
     {
         out_h1 = out_size->height;
     }
+	out_h0 = out_size->height;
+	out_w0 = out_size->width;
+	//added no-zero limited
+    out_h0 = (out_h0!=0) ? out_h0 : 1;
+	out_h1 = (out_h1!=0) ? out_h1 : 1;
+	out_w0 = (out_w0!=0) ? out_w0 : 1;
+	out_w1 = (out_w1!=0) ? out_w1 : 1;
 
-	scal_dev[sel]->ch0_outsize.bits.out_height = ((out_size->height + (out_scan->field & 0x1))>>out_scan->field) - 1;
-    scal_dev[sel]->ch0_outsize.bits.out_width = out_size->width - 1;
+	scal_dev[sel]->ch0_outsize.bits.out_height = ((out_h0 + (out_scan->field & 0x1))>>out_scan->field) - 1;
+    scal_dev[sel]->ch0_outsize.bits.out_width = out_w0 - 1;
     scal_dev[sel]->ch1_outsize.bits.out_height = ((out_h1 + (out_scan->field & 0x1)) >>out_scan->field) - 1;
     scal_dev[sel]->ch1_outsize.bits.out_width = out_w1 - 1;
     return 0;
@@ -1548,6 +1540,7 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t
 	{
 		case DE_SCAL_3DIN_TB:
 			singlesize->src_width = fullsize->src_width; 
+			singlesize->src_height = fullsize->src_height>>1; 
 			singlesize->scal_width = fullsize->scal_width;
 			singlesize->scal_height = fullsize->scal_height>>1;
 			singlesize->x_off = fullsize->x_off;
@@ -1556,6 +1549,7 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t
 		case DE_SCAL_3DIN_SSF:
 		case DE_SCAL_3DIN_SSH:
 			singlesize->src_width = fullsize->src_width>>1; 
+			singlesize->src_height = fullsize->src_height; 
 			singlesize->scal_width = fullsize->scal_width>>1;
 			singlesize->scal_height = fullsize->scal_height;
 			singlesize->x_off = fullsize->x_off;
@@ -1563,6 +1557,7 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t
 			break;
 		case DE_SCAL_3DIN_LI:
 			singlesize->src_width = fullsize->src_width; 
+			singlesize->src_height = fullsize->src_height>>1; 
 			singlesize->scal_width = fullsize->scal_width;
 			singlesize->scal_height = fullsize->scal_height>>1;
 			singlesize->x_off = fullsize->x_off;
@@ -1570,6 +1565,7 @@ __s32 DE_SCAL_Get_3D_In_Single_Size(__scal_3d_inmode_t inmode, __scal_src_size_t
 			break;	
 		case DE_SCAL_3DIN_FP:
 			singlesize->src_width = fullsize->src_width; 
+			singlesize->src_height = fullsize->src_height; 
 			singlesize->scal_width = fullsize->scal_width;
 			singlesize->scal_height = fullsize->scal_height;
 			singlesize->x_off = fullsize->x_off;
@@ -1702,7 +1698,8 @@ __s32 DE_SCAL_Set_3D_Fb_Addr(__u8 sel, __scal_buf_addr_t *addr, __scal_buf_addr_
 
 
 //*********************************************************************************************
-// function         : DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, __scal_3d_outmode_t outmode)
+// function         : DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, 
+//								__scal_3d_outmode_t outmode)
 // description     : scaler 3D control setting
 // parameters    :
 //                 sel <scaler select>
@@ -1712,7 +1709,8 @@ __s32 DE_SCAL_Set_3D_Fb_Addr(__u8 sel, __scal_buf_addr_t *addr, __scal_buf_addr_
 // return            : 
 //               success
 //***********************************************************************************************
-__s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, __scal_3d_outmode_t outmode)
+__s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode, 
+								__scal_3d_outmode_t outmode)
 {
 	__u8 in_li_en=0;
 	__u8 out_ci_en=0, out_tb_en=0, out_ss_en=0, out_itl_en=0;
@@ -1850,6 +1848,12 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
     	y_off1 = y_off0;
     }
 
+	//added no-zero limited
+    in_h0 = (in_h0!=0) ? in_h0 : 1;
+	in_h1 = (in_h1!=0) ? in_h1 : 1;
+	in_w0 = (in_w0!=0) ? in_w0 : 1;
+	in_w1 = (in_w1!=0) ? in_w1 : 1;
+	
 	if((trdinmode == DE_SCAL_3DIN_TB) && (type->mod == DE_SCAL_PLANNAR))
 	{
 	    scal_dev[sel]->linestrd0.dwval = image_w0;
@@ -1940,6 +1944,102 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->trd_buf_addr0.dwval = addr->ch0_addr + de_scal_ch0r_offset;
 		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
 		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
+	}
+	else if((trdinmode == DE_SCAL_3DIN_FP) && (type->mod == DE_SCAL_INTER_LEAVED))
+	{
+		scal_dev[sel]->linestrd0.dwval = image_w0<<(2-w_shift);
+		scal_dev[sel]->linestrd1.dwval = 0;
+		scal_dev[sel]->linestrd2.dwval = 0;
+
+        de_scal_ch0_offset = (image_w0<<(2-w_shift)) * y_off0 + x_off0;
+        de_scal_ch1_offset = 0;
+        de_scal_ch2_offset = 0;
+
+		de_scal_ch0r_offset = de_scal_ch0_offset;
+		de_scal_ch1r_offset = de_scal_ch1_offset;
+		de_scal_ch2r_offset = de_scal_ch2_offset;
+
+		de_scal_trd_fp_en = 1;
+			
+		scal_dev[sel]->buf_addr0.dwval = addr->ch0_addr+ de_scal_ch0_offset;
+		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
+		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
+
+		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
+	}
+	else if((trdinmode == DE_SCAL_3DIN_TB) && (type->mod == DE_SCAL_INTER_LEAVED))
+	{
+		scal_dev[sel]->linestrd0.dwval = image_w0<<(2-w_shift);
+		scal_dev[sel]->linestrd1.dwval = 0;
+		scal_dev[sel]->linestrd2.dwval = 0;
+
+        de_scal_ch0_offset = (image_w0<<(2-w_shift)) * y_off0 + x_off0;
+        de_scal_ch1_offset = 0;
+        de_scal_ch2_offset = 0;
+
+		de_scal_ch0r_offset = (image_w0<<(2-w_shift)) * image_h0 + de_scal_ch0_offset;
+		de_scal_ch1r_offset = de_scal_ch1_offset;
+		de_scal_ch2r_offset = de_scal_ch2_offset;
+
+		de_scal_trd_fp_en = 0;
+			
+		scal_dev[sel]->buf_addr0.dwval = addr->ch0_addr+ de_scal_ch0_offset;
+		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
+		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
+
+		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
+	}
+	else if(((trdinmode == DE_SCAL_3DIN_SSF)||(trdinmode == DE_SCAL_3DIN_SSH)) && (type->mod == DE_SCAL_INTER_LEAVED))
+	{
+		scal_dev[sel]->linestrd0.dwval = image_w0<<(3-w_shift);
+		scal_dev[sel]->linestrd1.dwval = 0;
+		scal_dev[sel]->linestrd2.dwval = 0;
+
+        de_scal_ch0_offset = (image_w0<<(3-w_shift)) * y_off0 + x_off0;
+        de_scal_ch1_offset = 0;
+        de_scal_ch2_offset = 0;
+
+		de_scal_ch0r_offset = (image_w0<<(2-w_shift)) + de_scal_ch0_offset;
+		de_scal_ch1r_offset = de_scal_ch1_offset;
+		de_scal_ch2r_offset = de_scal_ch2_offset;
+
+		de_scal_trd_fp_en = 0;
+			
+		scal_dev[sel]->buf_addr0.dwval = addr->ch0_addr+ de_scal_ch0_offset;
+		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
+		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
+
+		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
+	}
+	else if((trdinmode == DE_SCAL_3DIN_LI) && (type->mod == DE_SCAL_INTER_LEAVED))
+	{
+		scal_dev[sel]->linestrd0.dwval = image_w0<<(2-w_shift);
+		scal_dev[sel]->linestrd1.dwval = 0;
+		scal_dev[sel]->linestrd2.dwval = 0;
+
+        de_scal_ch0_offset = (image_w0<<(2-w_shift)) * (y_off0<<1) + x_off0;
+        de_scal_ch1_offset = 0;
+        de_scal_ch2_offset = 0;
+
+		de_scal_ch0r_offset = (image_w0<<(2-w_shift)) + de_scal_ch0_offset;
+		de_scal_ch1r_offset = de_scal_ch1_offset;
+		de_scal_ch2r_offset = de_scal_ch2_offset;
+
+		de_scal_trd_fp_en = 0;
+			
+		scal_dev[sel]->buf_addr0.dwval = addr->ch0_addr+ de_scal_ch0_offset;
+		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
+		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
+
+		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
 	}
 	else if((trdinmode == DE_SCAL_3DIN_TB) && (type->mod == DE_SCAL_UVCOMBINEDMB))
 	{

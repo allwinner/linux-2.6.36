@@ -431,6 +431,7 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
 	scal_addr.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[2]));
 
 	in_size.src_width = scaler->in_fb.size.width;
+	in_size.src_height = scaler->in_fb.size.height;
 	in_size.x_off = scaler->src_win.x;
 	in_size.y_off = scaler->src_win.y;
 	in_size.scal_width = scaler->src_win.width;
@@ -538,6 +539,7 @@ __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *size)
 	in_type.byte_seq = 0;
 
 	in_size.src_width = scaler->src_win.width;
+	in_size.src_height = scaler->in_fb.size.height;
 	in_size.x_off = scaler->src_win.x;
 	in_size.y_off = scaler->src_win.y;
 	in_size.scal_height= scaler->src_win.height;
@@ -599,6 +601,7 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
 	scal_addr.ch2_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[2]));
 
 	in_size.src_width = scaler->in_fb.size.width;
+	in_size.src_height = scaler->in_fb.size.height;
 	in_size.x_off = scaler->src_win.x;
 	in_size.y_off = scaler->src_win.y;
 	in_size.scal_width = scaler->src_win.width;
@@ -708,6 +711,7 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 	scal_addr.ch2_addr = (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[2]));
 	
 	in_size.src_width = scaler->in_fb.size.width;
+	in_size.src_height = scaler->in_fb.size.height;
 	in_size.x_off = scaler->src_win.x;
 	in_size.y_off = scaler->src_win.y;
 	in_size.scal_height= scaler->src_win.height;
@@ -790,6 +794,7 @@ __s32 Scaler_Set_Outitl(__u32 sel,  __bool enable)
 	in_type.byte_seq = 0;
 
 	in_size.src_width = scaler->in_fb.size.width;
+	in_size.src_height = scaler->in_fb.size.height;
 	in_size.x_off =  scaler->src_win.x;
 	in_size.y_off =  scaler->src_win.y;
 	in_size.scal_height=  scaler->src_win.height;
@@ -835,6 +840,7 @@ __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode)
     in_type.byte_seq = 0;
     
 	in_size.src_width = scaler->in_fb.size.width;
+	in_size.src_height = scaler->in_fb.size.height;
 	in_size.x_off = scaler->src_win.x;
 	in_size.y_off = scaler->src_win.y;
 	in_size.scal_height= scaler->src_win.height;
@@ -948,6 +954,7 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
     in_addr.ch2_addr = (__u32)OSAL_VAtoPA((void*)(para->input_fb.addr[2]));
 
     in_size.src_width = para->input_fb.size.width;
+    in_size.src_height = para->input_fb.size.height;
     in_size.x_off = para->source_regn.x;
     in_size.y_off = para->source_regn.y;
     in_size.scal_width= para->source_regn.width;
@@ -1074,6 +1081,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     if(BSP_disp_get_output_type(sel) != DISP_OUTPUT_TYPE_NONE)
     {
         in_size.src_width = BSP_disp_get_screen_width(sel);
+        in_size.src_height = BSP_disp_get_screen_height(sel);
         in_size.x_off = 0;
         in_size.y_off = 0;
         in_size.scal_width= BSP_disp_get_screen_width(sel);
@@ -1082,6 +1090,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     else
     {
         in_size.src_width = para->screen_size.width;
+        in_size.src_height= para->screen_size.height;
         in_size.x_off = 0;
         in_size.y_off = 0;
         in_size.scal_width= para->screen_size.width;

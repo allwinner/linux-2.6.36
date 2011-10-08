@@ -25,6 +25,8 @@
 #include <linux/clk.h>
 #include <linux/cdev.h>
 #include <linux/types.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
 
 #include <linux/drv_display.h>
 
@@ -34,19 +36,11 @@ extern void LCD_set_panel_funs(__lcd_panel_fun_t * lcd0_cfg, __lcd_panel_fun_t *
 extern __s32 Fb_Init(__u32 from);
 extern __s32 DRV_DISP_Init(void);
 
-#if 1
-#define OSAL_PRINTF     printk
-#define __inf(msg...)
-#define __msg(msg...)
-#define __wrn           printk
-#define __here__
-#else
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}
 #define __inf(msg...)       {printk(KERN_WARNING "[LCD] ");                                            printk(msg);}
 #define __msg(msg...)       {printk(KERN_WARNING "[LCD] file:%s,line:%d:    ",__FILE__,__LINE__);      printk(msg);}
 #define __wrn(msg...)       {printk(KERN_WARNING "[LCD WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
 #define __here__            {printk(KERN_WARNING "[LCD] file:%s,line:%d\n",__FILE__,__LINE__);}
-#endif
 
 
 #endif

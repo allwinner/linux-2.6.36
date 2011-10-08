@@ -27,7 +27,7 @@ __s32 Disp_TVEC_Init(__u32 sel)
     ret = OSAL_Script_FetchParser_Data("tv_out_dac_para", "dac_used", &value, 1);
     if(ret < 0)
     {
-        DE_WRN("fetch script data tv_out_dac_para.dac_used fail\n");
+        DE_INF("fetch script data tv_out_dac_para.dac_used fail\n");
     }
     else
     {
@@ -45,7 +45,7 @@ __s32 Disp_TVEC_Init(__u32 sel)
 	            ret = OSAL_Script_FetchParser_Data("tv_out_dac_para", sub_key, &value, 1);
 	            if(ret < 0)
 	            {
-	                DE_WRN("fetch script data tv_out_dac_para.%s fail\n", sub_key);
+	                DE_INF("fetch script data tv_out_dac_para.%s fail\n", sub_key);
 	            }
 	            else
 	            {

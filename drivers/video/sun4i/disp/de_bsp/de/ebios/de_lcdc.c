@@ -448,9 +448,9 @@ __u32  TCON1_cfg(__u32 sel, __tcon1_cfg_t *cfg)
     LCDC_WUINT32(sel, LCDC_HDTV0_OFF,(((cfg->src_x - 1)&0xfff)<<16)|((cfg->src_y - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV1_OFF,(((cfg->scl_x - 1)&0xfff)<<16)|((cfg->scl_y - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV2_OFF,(((cfg->out_x - 1)&0xfff)<<16)|((cfg->out_y - 1)&0xfff));
-    LCDC_WUINT32(sel, LCDC_HDTV3_OFF,(((cfg->ht)&0xffff)<<16)|((cfg->hbp)&0xfff));
+    LCDC_WUINT32(sel, LCDC_HDTV3_OFF,(((cfg->ht - 1)&0xffff)<<16)|((cfg->hbp - 1)&0xfff));
     LCDC_WUINT32(sel, LCDC_HDTV4_OFF,(((cfg->vt)&0xffff)<<16)|((cfg->vbp - 1)&0xfff));
-    LCDC_WUINT32(sel, LCDC_HDTV5_OFF,(((cfg->hspw)&0x3ff)<<16)|((cfg->vspw)&0x3ff));
+    LCDC_WUINT32(sel, LCDC_HDTV5_OFF,(((cfg->hspw - 1)&0x3ff)<<16)|((cfg->vspw - 1)&0x3ff));
     LCDC_WUINT32(sel, LCDC_IOCTL2_OFF,cfg->io_pol);//add
     LCDC_WUINT32(sel, LCDC_IOCTL3_OFF,cfg->io_out);//add
 
@@ -503,12 +503,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 240;
         cfg.out_x       = 720;
         cfg.out_y       = 240;
-        cfg.ht       = 857;
+        cfg.ht       = 858;
         cfg.hbp      = 118;
         cfg.vt       = 525;
-        cfg.vbp      = 18;
-        cfg.vspw     = 2;
-        cfg.hspw     = 61; 
+        cfg.vbp      = 19;
+        cfg.vspw     = 3;
+        cfg.hspw     = 62; 
         cfg.io_pol      = 0x04000000;
         break;
      case DISP_TV_MOD_576I:
@@ -519,12 +519,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 288;
         cfg.out_x       = 720;
         cfg.out_y       = 288;
-        cfg.ht       = 863;
-        cfg.hbp      = 131;
+        cfg.ht       = 864;
+        cfg.hbp      = 132;
         cfg.vt       = 625;
         cfg.vbp      = 22;
-        cfg.vspw     = 2;
-        cfg.hspw     = 62; 
+        cfg.vspw     = 3;
+        cfg.hspw     = 63; 
         cfg.io_pol      = 0x04000000;
         break;
      case DISP_TV_MOD_480P:
@@ -535,12 +535,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 480;
         cfg.out_x       = 720;
         cfg.out_y       = 480;
-        cfg.ht       = 857;
-        cfg.hbp      = 121;
+        cfg.ht       = 858;
+        cfg.hbp      = 122;
         cfg.vt       = 1050;
         cfg.vbp      = 42 - 6;
-        cfg.vspw     = 5;
-        cfg.hspw     = 61; 
+        cfg.vspw     = 6;
+        cfg.hspw     = 62; 
         cfg.io_pol      = 0x04000000;
         break;
      case DISP_TV_MOD_576P:
@@ -551,12 +551,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 576;
         cfg.out_x       = 720;
         cfg.out_y       = 576;
-        cfg.ht       = 863;
-        cfg.hbp      = 131;
+        cfg.ht       = 864;
+        cfg.hbp      = 132;
         cfg.vt       = 1250;
         cfg.vbp      = 44;
-        cfg.vspw     = 4;
-        cfg.hspw     = 63; 
+        cfg.vspw     = 5;
+        cfg.hspw     = 64; 
         cfg.io_pol      = 0x04000000;
         break;       
     
@@ -568,12 +568,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y      = 720;
         cfg.out_x      = 1280;
         cfg.out_y      = 720;
-        cfg.ht       = 1979;
-        cfg.hbp      = 259;
+        cfg.ht       = 1980;
+        cfg.hbp      = 260;
         cfg.vt       = 1500;
         cfg.vbp      = 25;
-        cfg.vspw     = 4;
-        cfg.hspw     = 39; 
+        cfg.vspw     = 5;
+        cfg.hspw     = 40; 
         cfg.io_pol      = 0x07000000;
         break;            
     case DISP_TV_MOD_720P_60HZ:
@@ -584,12 +584,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 720;
         cfg.out_x       = 1280;
         cfg.out_y       = 720;
-        cfg.ht       = 1649;
-        cfg.hbp      = 259;
+        cfg.ht       = 1650;
+        cfg.hbp      = 260;
         cfg.vt       = 1500;
         cfg.vbp      = 25;
-        cfg.vspw     = 4;
-        cfg.hspw     = 39; 
+        cfg.vspw     = 5;
+        cfg.hspw     = 40; 
         cfg.io_pol      = 0x07000000;
         break;    
     case DISP_TV_MOD_1080I_50HZ:
@@ -600,12 +600,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 540;
         cfg.out_x       = 1920;
         cfg.out_y       = 540;
-        cfg.ht       = 2639;
-        cfg.hbp      = 191;
+        cfg.ht       = 2640;
+        cfg.hbp      = 192;
         cfg.vt       = 1125;
         cfg.vbp      = 20;
-        cfg.vspw     = 4;
-        cfg.hspw     = 43;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
         cfg.io_pol      = 0x07000000;
         break;
     case DISP_TV_MOD_1080I_60HZ:
@@ -616,12 +616,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 540;
         cfg.out_x       = 1920;
         cfg.out_y       = 540;
-        cfg.ht       = 2199;
-        cfg.hbp      = 191;
+        cfg.ht       = 2200;
+        cfg.hbp      = 192;
         cfg.vt       = 1125;
         cfg.vbp      = 20;
-        cfg.vspw     = 4;
-        cfg.hspw     = 43;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
         cfg.io_pol      = 0x07000000;
         break;    
     case DISP_TV_MOD_1080P_24HZ:
@@ -632,12 +632,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 1080;
         cfg.out_x       = 1920;
         cfg.out_y       = 1080;
-        cfg.ht       = 2749;
-        cfg.hbp      = 191;
+        cfg.ht       = 2750;
+        cfg.hbp      = 192;
         cfg.vt       = 2250;
         cfg.vbp      = 41;
-        cfg.vspw     = 4;
-        cfg.hspw     = 43;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
         cfg.io_pol      = 0x07000000;
         break;
      case DISP_TV_MOD_1080P_50HZ: 
@@ -648,12 +648,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 1080;
         cfg.out_x       = 1920;
         cfg.out_y       = 1080;
-        cfg.ht       = 2639;
-        cfg.hbp      = 191;
+        cfg.ht       = 2640;
+        cfg.hbp      = 192;
         cfg.vt       = 2250;
         cfg.vbp      = 41;
-        cfg.vspw     = 4;
-        cfg.hspw     = 43;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
         cfg.io_pol      = 0x07000000; 
         break;  
      case DISP_TV_MOD_1080P_60HZ: 
@@ -664,12 +664,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 1080;
         cfg.out_x       = 1920;
         cfg.out_y       = 1080;
-        cfg.ht       = 2199;
-        cfg.hbp      = 191;
+        cfg.ht       = 2200;
+        cfg.hbp      = 192;
         cfg.vt       = 2250;
         cfg.vbp      = 41;
-        cfg.vspw     = 4;
-        cfg.hspw     = 43;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
         cfg.io_pol      = 0x07000000;
         break;
      case DISP_TV_MOD_1080P_24HZ_3D_FP: 
@@ -680,12 +680,12 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         cfg.scl_y       = 2160 + 45;
         cfg.out_x       = 1920;
         cfg.out_y       = 2160 + 45;
-        cfg.ht       = 2749;
-        cfg.hbp      = 191;
+        cfg.ht       = 2750;
+        cfg.hbp      = 192;
         cfg.vt       = (1125*4);
         cfg.vbp      = 41;
-        cfg.vspw     = 4;
-        cfg.hspw     = 43;
+        cfg.vspw     = 5;
+        cfg.hspw     = 44;
         cfg.io_pol      = 0x07000000;        
         LCDC_WUINT32(sel, LCDC_3DF_A1B,(1125 + 1)<<12);
         LCDC_WUINT32(sel, LCDC_3DF_A1E,(1125 + 45)<<12);
@@ -723,12 +723,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 288;
             cfg.out_x       = 720;
             cfg.out_y       = 288;
-            cfg.ht       = 863;
-            cfg.hbp      = 138;
+            cfg.ht       = 864;
+            cfg.hbp      = 139;
             cfg.vt       = 625;
             cfg.vbp      = 22;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;  
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;  
             break;
             
         case DISP_TV_MOD_480I:
@@ -743,12 +743,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 240;
             cfg.out_x       = 720;
             cfg.out_y       = 240;
-            cfg.ht       = 857;
-            cfg.hbp      = 117;
+            cfg.ht       = 858;
+            cfg.hbp      = 118;
             cfg.vt       = 525;
             cfg.vbp      = 18;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;
             break;
 
         case DISP_TV_MOD_480P:
@@ -759,12 +759,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 480;
             cfg.out_x       = 720;
             cfg.out_y       = 480;
-            cfg.ht       = 857;
-            cfg.hbp      = 117;
+            cfg.ht       = 858;
+            cfg.hbp      = 118;
             cfg.vt       = 1050;
             cfg.vbp      = 22;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1; 
+            cfg.vspw     = 2;
+            cfg.hspw     = 2; 
             break;
             
         case DISP_TV_MOD_576P:
@@ -775,12 +775,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 576;
             cfg.out_x       = 720;
             cfg.out_y       = 576;
-            cfg.ht       = 863;
-            cfg.hbp      = 138;
+            cfg.ht       = 864;
+            cfg.hbp      = 139;
             cfg.vt       = 1250;
             cfg.vbp      = 22;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1; 
+            cfg.vspw     = 2;
+            cfg.hspw     = 2; 
             break;
 			
         case DISP_TV_MOD_720P_50HZ:
@@ -791,12 +791,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 720;
             cfg.out_x       = 1280;
             cfg.out_y       = 720;
-            cfg.ht       = 1979;
-            cfg.hbp      = 259;
+            cfg.ht       = 1980;
+            cfg.hbp      = 260;
             cfg.vt       = 1500;
             cfg.vbp      = 24;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1; 
+            cfg.vspw     = 2;
+            cfg.hspw     = 2; 
             break;
             
         case DISP_TV_MOD_720P_60HZ:
@@ -807,12 +807,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 720;
             cfg.out_x       = 1280;
             cfg.out_y       = 720;
-            cfg.ht       = 1649;
-            cfg.hbp      = 259;
+            cfg.ht       = 1650;
+            cfg.hbp      = 260;
             cfg.vt       = 1500;
             cfg.vbp      = 24;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;
             break;
 
         case DISP_TV_MOD_1080I_50HZ:
@@ -823,12 +823,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 540;
             cfg.out_x       = 1920;
             cfg.out_y       = 540;
-            cfg.ht       = 2639;
-            cfg.hbp      = 191;
+            cfg.ht       = 2640;
+            cfg.hbp      = 192;
             cfg.vt       = 1125;
             cfg.vbp      = 16;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;	
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;	
             break;
             
         case DISP_TV_MOD_1080I_60HZ:
@@ -839,12 +839,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 540;
             cfg.out_x       = 1920;
             cfg.out_y       = 540;
-            cfg.ht       = 2199;
-            cfg.hbp      = 191;
+            cfg.ht       = 2200;
+            cfg.hbp      = 192;
             cfg.vt       = 1125;
             cfg.vbp      = 16;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;
             break;
             
         case DISP_TV_MOD_1080P_50HZ:
@@ -855,12 +855,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 1080;
             cfg.out_x       = 1920;
             cfg.out_y       = 1080;
-            cfg.ht       = 2639;
-            cfg.hbp      = 191;
+            cfg.ht       = 2640;
+            cfg.hbp      = 192;
             cfg.vt       = 2250;
             cfg.vbp      = 44;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;
             break;
             
         case DISP_TV_MOD_1080P_60HZ:
@@ -871,12 +871,12 @@ __u32 TCON1_set_tv_mode(__u32 sel, __u8 mode)
             cfg.scl_y       = 1080;
             cfg.out_x       = 1920;
             cfg.out_y       = 1080;
-            cfg.ht       = 2199;
-            cfg.hbp      = 191;
+            cfg.ht       = 2200;
+            cfg.hbp      = 192;
             cfg.vt       = 2250;
             cfg.vbp      = 44;
-            cfg.vspw     = 1;
-            cfg.hspw     = 1;
+            cfg.vspw     = 2;
+            cfg.hspw     = 2;
             break;
             
         default:
@@ -906,103 +906,103 @@ __s32 TCON1_set_vga_mode(__u32 sel, __u8 mode)
 	case DISP_VGA_H640_V480:
       cfg.src_x = cfg.scl_x = cfg.out_x = 640;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 480;//VA
-      cfg.ht       = 0x31f;//HT-1=-1
-      cfg.hbp      = 0x8f;//HS+HBP-1=+-1
+      cfg.ht       = 0x320;//HT-1=-1
+      cfg.hbp      = 0x90;//HS+HBP-1=+-1
       cfg.vt       = 0x41a;//VT*2=*2
       cfg.vbp      = 0x22;//VS+VBP-1=+-1
-      cfg.vspw     = 0x1;//VS-1=-1
-      cfg.hspw     = 0x5f;//HS-1=-1
+      cfg.vspw     = 0x2;//VS-1=-1
+      cfg.hspw     = 0x60;//HS-1=-1
 		break;
 	case DISP_VGA_H800_V600:
       cfg.src_x = cfg.scl_x = cfg.out_x = 800;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 600;//VA
-      cfg.ht       = 0x41f;//HT-1=-1
-      cfg.hbp      = 0xd7;//HS+HBP-1=+-1
+      cfg.ht       = 0x420;//HT-1=-1
+      cfg.hbp      = 0xd8;//HS+HBP-1=+-1
       cfg.vt       = 0x4e8;//VT*2=*2
       cfg.vbp      = 0x1a;//VS+VBP-1=+-1
-      cfg.vspw     = 0x3;//VS-1=-1
-      cfg.hspw     = 0x7f;//HS-1=-1
+      cfg.vspw     = 0x4;//VS-1=-1
+      cfg.hspw     = 0x80;//HS-1=-1
 		break;
 	case  DISP_VGA_H1024_V768:
       cfg.src_x = cfg.scl_x = cfg.out_x = 1024;
       cfg.src_y = cfg.scl_y = cfg.out_y = 768;
-      cfg.ht       = 1343;//HT-1=1344-1
-      cfg.hbp      = 295;//HS+HBP-1=136+160-1
+      cfg.ht       = 1344;//HT-1=1344-1
+      cfg.hbp      = 296;//HS+HBP-1=136+160-1
       cfg.vt       = 1612;//VT*2=806*2
       cfg.vbp      = 34;//VS+VBP-1=6+29-1
-      cfg.vspw     = 5;//VS-1=6-1
-      cfg.hspw     = 135;//HS-1=136-1
+      cfg.vspw     = 6;//VS-1=6-1
+      cfg.hspw     = 136;//HS-1=136-1
 		break;
 	case  DISP_VGA_H1280_V1024:
       cfg.src_x = cfg.scl_x = cfg.out_x = 1280;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 1024;//VA
-      cfg.ht       = 0x697;//HT-1=-1
-      cfg.hbp      = 0x167;//HS+HBP-1=+-1
+      cfg.ht       = 0x698;//HT-1=-1
+      cfg.hbp      = 0x168;//HS+HBP-1=+-1
       cfg.vt       = 0x854;//VT*2=*2
       cfg.vbp      = 0x28;//VS+VBP-1=+-1
-      cfg.vspw     = 0x2;//VS-1=-1
-      cfg.hspw     = 0x6f;//HS-1=-1
+      cfg.vspw     = 0x3;//VS-1=-1
+      cfg.hspw     = 0x70;//HS-1=-1
 		break;
 	case  DISP_VGA_H1360_V768:
       cfg.src_x = cfg.scl_x = cfg.out_x = 1360;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 768;//VA
-      cfg.ht       = 0x6ff;//HT-1=-1
-      cfg.hbp      = 0x16f;//HS+HBP-1=+-1
+      cfg.ht       = 0x700;//HT-1=-1
+      cfg.hbp      = 0x170;//HS+HBP-1=+-1
       cfg.vt       = 0x636;//VT*2=*2
       cfg.vbp      = 0x17;//VS+VBP-1=+-1
-      cfg.vspw     = 0x5;//VS-1=-1
-      cfg.hspw     = 0x6f;//HS-1=-1
+      cfg.vspw     = 0x6;//VS-1=-1
+      cfg.hspw     = 0x70;//HS-1=-1
 		break;
 	case  DISP_VGA_H1440_V900:
       cfg.src_x = cfg.scl_x = cfg.out_x = 1440;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 900;//VA
-      cfg.ht       = 0x76f;//HT-1=-1
-      cfg.hbp      = 0x17f;//HS+HBP-1=+-1
+      cfg.ht       = 0x770;//HT-1=-1
+      cfg.hbp      = 0x180;//HS+HBP-1=+-1
       cfg.vt       = 0x74c;//VT*2=*2
       cfg.vbp      = 0x1e;//VS+VBP-1=+-1
-      cfg.vspw     = 0x5;//VS-1=-1
-      cfg.hspw     = 0x97;//HS-1=-1
+      cfg.vspw     = 0x6;//VS-1=-1
+      cfg.hspw     = 0x98;//HS-1=-1
 		break;
 	case  DISP_VGA_H1680_V1050:
       cfg.src_x = cfg.scl_x = cfg.out_x = 1680;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 1050;//VA
-      cfg.ht       = 2239;//HT-1=-1
-      cfg.hbp      = 463;//HS+HBP-1=+-1
+      cfg.ht       = 2240;//HT-1=-1
+      cfg.hbp      = 464;//HS+HBP-1=+-1
       cfg.vt       = 2178;//VT*2=*2
       cfg.vbp      = 35;//VS+VBP-1=+-1
-      cfg.vspw     = 5;//VS-1=-1
-      cfg.hspw     = 175;//HS-1=-1
+      cfg.vspw     = 6;//VS-1=-1
+      cfg.hspw     = 176;//HS-1=-1
 		break;
 	case  DISP_VGA_H1920_V1080_RB:
       cfg.src_x = cfg.scl_x = cfg.out_x = 1920;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 1080;//VA
-      cfg.ht       = 2016;//HT-1=-1
-      cfg.hbp      = 62;//HS+HBP-1=+-1
+      cfg.ht       = 2017;//HT-1=-1
+      cfg.hbp      = 63;//HS+HBP-1=+-1
       cfg.vt       = 2222;//VT*2=*2
       cfg.vbp      = 27;//VS+VBP-1=+-1
-      cfg.vspw     = 4;//VS-1=-1
-      cfg.hspw     = 31;//HS-1=-1
+      cfg.vspw     = 5;//VS-1=-1
+      cfg.hspw     = 32;//HS-1=-1
 		break;
 	case  DISP_VGA_H1920_V1080://TBD
       cfg.src_x = cfg.scl_x = cfg.out_x = 1920;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 1080;//VA
-      cfg.ht       = 2200-1;//HT-1=-1
-      cfg.hbp      = 148+44-1;//HS+HBP-1=+-1
+      cfg.ht       = 2200;//HT-1=-1
+      cfg.hbp      = 148+44;//HS+HBP-1=+-1
       cfg.vt       = 1125*2;//VT*2=*2
       cfg.vbp      = 36+5;//VS+VBP-1=+-1
-      cfg.vspw     = 5-1;//VS-1=-1
-      cfg.hspw     = 44-1;//HS-1=-1	
+      cfg.vspw     = 5;//VS-1=-1
+      cfg.hspw     = 44;//HS-1=-1	
       cfg.io_pol   = 0x03000000;	
 		break;
 	case  DISP_VGA_H1280_V720://TBD
 	  cfg.src_x = cfg.scl_x = cfg.out_x = 1280;//HA
       cfg.src_y = cfg.scl_y = cfg.out_y = 720;//VA
-      cfg.ht       = 1650-1;//HT-1=-1
-      cfg.hbp      = 220+40-1;//HS+HBP-1=+-1
+      cfg.ht       = 1650;//HT-1=-1
+      cfg.hbp      = 220+40;//HS+HBP-1=+-1
       cfg.vt       = 750*2;//VT*2=*2
       cfg.vbp      = 5+20;//VS+VBP-1=+-1
-      cfg.vspw     = 5-1;//VS-1=-1
-      cfg.hspw     = 40-1;//HS-1=-1	
+      cfg.vspw     = 5;//VS-1=-1
+      cfg.hspw     = 40;//HS-1=-1	
       cfg.io_pol   = 0x03000000;	
 		break;
 	default:
