@@ -467,13 +467,20 @@ static int __init early_mem(char *p)
 }
 early_param("mem", early_mem);
 
-
 unsigned long fb_start = 0x5a000000;
 unsigned long fb_size = 32 * 1024 * 1024;
 EXPORT_SYMBOL(fb_start);
 EXPORT_SYMBOL(fb_size);
 
+unsigned long gps_start = 0x59000000;
+unsigned long gps_size = 0;
+EXPORT_SYMBOL(gps_start);
+EXPORT_SYMBOL(gps_size);
 
+unsigned long g2d_start = 0x58000000;
+unsigned long g2d_size = 0;
+EXPORT_SYMBOL(g2d_start);
+EXPORT_SYMBOL(g2d_size);
 
 static int __init early_fbmem(char *p)
 {
@@ -497,6 +504,53 @@ static int __init early_fbmem(char *p)
 	return 0;
 }
 early_param("fbmem", early_fbmem);
+
+static int __init early_gpsmem(char *p)
+{
+	unsigned long size, start;
+	char *endp;
+
+	/*
+	 * If the user specifies memory size, we
+	 * blow away any automatically generated
+	 * size.
+	 */
+	start = PHYS_OFFSET;
+	size  = memparse(p, &endp);
+	if (*endp == '@')
+		start = memparse(endp + 1, NULL);
+
+	printk("gpsmem: start=0x%08x, size=0x%08x\n", (unsigned int)start, (unsigned int)size);
+	gps_start = start;
+	gps_size = size;
+
+	return 0;
+}
+early_param("gpsmem", early_gpsmem);
+
+static int __init early_g2dmem(char *p)
+{
+	unsigned long size, start;
+	char *endp;
+
+	/*
+	 * If the user specifies memory size, we
+	 * blow away any automatically generated
+	 * size.
+	 */
+	start = PHYS_OFFSET;
+	size  = memparse(p, &endp);
+	if (*endp == '@')
+		start = memparse(endp + 1, NULL);
+
+	printk("g2dmem: start=0x%08x, size=0x%08x\n", (unsigned int)start, (unsigned int)size);
+	g2d_start = start;
+	g2d_size = size;
+
+	return 0;
+}
+early_param("g2dmem", early_g2dmem);
+
 
 static void __init
 setup_ramdisk(int doload, int prompt, int image_start, unsigned int rd_sz)

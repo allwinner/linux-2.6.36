@@ -233,7 +233,7 @@ static struct map_desc sw_io_desc[] __initdata = {
     { SW_VA_USB0_IO_BASE,       __phys_to_pfn(SW_PA_USB0_IO_BASE),      SZ_4K,  MT_DEVICE       },
     { SW_VA_USB1_IO_BASE,       __phys_to_pfn(SW_PA_USB1_IO_BASE),      SZ_4K,  MT_DEVICE       },
     { SW_VA_USB2_IO_BASE,       __phys_to_pfn(SW_PA_USB2_IO_BASE),      SZ_4K,  MT_DEVICE       },
-	{ SW_VA_GPS_IO_BASE,        __phys_to_pfn(SW_PA_GPS_IO_BASE),       SZ_64K, MT_DEVICE       },
+    { SW_VA_GPS_IO_BASE,        __phys_to_pfn(SW_PA_GPS_IO_BASE),       SZ_64K, MT_DEVICE       },
 
 };
 
@@ -283,20 +283,35 @@ static u32 DRAMC_get_dram_size(void)
 
 extern unsigned long fb_start;
 extern unsigned long fb_size;
+extern unsigned long gps_start;
+extern unsigned long gps_size;
+extern unsigned long g2d_start;
+extern unsigned long g2d_size;
 
-#define GPS_RESERVE_MEM_BASE	0x49000000
-#define GPS_RESERVE_MEM_SIZE	8 * 1024 * 1024
 int sw_plat_init(void)
 {
     pr_info("SUN4i Platform Init\n");
 
     memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
     memblock_reserve(fb_start, fb_size);
-    memblock_reserve(GPS_RESERVE_MEM_BASE, GPS_RESERVE_MEM_SIZE);
 
-    pr_info("reserve: base=0x%08x, size=0x%08x\n", CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
-    pr_info("reserve: base=0x%08x, size=0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
-    pr_info("reserve: base=0x%08x, size=0x%08x\n", GPS_RESERVE_MEM_BASE, GPS_RESERVE_MEM_SIZE);
+    pr_info("reserve: base=0x%08x, size=0x%08x(VE)\n", CONFIG_SW_SYSMEM_RESERVED_BASE,
+	    CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+    pr_info("reserve: base=0x%08x, size=0x%08x(FB)\n", (unsigned int)fb_start, (unsigned int)fb_size);
+
+    if (gps_size <= 0) {
+	    pr_info("no reserved memory for GPS module\n");
+    } else {
+	    pr_info("reserve: base=0x%08x, size=0x%08x(GPS)\n", gps_start, gps_size);
+	    memblock_reserve(gps_start, gps_size);
+    }
+
+    if (g2d_size <= 0) {
+	    pr_info("no reserved memory for G2D module\n");
+    } else {
+	    pr_info("reserve: base=0x%08x, size=0x%08x(G2D)\n", g2d_start, g2d_size);
+	    memblock_reserve(g2d_start, g2d_size);
+    }
 
     return 0;
 }
