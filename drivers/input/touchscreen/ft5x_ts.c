@@ -63,6 +63,7 @@ static int screen_max_x = 0;
 static int screen_max_y = 0;
 static int revert_x_flag = 0;
 static int revert_y_flag = 0;
+static int exchange_x_y_flag = 0;
 static int ctp_reset_enable = 0;
 static int ctp_wakeup_enable = 0;
 
@@ -727,6 +728,11 @@ static int ft5x_read_data(void)
 			if(1 == revert_y_flag){
                 event->y5 = SCREEN_MAX_Y - event->y5;
 			}
+			//printk("before swap: event->x5 = %d, event->y5 = %d. \n", event->x5, event->y5);
+			if(1 == exchange_x_y_flag){
+                                  swap(event->x5, event->y5);
+			}
+			//printk("after swap: event->x5 = %d, event->y5 = %d. \n", event->x5, event->y5);
 			event->touch_ID5=(s16)(buf[0x1D] & 0xF0)>>4;
 		case 4:
 			event->x4 = (s16)(buf[0x15] & 0x0F)<<8 | (s16)buf[0x16];
@@ -737,6 +743,11 @@ static int ft5x_read_data(void)
 			if(1 == revert_y_flag){
                 event->y4 = SCREEN_MAX_Y - event->y4;
 			}
+			//printk("before swap: event->x4 = %d, event->y4 = %d. \n", event->x4, event->y4);
+			if(1 == exchange_x_y_flag){
+                                  swap(event->x4, event->y4);
+			}
+			//printk("after swap: event->x4 = %d, event->y4 = %d. \n", event->x4, event->y4);
 			event->touch_ID4=(s16)(buf[0x17] & 0xF0)>>4;
 		case 3:
 			event->x3 = (s16)(buf[0x0f] & 0x0F)<<8 | (s16)buf[0x10];
@@ -747,6 +758,11 @@ static int ft5x_read_data(void)
 			if(1 == revert_y_flag){
                 event->y3 = SCREEN_MAX_Y - event->y3;
 			}
+			//printk("before swap: event->x3 = %d, event->y3 = %d. \n", event->x3, event->y3);
+			if(1 == exchange_x_y_flag){
+                                  swap(event->x3, event->y3);
+			}
+			//printk("after swap: event->x3 = %d, event->y3 = %d. \n", event->x3, event->y3);
 			event->touch_ID3=(s16)(buf[0x11] & 0xF0)>>4;
 		case 2:
 			event->x2 = (s16)(buf[9] & 0x0F)<<8 | (s16)buf[10];
@@ -757,6 +773,11 @@ static int ft5x_read_data(void)
 			if(1 == revert_y_flag){
                 event->y2 = SCREEN_MAX_Y - event->y2;
 			}
+			//printk("before swap: event->x2 = %d, event->y2 = %d. \n", event->x2, event->y2);
+			if(1 == exchange_x_y_flag){
+                                  swap(event->x2, event->y2);
+			}
+			//printk("after swap: event->x2 = %d, event->y2 = %d. \n", event->x2, event->y2);
 		    event->touch_ID2=(s16)(buf[0x0b] & 0xF0)>>4;
 		case 1:
 			event->x1 = (s16)(buf[3] & 0x0F)<<8 | (s16)buf[4];
@@ -767,6 +788,12 @@ static int ft5x_read_data(void)
 			if(1 == revert_y_flag){
                 event->y1 = SCREEN_MAX_Y - event->y1;
 			}
+			//printk("before swap: event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
+			if(1 == exchange_x_y_flag){
+                                  swap(event->x1, event->y1);
+			}
+
+			//printk("after swap: event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
 			event->touch_ID1=(s16)(buf[0x05] & 0xF0)>>4;
 		break;
 		default:
@@ -871,6 +898,8 @@ static void ft5x_report_value(void)
 			    printk("===x2 = %d,y2 = %d ====\n",event->x2,event->y2);
 			#endif
 		case 1:
+			/*if(event->x1 >= 1280)
+			    event->x1 = 1279;*/
 			input_report_abs(data->input_dev, ABS_MT_TRACKING_ID, event->touch_ID1);	
 			input_report_abs(data->input_dev, ABS_MT_TOUCH_MAJOR, event->pressure);
 			input_report_abs(data->input_dev, ABS_MT_POSITION_X, event->x1);
@@ -1416,6 +1445,12 @@ static int __init ft5x_ts_init(void)
         goto script_parser_fetch_err;
     }
     pr_info("ft5x_ts: revert_y_flag = %d. \n", revert_y_flag);
+
+    if(SCRIPT_PARSER_OK != script_parser_fetch("ctp_para", "ctp_exchange_x_y_flag", &exchange_x_y_flag, 1)){
+        pr_err("ft5x_ts: script_parser_fetch err. \n");
+        goto script_parser_fetch_err;
+    }
+    pr_info("ft5x_ts: exchange_x_y_flag = %d. \n", exchange_x_y_flag);
     
     ret = i2c_add_driver(&ft5x_ts_driver);
 	
