@@ -315,21 +315,10 @@ int HMG_GetSubState_ps()
 
 static void connected_cb(wi_msg_param_t param, void* priv)
 {
-  // WiFiEngine_PowerMode_t power_mode;
-   uint16_t interval;
-   
    DE_TRACE_STATIC(TR_SM, "hmg_ps Device connected\n");     
    connected = TRUE;  
    
    we_pm_request(INTSIG_DEVICE_CONNECTED);
-
-   WiFiEngine_GetDelayStartOfPs(&interval);
-
-   if(interval != 0)
-   { 
-      /* Delay start of power save according to value in registry.dat */
-      WiFiEngine_StartDelayPowerSaveTimer();
-   }
 }
 
 static void disconnecting_cb(wi_msg_param_t param, void* priv)

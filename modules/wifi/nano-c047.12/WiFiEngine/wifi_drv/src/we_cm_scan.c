@@ -90,29 +90,6 @@ static void we_init(void)
          coredump_start_ind, NULL,0,NULL);
 }
 
-static uint32_t must_be_after_mark = 0;
-#ifdef USE_NEW_AGE
-#define UPDATE_MARK() must_be_after_mark = wifiEngineState.scan_count
-#define NOT_HEARD_AFTER_MARK() (net->heard_at_scan_count < must_be_after_mark)
-#else /* USE_NEW_AGE */
-#define UPDATE_MARK() must_be_after_mark = DriverEnvironment_GetTicks()
-#define NOT_HEARD_AFTER_MARK() (net->last_heard_tick < must_be_after_mark)
-#endif /* USE_NEW_AGE */
-
-static int sac_filter_out(WiFiEngine_net_t* net, void* priv)
-{
-   /* 
-    * this is a week solution to the problem surrounding ageing the netlist 
-    * if we have a net in the netlist that is not reachable it should be removed
-    * from the netlist but is not always so.
-    */ 
-    if(NOT_HEARD_AFTER_MARK())
-      return 1;
-
-   /* keep */
-   return 0;
-}
-
 /* This function is called directly from WiFiEngine_Initialize() */
 void WiFiEngine_sac_init(void)
 {
@@ -149,14 +126,17 @@ int WiFiEngine_sac_start(void)
    WiFiEngine_GetBSSType(&type);
    if(type == M80211_CAPABILITY_ESS) 
    {
-      if (create_and_start_scan_job(&p) == WIFI_ENGINE_SUCCESS)
+      WiFiEngine_net_t* elected_net;
+      
+      /* filtering will be done by default we_filter_out_net(...) */
+      elected_net = WiFiEngine_elect_net(NULL,NULL,TRUE);
+      if (elected_net)
       {
-         UPDATE_MARK();
-         /* filtering will be done by default we_filter_out_net(...) */
-         connect(WiFiEngine_elect_net(sac_filter_out,NULL,TRUE));
+         connect(elected_net);
          return WIFI_ENGINE_SUCCESS;
       }
-      return WIFI_ENGINE_FAILURE;
+      else
+         return create_and_start_scan_job(&p);
    } 
    else
    {
@@ -197,13 +177,11 @@ static void scan_complete_ind(wi_msg_param_t param, void *priv)
 
    WiFiEngine_GetBSSType(&type);
    if(type == M80211_CAPABILITY_ESS) {
-      connect(WiFiEngine_elect_net(sac_filter_out,NULL,TRUE));
+      connect(WiFiEngine_elect_net(NULL,NULL,TRUE));
    } else {
       /* IBSS */
       connect(wei_find_create_ibss_net());
    }
-
-   UPDATE_MARK();
 }
 
 static void disconnected_ind(wi_msg_param_t param, void *priv)
@@ -212,9 +190,15 @@ static void disconnected_ind(wi_msg_param_t param, void *priv)
       return;
 
    if(sac_state.cm_session) { 
-      /* look for new candidates */
       sac_state.cm_session = NULL; 
-      start_scan_job();
+
+      /* looking for new candidates is not desirable when we work under
+         the supplicant! So this "auto reconnect" capability should be
+         optional (controlled at the registry?) and normally disabled
+      */
+      if (0) {
+         start_scan_job();
+      }
    }
 }
 
@@ -276,7 +260,11 @@ static int create_and_start_scan_job(net_profile_s *conf)
       return WIFI_ENGINE_FAILURE;
    }
 
-   DE_TRACE_STATIC(TR_NOISE, "ENTRY\n");
+   if (WiFiEngine_TriggerScanJob(sac_state.scan_job_id, 0)
+       != WIFI_ENGINE_SUCCESS)
+         DE_TRACE_STATIC(TR_CM, "Failed to trigger CM scan job");
+
+   DE_TRACE_STATIC(TR_NOISE, "EXIT\n");
    sac_state.scan_state = SCAN_STARTED;
 
    return WIFI_ENGINE_SUCCESS;

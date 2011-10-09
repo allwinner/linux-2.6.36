@@ -136,6 +136,7 @@ void wei_ps_unplug(void)
 static void ps_connecting_cb(wi_msg_param_t param, void* priv)
 {
    WiFiEngine_net_t *net;
+   uint16_t interval;
 
    DE_TRACE_STATIC(TR_PS, "connecting_cb\n");    
    net = wei_netlist_get_current_net();
@@ -151,7 +152,12 @@ static void ps_connecting_cb(wi_msg_param_t param, void* priv)
       WiFiEngine_InhibitPowerSave(wifiEngineState.ibss_ps_uid);    
    }
 
-   return;
+   WiFiEngine_GetDelayStartOfPs(&interval);
+   if(interval != 0)
+   { 
+	   /* Delay start of power save according to value in registry.dat */
+	   WiFiEngine_StartDelayPowerSaveTimer();
+   }
 }
 
 
@@ -629,25 +635,13 @@ int WiFiEngine_LegacyPsConfigurationChanged(void)
 
 static int delay_ps_timeout_cb(void *data, size_t len)
 {
-   int associated;
-   
    DE_TRACE_STATIC(TR_NOISE, "====> delay_ps_timeout_cb\n");
      
-   associated = wei_is_80211_connected();
-   
    if(WES_TEST_FLAG(WES_FLAG_IS_DELAYED_PS_TIMER_RUNNING))
    {
       WES_CLEAR_FLAG(WES_FLAG_IS_DELAYED_PS_TIMER_RUNNING);
-         
-      if(associated&&wifiEngineState.main_state == driverConnected)
-      { 
-         WiFiEngine_AllowPowerSave(wifiEngineState.delay_ps_uid);      
-         WiFiEngine_AllowPowerSave(wifiEngineState.dhcp_ps_uid);
-      }
-      else
-      {
-         DE_TRACE_STATIC(TR_NOISE, "Not associated ignore\n");
-      }
+      WiFiEngine_AllowPowerSave(wifiEngineState.delay_ps_uid);      
+      WiFiEngine_AllowPowerSave(wifiEngineState.dhcp_ps_uid);
    }
    DE_TRACE_STATIC(TR_NOISE, "<==== delay_ps_timeout_cb\n");   
 
@@ -667,13 +661,8 @@ static int delay_ps_timeout_cb(void *data, size_t len)
  */
 int WiFiEngine_StartDelayPowerSaveTimer(void)
 {
-   int associated;
-   
    DE_TRACE_STATIC(TR_NOISE, "====> WiFiEngine_StartDelayPowerSaveTimer\n");  
-   associated = wei_is_80211_connected();
          
-   if(associated)
-   {
       if(WES_TEST_FLAG(WES_FLAG_IS_DELAYED_PS_TIMER_RUNNING))
       {
          DE_TRACE_STATIC(TR_NOISE, "Timer already started ignore\n");
@@ -692,13 +681,7 @@ int WiFiEngine_StartDelayPowerSaveTimer(void)
          {
             WiFiEngine_InhibitPowerSave(wifiEngineState.delay_ps_uid); 
             WES_SET_FLAG(WES_FLAG_IS_DELAYED_PS_TIMER_RUNNING);
-         }
       }
-   }
-   else
-   {
-      DE_TRACE_STATIC(TR_NOISE, "Not associated ignore\n");
-
    }
    
    DE_TRACE_STATIC(TR_NOISE, "<==== WiFiEngine_StartDelayPowerSaveTimer\n");  
