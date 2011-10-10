@@ -309,6 +309,12 @@ struct csi_dev {
 	void __iomem			*regs;
 	struct resource			*regs_res;
 	
+	/*power issue*/
+	int								 stby_mode;
+	struct regulator 	 *iovdd;		/*interface voltage source of sensor module*/
+  struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
+  struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
+	
 	/*parameters*/
 	__csi_conf_t			csi_mode;
 	struct csi_buf_addr		csi_buf_addr;

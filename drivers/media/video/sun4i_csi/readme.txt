@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_40
+Version: V1_50
 
 Author:  raymonxiu
 
-Date:     2011-9-27 17:04:50
+Date:     2011-10-10 13:47:10
 
 Description:
 
@@ -15,6 +15,10 @@ insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
+
+V1_50 CSI: Fetch "csi_stby_mode" and csi power from sys_config1
+1) Fetch "csi_stby_mode","csi_iovdd","csi_avdd","csi_dvdd" from sys_config1
+2) Modify the standby power management
 
 V1_40 CSI: Fetch "csi_vflip" and "csi_hflip" from sys_config1, modify Kconfig and Makefile
 1) Fetch "csi_vflip" and "csi_hflip" from sys_config1

@@ -13,6 +13,7 @@
 #include <media/v4l2-i2c-drv.h>
 
 #include <mach/gpio_v2.h>
+#include <linux/regulator/consumer.h>
 #include "../include/sun4i_csi_core.h"
 #include "../include/sun4i_dev_csi.h"
 
@@ -1179,6 +1180,38 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_OFF,"csi_stby");
 			msleep(10);
 			break;
+		case CSI_SUBDEV_PWR_ON:
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_ON,"csi_power_en");
+			msleep(10);
+			if(dev->dvdd) {
+				regulator_enable(dev->dvdd);
+				msleep(10);
+			}
+			if(dev->avdd) {
+				regulator_enable(dev->avdd);
+				msleep(10);
+			}
+			if(dev->iovdd) {
+				regulator_enable(dev->iovdd);
+				msleep(10);
+			}		
+			break;
+		case CSI_SUBDEV_PWR_OFF:
+			if(dev->iovdd) {
+				regulator_disable(dev->iovdd);
+				msleep(10);
+			}
+			if(dev->avdd) {
+				regulator_disable(dev->avdd);
+				msleep(10);
+			}
+			if(dev->dvdd) {
+				regulator_disable(dev->dvdd);
+				msleep(10);	
+			}
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_OFF,"csi_power_en");
+			msleep(10);
+			break;
 		default:
 			return -EINVAL;	
 	}
@@ -1246,8 +1279,7 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 	
 	switch(val) {
 		case CSI_SUBDEV_INIT_FULL:
-			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_ON,"csi_power_en");
-			msleep(10);
+			sensor_power(sd,CSI_SUBDEV_PWR_ON);
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,"csi_stby");
 			msleep(10);
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_OFF,"csi_stby");

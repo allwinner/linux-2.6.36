@@ -13,6 +13,7 @@
 #include <media/v4l2-i2c-drv.h>
 
 #include <mach/gpio_v2.h>
+#include <linux/regulator/consumer.h>
 #include "../include/sun4i_csi_core.h"
 #include "../include/sun4i_dev_csi.h"
 
@@ -1225,6 +1226,38 @@ static int sensor_power(struct v4l2_subdev *sd, int on)
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_OFF,"csi_stby");
 			msleep(10);
 			break;
+		case CSI_SUBDEV_PWR_ON:
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_ON,"csi_power_en");
+			msleep(10);
+			if(dev->dvdd) {
+				regulator_enable(dev->dvdd);
+				msleep(10);
+			}
+			if(dev->avdd) {
+				regulator_enable(dev->avdd);
+				msleep(10);
+			}
+			if(dev->iovdd) {
+				regulator_enable(dev->iovdd);
+				msleep(10);
+			}		
+			break;
+		case CSI_SUBDEV_PWR_OFF:
+			if(dev->iovdd) {
+				regulator_disable(dev->iovdd);
+				msleep(10);
+			}
+			if(dev->avdd) {
+				regulator_disable(dev->avdd);
+				msleep(10);
+			}
+			if(dev->dvdd) {
+				regulator_disable(dev->dvdd);
+				msleep(10);	
+			}
+			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_OFF,"csi_power_en");
+			msleep(10);
+			break;
 		default:
 			return -EINVAL;	
 	}
@@ -1259,6 +1292,25 @@ static int sensor_reset(struct v4l2_subdev *sd, u32 val)
 	return 0;
 }
 
+static int sensor_detect(struct v4l2_subdev *sd)
+{
+	int ret;
+	struct regval_list regs;
+	
+	regs.reg_num[0] = 0x00;
+	regs.reg_num[1] = 0x00;
+	ret = sensor_read(sd, regs.reg_num, regs.value);
+	if (ret < 0) {
+		csi_err("sensor_read err at sensor_detect!\n");
+		return ret;
+	}
+
+	if(regs.value[0] != 0x51)
+		return -ENODEV;
+	
+	return 0;
+}
+
 static int sensor_init(struct v4l2_subdev *sd, u32 val)
 {
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(sd->v4l2_dev->dev);
@@ -1266,8 +1318,7 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 	
 	switch(val) {
 		case CSI_SUBDEV_INIT_FULL:
-			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_PWR_ON,"csi_power_en");
-			msleep(10);
+			sensor_power(sd,CSI_SUBDEV_PWR_ON);
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_ON,"csi_stby");
 			msleep(10);
 			gpio_write_one_pin_value(dev->csi_pin_hd,CSI_STBY_OFF,"csi_stby");
@@ -1280,6 +1331,14 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 		default:
 			return -EINVAL;
 	}
+	
+	/*Make sure it is a target sensor*/
+	ret = sensor_detect(sd);
+	if (ret) {
+		csi_err("chip found is not an target chip.\n");
+		return ret;
+	}
+	
 	return sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 }
 
@@ -1300,7 +1359,7 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			ccm_info->href 	=	info->ccm_info->href ;
 			ccm_info->clock	=	info->ccm_info->clock;
 //			ccm_info->iocfg	=	info->ccm_info->iocfg;
-			
+	
 //			printk("ccm_info.mclk=%x\n ",info->ccm_info->mclk);
 //			printk("ccm_info.vref=%x\n ",info->ccm_info->vref);
 //			printk("ccm_info.href=%x\n ",info->ccm_info->href);

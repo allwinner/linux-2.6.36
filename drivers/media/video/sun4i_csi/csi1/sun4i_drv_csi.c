@@ -33,6 +33,7 @@
 #include <mach/script_v2.h>
 #include <mach/clock.h>
 #include <mach/irqs.h>
+#include <linux/regulator/consumer.h>
 
 #include "../include/sun4i_csi_core.h"
 #include "../include/sun4i_dev_csi.h"
@@ -67,6 +68,9 @@ static unsigned first_flag = 0;
 
 static char ccm[I2C_NAME_SIZE] = "";
 static uint i2c_addr = 0xff;
+static char iovdd[32] = "";
+static char avdd[32] = "";
+static char dvdd[32] = "";
 
 module_param_string(ccm, ccm, sizeof(ccm), S_IRUGO|S_IWUSR);
 module_param(i2c_addr,uint, S_IRUGO|S_IWUSR);
@@ -1220,7 +1224,8 @@ static int csi_open(struct file *file)
 static int csi_close(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
-
+	int ret;
+	
 	csi_dbg(0,"csi_close\n");
 
 	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
@@ -1239,7 +1244,14 @@ static int csi_close(struct file *file)
 	dev->opened=0;
 	csi_stop_generating(dev);
 
-	return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+	if(dev->stby_mode == 0) {
+		return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+	} else {
+		ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+		if(ret < 0)
+			return ret;
+		return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+	}
 }
 
 static int csi_mmap(struct file *file, struct vm_area_struct *vma)
@@ -1430,6 +1442,52 @@ static int csi_probe(struct platform_device *pdev)
 		csi_print("registered sub device\n");
 	}
 	
+	/*power issue*/
+	ret = script_parser_fetch("csi1_para","csi_stby_mode", &dev->stby_mode , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi_stby_mode from sys_config failed\n");
+		goto free_dev;
+	}
+
+	ret = script_parser_fetch("csi1_para","csi_iovdd", (int *)&iovdd , 32*sizeof(char));
+	if (ret) {
+		csi_err("fetch csi_iovdd from sys_config failed\n");
+	} else {
+		if(strcmp(iovdd,"")) {
+			dev->iovdd = regulator_get(NULL, iovdd);
+			if (dev->iovdd == NULL) {
+				csi_err("get regulator csi_iovdd error!\n");
+				goto free_dev;
+			}
+		}
+	}
+	
+	ret = script_parser_fetch("csi1_para","csi_avdd", (int *)&avdd , 32*sizeof(char));
+	if (ret) {
+		csi_err("fetch csi_avdd from sys_config failed\n");
+	} else {
+		if(strcmp(avdd,"")) {
+			dev->avdd = regulator_get(NULL, avdd);
+			if (dev->avdd == NULL) {
+				csi_err("get regulator csi_avdd error!\n");
+				goto free_dev;
+			}
+		}
+	}
+	
+	ret = script_parser_fetch("csi1_para","csi_dvdd", (int *)&dvdd , 32*sizeof(char));
+	if (ret) {
+		csi_err("fetch csi_dvdd from sys_config failed\n");
+	} else {
+		if(strcmp(dvdd,"")) {
+			dev->dvdd = regulator_get(NULL, dvdd);
+			if (dev->dvdd == NULL) {
+				csi_err("get regulator csi_dvdd error!\n");
+				goto free_dev;
+			}
+		}
+	}
+	
 	dev->ccm_info.mclk = CSI_OUT_RATE;
 	dev->ccm_info.vref = CSI_LOW;
 	dev->ccm_info.href = CSI_LOW;
@@ -1560,14 +1618,26 @@ static int __devexit csi_remove(struct platform_device *pdev)
 
 static int csi_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
-
-	csi_dbg(0,"csi_suspend\n");
+	int ret;
 	
-	csi_clk_disable(dev);
-
-	return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+	csi_print("csi_suspend\n");
+	
+	if (dev->opened==1) {
+		csi_clk_disable(dev);
+		
+		if(dev->stby_mode == 0) {
+			csi_print("set camera to standby!\n");
+			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+		} else {
+			csi_print("power off camera!\n");
+			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+			if(ret < 0)
+				return ret;
+			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+		}
+	}
+	return 0;
 }
 
 static int csi_resume(struct platform_device *pdev)
@@ -1575,35 +1645,34 @@ static int csi_resume(struct platform_device *pdev)
 	int ret;
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
 	
-	csi_dbg(0,"csi_resume\n");
+	csi_print("csi_resume\n");
 
 	if (dev->opened==1) {
 		csi_clk_out_set(dev);
-	
 		csi_clk_enable(dev);
-
-		ret = v4l2_subdev_call(dev->sd,core, s_power,CSI_SUBDEV_STBY_OFF);
-		if (ret!=0) {
-			csi_err("sensor power on error when resume from suspend!\n");
-			return ret;
+		if(dev->stby_mode == 0) {
+			ret = v4l2_subdev_call(dev->sd,core, s_power,CSI_SUBDEV_STBY_OFF);
+			if(ret < 0)
+				return ret;
+			ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_SIMP);
+			if (ret!=0) {
+				csi_err("sensor initial error when resume from suspend!\n");
+				return ret;
+			} else {
+				csi_print("sensor initial success when resume from suspend!\n");
+			}
 		} else {
-			csi_dbg(0,"sensor power on success when resume from suspend!\n");
-			
+			ret = v4l2_subdev_call(dev->sd,core, init,CSI_SUBDEV_INIT_FULL);
+			if (ret!=0) {
+				csi_err("sensor full initial error when resume from suspend!\n");
+				return ret;
+			} else {
+				csi_print("sensor full initial success when resume from suspend!\n");
+			}
 		}
-		
-		ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_SIMP);
-		if (ret!=0) {
-			csi_err("sensor initial error when resume from suspend!\n");
-			return ret;
-		} else {
-			csi_dbg(0,"sensor initial success when resume from suspend!\n");
-		}
-		
-		return 0;
-		
-	} else {
-		return 0;
-	}
+	} 
+	
+	return 0;
 }
 
 

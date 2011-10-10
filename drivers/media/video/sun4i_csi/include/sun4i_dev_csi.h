@@ -24,5 +24,7 @@ typedef enum tag_CSI_SUBDEV_CTL_ID
 	CSI_SUBDEV_RST_PUL = 0x05,
 	CSI_SUBDEV_STBY_ON = 0x06,
 	CSI_SUBDEV_STBY_OFF = 0x07,
+	CSI_SUBDEV_PWR_ON = 0x08,
+	CSI_SUBDEV_PWR_OFF = 0x09,
 }__csi_subdev_ctl_id_t;
 #endif
