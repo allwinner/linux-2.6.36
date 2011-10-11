@@ -369,15 +369,34 @@ static void qf9700_set_multicast(struct net_device *net)
 	qf_write_reg_async(dev, RCR, rx_ctl);
 }
 
+static int qf9700_set_mac_address(struct net_device *net, void *p)
+{
+	struct sockaddr *addr = p;
+	struct usbnet *dev = netdev_priv(net);
+
+	if(netif_running(net))
+		return -EBUSY;
+
+	if(!is_valid_ether_addr(addr->sa_data)){
+		dev_err(&net->dev, "not setting invalid mac address %pM\n", addr->sa_data);
+		return -EADDRNOTAVAIL;
+	}
+
+	memcpy(net->dev_addr, addr->sa_data, ETH_ALEN);
+	qf_write_async(dev, PAR, ETH_ALEN, addr->sa_data);
+
+	return 0;
+}
+
 static const struct net_device_ops qf9700_netdev_ops = {
 	.ndo_open		= usbnet_open,
 	.ndo_stop		= usbnet_stop,
 	.ndo_start_xmit		= usbnet_start_xmit,
 	.ndo_tx_timeout		= usbnet_tx_timeout,
 	.ndo_change_mtu		= usbnet_change_mtu,
-	.ndo_set_mac_address 	= eth_mac_addr,
 	.ndo_validate_addr	= eth_validate_addr,
 	.ndo_do_ioctl		= qf9700_ioctl,
+	.ndo_set_mac_address 	= qf9700_set_mac_address,
 	.ndo_set_multicast_list = qf9700_set_multicast,
 };
 
@@ -591,5 +610,5 @@ module_init(qf9700_init);
 module_exit(qf9700_exit);
 
 MODULE_AUTHOR("jokeliu <jokeliu@163.com>");
-MODULE_DESCRIPTION("QF9700 one chip USB 1.1 ethernet devices");
+MODULE_DESCRIPTION("QF9700 one chip USB 2.0 ethernet devices");
 MODULE_LICENSE("GPL");
