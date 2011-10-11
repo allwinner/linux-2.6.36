@@ -1245,8 +1245,14 @@ static int csi_close(struct file *file)
 	csi_stop_generating(dev);
 
 	if(dev->stby_mode == 0) {
+		ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
+		if(ret < 0)
+			return ret;
 		return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 	} else {
+		ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
+		if(ret < 0)
+			return ret;
 		ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 		if(ret < 0)
 			return ret;
@@ -1627,10 +1633,16 @@ static int csi_suspend(struct platform_device *pdev, pm_message_t state)
 		csi_clk_disable(dev);
 		
 		if(dev->stby_mode == 0) {
-			csi_print("set camera to standby!\n");
+			csi_print("reset camera ,and set it to standby!\n");
+			ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
+			if(ret < 0)
+				return ret;
 			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 		} else {
-			csi_print("power off camera!\n");
+			csi_print("reset camera , set it to standby and power off!\n");
+			ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
+			if(ret < 0)
+				return ret;
 			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 			if(ret < 0)
 				return ret;
