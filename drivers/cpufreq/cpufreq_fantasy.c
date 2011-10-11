@@ -230,6 +230,29 @@ static inline cputime64_t get_cpu_idle_time(cputime64_t *wall)
 
 /*
 *********************************************************************************************************
+*                           get_cpu_iowait_time_jiffy
+*
+*Description: get iowait time from cpu stat;
+*
+*Arguments  : cpu   cpu number;
+*
+*Return     : io wait time, based on us;
+*
+*Notes      :
+*
+*********************************************************************************************************
+*/
+static inline cputime64_t get_cpu_iowait_time_jiffy(unsigned int cpu)
+{
+    cputime64_t iowait_time;
+    iowait_time = kstat_cpu(cpu).cpustat.iowait;
+
+    return (cputime64_t)jiffies_to_usecs(iowait_time);
+}
+
+
+/*
+*********************************************************************************************************
 *                           get_cpu_iowait_time
 *
 *Description: get io wait time.
@@ -247,7 +270,7 @@ static inline cputime64_t get_cpu_iowait_time(cputime64_t *wall)
     u64 iowait_time = get_cpu_iowait_time_us(fantasy_dbs_info.cur_policy->cpu, wall);
 
     if (iowait_time == -1ULL)
-        return 0;
+        return get_cpu_iowait_time_jiffy(fantasy_dbs_info.cur_policy->cpu);
 
     return iowait_time;
 }
@@ -314,7 +337,8 @@ static void do_dbs_timer(struct work_struct *work)
             idle_time = (unsigned int) cputime64_sub(cur_idle_time, fantasy_dbs_info.prev_cpu_idle);
             iowait_time = (unsigned int) cputime64_sub(cur_iowait_time, fantasy_dbs_info.prev_cpu_iowait);
             if(dbs_tuners_ins.io_is_busy) {
-                idle_time += iowait_time;
+                idle_time -= iowait_time;
+                idle_time = (idle_time < 0)? 0 : idle_time;
             }
             /* update parameters */
             fantasy_dbs_info.prev_cpu_wall = cur_wall_time;
