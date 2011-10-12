@@ -505,6 +505,7 @@ static int __init early_fbmem(char *p)
 }
 early_param("fbmem", early_fbmem);
 
+#if 0
 static int __init early_gpsmem(char *p)
 {
 	unsigned long size, start;
@@ -550,6 +551,7 @@ static int __init early_g2dmem(char *p)
 	return 0;
 }
 early_param("g2dmem", early_g2dmem);
+#endif
 
 
 static void __init
@@ -855,8 +857,6 @@ static void __init squash_mem_tags(struct tag *tag)
 }
 #endif
 
-extern int sw_plat_init(void);
-
 void __init setup_arch(char **cmdline_p)
 {
 	struct tag *tags = (struct tag *)&init_tags;
@@ -943,8 +943,6 @@ void __init setup_arch(char **cmdline_p)
 	parse_early_param();
 
 	arm_memblock_init(&meminfo, mdesc);
-
-	sw_plat_init();
 
 	paging_init(mdesc);
 	request_standard_resources(&meminfo, mdesc);

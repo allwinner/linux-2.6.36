@@ -34,6 +34,7 @@
 #include <mach/hardware.h>
 #include <mach/platform.h>
 #include <mach/system.h>
+#include <mach/script_i.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 
@@ -288,34 +289,6 @@ extern unsigned long gps_size;
 extern unsigned long g2d_start;
 extern unsigned long g2d_size;
 
-int sw_plat_init(void)
-{
-    pr_info("SUN4i Platform Init\n");
-
-    memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
-    memblock_reserve(fb_start, fb_size);
-
-    pr_info("reserve: base=0x%08x, size=0x%08x(VE)\n", CONFIG_SW_SYSMEM_RESERVED_BASE,
-	    CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
-    pr_info("reserve: base=0x%08x, size=0x%08x(FB)\n", (unsigned int)fb_start, (unsigned int)fb_size);
-
-    if (gps_size <= 0) {
-	    pr_info("no reserved memory for GPS module\n");
-    } else {
-	    pr_info("reserve: base=0x%08x, size=0x%08x(GPS)\n", gps_start, gps_size);
-	    memblock_reserve(gps_start, gps_size);
-    }
-
-    if (g2d_size <= 0) {
-	    pr_info("no reserved memory for G2D module\n");
-    } else {
-	    pr_info("reserve: base=0x%08x, size=0x%08x(G2D)\n", g2d_start, g2d_size);
-	    memblock_reserve(g2d_start, g2d_size);
-    }
-
-    return 0;
-}
-
 static int __init sw_core_init(void)
 {
     pr_info("DRAM Size: %u\n", DRAMC_get_dram_size());
@@ -358,7 +331,48 @@ static void __init sw_timer_init(void)
     clockevents_register_device(&timer0_clockevent);
 }
 
-extern int gpio_init(void);
+extern int script_get_int(const char *script_buf, const char *main_key, const char *sub_key);
+static void __init sw_reserve(void)
+{
+	int gps_used, gps_size;
+	int g2d_used, g2d_size;
+	char *script_base = (char *)(PAGE_OFFSET + 0x3000000);
+
+	gps_used = script_get_int(script_base, "gps_para", "gps_used");
+	g2d_used = script_get_int(script_base, "g2d_para", "g2d_used");
+
+	memblock_reserve(CONFIG_SW_SYSMEM_RESERVED_BASE, CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+	memblock_reserve(fb_start, fb_size);
+
+	pr_info("Memory Reserved:\n");
+	pr_info("  VE:\t0x%08x, 0x%08x\n", (unsigned int)CONFIG_SW_SYSMEM_RESERVED_BASE,
+		(unsigned int)CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024);
+	pr_info("  FB:\t0x%08x, 0x%08x\n", (unsigned int)fb_start, (unsigned int)fb_size);
+
+/* reserve memory for GPS, G2D */
+	if (gps_used) {
+		gps_size = script_get_int(script_base, "gps_para", "gps_size");
+		if (gps_size < 0 || gps_size > SW_GPS_MEM_MAX) {
+			gps_size = SW_GPS_MEM_MAX;
+		}
+		gps_start = SW_GPS_MEM_BASE;
+		gps_size = gps_size;
+		pr_info("  GPS:\t0x%08x, 0x%08x\n", (unsigned int)gps_start, (unsigned int)gps_size);
+		memblock_reserve(gps_start, gps_size);
+	}
+
+	if (g2d_used) {
+		g2d_size = script_get_int(script_base, "g2d_para", "g2d_size");
+		if (g2d_size < 0 || g2d_size > SW_G2D_MEM_MAX) {
+			g2d_size = SW_G2D_MEM_MAX;
+		}
+		g2d_start = SW_G2D_MEM_BASE;
+		g2d_size = g2d_size;
+		pr_info("  G2D:\t0x%08x, 0x%08x\n", (unsigned int)g2d_start, (unsigned int)g2d_size);
+		memblock_reserve(g2d_start, g2d_size);
+	}
+}
+
 static void __init sw_fixup(struct machine_desc *desc,
                   struct tag *tags, char **cmdline,
                   struct meminfo *mi)
@@ -401,17 +415,103 @@ enum sw_ic_ver sw_get_ic_ver(void)
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
 
+static script_sub_key_t *get_sub_key(const char *script_buf, const char *main_key, const char *sub_key)
+{
+	script_head_t *hd = NULL;
+	script_main_key_t *mk = NULL;
+	script_sub_key_t *sk = NULL;
+	int i, j;
+
+	if (main_key == NULL || sub_key == NULL) {
+		return NULL;
+	}
+
+	hd = (script_head_t *)script_buf;
+	mk = (script_main_key_t *)(hd + 1);
+
+	for (i = 0; i < hd->main_key_count; i++) {
+		if (strcmp(main_key, mk->main_name)) {
+			mk++;
+			continue;
+		}
+
+		for (j = 0; j < mk->lenth; j++) {
+			sk = (script_sub_key_t *)(script_buf + (mk->offset<<2) + j * sizeof(script_sub_key_t));
+			if (!strcmp(sub_key, sk->sub_name)) {
+				return sk;
+			}
+		}
+	}
+	return NULL;
+}
+
+/**
+ * @func: script_get_int
+ * @desc: get key value
+ * @ret: -1 ERROR, >=0 OK
+ * @arg1
+ * @arg2:
+ * @arg3:
+ **/
+int script_get_int(const char *script_buf, const char *main_key, const char *sub_key)
+{
+	script_sub_key_t *sk = NULL;
+	char *pdata;
+	int value;
+
+	sk = get_sub_key(script_buf, main_key, sub_key);
+	if (sk == NULL) {
+		return -1;
+	}
+
+	if (((sk->pattern >> 16) & 0xffff) == SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD) {
+		pdata = (char *)(script_buf + (sk->offset<<2));
+		value = *((int *)pdata);
+		return value;
+	}
+
+	return -1;
+}
+
+/**
+ * @func: script_get_str
+ * @desc: get key value
+ * @ret: NULL on ERROR
+ * @arg1
+ * @arg2:
+ * @arg3:
+ * @arg4: user require to clean the buf
+ **/
+char *script_get_str(const char *script_buf, const char *main_key, const char *sub_key, char *buf)
+{
+	script_sub_key_t *sk = NULL;
+	char *pdata;
+
+	sk = get_sub_key(script_buf, main_key, sub_key);
+	if (sk == NULL) {
+		return NULL;
+	}
+
+	if (((sk->pattern >> 16) & 0xffff) == SCIRPT_PARSER_VALUE_TYPE_STRING) {
+		pdata = (char *)(script_buf + (sk->offset<<2));
+		memcpy(buf, pdata, ((sk->pattern >> 0) & 0xffff));
+		return (char *)buf;
+	}
+
+	return NULL;
+}
 
 MACHINE_START(SUN4I, "sun4i")
-    /* Maintainer: ARM Ltd/Deep Blue Solutions Ltd */
-    .phys_io        = 0x01c00000,
-    .io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
-    .map_io         = sw_map_io,
-    .fixup          = sw_fixup,
-    .init_irq       = sw_init_irq,
-    .timer          = &sw_timer,
-    .init_machine   = sw_init,
-    .boot_params    = (unsigned long)(0x40000000),
+/* Maintainer: ARM Ltd/Deep Blue Solutions Ltd */
+.phys_io        = 0x01c00000,
+	.io_pg_offst    = ((0xf1c00000) >> 18) & 0xfffc,
+	.map_io         = sw_map_io,
+	.fixup          = sw_fixup,
+	.reserve        = sw_reserve,
+	.init_irq       = sw_init_irq,
+	.timer          = &sw_timer,
+	.init_machine   = sw_init,
+	.boot_params    = (unsigned long)(0x40000000),
 MACHINE_END
-
+	
 

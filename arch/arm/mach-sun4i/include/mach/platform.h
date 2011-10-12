@@ -321,6 +321,10 @@
 #define PIO_BASE                       SW_PA_PORTC_IO_BASE
 
 
+#define SW_GPS_MEM_BASE                0x59000000
+#define SW_GPS_MEM_MAX                 0x1000000
+#define SW_G2D_MEM_BASE                0x58000000
+#define SW_G2D_MEM_MAX                 0x1000000
 
 
 #endif

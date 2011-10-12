@@ -102,7 +102,7 @@ _real_start:
 #warning "no chipd id defined"
 _real_start:
 #endif
-	
+
 	mrc	p15, 0, r9, c0, c0		@ get processor id
 	bl	__lookup_processor_type		@ r5=procinfo r9=cpuid
 	movs	r10, r5				@ invalid processor (r5=0)?
@@ -274,8 +274,13 @@ __create_page_tables:
 	 * Now setup the pagetables for our kernel direct
 	 * mapped region.
 	 */
+        add     r0, r4,  #((0x3000000 + KERNEL_START) & 0xff000000) >> 18
+	add	r6, r3, #48 << 20
+        str     r6, [r0, #((0x3000000 + KERNEL_START) & 0x00f00000) >> 18]
+
 	add	r0, r4,  #(KERNEL_START & 0xff000000) >> 18
 	str	r3, [r0, #(KERNEL_START & 0x00f00000) >> 18]!
+
 	ldr	r6, =(KERNEL_END - 1)
 	add	r0, r0, #4
 	add	r6, r4, r6, lsr #18
