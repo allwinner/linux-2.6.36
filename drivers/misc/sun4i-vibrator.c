@@ -32,7 +32,7 @@ static struct hrtimer vibe_timer;
 static spinlock_t vibe_lock;
 static int vibe_state;
 static int vibe_off;
-script_gpio_set_t vibe_gpio;
+static script_gpio_set_t vibe_gpio;
 static unsigned vibe_gpio_handler;
 
 static void set_sun4i_vibrator(int on)
