@@ -253,7 +253,7 @@ __s32 Scaler_event_proc(void *parg)
 
     fe_intflags = DE_SCAL_QueryINT(sel);
 
-    DE_INF("scaler interrupt, scal_int_status:0x%x!\n", fe_intflags);
+    DE_INF("scaler %d interrupt, scal_int_status:0x%x!\n", sel, fe_intflags);
 
     if(fe_intflags & DE_WB_END_IE)
     {        
@@ -942,7 +942,6 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
 			DE_WRN("output para invalid in Display_Scaler_Start,mode:%d,format:%d\n",para->output_fb.mode, para->output_fb.format);
 			return DIS_FAIL;
 		}
-		para->output_fb.br_swap= FALSE;
 	}  
     out_type.byte_seq = Scaler_sw_para_to_reg(2,para->output_fb.seq);
 
@@ -975,11 +974,35 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
 
     size = (para->output_fb.size.width * para->output_fb.size.height * de_format_to_bpp(para->output_fb.format) + 7)/8;
     OSAL_CacheRangeFlush((void *)para->output_fb.addr[0],size ,CACHE_FLUSH_D_CACHE_REGION);
+    if(para->input_fb.b_trd_src)
+    {
+        __scal_3d_inmode_t inmode;
+        __scal_3d_outmode_t outmode = 0;
+        __scal_buf_addr_t scal_addr_right;
 
-    DE_SCAL_Config_Src(sel,&in_addr,&in_size,&in_type,FALSE,FALSE);
+        inmode = Scaler_3d_sw_para_to_reg(0, para->input_fb.trd_mode, FALSE);
+        outmode = Scaler_3d_sw_para_to_reg(1, para->output_fb.trd_mode, FALSE);
+        
+        DE_SCAL_Get_3D_In_Single_Size(inmode, &in_size, &in_size);
+        if(para->output_fb.b_trd_src)
+        {
+            DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
+        }
+        
+    	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(para->input_fb.trd_right_addr[0]));
+    	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(para->input_fb.trd_right_addr[1]));
+    	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(para->input_fb.trd_right_addr[2]));
+
+        DE_SCAL_Set_3D_Ctrl(sel, para->output_fb.b_trd_src, inmode, outmode);
+        DE_SCAL_Config_3D_Src(sel, &in_addr, &in_size, &in_type, inmode, &scal_addr_right);
+    }
+    else
+    {
+        DE_SCAL_Config_Src(sel,&in_addr,&in_size,&in_type,FALSE,FALSE);
+    }
     DE_SCAL_Set_Scaling_Factor(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type);
     DE_SCAL_Set_Init_Phase(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, FALSE);
-    DE_SCAL_Set_CSC_Coef(sel, para->input_fb.cs_mode, para->output_fb.cs_mode, get_fb_type(para->input_fb.format), get_fb_type(para->output_fb.format),  para->input_fb.br_swap, 0);
+    DE_SCAL_Set_CSC_Coef(sel, para->input_fb.cs_mode, para->output_fb.cs_mode, get_fb_type(para->input_fb.format), get_fb_type(para->output_fb.format),  para->input_fb.br_swap, para->output_fb.br_swap);
     DE_SCAL_Set_Scaling_Coef(sel, &in_scan, &in_size, &in_type, &out_scan, &out_size, &out_type, DISP_VIDEO_NATUAL);
     DE_SCAL_Set_Out_Format(sel, &out_type);
     DE_SCAL_Set_Out_Size(sel, &out_scan,&out_type, &out_size);
@@ -990,7 +1013,6 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
     DE_SCAL_Set_Reg_Rdy(sel);
     DE_SCAL_Writeback_Enable(sel);
 
-    DE_INF("scaler begin\n");
     ret = gdisp.init_para.scaler_begin(sel);	
     if(ret != 0)
     {

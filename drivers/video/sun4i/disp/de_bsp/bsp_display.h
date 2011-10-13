@@ -48,7 +48,7 @@ typedef unsigned int __hdle;
 #define OSAL_PRINTF(msg...)     {printk(KERN_WARNING msg);}
 #define __inf(msg...)
 #define __msg(msg...)
-#define __wrn(msg...)     {printk(KERN_WARNING msg);}
+#define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
 #define __here__
 #else
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}

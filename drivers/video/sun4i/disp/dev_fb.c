@@ -1270,7 +1270,11 @@ __s32 Fb_Init(__u32 from)
             {
                 screen_id = 1;
             }
-            
+            fb_para.buffer_num= g_fbi.disp_init.buffer_num[i];
+            fb_para.width = BSP_disp_get_screen_width(screen_id);
+            fb_para.height = BSP_disp_get_screen_height(screen_id);
+            fb_para.output_width = BSP_disp_get_screen_width(screen_id);
+            fb_para.output_height = BSP_disp_get_screen_height(screen_id);
             fb_para.mode = (g_fbi.disp_init.scaler_mode[i]==0)?DISP_LAYER_WORK_MODE_NORMAL:DISP_LAYER_WORK_MODE_SCALER;
             if(g_fbi.disp_init.disp_mode == DISP_INIT_MODE_SCREEN0)
             {
@@ -1294,6 +1298,8 @@ __s32 Fb_Init(__u32 from)
             else if(g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_SAME_SCREEN)
             {
                 fb_para.fb_mode = FB_MODE_DUAL_SAME_SCREEN_TB;
+                fb_para.height *= 2;
+                fb_para.output_height *= 2;
             }
             else if(g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS)
             {

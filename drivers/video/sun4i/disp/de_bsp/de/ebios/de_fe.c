@@ -242,7 +242,7 @@ __s32 DE_SCAL_Config_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t *s
 	scal_dev[sel]->ch1_insize.bits.in_width = in_w1 - 1;
 	scal_dev[sel]->ch1_insize.bits.in_height = in_h1 - 1;
 
-	
+	scal_dev[sel]->trd_ctrl.dwval = 0;
     return 0;
 }
 
@@ -1727,33 +1727,36 @@ __s32 DE_SCAL_Set_3D_Ctrl(__u8 sel, __u8 trden, __scal_3d_inmode_t inmode,
 			break;		
 	}
 
-	switch(outmode)
-	{
-		case DE_SCAL_3DOUT_CI_1:;
-			ci_mod = 0;out_ci_en = 1;break;
-		case DE_SCAL_3DOUT_CI_2:
-			ci_mod = 1;out_ci_en = 1;break;
-		case DE_SCAL_3DOUT_CI_3:
-			ci_mod = 2;out_ci_en = 1;break;
-		case DE_SCAL_3DOUT_CI_4:
-			ci_mod = 3;out_ci_en = 1;break;
-		case DE_SCAL_3DOUT_HDMI_SSF:;
-		case DE_SCAL_3DOUT_HDMI_SSH:
-			out_ss_en = 1;
-			break;
-		case DE_SCAL_3DOUT_HDMI_TB:;
-		case DE_SCAL_3DOUT_HDMI_FPP:
-			out_tb_en = 1;
-			break;
-		case DE_SCAL_3DOUT_HDMI_FPI:
-			out_tb_en = 1;
-			out_itl_en = 1;
-			break;
-		case DE_SCAL_3DOUT_HDMI_FA:  //
-			break;
-		default:
-			//undefined mode
-			break;	
+    if(trden)
+    {
+    	switch(outmode)
+    	{
+    		case DE_SCAL_3DOUT_CI_1:;
+    			ci_mod = 0;out_ci_en = 1;break;
+    		case DE_SCAL_3DOUT_CI_2:
+    			ci_mod = 1;out_ci_en = 1;break;
+    		case DE_SCAL_3DOUT_CI_3:
+    			ci_mod = 2;out_ci_en = 1;break;
+    		case DE_SCAL_3DOUT_CI_4:
+    			ci_mod = 3;out_ci_en = 1;break;
+    		case DE_SCAL_3DOUT_HDMI_SSF:;
+    		case DE_SCAL_3DOUT_HDMI_SSH:
+    			out_ss_en = 1;
+    			break;
+    		case DE_SCAL_3DOUT_HDMI_TB:;
+    		case DE_SCAL_3DOUT_HDMI_FPP:
+    			out_tb_en = 1;
+    			break;
+    		case DE_SCAL_3DOUT_HDMI_FPI:
+    			out_tb_en = 1;
+    			out_itl_en = 1;
+    			break;
+    		case DE_SCAL_3DOUT_HDMI_FA:  //
+    			break;
+    		default:
+    			//undefined mode
+    			break;	
+    	}
 	}
 	model_sel = trden? (out_tb_en ? 2 :1 ) : 0;
 
@@ -1989,9 +1992,9 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
 		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
 
-		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
-		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
-		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
+		scal_dev[sel]->trd_buf_addr0.dwval = addr->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
 	else if(((trdinmode == DE_SCAL_3DIN_SSF)||(trdinmode == DE_SCAL_3DIN_SSH)) && (type->mod == DE_SCAL_INTER_LEAVED))
 	{
@@ -2013,9 +2016,9 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
 		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
 
-		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
-		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
-		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
+		scal_dev[sel]->trd_buf_addr0.dwval = addr->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
 	else if((trdinmode == DE_SCAL_3DIN_LI) && (type->mod == DE_SCAL_INTER_LEAVED))
 	{
@@ -2037,9 +2040,9 @@ __s32 DE_SCAL_Config_3D_Src(__u8 sel, __scal_buf_addr_t *addr, __scal_src_size_t
 		scal_dev[sel]->buf_addr1.dwval = addr->ch1_addr+ de_scal_ch1_offset;
 		scal_dev[sel]->buf_addr2.dwval = addr->ch2_addr+ de_scal_ch2_offset;
 
-		scal_dev[sel]->trd_buf_addr0.dwval = addrtrd->ch0_addr + de_scal_ch0r_offset;
-		scal_dev[sel]->trd_buf_addr1.dwval = addrtrd->ch1_addr + de_scal_ch1r_offset;
-		scal_dev[sel]->trd_buf_addr2.dwval = addrtrd->ch2_addr + de_scal_ch2r_offset;
+		scal_dev[sel]->trd_buf_addr0.dwval = addr->ch0_addr + de_scal_ch0r_offset;
+		scal_dev[sel]->trd_buf_addr1.dwval = addr->ch1_addr + de_scal_ch1r_offset;
+		scal_dev[sel]->trd_buf_addr2.dwval = addr->ch2_addr + de_scal_ch2r_offset;
 	}
 	else if((trdinmode == DE_SCAL_3DIN_TB) && (type->mod == DE_SCAL_UVCOMBINEDMB))
 	{

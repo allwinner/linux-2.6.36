@@ -71,12 +71,6 @@ static struct resource disp_resource[DISP_IO_NUM] =
 
 __s32 disp_create_heap(__u32 pHeapHead, __u32 nHeapSize)
 {
-    __inf("va(0x40000000)=%x\n", __va(0x40000000));
-    if(pHeapHead <(__u32)__va(0x40000000)) {
-        __wrn("Invalid pHeapHead:%x\n", pHeapHead);
-        return -1;    //检查Head地址是否合法
-    }
-
     boot_heap_head.size    = boot_heap_tail.size = 0;
     boot_heap_head.address = pHeapHead;
     boot_heap_tail.address = pHeapHead + nHeapSize;
@@ -219,13 +213,14 @@ __s32 DRV_lcd_close(__u32 sel)
 
 __s32 DRV_scaler_begin(__u32 sel)
 {
-    long timeout = (500 * HZ)/1000;//500ms
+    long timeout = (100 * HZ)/1000;//100ms
 
+    g_disp_drv.b_scaler_finished[sel] = 1;
+    timeout = wait_event_interruptible_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 2, timeout);
     g_disp_drv.b_scaler_finished[sel] = 0;
-    timeout = wait_event_interruptible_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 1, msecs_to_jiffies(timeout));
     if(timeout == 0)
     {
-        __wrn("wait scaler finished timeout\n");
+        __wrn("wait scaler %d finished timeout\n", sel);
         return -1;
     }
     return 0;
@@ -233,8 +228,15 @@ __s32 DRV_scaler_begin(__u32 sel)
 
 void DRV_scaler_finish(__u32 sel)
 {
-    g_disp_drv.b_scaler_finished[sel] = 1;
-    wake_up_interruptible(&g_disp_drv.scaler_queue[sel]);
+    if(g_disp_drv.b_scaler_finished[sel] == 1)
+    {
+        g_disp_drv.b_scaler_finished[sel] = 2;
+        wake_up_interruptible(&g_disp_drv.scaler_queue[sel]);
+    }
+    else
+    {
+        __wrn("not scaler %d begin in DRV_scaler_finish\n", sel);
+    }
 }
 
 
