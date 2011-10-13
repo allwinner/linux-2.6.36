@@ -334,8 +334,8 @@ static void __init sw_timer_init(void)
 extern int script_get_int(const char *script_buf, const char *main_key, const char *sub_key);
 static void __init sw_reserve(void)
 {
-	int gps_used, gps_size;
-	int g2d_used, g2d_size;
+	int gps_used = 0;
+	int g2d_used = 0;
 	char *script_base = (char *)(PAGE_OFFSET + 0x3000000);
 
 	gps_used = script_get_int(script_base, "gps_para", "gps_used");
