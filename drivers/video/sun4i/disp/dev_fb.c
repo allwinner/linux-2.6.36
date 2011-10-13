@@ -250,7 +250,29 @@ __s32 fb_draw_colorbar(__u32 base, __u32 width, __u32 height, struct fb_var_scre
     return 0;
 }
 
+__s32 fb_draw_gray_pictures(__u32 base, __u32 width, __u32 height, struct fb_var_screeninfo *var)
+{
+    __u32 time = 0;
 
+    for(time = 0; time<18; time++)
+    {
+        __u32 i=0, j=0;
+        
+        for(i = 0; i<height; i++)
+        {
+            for(j = 0; j<width; j++)
+            {   
+                __u32 addr = base + (i*width+ j)*4;
+                __u32 value = (0xff<<24) | ((time*15)<<16) | ((time*15)<<8) | (time*15);
+
+                sys_put_wvalue(addr, value);
+            }
+        }
+        OSAL_PRINTF("----%d\n", time*15);
+        msleep(1000 * 5);
+    }
+    return 0;
+}
 
 static int __init Fb_map_video_memory(struct fb_info *info)
 {
@@ -1306,11 +1328,6 @@ __s32 Fb_Init(__u32 from)
                 fb_para.fb_mode = FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS;
                 fb_para.primary_screen_id = 0;
             }
-            fb_para.buffer_num= g_fbi.disp_init.buffer_num[i];
-            fb_para.width = BSP_disp_get_screen_width(screen_id);
-            fb_para.height = BSP_disp_get_screen_height(screen_id);
-            fb_para.output_width = BSP_disp_get_screen_width(screen_id);
-            fb_para.output_height = BSP_disp_get_screen_height(screen_id);
             Display_Fb_Request(i, &fb_para);
             
             //fb_draw_colorbar((__u32)g_fbi.fbinfo[i]->screen_base, fb_para.width, fb_para.height*fb_para.buffer_num, &(g_fbi.fbinfo[i]->var));
