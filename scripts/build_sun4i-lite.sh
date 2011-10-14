@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 #########################################################################
 #
 #          Simple build scripts to build krenel(with rootfs)  -- by Benn
