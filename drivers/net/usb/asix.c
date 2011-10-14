@@ -35,151 +35,12 @@
 #include <linux/crc32.h>
 #include <linux/usb/usbnet.h>
 #include <linux/slab.h>
+#include "asix.h"
 
 #define DRIVER_VERSION "14-Jun-2006"
 static const char driver_name [] = "asix";
 
 /* ASIX AX8817X based USB 2.0 Ethernet Devices */
-
-#define AX_CMD_SET_SW_MII		0x06
-#define AX_CMD_READ_MII_REG		0x07
-#define AX_CMD_WRITE_MII_REG		0x08
-#define AX_CMD_SET_HW_MII		0x0a
-#define AX_CMD_READ_EEPROM		0x0b
-#define AX_CMD_WRITE_EEPROM		0x0c
-#define AX_CMD_WRITE_ENABLE		0x0d
-#define AX_CMD_WRITE_DISABLE		0x0e
-#define AX_CMD_READ_RX_CTL		0x0f
-#define AX_CMD_WRITE_RX_CTL		0x10
-#define AX_CMD_READ_IPG012		0x11
-#define AX_CMD_WRITE_IPG0		0x12
-#define AX_CMD_WRITE_IPG1		0x13
-#define AX_CMD_READ_NODE_ID		0x13
-#define AX_CMD_WRITE_NODE_ID		0x14
-#define AX_CMD_WRITE_IPG2		0x14
-#define AX_CMD_WRITE_MULTI_FILTER	0x16
-#define AX88172_CMD_READ_NODE_ID	0x17
-#define AX_CMD_READ_PHY_ID		0x19
-#define AX_CMD_READ_MEDIUM_STATUS	0x1a
-#define AX_CMD_WRITE_MEDIUM_MODE	0x1b
-#define AX_CMD_READ_MONITOR_MODE	0x1c
-#define AX_CMD_WRITE_MONITOR_MODE	0x1d
-#define AX_CMD_READ_GPIOS		0x1e
-#define AX_CMD_WRITE_GPIOS		0x1f
-#define AX_CMD_SW_RESET			0x20
-#define AX_CMD_SW_PHY_STATUS		0x21
-#define AX_CMD_SW_PHY_SELECT		0x22
-
-#define AX_MONITOR_MODE			0x01
-#define AX_MONITOR_LINK			0x02
-#define AX_MONITOR_MAGIC		0x04
-#define AX_MONITOR_HSFS			0x10
-
-/* AX88172 Medium Status Register values */
-#define AX88172_MEDIUM_FD		0x02
-#define AX88172_MEDIUM_TX		0x04
-#define AX88172_MEDIUM_FC		0x10
-#define AX88172_MEDIUM_DEFAULT \
-		( AX88172_MEDIUM_FD | AX88172_MEDIUM_TX | AX88172_MEDIUM_FC )
-
-#define AX_MCAST_FILTER_SIZE		8
-#define AX_MAX_MCAST			64
-
-#define AX_SWRESET_CLEAR		0x00
-#define AX_SWRESET_RR			0x01
-#define AX_SWRESET_RT			0x02
-#define AX_SWRESET_PRTE			0x04
-#define AX_SWRESET_PRL			0x08
-#define AX_SWRESET_BZ			0x10
-#define AX_SWRESET_IPRL			0x20
-#define AX_SWRESET_IPPD			0x40
-
-#define AX88772_IPG0_DEFAULT		0x15
-#define AX88772_IPG1_DEFAULT		0x0c
-#define AX88772_IPG2_DEFAULT		0x12
-
-/* AX88772 & AX88178 Medium Mode Register */
-#define AX_MEDIUM_PF		0x0080
-#define AX_MEDIUM_JFE		0x0040
-#define AX_MEDIUM_TFC		0x0020
-#define AX_MEDIUM_RFC		0x0010
-#define AX_MEDIUM_ENCK		0x0008
-#define AX_MEDIUM_AC		0x0004
-#define AX_MEDIUM_FD		0x0002
-#define AX_MEDIUM_GM		0x0001
-#define AX_MEDIUM_SM		0x1000
-#define AX_MEDIUM_SBP		0x0800
-#define AX_MEDIUM_PS		0x0200
-#define AX_MEDIUM_RE		0x0100
-
-#define AX88178_MEDIUM_DEFAULT	\
-	(AX_MEDIUM_PS | AX_MEDIUM_FD | AX_MEDIUM_AC | \
-	 AX_MEDIUM_RFC | AX_MEDIUM_TFC | AX_MEDIUM_JFE | \
-	 AX_MEDIUM_RE )
-
-#define AX88772_MEDIUM_DEFAULT	\
-	(AX_MEDIUM_FD | AX_MEDIUM_RFC | \
-	 AX_MEDIUM_TFC | AX_MEDIUM_PS | \
-	 AX_MEDIUM_AC | AX_MEDIUM_RE )
-
-/* AX88772 & AX88178 RX_CTL values */
-#define AX_RX_CTL_SO			0x0080
-#define AX_RX_CTL_AP			0x0020
-#define AX_RX_CTL_AM			0x0010
-#define AX_RX_CTL_AB			0x0008
-#define AX_RX_CTL_SEP			0x0004
-#define AX_RX_CTL_AMALL			0x0002
-#define AX_RX_CTL_PRO			0x0001
-#define AX_RX_CTL_MFB_2048		0x0000
-#define AX_RX_CTL_MFB_4096		0x0100
-#define AX_RX_CTL_MFB_8192		0x0200
-#define AX_RX_CTL_MFB_16384		0x0300
-
-#define AX_DEFAULT_RX_CTL	\
-	(AX_RX_CTL_SO | AX_RX_CTL_AB )
-
-/* GPIO 0 .. 2 toggles */
-#define AX_GPIO_GPO0EN		0x01	/* GPIO0 Output enable */
-#define AX_GPIO_GPO_0		0x02	/* GPIO0 Output value */
-#define AX_GPIO_GPO1EN		0x04	/* GPIO1 Output enable */
-#define AX_GPIO_GPO_1		0x08	/* GPIO1 Output value */
-#define AX_GPIO_GPO2EN		0x10	/* GPIO2 Output enable */
-#define AX_GPIO_GPO_2		0x20	/* GPIO2 Output value */
-#define AX_GPIO_RESERVED	0x40	/* Reserved */
-#define AX_GPIO_RSE		0x80	/* Reload serial EEPROM */
-
-#define AX_EEPROM_MAGIC		0xdeadbeef
-#define AX88172_EEPROM_LEN	0x40
-#define AX88772_EEPROM_LEN	0xff
-
-#define PHY_MODE_MARVELL	0x0000
-#define MII_MARVELL_LED_CTRL	0x0018
-#define MII_MARVELL_STATUS	0x001b
-#define MII_MARVELL_CTRL	0x0014
-
-#define MARVELL_LED_MANUAL	0x0019
-
-#define MARVELL_STATUS_HWCFG	0x0004
-
-#define MARVELL_CTRL_TXDELAY	0x0002
-#define MARVELL_CTRL_RXDELAY	0x0080
-
-/* This structure cannot exceed sizeof(unsigned long [5]) AKA 20 bytes */
-struct asix_data {
-	u8 multi_filter[AX_MCAST_FILTER_SIZE];
-	u8 mac_addr[ETH_ALEN];
-	u8 phymode;
-	u8 ledmode;
-	u8 eeprom_len;
-};
-
-struct ax88172_int_data {
-	__le16 res1;
-	u8 link;
-	__le16 res2;
-	u8 status;
-	__le16 res3;
-} __packed;
 
 static int asix_read_cmd(struct usbnet *dev, u8 cmd, u16 value, u16 index,
 			    u16 size, void *data)
@@ -314,12 +175,11 @@ static int asix_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 	skb_pull(skb, 4);
 
 	while (skb->len > 0) {
-		if ((short)(header & 0x0000ffff) !=
-		    ~((short)((header & 0xffff0000) >> 16))) {
+		if ((header & 0x07ff) != ((~header >> 16) & 0x07ff))
 			netdev_err(dev->net, "asix_rx_fixup() Bad Header Length\n");
-		}
+
 		/* get the packet length */
-		size = (u16) (header & 0x0000ffff);
+		size = (u16) (header & 0x000007ff);
 
 		if ((skb->len) - ((size + 1) & 0xfffe) == 0) {
 			u8 alignment = (unsigned long)skb->data & 0x3;
@@ -847,7 +707,7 @@ static void ax88172_set_multicast(struct net_device *net)
 static int ax88172_link_reset(struct usbnet *dev)
 {
 	u8 mode;
-	struct ethtool_cmd ecmd;
+	struct ethtool_cmd ecmd = { .cmd = ETHTOOL_GSET };
 
 	mii_check_media(&dev->mii, 1, 1);
 	mii_ethtool_gset(&dev->mii, &ecmd);
@@ -856,8 +716,8 @@ static int ax88172_link_reset(struct usbnet *dev)
 	if (ecmd.duplex != DUPLEX_FULL)
 		mode |= ~AX88172_MEDIUM_FD;
 
-	netdev_dbg(dev->net, "ax88172_link_reset() speed: %d duplex: %d setting mode to 0x%04x\n",
-		   ecmd.speed, ecmd.duplex, mode);
+	netdev_dbg(dev->net, "ax88172_link_reset() speed: %u duplex: %d setting mode to 0x%04x\n",
+		   ethtool_cmd_speed(&ecmd), ecmd.duplex, mode);
 
 	asix_write_medium_mode(dev, mode);
 
@@ -947,20 +807,20 @@ static const struct ethtool_ops ax88772_ethtool_ops = {
 static int ax88772_link_reset(struct usbnet *dev)
 {
 	u16 mode;
-	struct ethtool_cmd ecmd;
+	struct ethtool_cmd ecmd = { .cmd = ETHTOOL_GSET };
 
 	mii_check_media(&dev->mii, 1, 1);
 	mii_ethtool_gset(&dev->mii, &ecmd);
 	mode = AX88772_MEDIUM_DEFAULT;
 
-	if (ecmd.speed != SPEED_100)
+	if (ethtool_cmd_speed(&ecmd) != SPEED_100)
 		mode &= ~AX_MEDIUM_PS;
 
 	if (ecmd.duplex != DUPLEX_FULL)
 		mode &= ~AX_MEDIUM_FD;
 
-	netdev_dbg(dev->net, "ax88772_link_reset() speed: %d duplex: %d setting mode to 0x%04x\n",
-		   ecmd.speed, ecmd.duplex, mode);
+	netdev_dbg(dev->net, "ax88772_link_reset() speed: %u duplex: %d setting mode to 0x%04x\n",
+		   ethtool_cmd_speed(&ecmd), ecmd.duplex, mode);
 
 	asix_write_medium_mode(dev, mode);
 
@@ -1173,18 +1033,20 @@ static int marvell_led_status(struct usbnet *dev, u16 speed)
 static int ax88178_link_reset(struct usbnet *dev)
 {
 	u16 mode;
-	struct ethtool_cmd ecmd;
+	struct ethtool_cmd ecmd = { .cmd = ETHTOOL_GSET };
 	struct asix_data *data = (struct asix_data *)&dev->data;
+	u32 speed;
 
 	netdev_dbg(dev->net, "ax88178_link_reset()\n");
 
 	mii_check_media(&dev->mii, 1, 1);
 	mii_ethtool_gset(&dev->mii, &ecmd);
 	mode = AX88178_MEDIUM_DEFAULT;
+	speed = ethtool_cmd_speed(&ecmd);
 
-	if (ecmd.speed == SPEED_1000)
+	if (speed == SPEED_1000)
 		mode |= AX_MEDIUM_GM;
-	else if (ecmd.speed == SPEED_100)
+	else if (speed == SPEED_100)
 		mode |= AX_MEDIUM_PS;
 	else
 		mode &= ~(AX_MEDIUM_PS | AX_MEDIUM_GM);
@@ -1196,13 +1058,13 @@ static int ax88178_link_reset(struct usbnet *dev)
 	else
 		mode &= ~AX_MEDIUM_FD;
 
-	netdev_dbg(dev->net, "ax88178_link_reset() speed: %d duplex: %d setting mode to 0x%04x\n",
-		   ecmd.speed, ecmd.duplex, mode);
+	netdev_dbg(dev->net, "ax88178_link_reset() speed: %u duplex: %d setting mode to 0x%04x\n",
+		   speed, ecmd.duplex, mode);
 
 	asix_write_medium_mode(dev, mode);
 
 	if (data->phymode == PHY_MODE_MARVELL && data->ledmode)
-		marvell_led_status(dev, ecmd.speed);
+		marvell_led_status(dev, speed);
 
 	return 0;
 }
@@ -1444,10 +1306,6 @@ static const struct driver_info ax88178_info = {
 
 static const struct usb_device_id	products [] = {
 {
-	// Linksys USB200M
-	USB_DEVICE (0x077b, 0x2226),
-	.driver_info =	(unsigned long) &ax8817x_info,
-}, {
 	// Netgear FA120
 	USB_DEVICE (0x0846, 0x1040),
 	.driver_info =  (unsigned long) &netgear_fa120_info,
@@ -1456,16 +1314,28 @@ static const struct usb_device_id	products [] = {
 	USB_DEVICE (0x2001, 0x1a00),
 	.driver_info =  (unsigned long) &dlink_dub_e100_info,
 }, {
-	// Intellinet, ST Lab USB Ethernet
-	USB_DEVICE (0x0b95, 0x1720),
-	.driver_info =  (unsigned long) &ax8817x_info,
-}, {
 	// Hawking UF200, TrendNet TU2-ET100
 	USB_DEVICE (0x07b8, 0x420a),
 	.driver_info =  (unsigned long) &hawking_uf200_info,
 }, {
+	// Dimoto
+	USB_DEVICE (0x1e51, 0x1000),
+	.driver_info =  (unsigned long) &ax8817x_info,
+}, {
+	// ASIX AX88172A 10/100
+	USB_DEVICE (0x0b95, 0x172a),
+	.driver_info =  (unsigned long) &ax8817x_info,
+}, {
 	// Billionton Systems, USB2AR
 	USB_DEVICE (0x08dd, 0x90ff),
+	.driver_info =  (unsigned long) &ax8817x_info,
+}, {
+	// Linksys USB200M
+	USB_DEVICE (0x077b, 0x2226),
+	.driver_info =	(unsigned long) &ax8817x_info,
+}, {
+	// Intellinet, ST Lab USB Ethernet
+	USB_DEVICE (0x0b95, 0x1720),
 	.driver_info =  (unsigned long) &ax8817x_info,
 }, {
 	// ATEN UC210T
@@ -1475,10 +1345,6 @@ static const struct usb_device_id	products [] = {
 	// Buffalo LUA-U2-KTX
 	USB_DEVICE (0x0411, 0x003d),
 	.driver_info =  (unsigned long) &ax8817x_info,
-}, {
-	// Buffalo LUA-U2-GT 10/100/1000
-	USB_DEVICE (0x0411, 0x006e),
-	.driver_info =  (unsigned long) &ax88178_info,
 }, {
 	// Sitecom LN-029 "USB 2.0 10/100 Ethernet adapter"
 	USB_DEVICE (0x6189, 0x182d),
@@ -1500,13 +1366,65 @@ static const struct usb_device_id	products [] = {
 	USB_DEVICE (0x04f1, 0x3008),
 	.driver_info = (unsigned long) &ax8817x_info,
 }, {
-	// ASIX AX88772 10/100
-	USB_DEVICE (0x0b95, 0x7720),
-	.driver_info = (unsigned long) &ax88772_info,
+	// Buffalo LUA-U2-GT 10/100/1000
+	USB_DEVICE (0x0411, 0x006e),
+	.driver_info =  (unsigned long) &ax88178_info,
 }, {
 	// ASIX AX88178 10/100/1000
 	USB_DEVICE (0x0b95, 0x1780),
 	.driver_info = (unsigned long) &ax88178_info,
+}, {
+	// Logitec LAN-GTJ/U2A
+	USB_DEVICE (0x0789, 0x0160),
+	.driver_info = (unsigned long) &ax88178_info,
+}, {
+	// Linksys USB1000
+	USB_DEVICE (0x1737, 0x0039),
+	.driver_info = (unsigned long) &ax88178_info,
+}, {
+	// IO-DATA ETG-US2
+	USB_DEVICE (0x04bb, 0x0930),
+	.driver_info = (unsigned long) &ax88178_info,
+}, {
+	// Belkin F5D5055
+	USB_DEVICE(0x050d, 0x5055),
+	.driver_info = (unsigned long) &ax88178_info,
+}, {
+	// ABOCOM for pci
+	USB_DEVICE(0x14ea, 0xab11),
+	.driver_info = (unsigned long) &ax88178_info,
+}, {
+	// ASIX 88772a
+	USB_DEVICE(0x0db0, 0xa877),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// ASIX 88772a
+	USB_DEVICE(0x0421, 0x772a),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// Apple USB Ethernet Adapter
+	USB_DEVICE(0x05ac, 0x1402),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// Cables-to-Go USB Ethernet Adapter
+	USB_DEVICE(0x0b95, 0x772a),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// ASIX AX88772b 10/100
+	USB_DEVICE (0x0b95, 0x772b),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// ASIX AX88772b 10/100
+	USB_DEVICE (0x0b95, 0x7e2b),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// ASIX AX88772 10/100
+	USB_DEVICE (0x0b95, 0x7720),
+	.driver_info = (unsigned long) &ax88772_info,
+}, {
+	// ASIX AX88772 10/100
+        USB_DEVICE (0x125e, 0x180d),
+        .driver_info = (unsigned long) &ax88772_info,
 }, {
 	// Linksys USB200M Rev 2
 	USB_DEVICE (0x13b1, 0x0018),
@@ -1522,34 +1440,6 @@ static const struct usb_device_id	products [] = {
 }, {
 	// DLink DUB-E100 H/W Ver B1 Alternate
 	USB_DEVICE (0x2001, 0x3c05),
-	.driver_info = (unsigned long) &ax88772_info,
-}, {
-	// Linksys USB1000
-	USB_DEVICE (0x1737, 0x0039),
-	.driver_info = (unsigned long) &ax88178_info,
-}, {
-	// IO-DATA ETG-US2
-	USB_DEVICE (0x04bb, 0x0930),
-	.driver_info = (unsigned long) &ax88178_info,
-}, {
-	// Belkin F5D5055
-	USB_DEVICE(0x050d, 0x5055),
-	.driver_info = (unsigned long) &ax88178_info,
-}, {
-	// Apple USB Ethernet Adapter
-	USB_DEVICE(0x05ac, 0x1402),
-	.driver_info = (unsigned long) &ax88772_info,
-}, {
-	// Cables-to-Go USB Ethernet Adapter
-	USB_DEVICE(0x0b95, 0x772a),
-	.driver_info = (unsigned long) &ax88772_info,
-}, {
-	// ABOCOM for pci
-	USB_DEVICE(0x14ea, 0xab11),
-	.driver_info = (unsigned long) &ax88178_info,
-}, {
-	// ASIX 88772a
-	USB_DEVICE(0x0db0, 0xa877),
 	.driver_info = (unsigned long) &ax88772_info,
 },
 	{ },		// END
