@@ -48,7 +48,7 @@
 #define  LRADC_DATA1         (0x10)
 
 #define  FIRST_CONCERT_DLY   (2<<24)
-#define  CHAN                (0)
+#define  CHAN                (0x3)
 #define  ADC_CHAN_SELECT     (CHAN<<22)
 #define  LRADC_KEY_MODE      (0)
 #define  KEY_MODE_SELECT     (LRADC_KEY_MODE<<12)
@@ -405,7 +405,7 @@ static int __init sun4ikbd_init(void)
 		goto err_alloc_data_failed;
 	}
 	
-    keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;	
+    keyboard_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 3;	
     keyboard_data->early_suspend.suspend = sun4i_keyboard_suspend;
     keyboard_data->early_suspend.resume	= sun4i_keyboard_resume;	
     register_early_suspend(&keyboard_data->early_suspend);
