@@ -36,8 +36,6 @@
 #define INFO(format, args...) printk(KERN_INFO "%s: " format, "G2D", ## args)
 
 #define MAX_G2D_MEM_INDEX	1000
-#define MAX_EVENT_SEM		20
-#define G2D_IO_MIXER		0
 #define	INTC_IRQNO_DE_MIX	46
 
 struct info_mem
@@ -63,10 +61,18 @@ typedef struct
     __u32				 used;
     __u32				 status;
     struct semaphore	*g2d_finished_sem;
-    struct semaphore	*event_sem[MAX_EVENT_SEM];
+    struct semaphore	*event_sem;
 	wait_queue_head_t	 queue;
 	__u32				 finish_flag;
 	
 }__g2d_drv_t;
+
+struct g2d_alloc_struct
+{
+	__u32	address;
+	__u32	size;
+	__u32	u_size;
+	struct	g2d_alloc_struct *next;
+};
 
 #endif	/* __G2D_DRIVER_I_H */

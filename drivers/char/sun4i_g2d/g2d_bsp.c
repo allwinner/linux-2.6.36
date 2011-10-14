@@ -525,7 +525,7 @@ __u64 mixer_get_addr(__u32 buffer_addr, __u32 format, __u32 stride, __u32 x, __u
 	__u64	addr = 0;
 
 	bpp = mixer_bpp_count(format);
-	addr = (__u64)buffer_addr*8 + (__u64)((stride * y + x)*bpp);//bits
+	addr = (__u64)(buffer_addr-0x40000000)*8 + (__u64)((stride * y + x)*bpp);//bits
 
 	return addr;
 }
@@ -546,28 +546,44 @@ __u32 mixer_clear_init(void){
 	return 0;
 }
 
-__u32 mixer_fillrectangle(g2d_fillrect *para){
+__u32 mixer_set_rotate_reg(__u32 flag){
+	__u32 rot = 0;
+
+	if	   (flag & G2D_BLT_FLIP_HORIZONTAL	)rot = 0x10;
+	else if(flag & G2D_BLT_FLIP_VERTICAL	)rot = 0x20;
+	else if(flag & G2D_BLT_ROTATE90			)rot = 0x50;
+	else if(flag & G2D_BLT_ROTATE180		)rot = 0x30;
+	else if(flag & G2D_BLT_ROTATE270		)rot = 0x60;
+	else if(flag & G2D_BLT_MIRROR45			)rot = 0x70;
+	else if(flag & G2D_BLT_MIRROR135		)rot = 0x40;
+	else rot = 0;
+
+	return rot;
+}
+
+__s32 mixer_fillrectangle(g2d_fillrect *para){
 	__u32 reg_val = 0;	
 	__u64 addr_val;
-
+	__s32 result = 0;
+	
 	mixer_reg_init();/* initial mixer register */
 	
 	/* channel0 is the fill surface */
 	write_wvalue(G2D_DMA0_SIZE_REG, (para->dst_rect.w -1) | ((para->dst_rect.h -1)<<16));
 
 	/* globe alpha mode */
-	if(para->flag == G2D_PLANE_ALPHA)
+	if(para->flag & G2D_FIL_PLANE_ALPHA)
 	{
 		reg_val |= (para->alpha<<24)|0x4;
 	}
-	else if(para->flag == G2D_MULTI_ALPHA)
+	else if(para->flag & G2D_FIL_MULTI_ALPHA)
 	{
 		reg_val |= (para->alpha<<24)|0x8;
 	}	
 	reg_val |= 0x1;
 	write_wvalue(G2D_DMA0_CONTROL_REG, reg_val);
 	mixer_set_fillcolor(para->color,0);
-	if(para->flag == G2D_PLANE_ALPHA || para->flag == G2D_PIXEL_ALPHA || para->flag == G2D_MULTI_ALPHA)
+	if((para->flag & G2D_FIL_PLANE_ALPHA) || (para->flag & G2D_FIL_PIXEL_ALPHA) || (para->flag & G2D_FIL_MULTI_ALPHA))
 	{	
 		/* channel3 is the dst surface */
 		addr_val = mixer_get_addr(para->dst_image.addr[0],para->dst_image.format,para->dst_image.w,para->dst_rect.x,para->dst_rect.y);
@@ -605,15 +621,17 @@ __u32 mixer_fillrectangle(g2d_fillrect *para){
 	/* start */
 	write_wvalue(G2D_CONTROL_REG, 0);
 	write_wvalue(G2D_CONTROL_REG, 0x303);
-
-	return 0;
+	result = g2d_wait_cmd_finish();
+	
+	return result;
 }
 
-__u32 mixer_blt(g2d_blt *para){
+__s32 mixer_blt(g2d_blt *para){
 	__u32 bppnum = 0;
 	__u32 reg_val = 0;
 	__u64 addr_val;
-	
+	__s32 result = 0;
+
 	mixer_reg_init();/* initial mixer register */
 	
 	/* src surface */
@@ -640,20 +658,17 @@ __u32 mixer_blt(g2d_blt *para){
 	}
 
 	/* globe alpha mode */
-	if(para->flag0 == G2D_PLANE_ALPHA)
+	if(para->flag & G2D_BLT_PLANE_ALPHA)
 	{
 		reg_val |= (para->alpha<<24)|0x4;
 	}
-	else if(para->flag0 == G2D_MULTI_ALPHA)
+	else if(para->flag & G2D_BLT_MULTI_ALPHA)
 	{
 		reg_val |= (para->alpha<<24)|0x8;
 	}
 
 	/* rotate/mirror */
-	if ((para->flag1 &0xF0))
-	{
-		reg_val |= para->flag1;
-	}
+	reg_val |= mixer_set_rotate_reg(para->flag);
 	write_wvalue(G2D_DMA0_CONTROL_REG, reg_val);
 	reg_val = mixer_in_csc_set(para->src_image.format);
 	write_wvalue(G2D_CSC0_CONTROL_REG, reg_val);
@@ -675,6 +690,9 @@ __u32 mixer_blt(g2d_blt *para){
 		write_wvalue(G2D_DMA1_SIZE_REG, (para->src_rect.w -1) | ((para->src_rect.h -1)<<16));
 		reg_val = read_wvalue(G2D_DMA1_CONTROL_REG);
 		reg_val |= (5<<8) | G2D_IDMA_ENABLE;
+
+		/* rotate/mirror */
+		reg_val |= mixer_set_rotate_reg(para->flag);
 		write_wvalue(G2D_DMA1_CONTROL_REG, reg_val);
 	}
 	
@@ -706,7 +724,9 @@ __u32 mixer_blt(g2d_blt *para){
 	reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
 	write_wvalue(G2D_DMA3_LADDR_REG, reg_val);
 	write_wvalue(G2D_DMA3_STRIDE_REG, para->dst_image.w*mixer_bpp_count(para->dst_image.format));
-	write_wvalue(G2D_DMA3_SIZE_REG, (para->src_rect.w -1) | ((para->src_rect.h -1)<<16));
+	if((para->flag & G2D_BLT_ROTATE90) || (para->flag & G2D_BLT_ROTATE270))
+		 write_wvalue(G2D_DMA3_SIZE_REG, (para->src_rect.h -1) | ((para->src_rect.w -1)<<16));
+	else write_wvalue(G2D_DMA3_SIZE_REG, (para->src_rect.w -1) | ((para->src_rect.h -1)<<16));
 	reg_val = read_wvalue(G2D_DMA3_CONTROL_REG);
 	reg_val |= mixer_in_fmtseq_set(para->dst_image.format,para->dst_image.pixel_seq) | G2D_IDMA_ENABLE;
 	
@@ -718,25 +738,25 @@ __u32 mixer_blt(g2d_blt *para){
 	write_wvalue(G2D_DMA3_CONTROL_REG, reg_val);
 	
 	/* colorkey */
-	if (para->flag0 == G2D_SRC_COLORKEY)
+	if (para->flag & G2D_BLT_SRC_COLORKEY)
 	{
 		reg_val = 0x3;
 	}
-	else if(para->flag0 == G2D_DST_COLORKEY)
+	else if(para->flag & G2D_BLT_DST_COLORKEY)
 	{
 		reg_val = 0x5;
 	}
-	else if(para->flag0 == G2D_EFFECT_NONE)
+	else if((para->flag & G2D_BLT_PIXEL_ALPHA)||(para->flag & G2D_BLT_PLANE_ALPHA)||(para->flag & G2D_BLT_MULTI_ALPHA))
 	{
-		reg_val = 0;
+		reg_val = 0x1;
 	}
-	else {reg_val = 0x1;}
+	else {reg_val = 0x0;}
 	write_wvalue(G2D_CK_CONTROL_REG, reg_val);
 	write_wvalue(G2D_CK_MINCOLOR_REG, para->color);
 	write_wvalue(G2D_CK_MAXCOLOR_REG, para->color);
 	
 	/* output surface is the dst surface */	
-	if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
+	if((para->flag & G2D_BLT_ROTATE90) || (para->flag & G2D_BLT_ROTATE270))
 	{
 		write_wvalue(G2D_OUTPUT_SIZE_REG, (para->src_rect.h -1) | ((para->src_rect.w -1)<<16));		
 	}
@@ -762,26 +782,29 @@ __u32 mixer_blt(g2d_blt *para){
 		reg_val |= ((addr_val>>32)&0xF)<<8;/* high addr in bits */
 		write_wvalue(G2D_OUTPUT_HADDR_REG, reg_val);
 		reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
-		write_wvalue(G2D_OUTPUT0_LADDR_REG, reg_val);
-		write_wvalue(G2D_OUTPUT0_STRIDE_REG, para->dst_image.w*bppnum);
-		write_wvalue(G2D_OUTPUT_SIZE_REG, (para->src_rect.w -1) | ((para->src_rect.h -1)<<16));
+		write_wvalue(G2D_OUTPUT1_LADDR_REG, reg_val);
+		write_wvalue(G2D_OUTPUT1_STRIDE_REG, para->dst_image.w*bppnum);
 		write_wvalue(G2D_CSC2_CONTROL_REG, 0x1);
 	}
 	if((para->dst_image.format>0x11)&&(para->dst_image.format<0x1D))write_wvalue(G2D_CSC2_CONTROL_REG, 0x1);
-		
+	if((para->flag & G2D_BLT_PIXEL_ALPHA)|(para->flag & G2D_BLT_PLANE_ALPHA)|(para->flag & G2D_BLT_MULTI_ALPHA)|(para->flag & G2D_BLT_SRC_COLORKEY)|(para->flag & G2D_BLT_DST_COLORKEY))
+		write_wvalue(G2D_OALPHA_CONTROL_REG, 0x80);/* 0x40: A2 area keep the dst alpha,0x80: A2 area keep the src+dst(1-src) alpha value */
+
 	/* start */
 	write_wvalue(G2D_CONTROL_REG, 0x0);	
 	write_wvalue(G2D_CONTROL_REG, 0x303);
-
-	return 0;
+	result = g2d_wait_cmd_finish();
+	
+	return result;
 }
 
-__u32 mixer_stretchblt(g2d_stretchblt *para){
+__s32 mixer_stretchblt(g2d_stretchblt *para){
 	__u32 bppnum = 0;
 	__u32 reg_val = 0;
 	__u32 reg_tmp = 0;
 	__u64 addr_val;
 	__u32 cnt,sinw,soutw,scaler_inx,scaler_outx,scaler_outy,i;
+	__s32 result = 0;
 	
 	mixer_reg_init();/* initial mixer register */
 	
@@ -803,20 +826,17 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 	}
 	
 	/* globe alpha mode */
-	if(para->flag0 == G2D_PLANE_ALPHA)
+	if(para->flag & G2D_BLT_PLANE_ALPHA)
 	{
 		reg_val |= (para->alpha<<24)|0x4;
 	}
-	else if(para->flag0 == G2D_MULTI_ALPHA)
+	else if(para->flag & G2D_BLT_MULTI_ALPHA)
 	{
 		reg_val |= (para->alpha<<24)|0x8;
 	}
 	
 	/* rotate/mirror */
-	if ((para->flag1 &0xF0))
-	{
-		reg_val |= para->flag1;
-	}		
+	reg_val |= mixer_set_rotate_reg(para->flag);	
 	write_wvalue(G2D_DMA0_CONTROL_REG, reg_val);
 	reg_val = mixer_in_csc_set(para->src_image.format);
 	write_wvalue(G2D_CSC0_CONTROL_REG, reg_val);
@@ -842,19 +862,19 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 	write_wvalue(G2D_DMA3_CONTROL_REG, reg_val);
 
 	/* colorkey */
-	if (para->flag0 == G2D_SRC_COLORKEY)
+	if (para->flag & G2D_BLT_SRC_COLORKEY)
 	{
 		reg_val = 0x3;
 	}
-	else if(para->flag0 == G2D_DST_COLORKEY)
+	else if(para->flag & G2D_BLT_DST_COLORKEY)
 	{
 		reg_val = 0x5;
 	}
-	else if(para->flag0 == G2D_EFFECT_NONE)
+	else if((para->flag & G2D_BLT_PIXEL_ALPHA)||(para->flag & G2D_BLT_PLANE_ALPHA)||(para->flag & G2D_BLT_MULTI_ALPHA))
 	{
-		reg_val = 0;
+		reg_val = 1;
 	}
-	else {reg_val = 0x1;}
+	else {reg_val = 0x0;}
 	write_wvalue(G2D_CK_CONTROL_REG, reg_val);
 	write_wvalue(G2D_CK_MINCOLOR_REG, para->color);
 	write_wvalue(G2D_CK_MAXCOLOR_REG, para->color);
@@ -862,6 +882,8 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 	write_wvalue(G2D_OUTPUT0_STRIDE_REG, para->dst_image.w*mixer_bpp_count(para->dst_image.format));
 	reg_val = mixer_out_fmtseq_set(para->dst_image.format,para->dst_image.pixel_seq);
 	write_wvalue(G2D_OUTPUT_CONTROL_REG, reg_val);
+	if((para->flag & G2D_BLT_PIXEL_ALPHA)|(para->flag & G2D_BLT_PLANE_ALPHA)|(para->flag & G2D_BLT_MULTI_ALPHA)|(para->flag & G2D_BLT_SRC_COLORKEY)|(para->flag & G2D_BLT_DST_COLORKEY))
+		write_wvalue(G2D_OALPHA_CONTROL_REG, 0x80);/* 0x40: A2 area keep the dst alpha,0x80: A2 area keep the src+dst(1-src) alpha value */
 	
 	/* output width lager than 1024 pixel width */
 	if(para->dst_rect.w>0x400)
@@ -873,7 +895,7 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		sinw |= ((para->src_rect.w%para->dst_rect.w)<<10)/para->dst_rect.w;
 		scaler_inx = para->src_rect.x;
 		scaler_outx = para->dst_rect.x;
-		if((para->flag1 == G2D_ROTATE90))
+		if((para->flag & G2D_BLT_ROTATE90))
 			 scaler_outy = para->dst_rect.y + para->dst_rect.w - 0x401;
 		else scaler_outy = para->dst_rect.y;
 		for(i = 0; i<cnt; i++)
@@ -909,7 +931,7 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 			write_wvalue(G2D_DMA3_SIZE_REG, (0x400 -1) | ((para->dst_rect.h -1)<<16));
 			
 			/* OUT */
-			if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
+			if((para->flag & G2D_BLT_ROTATE90) || (para->flag & G2D_BLT_ROTATE270))
 				 write_wvalue(G2D_OUTPUT_SIZE_REG, (para->dst_rect.h -1) | ((0x400 -1)<<16));
 			else write_wvalue(G2D_OUTPUT_SIZE_REG, (0x400 -1) | ((para->dst_rect.h -1)<<16));
 			addr_val = mixer_get_addr(para->dst_image.addr[0],para->dst_image.format,para->dst_image.w,scaler_outx,scaler_outy);
@@ -918,12 +940,12 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 			reg_val = addr_val&0xFFFFFFFF;/* low addr in bits */
 			write_wvalue(G2D_OUTPUT0_LADDR_REG, reg_val);
 			scaler_inx +=sinw;
-			if((para->flag1 == G2D_ROTATE90))
+			if((para->flag & G2D_BLT_ROTATE90))
 			{
 				scaler_outy -=0x400;
 				scaler_outx = para->dst_rect.x;
 			}
-			else if((para->flag1 == G2D_ROTATE270))
+			else if((para->flag & G2D_BLT_ROTATE270))
 			{
 				scaler_outy +=0x400;
 				scaler_outx = para->dst_rect.x;
@@ -937,7 +959,8 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 			/* start */
 			write_wvalue(G2D_CONTROL_REG, 0x0); 
 			write_wvalue(G2D_CONTROL_REG, 0x303);
-			g2d_wait_cmd_finish();
+			result |= g2d_wait_cmd_finish();
+			if(result!=0)return result;
 		}
 		
 		/* last block */
@@ -975,10 +998,10 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		write_wvalue(G2D_DMA3_SIZE_REG, (soutw - 1) | ((para->dst_rect.h -1)<<16));
 		
 		/* OUT */
-		if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
+		if((para->flag & G2D_BLT_ROTATE90) || (para->flag & G2D_BLT_ROTATE270))
 			 write_wvalue(G2D_OUTPUT_SIZE_REG, (para->dst_rect.h -1) | ((soutw - 1)<<16));
 		else write_wvalue(G2D_OUTPUT_SIZE_REG, (soutw - 1) | ((para->dst_rect.h -1)<<16));
-		if((para->flag1 == G2D_ROTATE270))
+		if((para->flag & G2D_BLT_ROTATE270))
 			 addr_val = mixer_get_addr(para->dst_image.addr[0],para->dst_image.format,para->dst_image.w,scaler_outx,scaler_outy);
 		else addr_val = mixer_get_addr(para->dst_image.addr[0],para->dst_image.format,para->dst_image.w,scaler_outx,para->dst_rect.y);
 		reg_val = (addr_val>>32)&0xF;/* high addr in bits */
@@ -989,6 +1012,7 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		/* start */
 		write_wvalue(G2D_CONTROL_REG, 0x0);
 		write_wvalue(G2D_CONTROL_REG, 0x303);
+		result |= g2d_wait_cmd_finish();
 	}
 	
 	/* output width smaller than 1024 pixel width */
@@ -1056,7 +1080,7 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		write_wvalue(G2D_DMA3_SIZE_REG, (para->dst_rect.w -1) | ((para->dst_rect.h -1)<<16));
 		
 		/* output surface is the dst surface */
-		if((para->flag1 == G2D_ROTATE90) || (para->flag1 == G2D_ROTATE270))
+		if((para->flag & G2D_BLT_ROTATE90) || (para->flag & G2D_BLT_ROTATE270))
 			 write_wvalue(G2D_OUTPUT_SIZE_REG, (para->dst_rect.h -1) | ((para->dst_rect.w -1)<<16));
 		else write_wvalue(G2D_OUTPUT_SIZE_REG, (para->dst_rect.w -1) | ((para->dst_rect.h -1)<<16));
 		addr_val = mixer_get_addr(para->dst_image.addr[0],para->dst_image.format,para->dst_image.w,para->dst_rect.x,para->dst_rect.y);
@@ -1068,9 +1092,10 @@ __u32 mixer_stretchblt(g2d_stretchblt *para){
 		/* start */
 		write_wvalue(G2D_CONTROL_REG, 0x0);
 		write_wvalue(G2D_CONTROL_REG, 0x303);
+		result = g2d_wait_cmd_finish();
 	}
 
-	return 0;	
+	return result;
 }
 
 __u32 mixer_set_palette(g2d_palette *para){

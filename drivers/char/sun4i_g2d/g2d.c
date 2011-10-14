@@ -23,7 +23,7 @@ int g2d_openclk(void)
 	clk_reset(g2d_mclk,0);
 	
 	/* set g2d clk value */
-	g2d_src = clk_get(NULL,"video_pll0");	
+	g2d_src = clk_get(NULL,"sdram_pll_p");//video_pll0
 	ret = clk_set_parent(g2d_mclk, g2d_src);
 	clk_put(g2d_src);
 	
@@ -96,12 +96,13 @@ int g2d_exit(void)
 
 int g2d_wait_cmd_finish(void)
 {
-	long timeout = 30; /* 30ms */
+	long timeout = 50; /* 30ms */
 	
 	timeout = wait_event_timeout(g2d_ext_hd.queue, g2d_ext_hd.finish_flag == 1, msecs_to_jiffies(timeout));
 	if(timeout == 0)
 	{
 		mixer_clear_init();
+		printk("wait g2d irq pending flag timeout\n");
 		g2d_ext_hd.finish_flag = 1;
 		wake_up(&g2d_ext_hd.queue);
 		return -1;
@@ -170,13 +171,7 @@ int g2d_blit(g2d_blt * para)
 	}
 	
 	g2d_ext_hd.finish_flag = 0;
-	mixer_blt(para);
-	err = g2d_wait_cmd_finish();
-
-	if(err != 0)
-   	{
-		printk("wait g2d irq pending flag timeout\n");
-   	}
+	err = mixer_blt(para);
    	
 	return err;
 }
@@ -217,13 +212,8 @@ int g2d_fill(g2d_fillrect * para)
 	}
 	
 	g2d_ext_hd.finish_flag = 0;
-	mixer_fillrectangle(para);
-	err = g2d_wait_cmd_finish();
-	if(err != 0)
-   	{
-		printk("wait g2d irq pending flag timeout\n");
-   	}
-	
+	err = mixer_fillrectangle(para);
+
 	return err;
 }
 
@@ -286,13 +276,7 @@ int g2d_stretchblit(g2d_stretchblt * para)
 	}
 
 	g2d_ext_hd.finish_flag = 0;
-	mixer_stretchblt(para);
-	err = g2d_wait_cmd_finish();
-
-	if(err != 0)
-   	{
-		printk("wait g2d irq pending flag timeout\n");
-   	}
+	err = mixer_stretchblt(para);
    	
 	return err;
 }
