@@ -35,6 +35,20 @@
 #include <linux/platform_device.h>
 #include <linux/init.h>
 #include <linux/ioport.h>
+
+//#define PRINT_CALL_INFO
+#define PRINT_SYSFS_INFO
+//#define VALUE_MAPPING
+
+#define CG5121SC_DRV_NAME	 "cg5121sc"
+#define POLL_INTERVAL_MAX	10000
+#define POLL_INTERVAL		100
+#define ABS_LUX                           (ABS_MISC)
+#define MIN_LUX                          (0)
+#define MAX_LUX                         (63)
+#define INPUT_FUZZ	4
+#define INPUT_FLAT	4
+
 /*
  *adc related configuration
  */
@@ -80,10 +94,25 @@
 #define  LRADC_ADC0_DOWNPEND (1<<1)
 #define  LRADC_ADC0_DATAPEND (1<<0)
 
-#define EVB
-//#define CUSTUM
-#define ONE_CHANNEL
+#ifdef PRINT_CALL_INFO 
+#define print_call_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_call_info(fmt, args...)   //
+#endif
 
+#ifdef PRINT_SYSFS_INFO 
+#define print_sysfs_info(fmt, args...)     \
+        do{                              \
+                printk(fmt, ##args);     \
+        }while(0)
+#else
+#define print_sysfs_info(fmt, args...)   //
+#endif
+
+#ifdef VALUE_MAPPING
 static unsigned char value_mapindex[64] =
 {
 	0,0,0,                      //key1
@@ -100,30 +129,7 @@ static unsigned char value_mapindex[64] =
 	11,11,11,11,
 	12,12,12,12,12,12,12,12,12,12 //key13
 };
-
-/*
- * Defines
- */
-#define assert(expr)\
-	if (!(expr)) {\
-		printk(KERN_ERR "Assertion failed! %s,%d,%s,%s\n",\
-			__FILE__, __LINE__, __func__, #expr);\
-	}
-
-#define CG5121SC_DRV_NAME	 "cg5121sc"
-
-
-#define POLL_INTERVAL_MAX	500
-#define POLL_INTERVAL		100
-#define ABS_LUX                           (ABS_MISC)
-#define MIN_LUX                          (0)
-#define MAX_LUX                         (63)
-
-#define INPUT_FUZZ	4
-#define INPUT_FLAT	4
-
-#define MODE_CHANGE_DELAY_MS 100
-
+#endif
 
 static struct cg5121sc_data_s {
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -131,21 +137,43 @@ static struct cg5121sc_data_s {
 	int suspend_indator;
 #endif
     struct input_polled_dev *input_polled_dev;
+    int enable;
+    int delay;
 };
 
 static struct cg5121sc_data_s cg5121sc_data;
+static struct input_polled_dev *cg5121sc_idev;
 
 struct platform_device cg5121sc_device = {
 	.name		= CG5121SC_DRV_NAME,
 	.id		        = -1,
 };
 
+static void cg5121sc_set_enable(struct device *dev, int enable)
+{
+	int pre_enable = cg5121sc_data.enable;
+	
+	if (enable) {
+		if (0 == pre_enable) {
+		        cg5121sc_data.input_polled_dev->input->open(cg5121sc_data.input_polled_dev->input);
+			cg5121sc_data.enable = 1;
+		}
+	} else {
+		if (1 == pre_enable) {
+                        cg5121sc_data.input_polled_dev->input->close(cg5121sc_data.input_polled_dev->input);
+			cg5121sc_data.enable = 0;
+		} 
+	}
+	
+	//print_sysfs_info("%s, %d \n", __func__, cg5121sc_data.enable);
+	return;
+	
+}
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void cg5121sc_early_suspend(struct early_suspend *h);
 static void cg5121sc_late_resume(struct early_suspend *h);
 #endif
-
-static struct input_polled_dev *cg5121sc_idev;
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void cg5121sc_early_suspend(struct early_suspend *h)
@@ -153,7 +181,7 @@ static void cg5121sc_early_suspend(struct early_suspend *h)
 	printk(KERN_INFO "cg5121sc early suspend\n v0.1");
 	cg5121sc_data.suspend_indator = 1;
 	//input_close_polled_device(cg5121sc_idev.input_polled_dev->input);
-	cg5121sc_data.input_polled_dev->input->close(cg5121sc_data.input_polled_dev->input);
+	cg5121sc_set_enable(NULL, 0);
 	return;
 }
 
@@ -169,10 +197,79 @@ static void cg5121sc_late_resume(struct early_suspend *h)
         writel(tmp, KEY_BASSADDRESS + LRADC_CTRL);
 
         //input_open_polled_device(cg5121sc_data.input_polled_dev->input);
-        cg5121sc_data.input_polled_dev->input->open(cg5121sc_data.input_polled_dev->input);
+        cg5121sc_set_enable(NULL, 1);
 	return;
 }
 #endif /* CONFIG_HAS_EARLYSUSPEND */
+
+static ssize_t cg5121sc_delay_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+
+	print_sysfs_info("%s, %d \n", __func__, cg5121sc_data.input_polled_dev->poll_interval);
+	return sprintf(buf, "%d \n", cg5121sc_data.input_polled_dev->poll_interval);
+
+}
+
+static ssize_t cg5121sc_delay_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if (data > cg5121sc_data.input_polled_dev->poll_interval_max)
+		data = cg5121sc_data.input_polled_dev->poll_interval_max;
+		
+	cg5121sc_data.input_polled_dev->poll_interval = data;
+        print_sysfs_info("%s, %d \n", __func__, cg5121sc_data.input_polled_dev->poll_interval);
+        
+	return count;
+}
+
+
+static ssize_t cg5121sc_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	print_sysfs_info("%s, %d \n", __func__, cg5121sc_data.enable);
+	return sprintf(buf, "%d\n", cg5121sc_data.enable);
+}
+
+static ssize_t cg5121sc_enable_store(struct device *dev,
+		struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	unsigned long data;
+	int error;
+
+	error = strict_strtoul(buf, 10, &data);
+	if (error)
+		return error;
+	if ((data == 0)||(data==1)) {
+		cg5121sc_set_enable(dev,data);
+	}
+
+	return count;
+}
+
+
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		cg5121sc_delay_show, cg5121sc_delay_store);
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+		cg5121sc_enable_show, cg5121sc_enable_store);
+
+static struct attribute *cg5121sc_attributes[] = {
+	&dev_attr_delay.attr,
+	&dev_attr_enable.attr,
+	NULL
+};
+
+static struct attribute_group cg5121sc_attribute_group = {
+	.attrs = cg5121sc_attributes
+};
 
 /*
  * Initialization function
@@ -184,11 +281,11 @@ static void cg5121sc_late_resume(struct early_suspend *h)
         tmp = readl(KEY_BASSADDRESS+LRADC_INTC);
         tmp &= (~(LRADC_ADC1_UP_EN |LRADC_ADC1_DOWN_EN |LRADC_ADC1_DATA_EN));
         writel(tmp,KEY_BASSADDRESS + LRADC_INTC);
-        
+      /*  
         udelay(10);
         tmp = readl(KEY_BASSADDRESS+LRADC_INTC);
         printk("current LRADC_INTC: 0x%x. \n", tmp);
-
+*/
         /*
         tmp = readl(KEY_BASSADDRESS + LRADC_CTRL);
         tmp &= (~(ADC_CHAN_SELECT_MASK));
@@ -196,25 +293,31 @@ static void cg5121sc_late_resume(struct early_suspend *h)
         writel(tmp |FIRST_CONCERT_DLY|LEVELB_VOL|KEY_MODE_SELECT|LRADC_HOLD_EN|ADC_CHAN_SELECT|LRADC_SAMPLE_62HZ|LRADC_EN, KEY_BASSADDRESS + LRADC_CTRL);
         */
         writel(0x2c00069,KEY_BASSADDRESS + LRADC_CTRL);
-        
+     /*   
         udelay(10);
         tmp = readl(KEY_BASSADDRESS+LRADC_CTRL);
         printk("current LRADC_CTRL: 0x%x. \n", tmp);
-        
+       */ 
         return 0;
  }
 
 static void report_abs(void)
 {
 	static uint32_t key_val = 0;
+#ifdef VALUE_MAPPING
 	static uint32_t report_val = 0;
-        printk("%s. \n", __func__);
+#endif
+        print_call_info("%s. \n", __func__);
 	/* convert signed 8bits to signed 16bits */
         key_val = readl(KEY_BASSADDRESS+LRADC_DATA1);
-        printk("%s, key_val == %d. \n", __func__, key_val );
+        print_call_info("%s, key_val == %d. \n", __func__, key_val );
         if(key_val <= 0x3f){
+#ifdef VALUE_MAPPING
                 report_val = value_mapindex[key_val];
             	input_report_abs(cg5121sc_idev->input, ABS_LUX, report_val);
+#else
+                input_report_abs(cg5121sc_idev->input, ABS_LUX, key_val);
+#endif
 	        input_sync(cg5121sc_idev->input);
         }
         return;
@@ -222,7 +325,7 @@ static void report_abs(void)
 
 static void cg5121sc_dev_poll(struct input_polled_dev *dev)
 {
-    printk("%s. \n", __func__);
+    print_call_info("%s. \n", __func__);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	if(0 == cg5121sc_data.suspend_indator){
 		report_abs();
@@ -280,8 +383,7 @@ static int cg5121sc_probe(void)
 	}
 	
         cg5121sc_data.input_polled_dev = cg5121sc_idev;
-        //printk("open polled dev. \n");
-        cg5121sc_data.input_polled_dev->input->open(cg5121sc_data.input_polled_dev->input);
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	cg5121sc_data.early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
 	cg5121sc_data.early_suspend.suspend = cg5121sc_early_suspend;
@@ -290,7 +392,16 @@ static int cg5121sc_probe(void)
 	cg5121sc_data.suspend_indator = 0;
 #endif
 
-
+	result = sysfs_create_group(&cg5121sc_data.input_polled_dev->input->dev.kobj,
+						 &cg5121sc_attribute_group);
+	if (result < 0)
+	{
+		printk("%s: sysfs_create_group err\n", __func__);
+		return result;
+	}
+	
+	//printk("open polled dev. \n");
+	cg5121sc_set_enable(NULL, 1);
         //platform_set_drvdata(pdev, &cg5121sc_data);
         //printk("cg5121sc_probe ok. \n");
 	return result;
@@ -301,7 +412,8 @@ static int  cg5121sc_remove(void)
 	int result = 0;
 
         printk("%s. \n", __func__);
-        cg5121sc_data.input_polled_dev->input->close(cg5121sc_data.input_polled_dev->input);
+        sysfs_remove_group(&cg5121sc_data.input_polled_dev->input->dev.kobj, &cg5121sc_attribute_group);
+        cg5121sc_set_enable(NULL, 0);
 	#ifdef CONFIG_HAS_EARLYSUSPEND
 	    unregister_early_suspend(&cg5121sc_data.early_suspend);
 	#endif
