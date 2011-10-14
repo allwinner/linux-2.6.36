@@ -665,5 +665,9 @@ config  TOUCHSCREEN_FT5X_TS
        help
           byd0x7ets touchscreen driver
 
+config  TOUCHSCREEN_ZT8031
+       tristate  "ZT8031 touchscreen driver"
+       help
+          ZT8031 touchscreen driver
 
 endif
