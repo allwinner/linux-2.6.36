@@ -853,6 +853,10 @@ DECLARE_IW(set_scan, point, dummy)
       return -EINVAL;
    }
 
+   if (WiFiEngine_IsDelayPowerSaveTimerRunning()) {
+      KDEBUG(TRACE, "EXIT EINTR");
+      return -EINTR;
+   }
 #ifdef SCANREQ_NONBLOCK
    /* if a scan is in progress, just deny this request */
    if(down_trylock(&scan_sem) != 0)

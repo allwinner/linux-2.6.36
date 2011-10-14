@@ -722,8 +722,10 @@ void WiFiEngine_StopDelayPowerSaveTimer(void)
    DE_TRACE_STATIC(TR_NOISE, "<==== WiFiEngine_StopDelayPowerSaveTimer\n");  
 }
 
-
-
+bool_t WiFiEngine_IsDelayPowerSaveTimerRunning(void)
+{
+   return WES_TEST_FLAG(WES_FLAG_IS_DELAYED_PS_TIMER_RUNNING);
+}
 
 /*!
  * @brief Put the device in power save state.

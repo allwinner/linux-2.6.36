@@ -736,6 +736,7 @@ WiFiEngine_net_t *WiFiEngine_GetNetBySSID(m80211_ie_ssid_t ssid);
 /* Power save (we_ps.c) */
 void   WiFiEngine_StopDelayPowerSaveTimer(void);
 int    WiFiEngine_StartDelayPowerSaveTimer(void);
+bool_t WiFiEngine_IsDelayPowerSaveTimerRunning(void);
 void   WiFiEngine_PsSendInterface_Down(void);
 bool_t WiFiEngine_IsReasonHost(hic_ctrl_wakeup_ind_t *ind);
 bool_t WiFiEngine_IsInterfaceDown(char* cmd);

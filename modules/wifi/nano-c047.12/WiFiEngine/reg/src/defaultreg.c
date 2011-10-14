@@ -116,7 +116,7 @@ const rRegistry DefaultRegistry = {
       E(listenInterval) 5,
       E(psTrafficTimeout) 20,
       E(psTxTrafficTimeout) 5,
-      E(psDelayStartOfPs) 10000,
+      E(psDelayStartOfPs) 3000,
    },
    E(hostDriver) {
       E(delayAfterReset) 0,
