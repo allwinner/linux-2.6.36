@@ -348,8 +348,8 @@ static int __init aw_clkevt_init(void)
     /* register clock event device  */
     CLKSRC_DBG("register all-winners clock event device!\n");
 	aw_clock_event.mult = div_sc(AW_HPET_CLOCK_EVENT_HZ, NSEC_PER_SEC, aw_clock_event.shift);
-	aw_clock_event.max_delta_ns = clockevent_delta2ns((0x80000000/AW_HPET_CLOCK_EVENT_HZ), &aw_clock_event);
-	aw_clock_event.min_delta_ns = clockevent_delta2ns(1, &aw_clock_event) + 1;
+	aw_clock_event.max_delta_ns = clockevent_delta2ns((0x80000000), &aw_clock_event);
+	aw_clock_event.min_delta_ns = clockevent_delta2ns(1, &aw_clock_event) + 3000;
 	aw_clock_event.cpumask = cpumask_of(0);
     clockevents_register_device(&aw_clock_event);
 
