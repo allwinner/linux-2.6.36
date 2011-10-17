@@ -1,6 +1,7 @@
 #ifndef	__LINUX_USBNET_ASIX_H
 #define	__LINUX_USBNET_ASIX_H
 
+/* ASIX AX8817X based USB 2.0 Ethernet Devices */
 #define AX_CMD_SET_SW_MII		0x06
 #define AX_CMD_READ_MII_REG		0x07
 #define AX_CMD_WRITE_MII_REG		0x08
@@ -75,28 +76,27 @@
 #define AX88178_MEDIUM_DEFAULT	\
 	(AX_MEDIUM_PS | AX_MEDIUM_FD | AX_MEDIUM_AC | \
 	 AX_MEDIUM_RFC | AX_MEDIUM_TFC | AX_MEDIUM_JFE | \
-	 AX_MEDIUM_RE )
+	 AX_MEDIUM_RE)
 
 #define AX88772_MEDIUM_DEFAULT	\
 	(AX_MEDIUM_FD | AX_MEDIUM_RFC | \
 	 AX_MEDIUM_TFC | AX_MEDIUM_PS | \
-	 AX_MEDIUM_AC | AX_MEDIUM_RE )
+	 AX_MEDIUM_AC | AX_MEDIUM_RE)
 
 /* AX88772 & AX88178 RX_CTL values */
-#define AX_RX_CTL_SO			0x0080
-#define AX_RX_CTL_AP			0x0020
-#define AX_RX_CTL_AM			0x0010
-#define AX_RX_CTL_AB			0x0008
-#define AX_RX_CTL_SEP			0x0004
-#define AX_RX_CTL_AMALL			0x0002
-#define AX_RX_CTL_PRO			0x0001
-#define AX_RX_CTL_MFB_2048		0x0000
-#define AX_RX_CTL_MFB_4096		0x0100
-#define AX_RX_CTL_MFB_8192		0x0200
-#define AX_RX_CTL_MFB_16384		0x0300
+#define AX_RX_CTL_SO		0x0080
+#define AX_RX_CTL_AP		0x0020
+#define AX_RX_CTL_AM		0x0010
+#define AX_RX_CTL_AB		0x0008
+#define AX_RX_CTL_SEP		0x0004
+#define AX_RX_CTL_AMALL		0x0002
+#define AX_RX_CTL_PRO		0x0001
+#define AX_RX_CTL_MFB_2048	0x0000
+#define AX_RX_CTL_MFB_4096	0x0100
+#define AX_RX_CTL_MFB_8192	0x0200
+#define AX_RX_CTL_MFB_16384	0x0300
 
-#define AX_DEFAULT_RX_CTL	\
-	(AX_RX_CTL_SO | AX_RX_CTL_AB )
+#define AX_DEFAULT_RX_CTL	(AX_RX_CTL_SO | AX_RX_CTL_AB)
 
 /* GPIO 0 .. 2 toggles */
 #define AX_GPIO_GPO0EN		0x01	/* GPIO0 Output enable */
@@ -123,6 +123,8 @@
 
 #define MARVELL_CTRL_TXDELAY	0x0002
 #define MARVELL_CTRL_RXDELAY	0x0080
+
+#define	PHY_MODE_RTL8211CL	0x0004
 
 /* This structure cannot exceed sizeof(unsigned long [5]) AKA 20 bytes */
 struct asix_data {
