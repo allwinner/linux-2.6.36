@@ -324,7 +324,7 @@ static u32 qf9700_get_link(struct net_device *net)
 	rc = mii_link_ok(&dev->mii);
 #else
 	sr_read_reg(dev, NSR, &value);
-	if(value & NSR_LINKST) {
+	if(value & NQF_LINKST) {
 		rc = 1;
 	}
 #endif
