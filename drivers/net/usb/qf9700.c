@@ -317,8 +317,19 @@ static void qf9700_get_drvinfo(struct net_device *net, struct ethtool_drvinfo *i
 static u32 qf9700_get_link(struct net_device *net)
 {
 	struct usbnet *dev = netdev_priv(net);
+	int rc = 0;
+	u8 value = 0;
 
-	return mii_link_ok(&dev->mii);
+#if	0
+	rc = mii_link_ok(&dev->mii);
+#else
+	sr_read_reg(dev, NSR, &value);
+	if(value & NSR_LINKST) {
+		rc = 1;
+	}
+#endif
+
+	return rc;
 }
 
 static int qf9700_ioctl(struct net_device *net, struct ifreq *rq, int cmd)
