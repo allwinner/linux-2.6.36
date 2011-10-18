@@ -47,11 +47,15 @@
 //#define PRINT_POINT_INFO
 #define DEBUG
 //#define TOUCH_KEY_SUPPORT
+//#define TOUCH_KEY_LIGHT_SUPPORT
 static struct i2c_client *this_client;
 
 static int gpio_int_hdle = 0;
 static int gpio_wakeup_hdle = 0;
 static int gpio_reset_hdle = 0;
+#ifdef TOUCH_KEY_LIGHT_SUPPORT
+static int gpio_light_hdle = 0;
+#endif
 #ifdef TOUCH_KEY_SUPPORT
 static int key_tp  = 0;
 static int key_val = 0;
@@ -850,7 +854,15 @@ static void ft5x_report_value(void)
 			    printk("===KEY 3====\n");
 			#endif		
   	}
-  	
+	   #ifdef TOUCH_KEY_LIGHT_SUPPORT
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_light_hdle, 1, "ctp_light")){
+        printk("ft5x_ts_light: err when operate gpio. \n");
+    }    
+    msleep(15);
+    if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_light_hdle, 0, "ctp_light")){
+        printk("ft5x_ts_light: err when operate gpio. \n");
+    }         
+    #endif	
   	
   }
   else
@@ -1187,6 +1199,9 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
     }
     printk("ctp_reset_enable = %d. \n", ctp_reset_enable);
 
+    #ifdef TOUCH_KEY_LIGHT_SUPPORT
+    gpio_light_hdle = gpio_request_ex("ctp_para", "ctp_light");
+    #endif
         //reset
     ft5x_ts_reset();
     //wakeup
