@@ -575,7 +575,7 @@ __s32 DE_SCAL_Set_Scaling_Coef(__u8 sel, __scal_scan_mod_t *in_scan, __scal_src_
     {
         out_w1 = out_w0;
     }
-    if(out_type->fmt == DE_SCAL_INYUV420)
+    if(out_type->fmt == DE_SCAL_OUTPYUV420)
     {
         out_h1 = (out_h0+ 0x1)>>0x1;
     }
