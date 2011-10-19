@@ -976,7 +976,14 @@ __s32 disp_clk_cfg(__u32 sel, __u32 type, __u8 mode)
 	}
 	
 	disp_pll_set(sel, videopll_sel, pll_freq, tve_freq, pre_scale, lcd_clk_div, hdmi_freq, pll_2x, type);
-	gdisp.screen[sel].pll_use_status |= ((videopll_sel == 0)?VIDEO_PLL0_USED : VIDEO_PLL1_USED);
+	if(videopll_sel == 0)
+	{
+	    gdisp.screen[sel].pll_use_status |= VIDEO_PLL0_USED;
+	}
+	else if(videopll_sel == 1)
+	{
+	    gdisp.screen[sel].pll_use_status |= VIDEO_PLL1_USED;
+	}
 	
 	return DIS_SUCCESS;
 }

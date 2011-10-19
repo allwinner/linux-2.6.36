@@ -449,8 +449,8 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
         scal_dev[sel]->agth_sel.bits.linebuf_agth= 0x0;
     }
 
-    w_shift = (in_type->fmt == DE_SCAL_INYUV411) ? 2 : (in_type->fmt == DE_SCAL_INYUV420)||(in_type->fmt == DE_SCAL_INYUV422) ? 1 : 0;
-	h_shift = (in_type->fmt == DE_SCAL_INYUV420) || (in_type->fmt == DE_SCAL_INCSIRGB) ? 1 : 0;
+    w_shift = (in_type->fmt == DE_SCAL_INYUV411) ? 2 : ((in_type->fmt == DE_SCAL_INYUV420)||(in_type->fmt == DE_SCAL_INYUV422)) ? 1 : 0;
+	h_shift = ((in_type->fmt == DE_SCAL_INYUV420) || (in_type->fmt == DE_SCAL_INCSIRGB)) ? 1 : 0;
 		
     
     if((out_type->fmt == DE_SCAL_OUTPYUV420) || (out_type->fmt == DE_SCAL_OUTPYUV422))
@@ -465,7 +465,7 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
     {
         w_shift -= 0 ;;
     }
-    if(out_type->fmt == DE_SCAL_INYUV420)
+    if(out_type->fmt == DE_SCAL_OUTPYUV420)
     {
         h_shift -= 1;
     }
