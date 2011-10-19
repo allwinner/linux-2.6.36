@@ -54,7 +54,7 @@ static void* __iomem gpio_addr = NULL;
 #define _Pn_PUL1(n) ( (n)*0x24 + 0x1C + gpio_addr )
 #endif
 
-#define AW1623_FPGA
+//#define AW1623_FPGA
 
 
 struct aw16xx_spi {
