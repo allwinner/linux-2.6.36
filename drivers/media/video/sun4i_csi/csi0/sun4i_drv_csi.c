@@ -1450,6 +1450,10 @@ static int csi_probe(struct platform_device *pdev)
 	}
 	
 	/*power issue*/
+	dev->iovdd = NULL;
+	dev->avdd = NULL;
+	dev->dvdd = NULL;
+	
 	ret = script_parser_fetch("csi0_para","csi_stby_mode", &dev->stby_mode , sizeof(int));
 	if (ret) {
 		csi_err("fetch csi_stby_mode from sys_config failed\n");
