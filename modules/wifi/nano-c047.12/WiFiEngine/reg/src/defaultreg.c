@@ -114,7 +114,7 @@ const rRegistry DefaultRegistry = {
       E(enablePsPoll) FALSE,
       E(receiveAll_DTIM) TRUE,
       E(listenInterval) 5,
-      E(psTrafficTimeout) 20,
+      E(psTrafficTimeout) 160,
       E(psTxTrafficTimeout) 5,
       E(psDelayStartOfPs) 3000,
    },
