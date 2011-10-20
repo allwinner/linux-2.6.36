@@ -1039,7 +1039,17 @@ _out_:
 		awsmc_msg("found data error, need to send stop command !!\n");
 		sdxc_send_manual_stop(smc_host, req);
 	}
-	
+    
+    if ((smc_host->pdev->id==3) && req->data && (req->data->flags & MMC_DATA_WRITE) && !(smc_host->int_sum & SDXC_IntErrBit))
+    {
+        u32 ready = 0;
+//        u32 i = 0;
+        do {
+//            awsmc_msg("smc %d check ready %d \r", smc_host->pdev->id, i++);
+            ready = sdxc_check_r1_ready(smc_host);
+        } while (!ready);
+//        awsmc_msg("\n");
+    }
     return ret;
 }
 

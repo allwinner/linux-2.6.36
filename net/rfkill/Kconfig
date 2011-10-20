@@ -27,3 +27,8 @@ config RFKILL_INPUT
 	depends on RFKILL
 	depends on INPUT = y || RFKILL = INPUT
 	default y if !EMBEDDED
+
+config SW_RFKILL
+	bool "Softwinner rfkill module support"
+	depends on RFKILL
+	default y
