@@ -744,13 +744,21 @@ static int Fb_pan_display(struct fb_var_screeninfo *var,struct fb_info *info)
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0 || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-        || ((sel==1) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1|| g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
         {
             __s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
             __disp_layer_info_t layer_para;
             __u32 buffer_num = 1;
             __u32 y_offset = 0;
+
+            if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)
+            {
+                if(sel != var->reserved[0])
+                {
+                    return -1;
+                }
+            }
 
             if(g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB)
             {   
@@ -806,8 +814,8 @@ static int Fb_set_par(struct fb_info *info)//todo
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0 || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-        || ((sel==1) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1|| g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
         {
             struct fb_var_screeninfo *var = &info->var;
             struct fb_fix_screeninfo * fix = &info->fix;
@@ -851,8 +859,8 @@ static int Fb_setcolreg(unsigned regno,unsigned red, unsigned green, unsigned bl
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0 || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-        || ((sel==1) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1|| g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
         {
             unsigned int val;
 
@@ -883,8 +891,8 @@ static int Fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
 	
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0 || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-        || ((sel==1) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1|| g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
         {
             unsigned int j = 0, val = 0;
             unsigned char hred, hgreen, hblue, htransp = 0xff;
@@ -925,8 +933,8 @@ int Fb_blank(int blank_mode, struct fb_info *info)
 
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0 || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-        || ((sel==1) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1|| g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+        if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
         {
             __s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
 
@@ -1059,8 +1067,8 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
     
     for(sel = 0; sel < 2; sel++)
     {
-        if(((sel==0) && (fb_para->fb_mode == FB_MODE_SCREEN0 || fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB || fb_para->fb_mode == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-        || ((sel==1) && (fb_para->fb_mode == FB_MODE_SCREEN1|| fb_para->fb_mode == FB_MODE_DUAL_SAME_SCREEN_TB || fb_para->fb_mode == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+        if(((sel==0) && (fb_para->fb_mode != FB_MODE_SCREEN1))
+        || ((sel==1) && (fb_para->fb_mode != FB_MODE_SCREEN0)))
         {
     	    __u32 y_offset = 0, src_width = xres, src_height = yres;
 
@@ -1141,8 +1149,8 @@ __s32 Display_Fb_Release(__u32 fb_id)
 
         for(sel = 0; sel < 2; sel++)
         {
-            if(((sel==0) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN0 || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] == FB_MODE_SCREEN1|| g_fbi.fb_mode[info->node] == FB_MODE_DUAL_SAME_SCREEN_TB || g_fbi.fb_mode[info->node] == FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS)))
+            if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
             {
                 __s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
                 
@@ -1326,7 +1334,10 @@ __s32 Fb_Init(__u32 from)
             else if(g_fbi.disp_init.disp_mode == DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS)
             {
                 fb_para.fb_mode = FB_MODE_DUAL_DIFF_SCREEN_SAME_CONTENTS;
-                fb_para.primary_screen_id = 0;
+                fb_para.output_width = BSP_disp_get_screen_width(fb_para.primary_screen_id);
+                fb_para.output_height = BSP_disp_get_screen_height(fb_para.primary_screen_id);
+                fb_para.aux_output_width = BSP_disp_get_screen_width(1 - fb_para.primary_screen_id);
+                fb_para.aux_output_height = BSP_disp_get_screen_height(1 - fb_para.primary_screen_id);
             }
             Display_Fb_Request(i, &fb_para);
             

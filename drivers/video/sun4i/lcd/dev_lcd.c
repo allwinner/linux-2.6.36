@@ -91,8 +91,6 @@ int __init lcd_module_init(void)
     }
     
 	device_create(lcd_class, NULL, devid, NULL, "lcd");
-
-    printk("lcd_module_init, major:%d\n", MAJOR(devid));
 	
 	lcd_init();
 	

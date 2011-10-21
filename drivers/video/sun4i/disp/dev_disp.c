@@ -873,8 +873,7 @@ void disp_shutdown(struct platform_device *pdev)
         type = BSP_disp_get_output_type(i);
         if(type == DISP_OUTPUT_TYPE_LCD)
         {
-            LCD_BL_EN(i, 0);
-            LCD_PWM_EN(i, 0);
+            DRV_lcd_close(i);
         }
     }
 }
@@ -972,7 +971,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     	case DISP_CMD_EXECUTE_CMD_AND_STOP_CACHE:
     	    g_disp_drv.b_cache[ubuffer[0]] = 0;
     		ret = BSP_disp_cmd_submit(ubuffer[0]);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
+    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
 
     	case DISP_CMD_GET_OUTPUT_TYPE:
@@ -1089,7 +1088,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     			return  -EFAULT;
     		}
     		ret = BSP_disp_layer_set_framebuffer(ubuffer[0], ubuffer[1], &para);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
+    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
     	}
 
@@ -1116,7 +1115,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     			return  -EFAULT;
     		}
     		ret = BSP_disp_layer_set_src_window(ubuffer[0],ubuffer[1], &para);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
+    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
         }
 
@@ -1143,7 +1142,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     			return  -EFAULT;
     		}
     		ret = BSP_disp_layer_set_screen_window(ubuffer[0],ubuffer[1], &para);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
+    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
         }
 
@@ -1170,7 +1169,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
     			return  -EFAULT;
     		}
     		ret = BSP_disp_layer_set_para(ubuffer[0], ubuffer[1], &para);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
+    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
         }
 
@@ -1205,7 +1204,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     	case DISP_CMD_LAYER_SET_ALPHA_VALUE:
     		ret = BSP_disp_layer_set_alpha_value(ubuffer[0], ubuffer[1], ubuffer[2]);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
+    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
 
     	case DISP_CMD_LAYER_CK_ON:
@@ -1955,8 +1954,6 @@ int __init disp_module_init(void)
 #ifdef CONFIG_HAS_EARLYSUSPEND
     register_early_suspend(&backlight_early_suspend_handler);
 #endif
-
-    printk("disp_module_init, major:%d\n", MAJOR(devid));
 
 	return ret;
 }

@@ -350,7 +350,7 @@ void LCD_delay_ms(__u32 ms)
 #else
     volatile __u32 time;
     
-    for(time = 0; time < (ms*700*1000/10);time++);//assume cpu runs at 700Mhz,10 clock one cycle
+    for(time = 0; time < (ms*1000*1000/10);time++);//assume cpu runs at 1000Mhz,10 clock one cycle
 #endif
 }
 
@@ -515,7 +515,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
     if(freq < 100)
     {
-        __wrn("pwm preq is less then 100hz, fix to 100hz\n");
+        DE_WRN("pwm preq is less then 100hz, fix to 100hz\n");
         freq = 100;
     }
     
@@ -526,13 +526,13 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 	        __u32 pwm_freq = 0;
 
 	        pwm_freq = 24000000 / (pre_scal[i] * j);
-	        __inf("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i], j, pwm_freq);
+	        DE_INF("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i], j, pwm_freq);
 	        if((pwm_freq < freq) && (pwm_freq > tmp))
 	        {
 	            tmp = pwm_freq;
 	            pre_scal_id = i;
 	            entire_cycle = j;
-	            __inf("----%d\n", tmp);
+	            DE_INF("----%d\n", tmp);
 	        }
 	    }
 	}
@@ -637,7 +637,8 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         }
         else
         {            
-            gpio_info->mul_sel = 0;
+            gpio_info->mul_sel = 1;
+            gpio_info->data = gpanel_info[sel].lcd_pwm_pol;
             hdl = OSAL_GPIO_Request(gpio_info, 1);
             OSAL_GPIO_Release(hdl, 2);
         }
@@ -868,13 +869,9 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
             }
             else
             {
-                if(gpanel_info[sel].lcd_if == 3)
+                if((gpanel_info[sel].lcd_if == 3) && (gpio_info->mul_sel==2))
                 {
                     gpio_info->mul_sel = 3;
-                }
-                else
-                {
-                    gpio_info->mul_sel = 2;
                 }
             }
             lcd_pin_hdl = OSAL_GPIO_Request(gpio_info, 1);
@@ -1426,8 +1423,6 @@ __s32 BSP_disp_lcd_close_befor(__u32 sel)
 	close_flow[sel].func_num = 0;
 	lcd_panel_fun[sel].cfg_close_flow(sel);
 
-	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
-
 	gdisp.screen[sel].status &= LCD_OFF;
 	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 	return DIS_SUCCESS;
@@ -1436,7 +1431,8 @@ __s32 BSP_disp_lcd_close_befor(__u32 sel)
 __s32 BSP_disp_lcd_close_after(__u32 sel)
 {    
     Image_close(sel);
-    
+
+    Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
 	image_clk_off(sel);
 	lcdc_clk_off(sel);
 
