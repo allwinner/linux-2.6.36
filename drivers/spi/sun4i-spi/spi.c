@@ -1152,7 +1152,7 @@ static int __init aw16xx_spi_probe(struct platform_device *pdev)
 	}
 
 	spi_msg("allwinners SoC SPI Driver loaded for Bus SPI-%d with %d Slaves attached\n", pdev->id, master->num_chipselect);
-	spi_msg("\tIOmem=[0x%x-0x%x]\tDMA=[%d]\n", mem_res->end, mem_res->start, aw_spi->dma_id);
+	//spi_msg("\tIOmem=[0x%x-0x%x]\tDMA=[%d]\n", mem_res->end, mem_res->start, aw_spi->dma_id);
 	spi_msg("spi-%d driver probe succeed, base %p, irq %d, dma_id %d!\n", master->bus_num, aw_spi->base_addr, aw_spi->irq, aw_spi->dma_id);				
 
 	return 0;
@@ -1439,20 +1439,94 @@ static struct platform_device aw_spi3 = {
 		.platform_data = &aw16xx_spi3_pdata,
 	},	
 };
+
 //---------------- spi resource and platform data end -----------------------
-
-
-// board init information ,just for spi test
-struct spi_board_info spansion_08a = {
-
-	.modalias        = "sp08a",	/* type: spansion s25fl008a */	
-	.max_speed_hz    = 12000000,
-	.bus_num         = 1,
-	.chip_select     = 0,
-	.mode            = SPI_MODE_3,
-	.controller_data = NULL,
-	.platform_data   = NULL,
-};
+static struct spi_board_info *spi_boards = NULL;
+int sw_register_spi_dev(void)
+{
+    int spi_dev_num = 0;
+    int ret = 0;
+    int i = 0;
+    char spi_board_name[32] = {0};
+    struct spi_board_info* board;
+    
+    ret = script_parser_fetch("spi_devices", "spi_dev_num", &spi_dev_num, sizeof(int));
+    if(ret != SCRIPT_PARSER_OK){
+        spi_msg("Get spi devices number failed\n");
+        return -1;
+    }
+    spi_msg("Found %d spi devices in config files\n", spi_dev_num);
+    /* alloc spidev board information structure */
+    spi_boards = (struct spi_board_info*)kzalloc(sizeof(struct spi_board_info) * spi_dev_num, GFP_KERNEL);
+    if (spi_boards == NULL)
+    {
+        spi_msg("Alloc spi board information failed \n");
+        return -1;
+    }
+    
+    spi_msg("%-10s %-16s %-16s %-8s %-4s %-4s\n", "boards num", "modalias", "max_spd_hz", "bus_num", "cs", "mode");
+    for (i=0; i<spi_dev_num; i++)
+    {
+        board = &spi_boards[i];
+        sprintf(spi_board_name, "spi_board%d", i);
+        ret = script_parser_fetch(spi_board_name, "modalias", (void*)board->modalias, sizeof(char*));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices modalias failed\n");
+            goto fail;
+        }
+        ret = script_parser_fetch(spi_board_name, "max_speed_hz", (void*)&board->max_speed_hz, sizeof(int));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices max_speed_hz failed\n");
+            goto fail;
+        }
+        ret = script_parser_fetch(spi_board_name, "bus_num", (void*)&board->bus_num, sizeof(u16));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices bus_num failed\n");
+            goto fail;
+        }
+        ret = script_parser_fetch(spi_board_name, "chip_select", (void*)&board->chip_select, sizeof(u16));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices chip_select failed\n");
+            goto fail;
+        }
+        ret = script_parser_fetch(spi_board_name, "mode", (void*)&board->mode, sizeof(u8));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices mode failed\n");
+            goto fail;
+        }
+        /*
+        ret = script_parser_fetch(spi_board_name, "full_duplex", &board->full_duplex, sizeof(int));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices full_duplex failed\n");
+            goto fail;
+        }
+        ret = script_parser_fetch(spi_board_name, "manual_cs", &board->manual_cs, sizeof(int));
+        if(ret != SCRIPT_PARSER_OK) {
+            spi_msg("Get spi devices manual_cs failed\n");
+            goto fail;
+        }
+        */
+        spi_msg("%-10d %-16s %-16d %-8d %-4d 0x%-4d\n", i, board->modalias, board->max_speed_hz, board->bus_num, board->chip_select, board->mode);
+        
+    }
+    
+    /* register boards */
+    ret = spi_register_board_info(spi_boards, spi_dev_num);
+    if (ret)
+    {
+        spi_msg("Register board information failed\n");
+        goto fail;
+    }
+    
+    return 0;
+fail:
+    if (spi_boards)
+    {
+        kfree(spi_boards);
+        spi_boards = NULL;
+    }
+    return -1;
+}
 
 static int aw16xx_get_cfg_csbitmap(int bus_num)
 {
@@ -1475,55 +1549,46 @@ static int aw16xx_get_cfg_csbitmap(int bus_num)
 #define SPI1_USED_MASK 0x2
 #define SPI2_USED_MASK 0x4
 #define SPI3_USED_MASK 0x8
+static int spi_used = 0;
 static int __init aw16xx_spi_init(void)
 {
-    int spi_used[4] = {0};
+    int used = 0;
+    int i = 0;
     int ret = 0;
+    char spi_para[16] = {0};
     
     spi_msg("sw spi init !!\n");
-    ret = script_parser_fetch("spi0_para", "spi_used", &spi_used[0], sizeof(int));
-    if (ret)
+    spi_used = 0;
+    for (i=0; i<4; i++)
     {
-        printk("sw spi init fetch spi0 uning configuration failed\n");
+        used = 0;
+        sprintf(spi_para, "spi%d_para", i);
+        ret = script_parser_fetch(spi_para, "spi_used", &used, sizeof(int));
+        if (ret)
+        {
+            spi_msg("sw spi init fetch spi%d uning configuration failed\n", i);
+            continue;
+        }
+        if (used)
+            spi_used |= 1 << i;
     }
-    ret = script_parser_fetch("spi1_para", "spi_used", &spi_used[1], sizeof(int));
-    if (ret)
-    {
-        printk("sw spi init fetch spi1 uning configuration failed\n");
-    }
-    ret = script_parser_fetch("spi2_para", "spi_used", &spi_used[2], sizeof(int));
-    if (ret)
-    {
-        printk("sw spi init fetch spi2 uning configuration failed\n");
-    }
-    ret = script_parser_fetch("spi3_para", "spi_used", &spi_used[3], sizeof(int));
-    if (ret)
-    {
-        printk("sw spi init fetch spi3 uning configuration failed\n");
-    }
-   
-    // register for spansion 08a
-    //ret = spi_register_board_info(&spansion_08a, 1);
-    //spi_msg("spi register board info = %d \n",ret);
     
-    if (spi_used[0])
+    ret = sw_register_spi_dev();
+    if (ret)
     {
+        spi_msg("register spi devices board info failed \n");
+    }
+    
+    if (spi_used & SPI0_USED_MASK)
         platform_device_register(&aw_spi0);
-    }
-    if (spi_used[1])
-    {
+    if (spi_used & SPI1_USED_MASK)
         platform_device_register(&aw_spi1);
-    }
-    if (spi_used[2])
-    {
+    if (spi_used & SPI2_USED_MASK)
         platform_device_register(&aw_spi2);
-    }
-    if (spi_used[3])
-    {
+    if (spi_used & SPI3_USED_MASK)
         platform_device_register(&aw_spi3);
-    }
     
-    if (spi_used[0] || spi_used[1] || spi_used[2] || spi_used[3])
+    if (spi_used)
     {
         return platform_driver_register(&aw16xx_spi_driver);	
     }
@@ -1539,7 +1604,8 @@ module_init(aw16xx_spi_init);
 
 static void __exit aw16xx_spi_exit(void)
 {
-	platform_driver_unregister(&aw16xx_spi_driver);
+    if (spi_used)
+	    platform_driver_unregister(&aw16xx_spi_driver);
 }
 module_exit(aw16xx_spi_exit);
 
