@@ -14,6 +14,7 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/slab.h>
+#include <mach/system.h>
 
 #include "axp-cfg.h"
 #include "axp18-mfd.h"
@@ -227,7 +228,7 @@ static void axp_power_off(void)
 		axp_update(&axp->dev, POWER20_VOFF_SET, val, 0x7);
 	}
 	val = 0xff;
-	
+
 	axp_read(&axp->dev, POWER20_COULOMB_CTL, &val);
 	val &= 0x3f;
 	axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
@@ -235,11 +236,19 @@ static void axp_power_off(void)
 	val &= 0xbf;
 	axp_write(&axp->dev, POWER20_COULOMB_CTL, val);
 
-    printk("[axp] send power-off command!\n");
-    mdelay(20);
+	printk("[axp] send power-off command!\n");
+	mdelay(20);
+
+	axp_read(&axp->dev, POWER20_STATUS, &val);
+	if(val & 0xF0){
+		printk("[axp] reboot!\n");
+		arch_reset(0,NULL);
+		printk("[axp] warning!!! arch can't ,reboot, maybe some error happend!\n");
+	}
+
 	axp_set_bits(&axp->dev, POWER20_OFF_CTL, 0x80);
-    mdelay(20);
-    printk("[axp] warning!!! axp can't power-off, maybe some error happend!\n");
+	mdelay(20);
+	printk("[axp] warning!!! axp can't power-off, maybe some error happend!\n");
 
 #endif
 }
