@@ -218,7 +218,7 @@ static spinlock_t cedar_spin_lock;
 #define TASK_RELEASE   0xaa
 #define SIG_CEDAR		35
 
-int enable_codec_hw_clk(void)
+int enable_cedar_hw_clk(void)
 {
 	unsigned long flags;
 	int res = -EFAULT;
@@ -265,7 +265,7 @@ out:
 	return res;
 }
 
-int disable_codec_hw_clk(void)
+int disable_cedar_hw_clk(void)
 {
 	unsigned long flags;
 	
@@ -371,7 +371,7 @@ static void cedar_engine_for_timer_rel(unsigned long arg)
 	spin_lock_irqsave(&cedar_spin_lock, flags);		
 	
 	if(list_empty(&run_task_list)){
-		disable_codec_hw_clk(); 
+		disable_cedar_hw_clk(); 
 	} else {
 		printk("Warring: cedar engine timeout for clk disable, but task left, something wrong?\n");
 		mod_timer( &cedar_devp->cedar_engine_timer, jiffies + msecs_to_jiffies(TIMER_CIRCLE));
@@ -527,11 +527,11 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 			cedardev_insert_task(task_ptr);
 		
-			enable_codec_hw_clk();
+			enable_cedar_hw_clk();
 
 			return task_ptr->is_first_task;//插入run_task_list链表中的任务是第一个任务，返回1，不是第一个任务返回0. hx modify 2011-7-28 16:59:16！！！			
 		#else
-			enable_codec_hw_clk();
+			enable_cedar_hw_clk();
 			break;
 		#endif	
     	case IOCTL_ENGINE_REL:
@@ -542,7 +542,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			*/			
 			ret = cedardev_del_task(rel_taskid);					
 		#else
-			disable_codec_hw_clk();
+			disable_cedar_hw_clk();
 		#endif
 			return ret;
 		case IOCTL_ENGINE_CHECK_DELAY:		
@@ -932,42 +932,7 @@ static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 
 static int snd_sw_cedar_resume(struct platform_device *pdev)
 {
-	int res = -EFAULT;
-	if(-1 == clk_enable(ahb_veclk)){
-		printk("enable ahb_veclk failed; \n");
-		goto out;
-	}	
-	clk_set_rate(ve_moduleclk, suspend_veclk_rate);			
-	if(-1 == clk_enable(ve_moduleclk)){
-		printk("enable ve_moduleclk failed; \n");
-		goto out1; 
-	}	
-	if(-1 == clk_enable(dram_veclk)){
-		printk("enable dram_veclk failed; \n");
-		goto out2;
-	}
-	if(-1 == clk_enable(avs_moduleclk)){
-		printk("enable ve_moduleclk failed; \n");
-		goto out3;
-	}		
-	res = 0;
-	/*for clk test*/
-	printk("[cedar_resume reg]\n");
-	printk("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
-	printk("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
-	printk("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
-	printk("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);	
-	printk("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
-	printk("[cedar_resume reg]\n");
-	goto out;
-out3:
-	clk_disable(dram_veclk);
-out2:
-	clk_disable(ve_moduleclk);
-out1:
-	clk_disable(ahb_veclk);
-out:
-	return res;
+	return 0;
 }
 
 static struct file_operations cedardev_fops = {
