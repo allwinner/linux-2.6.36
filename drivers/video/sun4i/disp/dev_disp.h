@@ -14,48 +14,26 @@ struct info_mm {
 	__u32 mem_len;			/* Length of frame buffer mem */
 };
 
-typedef enum
-{
-    DISP_INIT_MODE_SCREEN0 = 0,//fb0
-    DISP_INIT_MODE_SCREEN1 = 1,//fb0
-    DISP_INIT_MODE_TWO_DIFF_SCREEN = 2,//fb0,fb1
-    DISP_INIT_MODE_TWO_SAME_SCREEN = 3,//fb0(up buffer for screen0, down buffer for screen1)
-    DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS = 4,//fb0 for two different screen(screen0 layer is normal layer, screen1 layer is scaler layer);
-}__disp_init_mode_t;
+
 
 typedef struct
 {
-    __bool                  b_init;
-    __disp_init_mode_t      disp_mode;//0:single screen0(fb0); 1:single screen1(fb0);  2:dual diff screen(fb0, fb1); 3:dual same screen(fb0 up and down); 4:dual diff screen same contents(fb0)
+	struct device   *       dev;
+	struct resource *       mem[DISP_IO_NUM];
+	void __iomem    *       io[DISP_IO_NUM];
+
+	__u32                   base_ccmu;
+	__u32                   base_sdram;
+    __u32                   base_pioc;
+	__u32                   base_pwm;
+	
+    __disp_init_t           disp_init;
     
-    __disp_output_type_t    output_type[2];
-    __disp_tv_mode_t        tv_mode[2];
-    __disp_vga_mode_t       vga_mode[2];
-
-    __u32                   buffer_num[2];
-    __bool                  scaler_mode[2];
-    __disp_pixel_fmt_t      format[2];
-    __disp_pixel_seq_t      seq[2];
-    __bool                  br_swap[2];
-}__disp_init_t;
-
-
-typedef struct
-{
-	struct device   *dev;
-	struct resource *mem[DISP_IO_NUM];
-	void __iomem    *io[DISP_IO_NUM];
-
-	__u32       base_ccmu;
-	__u32       base_sdram;
-    __u32       base_pioc;
-	__u32       base_pwm;
-
-    __fb_mode_t fb_mode[FB_MAX];
-    __u32       layer_hdl[FB_MAX][2];//[fb_id][0]:screen0 layer handle;[fb_id][1]:screen1 layer handle 
-    struct fb_info * fbinfo[FB_MAX];
-
-    __disp_init_t disp_init;
+    __bool                  fb_enable[FB_MAX];
+    __fb_mode_t             fb_mode[FB_MAX];
+    __u32                   layer_hdl[FB_MAX][2];//[fb_id][0]:screen0 layer handle;[fb_id][1]:screen1 layer handle 
+    struct fb_info *        fbinfo[FB_MAX];
+    __disp_fb_create_para_t fb_para[FB_MAX];
 }fb_info_t;
 
 typedef struct
@@ -95,6 +73,8 @@ void  disp_free(void *p);
 
 extern __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para);
 extern __s32 Display_Fb_Release(__u32 fb_id);
+extern __s32 Display_Fb_get_para(__u32 fb_id, __disp_fb_create_para_t *fb_para);
+extern __s32 Display_get_disp_init_para(__disp_init_t * init_para);
 
 extern __s32 DRV_disp_int_process(__u32 sel);
 extern void DRV_disp_wait_cmd_finish(__u32 sel);

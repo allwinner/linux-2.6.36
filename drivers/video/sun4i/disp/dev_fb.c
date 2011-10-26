@@ -1133,8 +1133,10 @@ __s32 Display_Fb_Request(__u32 fb_id, __disp_fb_create_para_t *fb_para)
     	}
 	}
 
+    g_fbi.fb_enable[fb_id] = 1;
 	g_fbi.fb_mode[fb_id] = fb_para->fb_mode;
-
+    memcpy(&g_fbi.fb_para[fb_id], fb_para, sizeof(__disp_fb_create_para_t));
+    
     return DIS_SUCCESS;
 }
 
@@ -1142,24 +1144,26 @@ __s32 Display_Fb_Release(__u32 fb_id)
 {
     __inf("Display_Fb_Release, fb_id:%d\n", fb_id);
     
-	if((fb_id >= 0) && (g_fbi.fbinfo[fb_id] != NULL))
+	if((fb_id >= 0) && g_fbi.fb_enable[fb_id])
 	{
-        struct fb_info *info = g_fbi.fbinfo[fb_id];
         __u32 sel = 0;
+        struct fb_info * info = g_fbi.fbinfo[fb_id];
 
         for(sel = 0; sel < 2; sel++)
         {
-            if(((sel==0) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN1))
-            || ((sel==1) && (g_fbi.fb_mode[info->node] != FB_MODE_SCREEN0)))
+            if(((sel==0) && (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN1))
+            || ((sel==1) && (g_fbi.fb_mode[fb_id] != FB_MODE_SCREEN0)))
             {
-                __s32 layer_hdl = g_fbi.layer_hdl[info->node][sel];
+                __s32 layer_hdl = g_fbi.layer_hdl[fb_id][sel];
                 
                 BSP_disp_layer_release(sel, layer_hdl);
             }
         }
-        g_fbi.layer_hdl[info->node][0] = 0;
-        g_fbi.layer_hdl[info->node][1] = 0;
-        g_fbi.fb_mode[info->node] = FB_MODE_SCREEN0;
+        g_fbi.layer_hdl[fb_id][0] = 0;
+        g_fbi.layer_hdl[fb_id][1] = 0;
+        g_fbi.fb_mode[fb_id] = FB_MODE_SCREEN0;
+        memset(&g_fbi.fb_para[fb_id], 0, sizeof(__disp_fb_create_para_t));
+        g_fbi.fb_enable[fb_id] = 0;
         
     	Fb_unmap_video_memory(info);
 
@@ -1170,7 +1174,30 @@ __s32 Display_Fb_Release(__u32 fb_id)
 	    __wrn("invalid paras fb_id:%d in Display_Fb_Release\n", fb_id);
 	    return DIS_FAIL;
 	}
+}
 
+__s32 Display_Fb_get_para(__u32 fb_id, __disp_fb_create_para_t *fb_para)
+{
+    __inf("Display_Fb_Release, fb_id:%d\n", fb_id);
+    
+	if((fb_id >= 0) && g_fbi.fb_enable[fb_id])
+	{
+        memcpy(fb_para, &g_fbi.fb_para[fb_id], sizeof(__disp_fb_create_para_t));
+        
+	    return DIS_SUCCESS;
+	}
+	else
+	{
+	    __wrn("invalid paras fb_id:%d in Display_Fb_get_para\n", fb_id);
+	    return DIS_FAIL;
+	}
+}
+
+__s32 Display_get_disp_init_para(__disp_init_t * init_para)
+{
+    memcpy(init_para, &g_fbi.disp_init, sizeof(__disp_init_t));
+    
+    return 0;
 }
 
 extern unsigned long fb_start;

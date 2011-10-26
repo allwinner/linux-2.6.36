@@ -515,6 +515,34 @@ typedef struct
 	__u32                       ch2_offset;//use when PLANAR mode
 }__disp_fb_create_para_t;
 
+typedef enum
+{
+    DISP_INIT_MODE_SCREEN0 = 0,//fb0 for screen0
+    DISP_INIT_MODE_SCREEN1 = 1,//fb0 for screen1
+    DISP_INIT_MODE_TWO_DIFF_SCREEN = 2,//fb0 for screen0 and fb1 for screen1
+    DISP_INIT_MODE_TWO_SAME_SCREEN = 3,//fb0(up buffer for screen0, down buffer for screen1)
+    DISP_INIT_MODE_TWO_DIFF_SCREEN_SAME_CONTENTS = 4,//fb0 for two different screen(screen0 layer is normal layer, screen1 layer is scaler layer);
+}__disp_init_mode_t;
+
+
+typedef struct
+{
+    __bool                  b_init;
+    __disp_init_mode_t      disp_mode;//0:single screen0(fb0); 1:single screen1(fb0);  2:dual diff screen(fb0, fb1); 3:dual same screen(fb0 up and down); 4:dual diff screen same contents(fb0)
+
+    //for screen0 and screen1
+    __disp_output_type_t    output_type[2];
+    __disp_tv_mode_t        tv_mode[2];
+    __disp_vga_mode_t       vga_mode[2];
+
+    //for fb0 and fb1
+    __u32                   buffer_num[2];
+    __bool                  scaler_mode[2];
+    __disp_pixel_fmt_t      format[2];
+    __disp_pixel_seq_t      seq[2];
+    __bool                  br_swap[2];
+}__disp_init_t;
+
 
 typedef enum tag_DISP_CMD
 {
@@ -698,6 +726,8 @@ typedef enum tag_DISP_CMD
 //----framebuffer----
 	DISP_CMD_FB_REQUEST = 0x280,
 	DISP_CMD_FB_RELEASE = 0x281,
+	DISP_CMD_FB_GET_PARA = 0x282,
+	DISP_CMD_GET_DISP_INIT_PARA = 0x283,
 	
 //---for Displayer Test --------	
 	DISP_CMD_MEM_REQUEST = 0x2c0,

@@ -1844,6 +1844,32 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			ret = Display_Fb_Release(ubuffer[0]);
 			break;
 
+	    case DISP_CMD_FB_GET_PARA:
+	    {
+    	    __disp_fb_create_para_t para;
+
+			ret = Display_Fb_get_para(ubuffer[0], &para);
+    		if(copy_to_user((void __user *)ubuffer[1],&para, sizeof(__disp_fb_create_para_t)))
+    		{
+    		    __wrn("copy_from_user fail\n");
+    			return  -EFAULT;
+    		}
+			break;
+        }
+
+	    case DISP_CMD_GET_DISP_INIT_PARA:
+	    {
+    	    __disp_init_t para;
+
+			ret = Display_get_disp_init_para(&para);
+    		if(copy_to_user((void __user *)ubuffer[0],&para, sizeof(__disp_init_t)))
+    		{
+    		    __wrn("copy_from_user fail\n");
+    			return  -EFAULT;
+    		}
+			break;
+        }
+
 		case DISP_CMD_MEM_REQUEST:
 			ret =  disp_mem_request(ubuffer[0],ubuffer[1]);
 			break;

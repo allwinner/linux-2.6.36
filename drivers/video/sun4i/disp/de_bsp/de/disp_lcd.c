@@ -527,7 +527,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
 	        pwm_freq = 24000000 / (pre_scal[i] * j);
 	        DE_INF("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i], j, pwm_freq);
-	        if((pwm_freq < freq) && (pwm_freq > tmp))
+	        if(abs(pwm_freq - freq) < abs(tmp - freq))
 	        {
 	            tmp = pwm_freq;
 	            pre_scal_id = i;
@@ -536,7 +536,7 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 	        }
 	    }
 	}
-    active_cycle = (pwm_info->duty_ns * entire_cycle) / pwm_info->period_ns;
+    active_cycle = (pwm_info->duty_ns * entire_cycle + (pwm_info->period_ns/2)) / pwm_info->period_ns;
 
     gdisp.pwm[channel].enable = pwm_info->enable;
     gdisp.pwm[channel].freq = freq;
@@ -589,7 +589,7 @@ __s32 pwm_set_duty_ns(__u32 channel, __u32 duty_ns)
     __u32 active_cycle = 0;
     __u32 tmp;
 
-    active_cycle = (duty_ns * gdisp.pwm[channel].entire_cycle) / gdisp.pwm[channel].period_ns;
+    active_cycle = (duty_ns * gdisp.pwm[channel].entire_cycle + (gdisp.pwm[channel].period_ns/2)) / gdisp.pwm[channel].period_ns;
     
     if(channel == 0)
     {

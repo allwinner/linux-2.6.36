@@ -12,7 +12,7 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
     __u32 cur_line = 0, start_delay = 0;
 
     cur_line = LCDC_get_cur_line(sel, tcon_index);
-    start_delay = LCDC_get_start_delay(0, tcon_index);
+    start_delay = LCDC_get_start_delay(sel, tcon_index);
 	if(cur_line > start_delay-5)
 	{
 	    //DE_INF("cur_line(%d) >= start_delay(%d)-3 in Hal_Set_Frame\n", cur_line, start_delay);

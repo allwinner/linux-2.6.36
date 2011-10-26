@@ -39,7 +39,7 @@ void LCD_vbi_event_proc(__u32 sel, __u32 tcon_index)
 	Video_Operation_In_Vblanking(sel, tcon_index);
 
     cur_line = LCDC_get_cur_line(sel, tcon_index);
-    start_delay = LCDC_get_start_delay(0, tcon_index);
+    start_delay = LCDC_get_start_delay(sel, tcon_index);
     if(cur_line > start_delay-3)
 	{
 	      //DE_INF("cur_line(%d) >= start_delay(%d)-3 in LCD_vbi_event_proc\n", cur_line, start_delay);
