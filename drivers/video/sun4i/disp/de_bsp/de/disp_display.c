@@ -232,7 +232,7 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
         reg[1] = sys_get_wvalue(base + i + 4);
         reg[2] = sys_get_wvalue(base + i + 8);
         reg[3] = sys_get_wvalue(base + i + 12);
-
+#ifdef __LINUX_OSAL__
         if(b_force_on)
         {
             OSAL_PRINTF("0x%04x:%08x,%08x:%08x,%08x\n", i, reg[0], reg[1], reg[2], reg[3]);
@@ -241,6 +241,17 @@ __s32 BSP_disp_print_reg(__bool b_force_on, __u32 id)
         {
             DE_INF("0x%04x:%08x,%08x:%08x,%08x\n", i, reg[0], reg[1], reg[2], reg[3]);
         }
+#endif
+#ifdef __BOOT_OSAL__
+        if(b_force_on)
+        {
+            OSAL_PRINTF("0x%x:%x,%x,%x,%x\n", i, reg[0], reg[1], reg[2], reg[3]);
+        }
+        else
+        {
+            DE_INF("0x%x:%x,%x:%x,%x\n", i, reg[0], reg[1], reg[2], reg[3]);
+        }
+#endif
     }
     
     return DIS_SUCCESS;

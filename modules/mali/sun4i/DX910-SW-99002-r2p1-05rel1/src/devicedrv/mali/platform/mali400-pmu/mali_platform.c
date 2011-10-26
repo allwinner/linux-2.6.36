@@ -28,6 +28,7 @@ module_param(mali_clk_div, int, S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH)
 MODULE_PARM_DESC(mali_clk_div, "Clock divisor for mali");
 
 struct clk *h_ahb_mali, *h_mali_clk, *h_ve_pll;
+int mali_clk_flag=0;
 
 #if USING_MALI_PMM
 
@@ -279,10 +280,14 @@ _mali_osk_errcode_t mali_platform_powerdown(u32 cores)
 
 	if( timeout == 0 ) MALI_ERROR(_MALI_OSK_ERR_TIMEOUT);
 	
-	/*close mali axi/apb clock
-	MALI_PRINT(("disable mali clock\n"));*/
-	clk_disable(h_mali_clk);
-	clk_disable(h_ahb_mali);
+	/*close mali axi/apb clock*/
+	if(mali_clk_flag == 1)
+	{
+		//MALI_PRINT(("disable mali clock\n"));
+		mali_clk_flag = 0;
+	       clk_disable(h_mali_clk);
+	       clk_disable(h_ahb_mali);
+	}
 	
 	MALI_SUCCESS;
 
@@ -303,13 +308,20 @@ _mali_osk_errcode_t mali_platform_powerup(u32 cores)
 	MALI_DEBUG_ASSERT( cores != 0 ); /* Shouldn't receive zero from PMM */
 	MALI_DEBUG_PRINT( 4, ("PLATFORM mali400-pmu: power up (0x%x)\n", cores) );
 	
-	/*enable mali axi/apb clock
-	MALI_PRINT(("enable mali clock\n"));*/
-	if(clk_enable(h_ahb_mali)){
-		MALI_PRINT(("try to enable mali ahb failed!\n"));
-	}
-	if(clk_enable(h_mali_clk)){
-		MALI_PRINT(("try to enable mali clock failed!\n"));
+	/*enable mali axi/apb clock*/
+	if(mali_clk_flag == 0)
+	{
+		//printk(KERN_WARNING "enable mali clock\n");
+		//MALI_PRINT(("enable mali clock\n"));
+		mali_clk_flag = 1;
+	       if(clk_enable(h_ahb_mali))
+	       {
+		     MALI_PRINT(("try to enable mali ahb failed!\n"));
+	       }
+	       if(clk_enable(h_mali_clk))
+	       {
+		       MALI_PRINT(("try to enable mali clock failed!\n"));
+	        }
 	}
 	
 	/* Don't use interrupts - just poll status */

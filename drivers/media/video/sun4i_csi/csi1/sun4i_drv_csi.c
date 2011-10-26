@@ -1449,6 +1449,10 @@ static int csi_probe(struct platform_device *pdev)
 	}
 	
 	/*power issue*/
+	dev->iovdd = NULL;
+	dev->avdd = NULL;
+	dev->dvdd = NULL;
+	
 	ret = script_parser_fetch("csi1_para","csi_stby_mode", &dev->stby_mode , sizeof(int));
 	if (ret) {
 		csi_err("fetch csi_stby_mode from sys_config failed\n");
@@ -1729,8 +1733,8 @@ static int __init csi_init(void)
 	u32 ret;
 	int csi_used;
 	csi_print("Welcome to CSI driver\n");
-	
 	csi_dbg(0,"csi_init\n");
+	
 	ret = script_parser_fetch("csi1_para","csi_used", &csi_used , sizeof(int));
 	if (ret) {
 		csi_err("fetch csi_used from sys_config failed\n");

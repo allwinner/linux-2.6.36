@@ -221,8 +221,6 @@ static int awsmc_resource_release(struct awsmc_host *smc_host)
     return 0;
 }
 
-
-
 static void finalize_request(struct awsmc_host *smc_host)
 {
     struct mmc_request* mrq = smc_host->mrq;
@@ -322,7 +320,7 @@ static void awsmc_cd_timer(unsigned long data)
 //        awsmc_dbg("card detect no change\n");
     }
 
-    mod_timer(&smc_host->cd_timer, jiffies + 300);
+    mod_timer(&smc_host->cd_timer, jiffies + 30);
     return;
 }
 

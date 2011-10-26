@@ -38,7 +38,6 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
     	image_clk_on(sel);
 		Image_open(sel);//set image normal channel start bit , because every de_clk_off( )will reset this bit
     	disp_clk_cfg(sel,DISP_OUTPUT_TYPE_HDMI, tv_mod);
-    	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_HDMI, 1);
 
         BSP_disp_set_yuv_output(sel, FALSE);
     	DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
@@ -117,8 +116,6 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	gdisp.screen[sel].status &= HDMI_OFF;
     	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 		gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
-
-		Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_HDMI, 0);
     }
 
 	return DIS_SUCCESS;

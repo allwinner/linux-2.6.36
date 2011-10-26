@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_51
+Version: V1_52
 
 Author:  raymonxiu
 
-Date:     2011-10-11 10:41:57
+Date:     2011-10-19 15:17:09
 
 Description:
 
@@ -15,6 +15,10 @@ insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
+
+V1_52 CSI: Update mt9m112 module
+1) mt9m112 support VGA@25fps and SXGA@15fps
+2) initial iovdd , avdd and dvdd pointer to NULL
 
 V1_51 CSI: Hold the camera reset when enter standby
 

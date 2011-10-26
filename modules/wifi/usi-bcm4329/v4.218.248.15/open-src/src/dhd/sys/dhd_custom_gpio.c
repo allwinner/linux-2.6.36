@@ -38,6 +38,12 @@
 #define WL_ERROR(x) printf x
 #define WL_TRACE(x)
 
+#define CUSTOMER_ALLWINNER
+#ifdef CUSTOMER_ALLWINNER
+extern int sw_sdio_powerup(char* mname);
+extern int sw_sdio_poweroff(char* mname);
+#endif
+
 #ifdef CUSTOMER_HW
 extern  void bcm_wlan_power_off(int);
 extern  void bcm_wlan_power_on(int);
@@ -108,6 +114,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n",
 				__FUNCTION__));
+/* winner's power control */
+#ifdef CUSTOMER_ALLWINNER
+            sw_sdio_poweroff("USI-BM01A-WLRST");
+#endif
+
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(2);
 #endif /* CUSTOMER_HW */
@@ -120,6 +131,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_RESET_ON:
 			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n",
 				__FUNCTION__));
+/* winner's power control */
+#ifdef CUSTOMER_ALLWINNER
+            sw_sdio_powerup("USI-BM01A-WLRST");
+#endif
+
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(2);
 #endif /* CUSTOMER_HW */
@@ -132,6 +148,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n",
 				__FUNCTION__));
+/* winner's power control */
+#ifdef CUSTOMER_ALLWINNER
+            sw_sdio_poweroff("USI-BM01A-WL");
+            sw_sdio_poweroff("USI-BM01A-WLRST");
+#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(1);
 #endif /* CUSTOMER_HW */
@@ -140,6 +161,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 		case WLAN_POWER_ON:
 			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n",
 				__FUNCTION__));
+/* winner's power control */
+#ifdef CUSTOMER_ALLWINNER
+            sw_sdio_powerup("USI-BM01A-WL");
+            sw_sdio_powerup("USI-BM01A-WLRST");
+#endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
 #endif /* CUSTOMER_HW */

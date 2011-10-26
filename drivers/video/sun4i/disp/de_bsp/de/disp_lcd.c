@@ -350,7 +350,7 @@ void LCD_delay_ms(__u32 ms)
 #else
     volatile __u32 time;
     
-    for(time = 0; time < (ms*700*1000/10);time++);//assume cpu runs at 700Mhz,10 clock one cycle
+    for(time = 0; time < (ms*1000*1000/10);time++);//assume cpu runs at 1000Mhz,10 clock one cycle
 #endif
 }
 
@@ -515,28 +515,42 @@ __s32 pwm_set_para(__u32 channel, __pwm_info_t * pwm_info)
 
     if(freq < 100)
     {
-        __wrn("pwm preq is less then 100hz, fix to 100hz\n");
+        DE_WRN("pwm preq is less then 100hz, fix to 100hz\n");
         freq = 100;
     }
-    
-	for(i=0; i<10; i++)
-	{
-	    for(j=16; j<=256; j+=16)
-	    {
-	        __u32 pwm_freq = 0;
+    else if(freq > 50000)
+    {
+        DE_WRN("pwm preq is large then 50khz, fix to 50khz\n");
+        freq = 50000;
+    }
 
-	        pwm_freq = 24000000 / (pre_scal[i] * j);
-	        __inf("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i], j, pwm_freq);
-	        if((pwm_freq < freq) && (pwm_freq > tmp))
-	        {
-	            tmp = pwm_freq;
-	            pre_scal_id = i;
-	            entire_cycle = j;
-	            __inf("----%d\n", tmp);
-	        }
-	    }
+    if(freq > 12500)
+    {
+        pre_scal_id = 0;
+        entire_cycle = (24000000 / pre_scal[pre_scal_id] + (freq/2)) / freq;
+        DE_INF("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i], entire_cycle, 24000000 / pre_scal[pre_scal_id] / entire_cycle );
+    }
+    else
+    {
+    	for(i=0; i<10; i++)
+    	{
+    	    for(j=16; j<=256; j+=16)
+    	    {
+    	        __u32 pwm_freq = 0;
+
+    	        pwm_freq = 24000000 / (pre_scal[i] * j);
+    	        DE_INF("pre_scal:%d, entire_cycle:%d, pwm_freq:%d\n", pre_scal[i], j, pwm_freq);
+    	        if(abs(pwm_freq - freq) < abs(tmp - freq))
+    	        {
+    	            tmp = pwm_freq;
+    	            pre_scal_id = i;
+    	            entire_cycle = j;
+    	            DE_INF("----%d\n", tmp);
+    	        }
+    	    }
+    	}
 	}
-    active_cycle = (pwm_info->duty_ns * entire_cycle) / pwm_info->period_ns;
+    active_cycle = (pwm_info->duty_ns * entire_cycle + (pwm_info->period_ns/2)) / pwm_info->period_ns;
 
     gdisp.pwm[channel].enable = pwm_info->enable;
     gdisp.pwm[channel].freq = freq;
@@ -589,7 +603,7 @@ __s32 pwm_set_duty_ns(__u32 channel, __u32 duty_ns)
     __u32 active_cycle = 0;
     __u32 tmp;
 
-    active_cycle = (duty_ns * gdisp.pwm[channel].entire_cycle) / gdisp.pwm[channel].period_ns;
+    active_cycle = (duty_ns * gdisp.pwm[channel].entire_cycle + (gdisp.pwm[channel].period_ns/2)) / gdisp.pwm[channel].period_ns;
     
     if(channel == 0)
     {
@@ -637,7 +651,8 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         }
         else
         {            
-            gpio_info->mul_sel = 0;
+            gpio_info->mul_sel = 1;
+            gpio_info->data = gpanel_info[sel].lcd_pwm_pol;
             hdl = OSAL_GPIO_Request(gpio_info, 1);
             OSAL_GPIO_Release(hdl, 2);
         }
@@ -868,13 +883,9 @@ __s32 Disp_lcdc_pin_cfg(__u32 sel, __disp_output_type_t out_type, __u32 bon)
             }
             else
             {
-                if(gpanel_info[sel].lcd_if == 3)
+                if((gpanel_info[sel].lcd_if == 3) && (gpio_info->mul_sel==2))
                 {
                     gpio_info->mul_sel = 3;
-                }
-                else
-                {
-                    gpio_info->mul_sel = 2;
                 }
             }
             lcd_pin_hdl = OSAL_GPIO_Request(gpio_info, 1);
@@ -1426,8 +1437,6 @@ __s32 BSP_disp_lcd_close_befor(__u32 sel)
 	close_flow[sel].func_num = 0;
 	lcd_panel_fun[sel].cfg_close_flow(sel);
 
-	Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
-
 	gdisp.screen[sel].status &= LCD_OFF;
 	gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 	return DIS_SUCCESS;
@@ -1436,7 +1445,8 @@ __s32 BSP_disp_lcd_close_befor(__u32 sel)
 __s32 BSP_disp_lcd_close_after(__u32 sel)
 {    
     Image_close(sel);
-    
+
+    Disp_lcdc_pin_cfg(sel, DISP_OUTPUT_TYPE_LCD, 0);
 	image_clk_off(sel);
 	lcdc_clk_off(sel);
 
@@ -1464,8 +1474,8 @@ __s32 BSP_disp_lcd_xy_switch(__u32 sel, __s32 mode)
 }
 
 //setting:  0,       1,      2,....  14,   15
-//pol==0:  0,       1,      2,....  14,   15
-//pol==1: 15,    14,    13, ...   1,   0
+//pol==0:  0,       2,      3,....  15,   16
+//pol==1: 16,    14,    13, ...   1,   0
 __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 {	    
     __u32 duty_ns;
@@ -1479,11 +1489,11 @@ __s32 BSP_disp_lcd_set_bright(__u32 sel, __disp_lcd_bright_t  bright)
 
         if(gpanel_info[sel].lcd_pwm_pol == 0)
         {
-            duty_ns = (bright * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns) / 16;
+            duty_ns = (bright * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 8) / 16;
         }
         else
         {
-            duty_ns = ((16 - bright) * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns) / 16;
+            duty_ns = ((16 - bright) * gdisp.pwm[gpanel_info[sel].lcd_pwm_ch].period_ns + 8) / 16;
         }
         pwm_set_duty_ns(gpanel_info[sel].lcd_pwm_ch, duty_ns);
     }
