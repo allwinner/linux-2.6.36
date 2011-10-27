@@ -249,7 +249,6 @@ void aw_spi_set_clk(u32 spi_clk, u32 ahb_clk, void *base_addr)
     u32 reg_val = 0;
     u32 N = 0;
     u32 div_clk = (ahb_clk>>1)/spi_clk;
-    u32 mod_clk = (ahb_clk>>1)%spi_clk;
     
 //    spi_msg("set spi clock %d, mclk %d\n", spi_clk, ahb_clk);
     reg_val = readl(base_addr + SPI_CLK_RATE_REG);
@@ -257,7 +256,7 @@ void aw_spi_set_clk(u32 spi_clk, u32 ahb_clk, void *base_addr)
     /* CDR2 */
     if(div_clk <= SPI_CLK_SCOPE)
     {
-        if (mod_clk == 0)
+        if (div_clk != 0)
         {
             div_clk--;
         }
@@ -280,7 +279,7 @@ void aw_spi_set_clk(u32 spi_clk, u32 ahb_clk, void *base_addr)
             N++;            
         };
         reg_val &= ~(SPI_CLKCTL_CDR1|SPI_CLKCTL_DRS);
-        reg_val |= N;  
+        reg_val |= (N<<8);  
         
 //        spi_msg("CDR1 - n = %d \n", N);
     }    
