@@ -62,7 +62,7 @@
 #define CEDARDEV_MINOR (0)
 #endif
 
-#define CEDAR_DEBUG
+//#define CEDAR_DEBUG
 
 #undef cdebug
 #ifdef CEDAR_DEBUG
