@@ -51,6 +51,8 @@ typedef enum __ACE_OPS
 	ACE_DEV_INS_ISR,
 	ACE_DEV_UNINS_ISR,
 	ACE_DEV_WAIT_AE,
+	ACE_DEV_CLK_OPEN,
+	ACE_DEV_CLK_CLOSE,
 	ACE_DEV_
 }__ace_ops_e;
 
