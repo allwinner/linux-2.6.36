@@ -31,10 +31,10 @@
 #include <linux/drv_hdmi.h>
 
 #if 1
-#define OSAL_PRINTF     printk
+#define OSAL_PRINTF(msg...)     {printk(KERN_WARNING msg);}
 #define __inf(msg...)
 #define __msg(msg...)
-#define __wrn           printk
+#define __wrn(msg...)       {printk(KERN_WARNING "[HDMI WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
 #define __here__
 #else
 #define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}
