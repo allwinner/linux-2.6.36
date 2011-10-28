@@ -3081,7 +3081,7 @@ static const struct driver_info ax88772b_info = {
 	.bind = ax88772b_bind,
 	.unbind = ax88772b_unbind,
 	.status = ax88772b_status,
-	.flags = FLAG_ETHER | FLAG_FRAMING_AX | 0x0400,
+	.flags = FLAG_ETHER | FLAG_FRAMING_AX,
 	.rx_fixup = ax88772b_rx_fixup,
 	.tx_fixup = ax88772b_tx_fixup,
 };
