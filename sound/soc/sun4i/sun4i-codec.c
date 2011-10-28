@@ -189,8 +189,7 @@ int codec_wrreg_bits(unsigned short reg, unsigned int	mask,	unsigned int value)
 	new	=	(old & ~mask) | value;
 	change = old != new;
 
-	if (change){       
-		pr_debug("reg = %x,reg_val = %x\n",reg,new);
+	if (change){       	
 		codec_wrreg(reg,new);
 	}
 			
