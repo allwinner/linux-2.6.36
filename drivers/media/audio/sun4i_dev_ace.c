@@ -114,8 +114,7 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 			ae_interrupt_sta = 0;
 			return ae_interrupt_value;
 		case ACE_DEV_CLK_OPEN:
-			/* ace_moduleclk */
-			printk("%s,%d\n",__func__,__LINE__);
+			/* ace_moduleclk */			
 			ace_moduleclk = clk_get(NULL,"ace");
 			ace_pll5_pclk = clk_get(NULL, "sdram_pll_p");
 			if (clk_set_parent(ace_moduleclk, ace_pll5_pclk)) {
@@ -147,8 +146,7 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 				printk("ahb_aceclk failed; \n");
 			}
 			break;
-		case ACE_DEV_CLK_CLOSE:
-			printk("%s,%d\n",__func__,__LINE__);
+		case ACE_DEV_CLK_CLOSE:			
 			clk_disable(ace_moduleclk);
 			// Õ∑≈ace_moduleclk ±÷”æ‰±˙
 			clk_put(ace_moduleclk);
@@ -205,8 +203,7 @@ static int acedev_mmap(struct file *filp, struct vm_area_struct *vma)
 } 
 
 static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
-{	
-	printk("%s,%d\n",__func__,__LINE__);
+{		
 	suspend_acerate = clk_get_rate(ace_moduleclk);
 	clk_disable(dram_aceclk);
 	// Õ∑≈dram_aceclk ±÷”æ‰±˙
@@ -232,8 +229,7 @@ static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 }
 
 static int snd_sw_ace_resume(struct platform_device *pdev)
-{
-	printk("%s,%d\n",__func__,__LINE__);
+{	
 	return 0;
 }
 
