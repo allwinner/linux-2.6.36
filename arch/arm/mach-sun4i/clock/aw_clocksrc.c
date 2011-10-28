@@ -41,6 +41,7 @@
 static cycle_t aw_clksrc_read(struct clocksource *cs);
 #if 0
 static irqreturn_t aw_clkevt_irq(int irq, void *handle);
+static spinlock_t timer1_spin_lock;
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev);
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev);
 #endif
@@ -201,14 +202,16 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
 #if 0
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev)
 {
+	unsigned long flags;
     CLKSRC_DBG("aw_set_next_clkevt: %u\n", (unsigned int)delta);
 
     /* time value timer must larger than 50 cycles at least, suggested by david 2011-5-25 11:41 */
-    if(delta < 50)
-    {
-        delta = 50;
-    }
-
+//    if(delta < 50)
+//    {
+//    	printk("*%d\n",delta);
+//        delta = 50;
+//    }
+	spin_lock_irqsave(&timer1_spin_lock, flags);
     /* disable timer and clear pending first    */
     TMR_REG_TMR1_CTL &= ~(1<<0);
     /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
@@ -219,11 +222,13 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
     /* reload the timer intervalue  */
     TMR_REG_TMR1_CTL |= (1<<1);
     /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-    __delay(50);
+   // __delay(50);
 
     /* enable timer */
-    TMR_REG_TMR1_CTL |= (1<<0);
-
+    TMR_REG_TMR1_CTL |= (1<<0); 
+    /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
+    __delay(50);
+    spin_unlock_irqrestore(&timer1_spin_lock, flags);
     return 0;
 }
 #endif
@@ -349,7 +354,8 @@ static int __init aw_clkevt_init(void)
     CLKSRC_DBG("register all-winners clock event device!\n");
 	aw_clock_event.mult = div_sc(AW_HPET_CLOCK_EVENT_HZ, NSEC_PER_SEC, aw_clock_event.shift);
 	aw_clock_event.max_delta_ns = clockevent_delta2ns((0x80000000), &aw_clock_event);
-	aw_clock_event.min_delta_ns = clockevent_delta2ns(1, &aw_clock_event) + 3000;
+	/* time value timer must larger than 50 cycles at least, suggested by david 2011-5-25 11:41 */
+	aw_clock_event.min_delta_ns = clockevent_delta2ns(1, &aw_clock_event) + 4000;
 	aw_clock_event.cpumask = cpumask_of(0);
     clockevents_register_device(&aw_clock_event);
 
