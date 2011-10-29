@@ -854,7 +854,6 @@ static __s32 disp_pll_set(__u32 sel, __s32 videopll_sel, __u32 pll_freq, __u32 t
 	    if(videopll_sel == 2)//sata pll
 	    {
 	        videopll = AW_SYS_CLK_PLL7X2;
-	        pll_freq *= 2;
 	        pll_freq = ((pll_freq + 12000000)/ 24000000) * 24000000;
 	        OSAL_CCMU_SetSrcFreq(AW_SYS_CLK_PLL6, pll_freq);
 	    }
