@@ -304,7 +304,7 @@ const unsigned int AXP20_NOTIFIER_ON = 		//AXP20_IRQ_USBOV |
 
 #define AXP_CHG_ATTR(_name)					\
 {									\
-	.attr = { .name = #_name,.mode = 0644 },					\
+	.attr = { .name = #_name,.mode = 0666 },					\
 	.show =  _name##_show,				\
 	.store = _name##_store, \
 }
@@ -372,6 +372,7 @@ struct axp_charger {
 	bool low_charge_current;
 	bool int_over_temp;
 	uint8_t fault;
+	int charge_on;
 
 	int vbat;
 	int ibat;
@@ -381,9 +382,13 @@ struct axp_charger {
 	int vusb;
 	int iusb;
 	int ocv;
+	
+	int disvbat;
+	int disibat;
 
 	/*rest time*/
 	int rest_vol;
+	int ocv_rest_vol;
 	int base_restvol;
 	int rest_time;
 
@@ -408,5 +413,6 @@ static int Cap_Index = 0;
 static int flag_state_change = 0;
 static int Bat_Cap_Buffer[AXP20_VOL_MAX];
 static int counter = 0;
+static int bat_cap = 0;
 
 #endif

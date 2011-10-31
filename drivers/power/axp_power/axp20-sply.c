@@ -1,8 +1,8 @@
 /*
- * Battery charger driver for Dialog Semiconductor DA9030
+ * Battery charger driver for KrossPower AXP20X
  *
- * Copyright (C) 2008 Compulab, Ltd.
- *  Mike Rapoport <mike@compulab.co.il>
+ * Copyright (C) 2011 KrossPower, Ltd.
+ *  Zhang Donglu <zhangdonglu@x-powers.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -148,6 +148,8 @@ static void axp_charger_update_state(struct axp_charger *charger)
   charger->batery_active = (tmp & AXP20_STATUS_BATINACT)?1:0;
   charger->low_charge_current = (tmp & AXP20_STATUS_CHACURLOEXP)?1:0;
   charger->int_over_temp = (tmp & AXP20_STATUS_ICTEMOV)?1:0;
+ 	axp_read(charger->master,AXP20_CHARGE_CONTROL1,val);
+ 	charger->charge_on = ((val[0] >> 7) & 0x01);
 }
 
 static void axp_charger_update(struct axp_charger *charger)
@@ -192,6 +194,9 @@ static void axp_set_charge(struct axp_charger *charger)
       }
     else
       val |= 3 << 5;
+
+		if(charger->chgcur == 0)
+			charger->chgen = 0;
 
     if(charger->chgcur< 300000)
       charger->chgcur = 300000;
@@ -267,8 +272,10 @@ static void axp_battery_check_status(struct axp_charger *charger,
     if (charger->ext_valid){
     	if( charger->rest_vol == 100)
         val->intval = POWER_SUPPLY_STATUS_FULL;
-    	else
+    	else if(charger->charge_on)
     		val->intval = POWER_SUPPLY_STATUS_CHARGING;
+    	else 
+    		val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
     }
     else
       val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
@@ -1049,6 +1056,11 @@ static void axp_earlysuspend(struct early_suspend *h)
 
 #if defined (CONFIG_AXP_CHGCHANGE)
   	early_suspend_flag = 1;
+  	if(pmu_earlysuspend_chgcur == 0)
+  		axp_clr_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  	else
+  		axp_set_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+    
     if(pmu_earlysuspend_chgcur >= 300000 && pmu_earlysuspend_chgcur <= 1800000){
     	tmp = (pmu_earlysuspend_chgcur -200001)/100000;
     	axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
@@ -1063,6 +1075,11 @@ static void axp_lateresume(struct early_suspend *h)
 
 #if defined (CONFIG_AXP_CHGCHANGE)
 	early_suspend_flag = 0;
+	if(pmu_resume_chgcur == 0)
+  		axp_clr_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  else
+  		axp_set_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  
     if(pmu_resume_chgcur >= 300000 && pmu_resume_chgcur <= 1800000){
         tmp = (pmu_resume_chgcur -200001)/100000;
         axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
@@ -1154,6 +1171,9 @@ static void axp_charging_monitor(struct work_struct *work)
             /* resume charge current */
             charger->chgcur = pmu_init_chgcur;
             DBG_PSY_MSG("charger->chgcur = %d\n",charger->chgcur);
+            if(pmu_init_chgcur == 0)
+            	axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+            	
             if(charger->chgcur< 300000)
 				charger->chgcur = 300000;
 			else if(charger->chgcur > 1800000)
@@ -1218,7 +1238,7 @@ static void axp_charging_monitor(struct work_struct *work)
     	DBG_PSY_MSG("After Modify:val = 0x%x,pre_rest_vol = %d,rest_vol = %d\n",val,pre_rest_vol,rest_vol);
 
     	/* full */
-    	if(charger->ocv >= 4100 && !charger->is_on && charger->ext_valid){
+    	if(charger->ocv >= 4100 && !charger->is_on && charger->ext_valid && charger->charge_on){
         rest_vol = 100;
         for(k = 0;k < AXP20_VOL_MAX; k++){
             Bat_Cap_Buffer[k] = rest_vol;
@@ -1289,6 +1309,7 @@ static void axp_charging_monitor(struct work_struct *work)
  		rdc = (((v[0] & 0x1F) << 8) | v[1]) * 10742 / 10000;
  		DBG_PSY_MSG("rdc = %d\n",rdc);
  		DBG_PSY_MSG("charger->is_on = %d\n",charger->is_on);
+ 		DBG_PSY_MSG("charger->charge_on = %d\n",charger->charge_on);
  		DBG_PSY_MSG("charger->ext_valid = %d\n",charger->ext_valid);
 #endif
 
@@ -1296,7 +1317,7 @@ static void axp_charging_monitor(struct work_struct *work)
 		if(pmu_used2){
 			gpio_adp_val = gpio_read_one_pin_value(gpio_adp_hdle,"pmu_adpdet");
 			DBG_PSY_MSG("GPIO->H2 = %d\n",gpio_adp_val);
-  		if(gpio_adp_val){
+  		if(!gpio_adp_val){
   			ret = script_parser_fetch("pmu_para", "pmu_init_chgcur2", &pmu_init_chgcur, sizeof(int));
       	if (ret){
       		printk("axp driver uning configuration failed(%d)\n", __LINE__);
@@ -1360,19 +1381,41 @@ static void axp_charging_monitor(struct work_struct *work)
       	}
       	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
   		}
-
-  		if(pmu_init_chgcur >= 300000 && pmu_init_chgcur <= 1800000){
+  		
+  		
 #if defined CONFIG_HAS_EARLYSUSPEND
   		 	if(early_suspend_flag){
-						tmp = (pmu_earlysuspend_chgcur -200001)/100000;
+  		 			if(pmu_earlysuspend_chgcur == 0){
+  		 				axp_clr_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  		 			}
+  		 			else if(pmu_earlysuspend_chgcur >= 300000 && pmu_init_chgcur <= 1800000){
+  		 			  axp_set_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+							tmp = (pmu_earlysuspend_chgcur -200001)/100000;
+							charger->chgcur = tmp *100000 + 300000;
+							axp_update(charger->master, AXP20_CHARGE_CONTROL1, tmp, 0x0F);
+						}
   		 	}else
 #endif
+			{
+				if(pmu_init_chgcur == 0){
+					axp_clr_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
+				}
+				else if (pmu_init_chgcur >= 300000 && pmu_init_chgcur <= 1800000){
+					axp_set_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
     			tmp = (pmu_init_chgcur -200001)/100000;
-    		charger->chgcur = tmp *100000 + 300000;
-    		axp_update(charger->master, AXP20_CHARGE_CONTROL1, tmp, 0x0F);
-    	}
+    			charger->chgcur = tmp *100000 + 300000;
+					axp_update(charger->master, AXP20_CHARGE_CONTROL1, tmp, 0x0F);
+    		}
+  		}
+
   	}
 #endif
+
+		DBG_PSY_MSG("pmu_init_chgcur           = %d\n",pmu_init_chgcur);
+		DBG_PSY_MSG("pmu_earlysuspend_chgcur   = %d\n",pmu_earlysuspend_chgcur);
+		DBG_PSY_MSG("pmu_suspend_chgcur        = %d\n",pmu_suspend_chgcur);
+		DBG_PSY_MSG("pmu_resume_chgcur         = %d\n",pmu_resume_chgcur);
+		DBG_PSY_MSG("pmu_shutdown_chgcur               = %d\n",pmu_shutdown_chgcur);
 
     /* if battery volume changed, inform uevent */
     if(charger->rest_vol - pre_rest_vol){
@@ -1785,6 +1828,13 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
     axp_unregister_notifier(charger->master, &charger->nb, AXP20_NOTIFIER_ON);
 
 #if defined (CONFIG_AXP_CHGCHANGE)
+		if(pmu_suspend_chgcur == 0)
+  		axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  	else
+  		axp_set_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  		
+  	DBG_PSY_MSG("pmu_suspend_chgcur = %d\n", pmu_suspend_chgcur);
+  	
     if(pmu_suspend_chgcur >= 300000 && pmu_suspend_chgcur <= 1800000){
     tmp = (pmu_suspend_chgcur -200001)/100000;
     charger->chgcur = tmp *100000 + 300000;
@@ -1857,7 +1907,7 @@ static int axp20_resume(struct platform_device *dev)
     DBG_PSY_MSG("val = 0x%x,pre_rest_vol = %d,rest_vol = %d\n",val,pre_rest_vol,charger->rest_vol);
 
     	/* full */
-    	if((charger->ocv) >= 4100 && !charger->is_on && charger->ext_valid){
+    	if((charger->ocv) >= 4100 && !charger->is_on && charger->ext_valid && charger->charge_on){
         charger->rest_vol = 100;
     }
 
@@ -1872,7 +1922,7 @@ static int axp20_resume(struct platform_device *dev)
     	}
     	Total_Cap = charger->rest_vol * AXP20_VOL_MAX;
 		}
-		else if (charger->ext_valid){
+		else if (charger->ext_valid && charger->charge_on){
 		  rt_rest_vol = (int) (val & 0x7F);
 			if((pre_rest_vol < 99) && (rt_rest_vol > pre_rest_vol)){
 				charger->rest_vol ++;
@@ -1891,6 +1941,13 @@ static int axp20_resume(struct platform_device *dev)
     }
 
 #if defined (CONFIG_AXP_CHGCHANGE)
+  	if(pmu_resume_chgcur == 0)
+  		axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  	else
+  		axp_set_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+
+  	DBG_PSY_MSG("pmu_resume_chgcur = %d\n", pmu_resume_chgcur);
+
     if(pmu_resume_chgcur >= 300000 && pmu_resume_chgcur <= 1800000){
         tmp = (pmu_resume_chgcur -200001)/100000;
         charger->chgcur = tmp *100000 + 300000;
@@ -1912,6 +1969,13 @@ static void axp20_shutdown(struct platform_device *dev)
   	axp_clr_bits(charger->master, AXP20_CHARGE_VBUS,0x40);
 
 #if defined (CONFIG_AXP_CHGCHANGE)
+  	if(pmu_shutdown_chgcur == 0)
+  		axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+  	else
+  		axp_set_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
+
+		DBG_PSY_MSG("pmu_shutdown_chgcur = %d\n", pmu_shutdown_chgcur);
+
     if(pmu_shutdown_chgcur >= 300000 && pmu_shutdown_chgcur <= 1800000){
     	tmp = (pmu_shutdown_chgcur -200001)/100000;
     	charger->chgcur = tmp *100000 + 300000;
