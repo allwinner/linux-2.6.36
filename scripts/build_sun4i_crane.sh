@@ -115,7 +115,7 @@ build_modules()
     USING_MMU=1 USING_UMP=1 USING_PMM=1 BUILD=release CONFIG=ca8-virtex820-m400-1 KDIR=${LICHEE_KDIR} make
     cp mali.ko ${LICHEE_MOD_DIR}
 
-    cp $LICHEE_KDIR/modules/gps/gps.ko ${LICHEE_MOD_DIR}
+    cp $LICHEE_KDIR/modules/gps/gps.ko_ ${LICHEE_MOD_DIR}/gps.ko
 
     cd -
 }
