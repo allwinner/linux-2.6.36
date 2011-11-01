@@ -651,8 +651,7 @@ __s32 LCD_PWM_EN(__u32 sel, __bool b_en)
         }
         else
         {            
-            gpio_info->mul_sel = 1;
-            gpio_info->data = gpanel_info[sel].lcd_pwm_pol;
+            gpio_info->mul_sel = 0;
             hdl = OSAL_GPIO_Request(gpio_info, 1);
             OSAL_GPIO_Release(hdl, 2);
         }
