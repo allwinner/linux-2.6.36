@@ -124,6 +124,7 @@ struct cedar_dev {
 	u32 irq_flag;                    /* flag of video engine irq generated */
 	u32 irq_value;                   /* value of video engine irq          */
 	u32 irq_has_enable;
+	u32 ref_count;
 };
 struct cedar_dev *cedar_devp;
 
@@ -532,6 +533,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return task_ptr->is_first_task;//插入run_task_list链表中的任务是第一个任务，返回1，不是第一个任务返回0. hx modify 2011-7-28 16:59:16！！！			
 		#else
 			enable_cedar_hw_clk();
+			cedar_devp->ref_count++; 
 			break;
 		#endif	
     	case IOCTL_ENGINE_REL:
@@ -543,6 +545,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			ret = cedardev_del_task(rel_taskid);					
 		#else
 			disable_cedar_hw_clk();
+			cedar_devp->ref_count--;
 		#endif
 			return ret;
 		case IOCTL_ENGINE_CHECK_DELAY:		
@@ -932,6 +935,10 @@ static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 
 static int snd_sw_cedar_resume(struct platform_device *pdev)
 {
+	if(cedar_devp->ref_count == 0){
+		return 0;
+	}
+	enable_cedar_hw_clk();
 	return 0;
 }
 
@@ -996,7 +1003,7 @@ static int __init cedardev_init(void)
 	}		
 	memset(cedar_devp, 0, sizeof(struct cedar_dev));
 	cedar_devp->irq = VE_IRQ_NO;
-
+	
 	init_MUTEX(&cedar_devp->sem);
 	init_waitqueue_head(&cedar_devp->wq);	
 

@@ -32,6 +32,7 @@ static struct cdev *ace_dev;
 static dev_t dev_num ;
 struct clk *ace_moduleclk,*dram_aceclk,*ahb_aceclk,*ace_pll5_pclk;
 static unsigned long suspend_acerate = 0;
+static int ref_count = 0;
 static DECLARE_WAIT_QUEUE_HEAD(wait_ae);
 __u32 ae_interrupt_sta = 0, ae_interrupt_value = 0;
 void *       ccmu_hsram;
@@ -123,15 +124,19 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 			rate = clk_get_rate(ace_pll5_pclk);
 			if(clk_set_rate(ace_moduleclk, rate/2)) {
 				printk("try to set ace_moduleclk rate failed!!!\n");
+				 goto out;
 			}
 			if(clk_reset(ace_moduleclk, 1)){
 				printk("try to reset ace_moduleclkfailed!!!\n");
+				 goto out;
 			}
 			if(clk_reset(ace_moduleclk, 0)){
 				printk("try to reset ace_moduleclkfailed!!!\n");
+				 goto out;
 			}
 			if (-1 == clk_enable(ace_moduleclk)) {
 				printk("ace_moduleclk failed; \n");
+				goto out;
 			}
 			
 			/*geting dram clk for ace!*/
@@ -139,12 +144,21 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 		
 			if (-1 == clk_enable(dram_aceclk)) {
 				printk("dram_moduleclk failed; \n");
+				 goto out1;
 			}
 			/* getting ahb clk for ace! */
 			ahb_aceclk = clk_get(NULL,"ahb_ace");		
 			if (-1 == clk_enable(ahb_aceclk)) {
 				printk("ahb_aceclk failed; \n");
+				goto out2;
 			}
+			ref_count++;
+			goto out;
+			out2:
+				clk_disable(dram_aceclk);
+			out1:
+				clk_disable(ace_moduleclk);
+			out:			
 			break;
 		case ACE_DEV_CLK_CLOSE:			
 			clk_disable(ace_moduleclk);
@@ -160,6 +174,7 @@ ace_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 			clk_disable(ahb_aceclk);
 			// Õ∑≈ahb_aceclk ±÷”æ‰±˙
 			clk_put(ahb_aceclk);
+			ref_count--;
 			break;
 		default:
 			break;
@@ -230,6 +245,54 @@ static int snd_sw_ace_suspend(struct platform_device *pdev,pm_message_t state)
 
 static int snd_sw_ace_resume(struct platform_device *pdev)
 {	
+	if(ref_count == 0){
+		return 0;
+	}
+	/* ace_moduleclk */   
+	ace_moduleclk = clk_get(NULL,"ace");
+	ace_pll5_pclk = clk_get(NULL, "sdram_pll_p");
+	if (clk_set_parent(ace_moduleclk, ace_pll5_pclk)) {
+		printk("try to set parent of ace_moduleclk to ace_pll5clk failed!\n");
+		goto out;      
+	}
+	
+	if(clk_set_rate(ace_moduleclk, suspend_acerate)) {
+	   	printk("try to set ace_moduleclk rate failed!!!\n");
+	   	goto out;
+	}
+	if(clk_reset(ace_moduleclk, 1)){
+	   	printk("try to reset ace_moduleclkfailed!!!\n");
+	   	goto out;
+	}
+	if(clk_reset(ace_moduleclk, 0)){
+	   	printk("try to reset ace_moduleclkfailed!!!\n");
+	   	goto out;
+	}
+	if (-1 == clk_enable(ace_moduleclk)) {
+	   printk("ace_moduleclk failed; \n");
+	   goto out;
+	}
+	
+	/*geting dram clk for ace!*/
+	dram_aceclk = clk_get(NULL, "sdram_ace");
+	
+	if (-1 == clk_enable(dram_aceclk)) {
+	   	printk("dram_moduleclk failed; \n");
+	   	goto out1;
+	}
+	/* getting ahb clk for ace! */
+	ahb_aceclk = clk_get(NULL,"ahb_ace");           
+	if (-1 == clk_enable(ahb_aceclk)) {
+	   	printk("ahb_aceclk failed; \n");
+	   	goto out2;
+	}
+	goto out;
+
+	out2:
+		clk_disable(dram_aceclk);
+	out1:
+		clk_disable(ace_moduleclk);
+	out:		
 	return 0;
 }
 
