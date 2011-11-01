@@ -47,6 +47,7 @@
 static int pmu_used2 = 0;
 static int gpio_adp_hdle = 0;
 static int pmu_earlysuspend_chgcur = 0;
+static int get_rdc_flag = 0;
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend axp_early_suspend;
 int early_suspend_flag = 0;
@@ -274,7 +275,7 @@ static void axp_battery_check_status(struct axp_charger *charger,
         val->intval = POWER_SUPPLY_STATUS_FULL;
     	else if(charger->charge_on)
     		val->intval = POWER_SUPPLY_STATUS_CHARGING;
-    	else 
+    	else
     		val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
     }
     else
@@ -1060,7 +1061,7 @@ static void axp_earlysuspend(struct early_suspend *h)
   		axp_clr_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
   	else
   		axp_set_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
-    
+
     if(pmu_earlysuspend_chgcur >= 300000 && pmu_earlysuspend_chgcur <= 1800000){
     	tmp = (pmu_earlysuspend_chgcur -200001)/100000;
     	axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
@@ -1079,7 +1080,7 @@ static void axp_lateresume(struct early_suspend *h)
   		axp_clr_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
   else
   		axp_set_bits(axp_charger->master,AXP20_CHARGE_CONTROL1,0x80);
-  
+
     if(pmu_resume_chgcur >= 300000 && pmu_resume_chgcur <= 1800000){
         tmp = (pmu_resume_chgcur -200001)/100000;
         axp_update(axp_charger->master, AXP20_CHARGE_CONTROL1, tmp,0x0F);
@@ -1161,7 +1162,11 @@ static void axp_charging_monitor(struct work_struct *work)
 			val |= 3;
 			axp_write(charger->master, AXP20_CHARGE_CONTROL1, val);
 
+            //set flag to mark need calculate rdc
+            get_rdc_flag = 1;
             rdc = (axp_get_rdc(charger) * 10000 + 5371) / 10742;
+            //clear rdc flag
+            get_rdc_flag = 0;
             tmp = (uint16_t) rdc;
             axp_write(charger->master,0xBB,tmp & 0x00FF);
             axp_update(charger->master, 0xBA, (tmp >> 8), 0x1F);
@@ -1173,7 +1178,7 @@ static void axp_charging_monitor(struct work_struct *work)
             DBG_PSY_MSG("charger->chgcur = %d\n",charger->chgcur);
             if(pmu_init_chgcur == 0)
             	axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
-            	
+
             if(charger->chgcur< 300000)
 				charger->chgcur = 300000;
 			else if(charger->chgcur > 1800000)
@@ -1381,8 +1386,8 @@ static void axp_charging_monitor(struct work_struct *work)
       	}
       	pmu_shutdown_chgcur = pmu_shutdown_chgcur * 1000;
   		}
-  		
-  		
+
+
 #if defined CONFIG_HAS_EARLYSUSPEND
   		 	if(early_suspend_flag){
   		 			if(pmu_earlysuspend_chgcur == 0){
@@ -1810,6 +1815,13 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
     uint8_t tmp;
 
     struct axp_charger *charger = platform_get_drvdata(dev);
+
+    if(get_rdc_flag) {
+        //calculating rdc now, it will take a long time
+        printk("[axp] calcluating rdc now, can't suspend!\n");
+        return -1;
+    }
+
 	cancel_delayed_work_sync(&charger->work);
 
     /*clear all irqs events*/
@@ -1832,9 +1844,9 @@ static int axp20_suspend(struct platform_device *dev, pm_message_t state)
   		axp_clr_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
   	else
   		axp_set_bits(charger->master,AXP20_CHARGE_CONTROL1,0x80);
-  		
+
   	DBG_PSY_MSG("pmu_suspend_chgcur = %d\n", pmu_suspend_chgcur);
-  	
+
     if(pmu_suspend_chgcur >= 300000 && pmu_suspend_chgcur <= 1800000){
     tmp = (pmu_suspend_chgcur -200001)/100000;
     charger->chgcur = tmp *100000 + 300000;
