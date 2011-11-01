@@ -18,7 +18,9 @@
 #include <asm/delay.h>
 
 #include "regs-rtc.h"
-#define PWM_CTRL_REG_BASE         (0xf1c20c00+0x200)
+#define PWM_CTRL_REG_BASE         	(0xf1c20c00+0x200)
+
+//#define RTC_ALARM_DEBUG
 /*
  * notice: IN 23 A version, operation(eg. write date, time reg)
  * that will affect losc reg, will also affect pwm reg at the same time
@@ -35,97 +37,59 @@ struct rtc_device   *sw_rtc_dev = NULL;
 该驱动支持（2010～2073）年的时间*/
 
 static void __iomem *f23_rtc_base;
-//static struct clk *rtc_clk;
 
 static int f23_rtc_alarmno = NO_IRQ;
 static int losc_err_flag   = 0;
 
 /* IRQ Handlers, irq no. is shared with timer2 */
-//marked by young
-/*
 static irqreturn_t f23_rtc_alarmirq(int irq, void *id)
 {
 	struct rtc_device *rdev = id;
 	u32 val;
-
-	_dev_info(&(rdev->dev), "f23_rtc_alarmirq\n");
+	
+#ifdef RTC_ALARM_DEBUG
+	_dev_info(&(rdev->dev), "f23_rtc_alarmirq\n");	
+#endif
 
     //judge the int is whether ours
     val = readl(f23_rtc_base + AW1623_ALARM_INT_STATUS_REG)&(RTC_ENABLE_WK_IRQ | RTC_ENABLE_CNT_IRQ);
-    if(val)
-    {
-	    // Clear pending alarm
-	    val = readl(f23_rtc_base + AW1623_ALARM_INT_STATUS_REG);
-	    val |= (3);
-	    writel(val, f23_rtc_base + AW1623_ALARM_INT_STATUS_REG);
-
-	    rtc_update_irq(rdev, 1, RTC_AF | RTC_IRQF);
-	    return IRQ_HANDLED;
-    }
-    else
-    {
+    if (val) {
+		// Clear pending count alarm
+		val = readl(f23_rtc_base + AW1623_ALARM_INT_STATUS_REG);//0x11c
+		val |= (RTC_ENABLE_CNT_IRQ);	//0x00000001
+		writel(val, f23_rtc_base + AW1623_ALARM_INT_STATUS_REG);
+		
+		rtc_update_irq(rdev, 1, RTC_AF | RTC_IRQF);
+		return IRQ_HANDLED;
+    } else {
         return IRQ_NONE;
     }
 }
-*/
 
-/* Update control registers */
+/* Update control registers,asynchronous interrupt enable*/
 static void f23_rtc_setaie(int to)
 {
-	u32 alarm_irq_val;
-    u32 timer_irq_val;
-
+	u32 alarm_irq_val;  
+	
+#ifdef RTC_ALARM_DEBUG
 	printk("%s: aie=%d\n", __func__, to);
+#endif	   
 
-    timer_irq_val = readl(f23_rtc_base + AW1623_TIMER_IRQ_EN_REG);
 	alarm_irq_val = readl(f23_rtc_base + AW1623_ALARM_EN_REG);
-
-	if(to) {
-		alarm_irq_val |= to;
-        timer_irq_val |= ALARM_TIMER2_IRQ;
-        writel(timer_irq_val, f23_rtc_base + AW1623_TIMER_IRQ_EN_REG);
-	    writel(alarm_irq_val, f23_rtc_base + AW1623_ALARM_EN_REG);	}
-	else {
-        alarm_irq_val = 0x0;
-        //timer_irq_val & (~ALARM_TIMER2_IRQ); share with timer2, should not change it arbitary;
-        //writel(ALARM_TIMER2_IRQ, f23_rtc_base + AW1623_TIMER_IRQ_EN_REG);
-	    writel(alarm_irq_val, f23_rtc_base + AW1623_ALARM_EN_REG);
-
-	}
-
-
-}
-
-static int f23_rtc_ioctl(struct device *dev, unsigned int cmd,
-	unsigned long arg)
-{
-	/* We do support interrupts, they're generated
-	 * using the sysfs interface.
-	 */
-	switch (cmd) {
-	case RTC_PIE_ON:
-	case RTC_PIE_OFF:
-	case RTC_UIE_ON:
-	case RTC_UIE_OFF:
-	case RTC_AIE_ON:
-	case RTC_AIE_OFF:
-    case RTC_ALM_SET:
-    case RTC_ALM_READ:
-    case RTC_WKALM_SET:
-    case RTC_WKALM_RD:
-    case RTC_IRQP_SET:
-    case RTC_IRQP_READ:
-		return 0;
-    /*Note that many of these ioctls need not actually be implemented by your
-      *driver.  The common rtc-dev interface handles many of these nicely if your
-      *driver returns ENOIOCTLCMD.  */
-	default:
-		return -ENOIOCTLCMD;
-	}
+	switch(to){		
+		case 1:	    
+		alarm_irq_val |= RTC_ALARM_COUNT_INT_EN;		//0x00000100
+	    writel(alarm_irq_val, f23_rtc_base + AW1623_ALARM_EN_REG);//0x114
+		break;
+		case 0:
+		default:
+		alarm_irq_val = 0x00000000;
+	    writel(alarm_irq_val, f23_rtc_base + AW1623_ALARM_EN_REG);//0x114
+		break;
+	}	
 }
 
 /* Time read/write */
-
 static int f23_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 {
 	unsigned int have_retried = 0;
@@ -135,14 +99,16 @@ static int f23_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 
     //only for alarm losc err occur.
     if(losc_err_flag) {
-	rtc_tm->tm_sec  = 0;
-	rtc_tm->tm_min  = 0;
-	rtc_tm->tm_hour = 0;
+		rtc_tm->tm_sec  = 0;
+		rtc_tm->tm_min  = 0;
+		rtc_tm->tm_hour = 0;
+		rtc_tm->tm_wday = 0;
 
-	rtc_tm->tm_mday = 0;
-	rtc_tm->tm_mon  = 0;
-	rtc_tm->tm_year = 0;
-	return -1;
+		
+		rtc_tm->tm_mday = 0;
+		rtc_tm->tm_mon  = 0;
+		rtc_tm->tm_year = 0;
+		return -1;
     }
 
 retry_get_time:
@@ -151,11 +117,11 @@ retry_get_time:
 	date_tmp = readl(base + AW1623_RTC_DATE_REG);
 	time_tmp = readl(base + AW1623_RTC_TIME_REG);
 
-
 	rtc_tm->tm_sec  = TIME_GET_SEC_VALUE(time_tmp);
 	rtc_tm->tm_min  = TIME_GET_MIN_VALUE(time_tmp);
 	rtc_tm->tm_hour = TIME_GET_HOUR_VALUE(time_tmp);
-
+	rtc_tm->tm_wday = TIME_GET_WEEK_VALUE(time_tmp);
+	
 	rtc_tm->tm_mday = DATE_GET_DAY_VALUE(date_tmp);
 	rtc_tm->tm_mon  = DATE_GET_MON_VALUE(date_tmp);
 	rtc_tm->tm_year = DATE_GET_YEAR_VALUE(date_tmp);
@@ -171,9 +137,9 @@ retry_get_time:
 
 	rtc_tm->tm_year += 110;
 	rtc_tm->tm_mon      -= 1;
-	_dev_info(dev,"read time %d-%d-%d %d:%d:%d\n",
+	_dev_info(dev,"read time %d-%d-%d %d:%d:%d:%d\n",
 	       rtc_tm->tm_year + 1900, rtc_tm->tm_mon + 1, rtc_tm->tm_mday,
-	       rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec);
+	       rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec, rtc_tm->tm_wday);
 
 	return 0;
 }
@@ -186,15 +152,16 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	unsigned int crystal_data = 0;
 	unsigned int timeout = 0;
 	int leap_year = 0;
-
+	
 #ifdef BACKUP_PWM
 	unsigned int pwm_ctrl_reg_backup = 0;
 	unsigned int pwm_ch0_period_backup = 0;
 #endif
 
-    //int tm_year; years from 1900
-    //int tm_mon; months since jan 0-11
-    //the input para tm->tm_year is the offset related 1900;
+    /*int tm_year; years from 1900
+    *int tm_mon; months since january 0-11
+    *the input para tm->tm_year is the offset related 1900;
+    */
 	leap_year = tm->tm_year + 1900;
 	if(leap_year > 2073 || leap_year < 2010) {
 		dev_err(dev, "rtc only supports 63（2010～2073） years\n");
@@ -204,13 +171,8 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	crystal_data = readl(base + AW1623_LOSC_CTRL_REG);
 
 	/*Any bit of [9:7] is set, The time and date
-	  register can`t be written, we re-try the entried read*/
-	#if 0
-	if(crystal_data & 0x380) {
-		dev_err(dev, "The time or date can`t set, please try late\n");
-		return -EINVAL;
-	}
-	#else
+	* register can`t be written, we re-try the entried read
+	*/
 	{
 	    //check at most 3 times.
 	    int times = 3;
@@ -221,64 +183,48 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	    }
 	}
 
-	#endif
-
-	/*f23 ONLY SYPPORTS 63 YEARS*/
+	/*f23 ONLY SYPPORTS 63 YEARS,hardware base time:1900*/
 	tm->tm_year -= 110;
 	tm->tm_mon  += 1;
+	
 	_dev_info(dev, "set time %d-%d-%d %d:%d:%d\n",
 	       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
 	       tm->tm_hour, tm->tm_min, tm->tm_sec);
-
+	
 	date_tmp = (DATE_SET_DAY_VALUE(tm->tm_mday)|DATE_SET_MON_VALUE(tm->tm_mon)
                     |DATE_SET_YEAR_VALUE(tm->tm_year));
 
 	time_tmp = (TIME_SET_SEC_VALUE(tm->tm_sec)|TIME_SET_MIN_VALUE(tm->tm_min)
                     |TIME_SET_HOUR_VALUE(tm->tm_hour));
+                    
 #ifdef BACKUP_PWM
-	    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
-	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
-		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
+	printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
 #endif
 
 	writel(time_tmp,  base + AW1623_RTC_TIME_REG);
 	timeout = 0xffff;
 	while((readl(base + AW1623_LOSC_CTRL_REG)&(RTC_HHMMSS_ACCESS))&&(--timeout))
-	if(timeout == 0)
-    {
+	if (timeout == 0) {
         dev_err(dev, "fail to set rtc time.\n");
+        
 #ifdef BACKUP_PWM
-    	    writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
-    	    writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
+	    writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+	    writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 
-			pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
-	    	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
-			printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+    	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
+		printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
 #endif
+
         return -1;
     }
-    /*
-    #ifdef BACKUP_PWM
-       writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
-       writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
-
-	   pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
-	   pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
-	   printk("[rtc-pwm] 3 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-    #endif*/
-
+    
 	if((leap_year%400==0) || ((leap_year%100!=0) && (leap_year%4==0))) {
 		/*Set Leap Year bit*/
 		date_tmp |= LEAP_SET_VALUE(1);
 	}
-
-	/*
-	#ifdef BACKUP_PWM
-    	pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
-    	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
-
-	   printk("[rtc-pwm] 4 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
-    #endif*/
 
 	writel(date_tmp, base + AW1623_RTC_DATE_REG);
 	timeout = 0xffff;
@@ -286,14 +232,16 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	if(timeout == 0)
     {
         dev_err(dev, "fail to set rtc date.\n");
+        
 #ifdef BACKUP_PWM
-            writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
-            writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
+        writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+        writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
 
-			pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
 	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
 	    printk("[rtc-pwm] 5 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
 #endif
+
         return -1;
     }
 
@@ -312,146 +260,158 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	return 0;
 }
 
-//marked by young, need be improved.
-/*{
-
 static int f23_rtc_getalarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
+	struct rtc_time *alm_tm = &alrm->time;
+	void __iomem *base = f23_rtc_base;
+	unsigned int alarm_en;
+	unsigned int alarm_tmp = 0;
+	unsigned int date_tmp = 0;
 
+    alarm_tmp = readl(base + AW1623_RTC_ALARM_DD_HH_MM_SS_REG);
+	date_tmp = readl(base + AW1623_RTC_DATE_REG);
+	
+    alm_tm->tm_sec  = ALARM_GET_SEC_VALUE(alarm_tmp);
+    alm_tm->tm_min  = ALARM_GET_MIN_VALUE(alarm_tmp);
+    alm_tm->tm_hour = ALARM_GET_HOUR_VALUE(alarm_tmp);    
+        
+	alm_tm->tm_mday = DATE_GET_DAY_VALUE(date_tmp);
+	alm_tm->tm_mon  = DATE_GET_MON_VALUE(date_tmp);
+	alm_tm->tm_year = DATE_GET_YEAR_VALUE(date_tmp);
 
-        	struct rtc_time *alm_tm = &alrm->time;
-        	void __iomem *base = f23_rtc_base;
-        	unsigned int alarm_en;
-        	unsigned int alarm_tmp = 0;
-        	unsigned int date_tmp = 0;
-
-	    alarm_tmp = readl(base + AW1623_RTC_ALARM_DD_HH_MM_SS_REG);
-	    date_tmp = readl(base + TMRC_REG_RTC_DATE);
-
-	    alm_tm->tm_sec  = ALARM_GET_SEC_VALUE(alarm_tmp);
-	    alm_tm->tm_min  = ALARM_GET_MIN_VALUE(alarm_tmp);
-	    alm_tm->tm_hour = ALARM_GET_HOUR_VALUE(alarm_tmp);
-
-	    alm_tm->tm_mday = DATE_GET_DAY_VALUE(date_tmp);
-	    alm_tm->tm_mon  = DATE_GET_MON_VALUE(date_tmp);
-	    alm_tm->tm_year = DATE_GET_YEAR_VALUE(date_tmp);
-
-	    alm_tm->tm_year += 110;
-	    alm_tm->tm_mon  -= 1;
-
-	    alarm_en = readl(base + TMRC_REG_LOSCCTRL);
-	    alrm->enabled = RTC_GET_ALARM_STATE(alarm_en);
-
-	    _dev_info(dev,"read alarm_en %d ,alarm %x, %d, %02d:%02d:%02d\n",
-	           alarm_en, alrm->enabled, alarm_tmp,
-	           alm_tm->tm_hour, alm_tm->tm_min, alm_tm->tm_sec);
-
-	    // decode the alarm enable field
-
+    alm_tm->tm_year += 110;
+    alm_tm->tm_mon  -= 1;
+    
+    alarm_en = readl(base + AW1623_ALARM_INT_CTRL_REG);
+    if(alarm_en&&RTC_ALARM_COUNT_INT_EN)
+    	alrm->enabled = 1;
+	
 	return 0;
 }
-}*/
 
-//marked by young, need be improved.
-/*
 static int f23_rtc_setalarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
-    {
+    struct rtc_time *tm = &alrm->time;
+    void __iomem *base = f23_rtc_base;
+    unsigned int alarm_tmp = 0;
+    unsigned int alarm_en;
+    int ret = 0;
+    struct rtc_time tm_now;
+    unsigned long time_now = 0;
+    unsigned long time_set = 0;
+    unsigned long time_gap = 0;
+    unsigned long time_gap_day = 0;
+    unsigned long time_gap_hour = 0;
+    unsigned long time_gap_minute = 0;
+    unsigned long time_gap_second = 0;    
+    
+#ifdef RTC_ALARM_DEBUG    
+    printk("*****************************\n\n");
+    printk("line:%d,%s the alarm time: year:%d, month:%d, day:%d. hour:%d.minute:%d.second:%d\n",\
+    __LINE__, __func__, tm->tm_year, tm->tm_mon,\
+    	 tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);	  
+   	printk("*****************************\n\n");
+#endif
 
-        struct rtc_time *tm = &alrm->time;
-        void __iomem *base = f23_rtc_base;
-        unsigned int alarm_tmp = 0;
-        unsigned int alarm_en;
-	    if(tm->tm_mday > 1023) {
-	    	dev_err(dev, "The time or date can`t set, The day range of 0 to 1023\n");
-	    	return -EINVAL;
-	    }
+    ret = f23_rtc_gettime(dev, &tm_now);
 
-	    alarm_tmp = ALARM_SET_SEC_VALUE(tm->tm_sec) | ALARM_SET_MIN_VALUE(tm->tm_min)
-	    	| ALARM_SET_HOUR_VALUE(tm->tm_hour) | ALARM_SET_DAY_VALUE(tm->tm_mday);
-	    writel(alarm_tmp, base + TMRC_REG_ALARM);
+#ifdef RTC_ALARM_DEBUG    
+    printk("line:%d,%s the current time: year:%d, month:%d, day:%d. hour:%d.minute:%d.second:%d\n",\
+    __LINE__, __func__, tm_now.tm_year, tm_now.tm_mon,\
+    	 tm_now.tm_mday, tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
+   	printk("*****************************\n\n");	  
+#endif
 
-        pr_debug("f23_rtc_setalarm: %d, %d, %03x/%02x/%02x %02x.%02x.%02x\n",
-        	 alrm->enabled, alarm_tmp
-        	 tm->tm_mday & 0xfff, tm->tm_mon & 0xff, tm->tm_year & 0xff,
-        	 tm->tm_hour & 0xff, tm->tm_min & 0xff, tm->tm_sec);
-
-        //setting alarm
-	    alrm_en = readb(base + AW1623_ALARM_EN_REG) & (RTC_ENABLE_WK_IRQ | RTC_ENABLE_CNT_IRQ);
-	    writeb(0x00, base + AW1623_ALARM_EN_REG);
-
-        //need to setting sec, min, hour alarm enable bit
-	    //pr_debug("setting AW1623_ALARM_EN_REG to %08x\n", alrm_en);
-
-
-	    f23_rtc_setaie(alrm->enabled);
-
-        //don't need to processing it.
-	    {
-             if (alrm->enabled)
-                enable_irq_wake(f23_rtc_alarmno);
-            else
-                disable_irq_wake(f23_rtc_alarmno);
-
-	    }
-
+    ret = rtc_tm_to_time(tm, &time_set);
+    ret = rtc_tm_to_time(&tm_now, &time_now);
+    if(time_set <= time_now){
+    	dev_err(dev, "The time or date can`t set, The day has pass!!!\n");
+    	return -EINVAL;
     }
+    time_gap = time_set - time_now;
+    time_gap_day = time_gap/(3600*24);//day
+    time_gap_hour = (time_gap - time_gap_day*24)/3600;//hour
+    time_gap_minute = (time_gap - time_gap_day*24*60 - time_gap_hour*60)/60;//minute
+    time_gap_second = time_gap - time_gap_day*24*60*60 - time_gap_hour*60*60-time_gap_minute*60;//second
+    if(time_gap_day > 255) {
+    	dev_err(dev, "The time or date can`t set, The day range of 0 to 255\n");
+    	return -EINVAL;
+    }
+
+#ifdef RTC_ALARM_DEBUG  		  
+   	printk("line:%d,%s year:%d, month:%d, day:%ld. hour:%ld.minute:%ld.second:%ld\n",\
+    __LINE__, __func__, tm->tm_year, tm->tm_mon,\
+    	 time_gap_day, time_gap_hour, time_gap_minute, time_gap_second);
+    printk("*****************************\n\n");	
+#endif
+	
+	/*clear the alarm counter enable bit*/
+    f23_rtc_setaie(0);
+	
+    /*clear the alarm count value!!!*/
+    writel(0x00000000, base + AW1623_RTC_ALARM_DD_HH_MM_SS_REG);
+    __udelay(100);
+    
+    /*rewrite the alarm count value!!!*/
+    alarm_tmp = ALARM_SET_SEC_VALUE(time_gap_second) | ALARM_SET_MIN_VALUE(time_gap_minute)
+    	| ALARM_SET_HOUR_VALUE(time_gap_hour) | ALARM_SET_DAY_VALUE(time_gap_day);   	
+    writel(alarm_tmp, base + AW1623_RTC_ALARM_DD_HH_MM_SS_REG);//0x10c
+	
+    /*clear the count enable alarm irq bit*/
+    writel(0x00000000, base + AW1623_ALARM_INT_CTRL_REG);
+	alarm_en = readl(base + AW1623_ALARM_INT_CTRL_REG);//0x118
+	
+	/*enable the counter alarm irq*/
+	alarm_en = readl(base + AW1623_ALARM_INT_CTRL_REG);//0x118
+	alarm_en |= RTC_ENABLE_CNT_IRQ;
+    writel(alarm_en, base + AW1623_ALARM_INT_CTRL_REG);//enable the counter irq!!!
+    	
+	if(alrm->enabled != 1){
+		printk("warning:the rtc counter interrupt isnot enable!!!,%s,%d\n", __func__, __LINE__);		
+	}
+	
+	/*decided whether we should start the counter to down count*/	
+	f23_rtc_setaie(alrm->enabled);
+	
+#ifdef RTC_ALARM_DEBUG	
+	printk("------------------------------------------\n\n");
+	printk("%d,10c reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x10c));
+	printk("%d,114 reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x114));
+	printk("%d,118 reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x118));
+	printk("%d,11c reg val:%x\n", __LINE__, *(volatile int *)(0xf1c20c00+0x11c));
+	printk("------------------------------------------\n\n");	
+#endif
 
 	return 0;
 }
-*/
-
 
 static int f23_rtc_open(struct device *dev)
-{
-	//struct platform_device *pdev = to_platform_device(dev);
-	//struct rtc_device *rtc_dev = platform_get_drvdata(pdev);
-	int ret = 0;
-
+{		
 	printk ("f23_rtc_open \n");
-	//marked by young, the intterupt need to be improved.
-  /*
-   {
-    	ret = request_irq(f23_rtc_alarmno, f23_rtc_alarmirq,
-    			  IRQF_DISABLED,  "f23-rtc alarm", rtc_dev);
-    	if (ret) {
-    		dev_err(dev, "IRQ%d error %d\n", f23_rtc_alarmno, ret);
-    		return ret;
-    	}
-
-    }*/
-
-	return ret;
+	return 0;
 }
-
 
 static void f23_rtc_release(struct device *dev)
 {
-	/*struct platform_device *pdev = to_platform_device(dev);
-	struct rtc_device *rtc_dev = platform_get_drvdata(pdev);*/
-    //marked by young
-    /*{
-        free_irq(f23_rtc_alarmno, rtc_dev);
-    }*/
 
-    return ;
 }
 
 static const struct rtc_class_ops f23_rtcops = {
-	.open		= f23_rtc_open,
-	.release	= f23_rtc_release,
-	.read_time	= f23_rtc_gettime,
-	.set_time	= f23_rtc_settime,
-    .ioctl      = f23_rtc_ioctl,
+	.open				= f23_rtc_open,
+	.release			= f23_rtc_release,
+	.read_time			= f23_rtc_gettime,
+	.set_time			= f23_rtc_settime,
+	.read_alarm			= f23_rtc_getalarm,
+	.set_alarm			= f23_rtc_setalarm,
 };
 
-static int __devexit f23_rtc_remove(struct platform_device *dev)
+static int __devexit f23_rtc_remove(struct platform_device *pdev)
 {
-	struct rtc_device *rtc = platform_get_drvdata(dev);
-
-	platform_set_drvdata(dev, NULL);
-	rtc_device_unregister(rtc);
-
+	struct rtc_device *rtc = platform_get_drvdata(pdev);    
+    free_irq(f23_rtc_alarmno, rtc);
+    rtc_device_unregister(rtc);
+	platform_set_drvdata(pdev, NULL);
+	
 	f23_rtc_setaie(0);
 
 	return 0;
@@ -459,97 +419,81 @@ static int __devexit f23_rtc_remove(struct platform_device *dev)
 
 static int __devinit f23_rtc_probe(struct platform_device *pdev)
 {
-	struct rtc_device *rtc;
-	//struct resource *res;
+	struct rtc_device *rtc;	
 	int ret;
 	unsigned int tmp_data;
-
+	
 #ifdef BACKUP_PWM
 	unsigned int pwm_ctrl_reg_backup = 0;
 	unsigned int pwm_ch0_period_backup = 0;
 #endif
-
-    //marked by young
-    /*{
-
-        res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-        //find the IRQs
-        f23_rtc_alarmno = platform_get_irq(pdev, 0);
-        if (res == NULL || f23_rtc_alarmno < 0) {
-            return -ENODEV;
-        }
-
-        f23_rtc_base = ioremap(res->start, resource_size(res));
-        if (!f23_rtc_base) {
-            dev_err(&(pdev->dev), "rtc ioremap failure. \n");
-            ret = -EIO;
-        }
-
-    }*/
-
-    f23_rtc_base = (void __iomem *)(SW_VA_TIMERC_IO_BASE);
-    f23_rtc_alarmno = SW_INT_IRQNO_ALARM;
-
-
-
+		
+	f23_rtc_base = (void __iomem *)(SW_VA_TIMERC_IO_BASE);
+	f23_rtc_alarmno = SW_INT_IRQNO_ALARM;
+		
 	/* select RTC clock source
-     * on fpga board, internal 32k clk src is the default, and can not be changed
-     */
-    //RTC CLOCK SOURCE internal 32K HZ 
+	* on fpga board, internal 32k clk src is the default, and can not be changed
+	*/
+	//RTC CLOCK SOURCE internal 32K HZ 
 #ifdef BACKUP_PWM
-	    pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
-	    pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
-		printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+	pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
+	printk("[rtc-pwm] 1 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
 #endif
-
-        //upate by kevin, 2011-9-7 18:23
-        //step1: set keyfiled
-        tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG); 
-        tmp_data &= (~REG_CLK32K_AUTO_SWT_EN);            //disable auto switch
-        tmp_data |= (RTC_SOURCE_EXTERNAL | REG_LOSCCTRL_MAGIC); //external     32768hz osc
-        tmp_data |= (EXT_LOSC_GSM);                                                                 //external 32768hz osc gsm
-        writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);
-        __udelay(100);
-        _dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);
-
-        //step2: check set result
-        tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);
-        if(!(tmp_data & RTC_SOURCE_EXTERNAL))
-        {
-            printk("[RTC] ERR: Set LOSC to external failed!!!\n");
-            printk("[RTC] WARNING: Rtc time will be wrong!!\n");
-            losc_err_flag = 1;
-        }
-
+	
+	//upate by kevin, 2011-9-7 18:23
+	//step1: set keyfiled,选择外部晶振
+	tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG); 
+	tmp_data &= (~REG_CLK32K_AUTO_SWT_EN);            //disable auto switch,bit-14
+	tmp_data |= (RTC_SOURCE_EXTERNAL | REG_LOSCCTRL_MAGIC); //external     32768hz osc
+	tmp_data |= (EXT_LOSC_GSM);                                                                 //external 32768hz osc gsm
+	writel(tmp_data, f23_rtc_base + AW1623_LOSC_CTRL_REG);
+	__udelay(100);
+	_dev_info(&(pdev->dev),"f23_rtc_probe tmp_data = %d\n", tmp_data);
+	
+	//step2: check set result，查询是否设置成功
+	tmp_data = readl(f23_rtc_base + AW1623_LOSC_CTRL_REG);
+	if(!(tmp_data & RTC_SOURCE_EXTERNAL)){
+		printk("[RTC] ERR: Set LOSC to external failed!!!\n");
+		printk("[RTC] WARNING: Rtc time will be wrong!!\n");
+		losc_err_flag = 1;
+	}
+	
 #ifdef BACKUP_PWM
-        writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
-        writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
-		pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
-		pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
-		printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
+	writel(pwm_ctrl_reg_backup, PWM_CTRL_REG_BASE + 0);
+	writel(pwm_ch0_period_backup, PWM_CTRL_REG_BASE + 4);
+	pwm_ctrl_reg_backup = readl(PWM_CTRL_REG_BASE + 0);
+	pwm_ch0_period_backup = readl(PWM_CTRL_REG_BASE + 4);
+	printk("[rtc-pwm] 2 pwm_ctrl_reg_backup = %x pwm_ch0_period_backup = %x", pwm_ctrl_reg_backup, pwm_ch0_period_backup);
 #endif
-
+	
 	device_init_wakeup(&pdev->dev, 1);
-
+	
 	/* register RTC and exit */
-	rtc = rtc_device_register("rtc", &pdev->dev, &f23_rtcops,
-				  THIS_MODULE);
+	rtc = rtc_device_register("rtc", &pdev->dev, &f23_rtcops, THIS_MODULE);
 	if (IS_ERR(rtc)) {
 		dev_err(&pdev->dev, "cannot attach rtc\n");
 		ret = PTR_ERR(rtc);
 		goto err_out;
 	}
-    sw_rtc_dev = rtc;
-	platform_set_drvdata(pdev, rtc);
+	ret = request_irq(f23_rtc_alarmno, f23_rtc_alarmirq,
+			  IRQF_DISABLED,  "f23-rtc alarm", rtc);
+	if (ret) {
+		dev_err(&pdev->dev, "IRQ%d error %d\n", f23_rtc_alarmno, ret);
+		rtc_device_unregister(rtc);
+		return ret;
+	}
 
+	sw_rtc_dev = rtc;
+	platform_set_drvdata(pdev, rtc);//设置rtc结构数据为pdev的私有数据
+	
 	return 0;
-
-err_out:
-	return ret;
+	
+	err_out:
+		return ret;
 }
 
 #ifdef CONFIG_PM
-
 /* RTC Power management control */
 //rtc do not to suspend, need to keep timing.
 #define f23_rtc_suspend NULL
