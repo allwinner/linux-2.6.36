@@ -452,7 +452,8 @@ static int ir_code_valid(unsigned long code)
 	tmp1 = code & 0x00ff00ff;
 	tmp2 = (code & 0xff00ff00)>>8;
 	
-	return ((tmp1^tmp2)==0x00ff00ff);
+	//return ((tmp1^tmp2)==0x00ff00ff);
+	return (((tmp1^tmp2) & 0x00ff0000)==0x00ff0000 );
 #endif /*#ifdef IR_CHECK_ADDR_CODE*/
 }
 
