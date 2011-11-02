@@ -104,6 +104,13 @@
 #include <linux/completion.h> 
 #include <linux/sched.h>
 
+
+#ifdef WINNER_POWER_ONOFF_CTRL
+extern int nano_sdio_powerup(u32 id, char* mname);
+extern int nano_sdio_poweroff(u32 id, char* mname);
+extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
+#endif
+
 #undef  PROCFS_HIC
 
 #ifndef KSDIO_SIZE_ALIGN
@@ -1498,9 +1505,6 @@ static struct sdio_driver sdio_nrx_driver = {
     .id_table   = sdio_nrx_ids,
 };
 
-extern int sw_sdio_powerup(char* mname);
-extern int sw_sdio_poweroff(char* mname);
-
 static int __init sdio_nrx_init(void)
 {
 #ifdef KSDIO_HOST_RESET_PIN
@@ -1516,7 +1520,8 @@ static int __init sdio_nrx_init(void)
 #endif
     
 #ifdef WINNER_POWER_ONOFF_CTRL
-    sw_sdio_powerup("Nano-n20s");
+    nano_sdio_powerup(3, "Nano-n20s");
+    sw_mmc_rescan_card(3, 1);
 #endif
 
     return sdio_register_driver(&sdio_nrx_driver);
@@ -1543,7 +1548,8 @@ static void __exit sdio_nrx_exit(void)
     sdio_unregister_driver(&sdio_nrx_driver);
     
 #ifdef WINNER_POWER_ONOFF_CTRL
-    sw_sdio_poweroff("Nano-n20s");
+    nano_sdio_poweroff(3, "Nano-n20s");
+    sw_mmc_rescan_card(3, 0);
 #endif
 }
 

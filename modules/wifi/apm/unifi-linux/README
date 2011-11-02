@@ -1,0 +1,40 @@
+---
+
+UniFi Linux Driver
+Copyright (C) 2005-2008 Cambridge Silicon Radio Ltd.
+Last edited: 23-Jul-2010
+Driver version: 7.0
+
+---
+
+This is version 7.0 of UniFi driver software for Linux and other
+embedded systems, which is designed to work with the UniFi(tm) family
+of chips.
+
+The software includes a complete Linux driver and firmware for UniFi-1.
+It is not compatible with earlier versions of firmware.
+
+The software is compatible with versions 2.6 of the Linux kernel.
+It provides a reference implementation for a UniFi driver and may be used as
+the basis for developing a driver for other platforms.
+
+For information on installing and using the driver on a Fedora Core 5 or 6
+Linux system, see the INSTALL.fc file and the UniFi Linux User Guide for this
+release at http://www.csrsupport.com.
+
+
+ 
+This software implements a logical interface derived from the Simplified
+Specification published by the SD Association.  The Simplified Specification
+is a subset of the complete SD Specification which is owned by the SD Card
+Association.  The information contained in the Simplified Specification is
+presented only as a standard specification for SD Cards and SD
+Host/Ancillary products and is provided "AS-IS" without any representations
+or warranties of any kind. No responsibility is assumed by Cambridge Silicon
+Radio Ltd or the SD Card Association for any damages, any infringements of
+patents or other right of the SD Card Association or any third parties,
+which may result from its use. No license is granted by implication,
+estoppel or otherwise under any patent or other rights of the SD Card
+Association or any third party. Parties wishing to manufacture and sell a
+product which embodies intellectual property owned by the SD Card
+Association should obtain a HALA license from http://www.sdcard.org.

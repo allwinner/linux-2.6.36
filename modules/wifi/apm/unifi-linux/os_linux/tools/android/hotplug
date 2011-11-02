@@ -1,0 +1,52 @@
+#!/system/bin/sh
+
+LOG="/system/bin/log -p d HOTPLUG "
+
+$LOG $SUBSYSTEM Action $ACTION
+
+
+case "$SUBSYSTEM" in
+        firmware)
+
+        case "$ACTION" in
+                add)
+
+                $LOG blah $SUBSYSTEM Action $ACTION
+
+                HOTPLUG_FW_DIR=/system/etc/firmware
+
+                if ! /system/bin/ls /sys$DEVPATH/loading; then
+                        $LOG "FIRMWARE - /sys$DEVPATH/loading does not exist"
+                        exit 1
+                fi
+
+                if ! /system/bin/ls $HOTPLUG_FW_DIR/$FIRMWARE; then
+                        $LOG "FIRMWARE $HOTPLUG_FW_DIR/$FIRMWARE does not exist"
+                        $(/system/bin/sh -c "echo -1 > /sys$DEVPATH/loading")
+                        exit 1
+                fi
+
+                $LOG "$SUBSYSTEM starting fw download $HOTPLUG_FW_DIR/$FIRMWARE"
+
+                check_loading=$(/system/bin/cat /sys$DEVPATH/loading)
+
+                case "$check_loading" in
+                        0)
+                                $(/system/bin/sh -c "echo 1 > /sys$DEVPATH/loading")
+                        ;;
+
+                        1)
+                                exit 1
+                        ;;
+                esac
+
+                $(/system/bin/cat $HOTPLUG_FW_DIR/$FIRMWARE > /sys$DEVPATH/data)
+                $(/system/bin/sh -c "echo 0 > /sys$DEVPATH/loading")
+                exit 0
+
+                ;;
+        esac
+        ;;
+esac
+
+exit 0

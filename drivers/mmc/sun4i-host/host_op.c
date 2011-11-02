@@ -28,11 +28,10 @@
 #include <asm/uaccess.h>
 #include <mach/clock.h>
 
-
 static char* awsmc_hclk_name[4] = {"ahb_sdc0", "ahb_sdc1", "ahb_sdc2", "ahb_sdc3"};
 static char* awsmc_mclk_name[4] = {"sdc0", "sdc1", "sdc2", "sdc3"};
 struct awsmc_host* sw_host[4] = {NULL, NULL, NULL, NULL};
-struct sw_sdio_res sw_sdio_card;
+EXPORT_SYMBOL_GPL(sw_host);
 
 /* Module parameters */
 /* debug control */
@@ -221,6 +220,116 @@ static int awsmc_resource_release(struct awsmc_host *smc_host)
     return 0;
 }
 
+static inline void mmc_suspend_pins(struct awsmc_host* smc_host)
+{
+    int ret;
+    user_gpio_set_t suspend_gpio_set = {"suspend_pins_sdio", 0, 0, 0, 2, 1, 0};     //for sdio
+    user_gpio_set_t suspend_gpio_set_card = {"suspend_pins_mmc", 0, 0, 0, 0, 1, 0};    //for mmc card
+    u32 i;
+    
+    awsmc_msg("mmc %d suspend pins\n", smc_host->pdev->id);
+    /* backup gpios' current config */
+    ret = gpio_get_all_pin_status(smc_host->pio_hdle, smc_host->bak_gpios, 6, 1);
+    if (ret)
+    {
+        awsmc_dbg_err("fail to fetch current gpio cofiguration\n");
+        return;
+    }
+    
+//    {
+//        awsmc_msg("printk backup gpio configuration: \n");
+//        for (i=0; i<6; i++)
+//        {
+//            awsmc_msg("gpio[%d]: name %s, port %c[%d], cfg %d, pull %d, drvl %d, data %d\n",
+//                         i, smc_host->bak_gpios[i].gpio_name, 
+//                            smc_host->bak_gpios[i].port + 'A' - 1, 
+//                            smc_host->bak_gpios[i].port_num, 
+//                            smc_host->bak_gpios[i].mul_sel,
+//                            smc_host->bak_gpios[i].pull,
+//                            smc_host->bak_gpios[i].drv_level,
+//                            smc_host->bak_gpios[i].data);
+//        }
+//    }
+    
+    switch(smc_host->pdev->id)
+    {
+        case 0:
+        case 1:
+        case 2:
+            /* setup all pins to input and no pull to save power */
+            for (i=0; i<6; i++)
+            {
+                ret = gpio_set_one_pin_status(smc_host->pio_hdle, &suspend_gpio_set_card, smc_host->bak_gpios[i].gpio_name, 1);
+                if (ret)
+                {
+                    awsmc_dbg_err("fail to set IO(%s) into suspend status\n", smc_host->bak_gpios[i].gpio_name);
+                }
+            }
+            break;
+        case 3:
+            /* setup all pins to input and pulldown to save power */
+            for (i=0; i<6; i++)
+            {
+                ret = gpio_set_one_pin_status(smc_host->pio_hdle, &suspend_gpio_set, smc_host->bak_gpios[i].gpio_name, 1);
+                if (ret)
+                {
+                    awsmc_dbg_err("fail to set IO(%s) into suspend status\n", smc_host->bak_gpios[i].gpio_name);
+                }
+            }
+            break;
+    }
+    
+//    {
+//        user_gpio_set_t post_cfg[6];
+//        
+//        gpio_get_all_pin_status(smc_host->pio_hdle, post_cfg, 6, 1);
+//        for (i=0; i<6; i++)
+//        {
+//            awsmc_msg("post suspend, gpio[%d]: name %s, port %c[%d], cfg %d, pull %d, drvl %d, data %d\n",
+//                         i, post_cfg[i].gpio_name, 
+//                            post_cfg[i].port + 'A' - 1, 
+//                            post_cfg[i].port_num, 
+//                            post_cfg[i].mul_sel,
+//                            post_cfg[i].pull,
+//                            post_cfg[i].drv_level,
+//                            post_cfg[i].data);
+//        }
+//    }
+    
+    smc_host->gpio_suspend_ok = 1;
+    return;
+}
+
+static inline void mmc_resume_pins(struct awsmc_host* smc_host)
+{
+    int ret;
+    u32 i;
+    
+    awsmc_msg("mmc %d resume pins\n", smc_host->pdev->id);
+    switch(smc_host->pdev->id)
+    {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+            /* restore gpios' backup configuration */
+            if (smc_host->gpio_suspend_ok)
+            {
+                smc_host->gpio_suspend_ok = 0;
+                for (i=0; i<6; i++)
+                {
+                    ret = gpio_set_one_pin_status(smc_host->pio_hdle, &smc_host->bak_gpios[i], smc_host->bak_gpios[i].gpio_name, 1);
+                    if (ret)
+                    {
+                        awsmc_dbg_err("fail to restore IO(%s) to resume status\n", smc_host->bak_gpios[i].gpio_name);
+                    }
+                }
+            }
+            
+            break;
+    }
+}
+
 static void finalize_request(struct awsmc_host *smc_host)
 {
     struct mmc_request* mrq = smc_host->mrq;
@@ -324,6 +433,20 @@ static void awsmc_cd_timer(unsigned long data)
     return;
 }
 
+void sw_mmc_rescan_card(unsigned id, unsigned insert)
+{
+    struct awsmc_host *smc_host = NULL;
+    
+    BUG_ON(id > 3);
+    BUG_ON(sw_host[id] == NULL);
+    smc_host = sw_host[id];
+    
+    smc_host->present = insert ? 1 : 0;
+    mmc_detect_change(smc_host->mmc, 1);
+    return;
+}
+EXPORT_SYMBOL_GPL(sw_mmc_rescan_card);
+
 static int awsmc_card_present(struct mmc_host *mmc)
 {
     struct awsmc_host *smc_host = mmc_priv(mmc);
@@ -389,39 +512,74 @@ static void awsmc_tasklet(unsigned long data)
 static void awsmc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
     struct awsmc_host *smc_host = mmc_priv(mmc);
-
+    
     /* Set the power state */
     switch (ios->power_mode)
     {
         case MMC_POWER_ON:
         case MMC_POWER_UP:
+            if (!smc_host->power_on)
+            {
+                awsmc_dbg("MMC_POWER_ON\n");
+                /* resume pins to correct status */
+                mmc_resume_pins(smc_host);
+            	/* enable mmc hclk */
+            	clk_enable(smc_host->hclk);
+            	/* enable mmc mclk */
+            	clk_enable(smc_host->mclk);
+                /* restore registers */
+                sdxc_regs_restore(smc_host);
+                sdxc_program_clk(smc_host);
+                /* enable irq */
+                enable_irq(smc_host->irq);
+                smc_host->power_on = 1;
+            }
         	break;
         case MMC_POWER_OFF:
+            if (smc_host->power_on)
+            {
+                awsmc_dbg("MMC_POWER_OFF\n");
+                /* disable irq */
+                disable_irq(smc_host->irq);
+                /* backup registers */
+                sdxc_regs_save(smc_host);
+            	/* disable mmc mclk */
+            	clk_disable(smc_host->mclk);
+            	/* disable mmc hclk */
+            	clk_disable(smc_host->hclk);
+                /* suspend pins to save power */
+                mmc_suspend_pins(smc_host);
+                smc_host->power_on = 0;
+            }
+            
         default:
         	break;
     }
-
-    /* set clock */
-    if (ios->clock)
+    
+    if (smc_host->power_on) 
     {
-        smc_host->cclk = ios->clock;
-        sdxc_update_clk(smc_host, smc_host->mod_clk, smc_host->cclk);
-
-        if ((ios->power_mode == MMC_POWER_ON) || (ios->power_mode == MMC_POWER_UP))
+        /* set clock */
+        if (ios->clock)
         {
-        	awsmc_dbg("running at %dkHz (requested: %dkHz).\n", smc_host->real_cclk/1000, ios->clock/1000);
+            smc_host->cclk = ios->clock;
+            sdxc_update_clk(smc_host, smc_host->mod_clk, smc_host->cclk);
+    
+            if ((ios->power_mode == MMC_POWER_ON) || (ios->power_mode == MMC_POWER_UP))
+            {
+            	awsmc_dbg("running at %dkHz (requested: %dkHz).\n", smc_host->real_cclk/1000, ios->clock/1000);
+            }
+            else
+            {
+            	awsmc_dbg("powered down.\n");
+            }
         }
-        else
+    
+        /* set bus width */
+        if (smc_host->bus_width != (1<<ios->bus_width))
         {
-        	awsmc_dbg("powered down.\n");
+            sdxc_set_buswidth(smc_host, 1<<ios->bus_width);
+            smc_host->bus_width = 1<<ios->bus_width;
         }
-    }
-
-    /* set bus width */
-    if (smc_host->bus_width != (1<<ios->bus_width))
-    {
-        sdxc_set_buswidth(smc_host, 1<<ios->bus_width);
-        smc_host->bus_width = 1<<ios->bus_width;
     }
 }
 
@@ -435,11 +593,12 @@ static void awsmc_enable_sdio_irq(struct mmc_host *mmc, int enable)
     spin_unlock_irqrestore(&smc_host->lock, flags);
 }
 
-static int awsmc_check_r1_ready(struct mmc_host *mmc)
+int awsmc_check_r1_ready(struct mmc_host *mmc)
 {
     struct awsmc_host *smc_host = mmc_priv(mmc);
     return sdxc_check_r1_ready(smc_host);
 }
+EXPORT_SYMBOL_GPL(awsmc_check_r1_ready);
 
 static void awsmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
@@ -836,34 +995,19 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     spin_lock_init(&smc_host->lock);
     tasklet_init(&smc_host->tasklet, awsmc_tasklet, (unsigned long) smc_host);
 
-    spin_lock_irqsave(&smc_host->lock, iflags);
-
-    if (awsmc_resource_request(smc_host))
-    {
-        awsmc_msg("%s: Failed to get resouce.\n", dev_name(&pdev->dev));
-        goto probe_free_host;
-    }
-
     smc_host->cclk  = 400000;
     smc_host->mod_clk   = pdev->id == 3 ? SMC_3_MAX_MOD_CLOCK : smc_mod_clock;
     smc_host->clk_source = smc_mclk_source;
     smc_host->ops.send_request = sdxc_request;
     smc_host->ops.finalize_requset = sdxc_request_done;
     smc_host->ops.check_status = sdxc_check_status;
-
-    if (awsmc_set_src_clk(smc_host))
-    {
-        goto probe_free_host;
-    }
-    awsmc_init_controller(smc_host);
-
-    spin_unlock_irqrestore(&smc_host->lock, iflags);
-
+    
     mmc->ops        = &awsmc_ops;
     mmc->ocr_avail	= MMC_VDD_32_33 | MMC_VDD_33_34;
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
     mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
+//    mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
 
     mmc->max_blk_count	= 0xffff;
     mmc->max_blk_size	= 0xffff;
@@ -873,14 +1017,20 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->max_phys_segs	= 256;
     mmc->max_hw_segs	= 256;
 
-    /* add host */
-    ret = mmc_add_host(mmc);
-    if (ret)
+    spin_lock_irqsave(&smc_host->lock, iflags);
+    if (awsmc_resource_request(smc_host))
     {
-    	dev_err(&pdev->dev, "Failed to add mmc host.\n");
-    	goto probe_free_irq;
+        awsmc_msg("%s: Failed to get resouce.\n", dev_name(&pdev->dev));
+        goto probe_free_host;
     }
-
+    if (awsmc_set_src_clk(smc_host))
+    {
+        goto probe_free_resource;
+    }
+    awsmc_init_controller(smc_host);
+    smc_host->power_on = 1;
+    spin_unlock_irqrestore(&smc_host->lock, iflags);
+    
 //    awsmc_debugfs_attach(smc_host);
     awsmc_procfs_attach(smc_host);
 
@@ -899,9 +1049,17 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     {
     	dev_err(&pdev->dev, "Failed to request smc card interrupt.\n");
     	ret = -ENOENT;
-    	goto probe_free_irq;
+    	goto probe_free_resource;
     }
     disable_irq(smc_host->irq);
+
+    /* add host */
+    ret = mmc_add_host(mmc);
+    if (ret)
+    {
+    	dev_err(&pdev->dev, "Failed to add mmc host.\n");
+    	goto probe_free_irq;
+    }
 
     awsmc_dbg("SMC Probe: mapped smc_base:%p irq:%u dma:%u.\n", smc_host->smc_base, smc_host->irq, smc_host->dma_no);
 
@@ -1003,143 +1161,36 @@ static int __devexit awsmc_remove(struct platform_device *pdev)
 }
 
 #ifdef CONFIG_PM
-
-static inline void mmc_suspend_pins(struct awsmc_host* smc_host)
-{
-    int ret;
-    user_gpio_set_t suspend_gpio_set = {"suspend_pins", 0, 0, 0, 2, 1, 0};
-    u32 i;
-    
-    awsmc_msg("mmc %d suspend pins\n", smc_host->pdev->id);
-    /* backup gpios' current config */
-    ret = gpio_get_all_pin_status(smc_host->pio_hdle, smc_host->bak_gpios, 6, 1);
-    if (ret)
-    {
-        awsmc_dbg_err("fail to fetch current gpio cofiguration\n");
-        return;
-    }
-    
-//    {
-//        awsmc_msg("printk backup gpio configuration: \n");
-//        for (i=0; i<6; i++)
-//        {
-//            awsmc_msg("gpio[%d]: name %s, port %c[%d], cfg %d, pull %d, drvl %d, data %d\n",
-//                         i, smc_host->bak_gpios[i].gpio_name, 
-//                            smc_host->bak_gpios[i].port + 'A' - 1, 
-//                            smc_host->bak_gpios[i].port_num, 
-//                            smc_host->bak_gpios[i].mul_sel,
-//                            smc_host->bak_gpios[i].pull,
-//                            smc_host->bak_gpios[i].drv_level,
-//                            smc_host->bak_gpios[i].data);
-//        }
-//    }
-    
-    switch(smc_host->pdev->id)
-    {
-        case 0:
-        case 1:
-        case 2:
-            break;
-        case 3:
-            /* setup all pins to input and pulldown to save power */
-            for (i=0; i<6; i++)
-            {
-                ret = gpio_set_one_pin_status(smc_host->pio_hdle, &suspend_gpio_set, smc_host->bak_gpios[i].gpio_name, 1);
-                if (ret)
-                {
-                    awsmc_dbg_err("fail to set IO(%s) into suspend status\n", smc_host->bak_gpios[i].gpio_name);
-                }
-            }
-            break;
-    }
-    
-//    {
-//        user_gpio_set_t post_cfg[6];
-//        
-//        gpio_get_all_pin_status(smc_host->pio_hdle, post_cfg, 6, 1);
-//        for (i=0; i<6; i++)
-//        {
-//            awsmc_msg("post suspend, gpio[%d]: name %s, port %c[%d], cfg %d, pull %d, drvl %d, data %d\n",
-//                         i, post_cfg[i].gpio_name, 
-//                            post_cfg[i].port + 'A' - 1, 
-//                            post_cfg[i].port_num, 
-//                            post_cfg[i].mul_sel,
-//                            post_cfg[i].pull,
-//                            post_cfg[i].drv_level,
-//                            post_cfg[i].data);
-//        }
-//    }
-    
-    smc_host->gpio_suspend_ok = 1;
-    return;
-}
-
-static inline void mmc_resume_pins(struct awsmc_host* smc_host)
-{
-    int ret;
-    u32 i;
-    
-    awsmc_msg("mmc %d resume pins\n", smc_host->pdev->id);
-    switch(smc_host->pdev->id)
-    {
-        case 0:
-        case 1:
-        case 2:
-            break;
-        case 3:
-            /* restore gpios' backup configuration */
-            if (smc_host->gpio_suspend_ok)
-            {
-                smc_host->gpio_suspend_ok = 0;
-                for (i=0; i<6; i++)
-                {
-                    ret = gpio_set_one_pin_status(smc_host->pio_hdle, &smc_host->bak_gpios[i], smc_host->bak_gpios[i].gpio_name, 1);
-                    if (ret)
-                    {
-                        awsmc_dbg_err("fail to restore IO(%s) to resume status\n", smc_host->bak_gpios[i].gpio_name);
-                    }
-                }
-            }
-            
-            break;
-    }
-}
-
 static int awsmc_suspend(struct device *dev)
 {
     struct platform_device *pdev = to_platform_device(dev);
     struct mmc_host *mmc = platform_get_drvdata(pdev);
     int ret = 0;
-
+    
     if (mmc)
     {
         struct awsmc_host *smc_host = mmc_priv(mmc);
-
-        ret = mmc_suspend_host(mmc);
         
-        /* disable irq */
-        disable_irq(smc_host->irq);
-
-        /* backup registers */
-        sdxc_regs_save(smc_host);
-
-    	/* disable mmc mclk */
-    	clk_disable(smc_host->mclk);
-
-    	/* disable mmc hclk */
-    	clk_disable(smc_host->hclk);
-        
-        /* handle sdio card's power */
-        if (sw_sdio_card.poweron)
-        {
-            awsmc_msg("Found sdio card is poweron, now suspend\n");
-            sw_sdio_card.suspend = 1;
-            sw_sdio_poweroff(sw_sdio_card.mname);
+        if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+            ret = mmc_suspend_host(mmc);
+            
+        if (smc_host->power_on) {
+            /* disable irq */
+            disable_irq(smc_host->irq);
+    
+            /* backup registers */
+            sdxc_regs_save(smc_host);
+    
+        	/* disable mmc mclk */
+        	clk_disable(smc_host->mclk);
+    
+        	/* disable mmc hclk */
+            if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+        	    clk_disable(smc_host->hclk);
+            
+            /* suspend pins to save power */
+            mmc_suspend_pins(smc_host);
         }
-        
-        /* suspend pins to save power */
-        mmc_suspend_pins(smc_host);
-        
     }
 
     awsmc_msg("smc %d suspend\n", pdev->id);
@@ -1156,31 +1207,28 @@ static int awsmc_resume(struct device *dev)
     {
         struct awsmc_host *smc_host = mmc_priv(mmc);
         
-        /* resume pins to correct status */
-        mmc_resume_pins(smc_host);
-        
-        /* handle sdio card's power */
-        if (sw_sdio_card.suspend)
-        {
-            awsmc_msg("Found sdio card is suspend before, now poweron\n");
-            sw_sdio_powerup(sw_sdio_card.mname);
-            sw_sdio_card.suspend = 0;
+        if (smc_host->power_on) {
+            /* resume pins to correct status */
+            mmc_resume_pins(smc_host);
+            
+        	/* enable mmc hclk */
+            if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+        	    clk_enable(smc_host->hclk);
+    
+        	/* enable mmc mclk */
+        	clk_enable(smc_host->mclk);
+    
+            /* restore registers */
+            if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+                sdxc_regs_restore(smc_host);
+            sdxc_program_clk(smc_host);
+            
+            /* enable irq */
+            enable_irq(smc_host->irq);
         }
-        
-    	/* enable mmc hclk */
-    	clk_enable(smc_host->hclk);
-
-    	/* enable mmc mclk */
-    	clk_enable(smc_host->mclk);
-
-        /* restore registers */
-        sdxc_regs_restore(smc_host);
-        sdxc_program_clk(smc_host);
-        
-        /* enable irq */
-        enable_irq(smc_host->irq);
-
-        ret = mmc_resume_host(mmc);
+    
+        if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+            ret = mmc_resume_host(mmc);
     }
 
     awsmc_msg("smc %d resume\n", pdev->id);
@@ -1292,7 +1340,7 @@ static struct platform_driver awsmc_driver = {
     .driver.pm	    = awsmc_pm_ops,
     .probe          = awsmc_probe,
     .remove         = __devexit_p(awsmc_remove),
-    .shutdown       = awsmc_shutdown,
+//    .shutdown       = awsmc_shutdown,
 };
 
 static int __init awsmc_init(void)
@@ -1327,12 +1375,6 @@ static int __init awsmc_init(void)
     #ifdef AW1623_FPGA
     sdc_used[0] = 1;//fpga
     #endif
-    
-    ret = sw_get_sdio_resource();
-    if (ret)
-    {
-        printk("awsmc_init fetch sdio card's configuration failed\n");
-    }
     
     if (sdc_used[0])
     {

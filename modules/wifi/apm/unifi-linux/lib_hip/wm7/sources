@@ -1,0 +1,31 @@
+!INCLUDE ..\sources.inc
+
+
+TARGETTYPE=LIBRARY
+RELEASETYPE=LOCAL
+OPTIMIZE_FAVOR=SPEED
+
+MSC_WARNING_LEVEL=/W3
+ 
+WINCECOD=1 
+  
+CDEFINES=\
+	$(CDEFINES) \
+	$(UNIFI_C_DEFINES)
+
+
+INCLUDES=\
+	$(INCLUDES) \
+	$(UNIFI_INCLUDES) \
+  ..; \
+  $(_PUBLICROOT)\common\sdk\inc; \
+  $(_PUBLICROOT)\common\ddk\inc; \
+  $(_PUBLICROOT)\common\oak\inc;	
+
+
+SOURCES=\
+	$(SOURCES) \
+	$(UNIFI_SOURCES) \
+
+
+

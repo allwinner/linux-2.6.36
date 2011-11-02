@@ -1,0 +1,128 @@
+#! /bin/sh
+# Copyright (C) 2005-2008 by Cambridge Silicon Radio Ltd.
+# /usr/sbin/unififw
+# This is run from the driver via kerneld when a UniFi card
+# is inserted.
+#
+# Usage:  unififw [instance]
+#    [instance]     optional instance number of card. "0" for first card,
+#                   "1" for second card.
+#
+# Old usage:  unififw <device> <instance> <hwid>
+#   <device>    one of unifi_sdio or unifi_pci
+#   <instance>  card instance number. For SDIO this is the slot
+#               number of the card
+#   <hwid>      The h/w revision string from the card.
+#
+
+# Run body of script in a sub-shell so we can pipe output into logger
+(
+
+# Backwards-compatibility, drop any <device> arg
+case "$1" in
+    unifi_sdio | unifi_pci) shift ;;
+esac
+
+instance="0"
+if [ -n "$1" ]; then
+    instance="$1"
+fi
+case "$instance" in
+    "0"|"1") ;;
+    *)  echo "Bad device instance"
+        exit 1
+        ;;
+esac
+
+init_mode="$2"
+
+# Set up local vars
+dev=/dev/unifi${instance}
+fwpath=/lib/firmware/unifi-sdio-${instance}
+
+
+# Find files for:
+#   localmib.dat  - any local additions
+#   ufmib.dat     - standard MIB for the h/w
+#   mac.txt       - MAC address (in text format)
+#   initprog      - optional program which can do things before first MLME reset
+
+localmib=$fwpath/localmib.dat
+if [ ! -f ${localmib} ]; then
+localmib=""
+fi
+
+mibfile=$fwpath/ufmib.dat
+[ -f ${mibfile} ] || mibfile=
+
+## If we have an initprog and it's executable, supply the -x parameter
+## to unifi_manager. The main purpose of this is to allow some MIB
+## parameters which need setting prior to the first MLME reset to be
+## set by the test system without having to rewrite ufmib.dat on the
+## fly.
+initprog=""
+[ -x "${fwpath}/initprog" ] && initprog="-x ${fwpath}/initprog"
+
+# Fallback to the broadcast MAC addr, which UniFi takes to mean "use the
+# MAC address from MIB", typically read from EEPROM
+macaddr="FF:FF:FF:FF:FF:FF"
+macfile=$fwpath/mac.txt
+if [ -f $macfile ]; then
+    macaddr=`cat $macfile`
+fi
+
+# wait until the character device node is ready.
+dev_node_retries=0
+while [ "$dev_node_retries" -lt "3" ]; do
+    if [ -e $dev ]; then
+        dev_node_retries=3
+    else
+        echo "unififw: device=$dev is not ready, will wait..."
+        sleep 0.5
+        dev_node_retries=`expr $dev_node_retries + 1`
+    fi
+done
+
+# init_mode==2 means an SME userspace build
+if [ "${init_mode}" = "2" ]; then
+    mibfileparam=-mib=$fwpath/ufmib.dat
+    [ -f $fwpath/ufmib.dat ] || mibfileparam=
+
+    localmibfileparam=-mib=$fwpath/localmib.dat
+    [ -f $fwpath/localmib.dat ] || localmibfileparam=
+
+    macfileparam=-mac=$macfile
+    [ -f $macfile ] || macfileparam=
+
+    result=0
+    retries=0
+    #duration in seconds for unifi_helper to run after which the retry counter will be reset if it dies
+    timeout=120
+
+    while [ "$retries" -lt "3" ]; do
+        starttime=`date +%s`
+        /usr/sbin/unifi_helper -dev=$dev -wifion $macfileparam $mibfileparam $localmibfileparam
+        result=$?
+        [ "$result" -ne "0" ] || exit 0
+        nowtime=`date +%s`
+        retries=`expr $retries + 1`
+        elapsedtime=`expr $nowtime - $starttime`
+        if [ "$result" -lt "0" -o "$elapsedtime" -gt "$timeout" ]; then
+            retries=0
+        fi
+        sleep 1
+        echo "unifi_helper -dev=$dev -wifion $macfileparam $mibfileparam $localmibfileparam result: $result"
+    done
+    exit 0
+fi
+
+# Set the MAC address, MIB(s) and start the driver.
+/usr/sbin/unifi_manager -d $dev -s $macaddr -b $init_mode $initprog $mibfile $localmib || {
+    result=$?
+    echo "unifi_manager -d $dev -s $macaddr -b $init_mode $initprog $mibfile $localmib failed: $result"
+    exit 2
+}
+
+) 2>&1 | logger -t unififw -p daemon.notice
+
+exit 0

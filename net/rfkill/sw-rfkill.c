@@ -6,48 +6,63 @@
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 
-extern int sw_sdio_powerup(char* mname);
-extern int sw_sdio_poweroff(char* mname);
+#if CONFIG_BT_HCIUART_DEBUG
+#define RF_MSG(...)     do {printk("[rfkill]: "__VA_ARGS__);} while(0)
+#else
+#define RF_MSG(...)
+#endif
 
+#if (defined CONFIG_ARCH_SUN4I || defined CONFIG_ARCH_SUN5I)
+extern unsigned int get_sdio_wifi_module_select(void);
+extern int usi_bm01a_gpio_ctrl(const char* name, int level);
+extern int usi_bm01a_get_gpio_value(const char* name);
+extern int swbb23_gpio_ctrl(const char* name, int level);
+extern int swbb23_get_gpio_value(const char* name);
+#else
+#define get_sdio_wifi_module_select
+#define usi_bm01a_gpio_ctrl
+#define usi_bm01a_get_gpio_value
+#define swbb23_gpio_ctrl
+#define swbb23_get_gpio_value
+#endif
+
+static DEFINE_SPINLOCK(bt_power_lock);
+static const char bt_name[] = "bcm4329";
+static struct rfkill *sw_rfkill;
 static int rfkill_set_power(void *data, bool blocked)
 {
-    printk("rfkill set power %d\n", blocked);
-    /*
-     * bluetooth power control, pullup control pins here
-     * example:
-     * bt config in sys_config1.fex like this:
-     * [bt_para]
-     * bt_used                  = 1
-     * bt_uart_id               = 2
-     * bt_rst                   = port:PB05<1><default><default><default>
-     *
-     * firstly, we should get the handle for gpio control
-     * u32 bt_pio = gpio_request_ex(wifi_para, NULL);
-     * if (!bt_pio)
-     * {
-     *     ....
-     * }
-     * then if we want pullup the "bt_rst" pin, we can do this:
-     * ret = gpio_write_one_pin_value(bt_pio, 1, "bt_rst");
-     * if (ret)
-     * {
-     *     ...;
-     * }
-     */
-     
-    if (!blocked) {
-        sw_sdio_powerup("USI-BM01A-BT");
-        sw_sdio_powerup("USI-BM01A-BTRST");
-    } else {
-        sw_sdio_poweroff("USI-BM01A-BT");
-        sw_sdio_poweroff("USI-BM01A-BTRST");
+    unsigned int mod_sel = get_sdio_wifi_module_select();
+    
+    RF_MSG("rfkill set power %d\n", blocked);
+    
+    spin_lock(&bt_power_lock);
+    switch (mod_sel)
+    {
+        case 2: /* usi bm01a */
+            if (!blocked) {
+                usi_bm01a_gpio_ctrl("usi_bm01a_bt_regon", 1);
+                usi_bm01a_gpio_ctrl("usi_bm01a_bt_rst", 1);
+            } else {
+                usi_bm01a_gpio_ctrl("usi_bm01a_bt_regon", 0);
+                usi_bm01a_gpio_ctrl("usi_bm01a_bt_rst", 0);
+            }
+            break;
+        case 5: /* swb b23 */
+            if (!blocked) {
+                swbb23_gpio_ctrl("swbb23_wl_shdn", 1);
+            } else {
+                swbb23_gpio_ctrl("swbb23_wl_shdn", 0);
+            }
+            break;
+        default:
+            RF_MSG("no bt module matched !!\n");
     }
-    mdelay(200);
+    
+    spin_unlock(&bt_power_lock);
+    mdelay(100);
     return 0;
 }
 
-static const char bt_name[] = "bcm4329";
-static struct rfkill *sw_rfkill;
 static struct rfkill_ops sw_rfkill_ops = {
     .set_block = rfkill_set_power,
 };
@@ -55,7 +70,6 @@ static struct rfkill_ops sw_rfkill_ops = {
 static int sw_rfkill_probe(struct platform_device *pdev)
 {
     int ret = 0;
-//    bool default_state = true; /* off */
 
     sw_rfkill = rfkill_alloc(bt_name, &pdev->dev, 
                         RFKILL_TYPE_BLUETOOTH, &sw_rfkill_ops, NULL);

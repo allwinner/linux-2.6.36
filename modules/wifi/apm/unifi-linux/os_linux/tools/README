@@ -1,0 +1,11 @@
+This directory contains the "unifidl" and "unifimib" tools.
+
+Unifidl downloads f/w to a RAM-only UniFi.
+
+Unifimib sets MIB entries.
+
+MIB entries may be set at any time, but the primary use is for setting the
+initial MIB contents.
+
+The tools use ioctl commands defined in unifiio.h.
+

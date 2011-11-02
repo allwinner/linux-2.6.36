@@ -1,0 +1,104 @@
+
+These instructions describe how to build and install the CSR UniFi linux
+driver on a Fedora Core 5 or 6 system.
+
+
+Prerequisites
+-------------
+The kernel-devel and C development RPMs must be installed.
+For WPA/WPA2 support, kernel version 2.6.14 or newer and wireless-tools
+version 28 or newer are required.
+
+
+Preparation
+-----------
+Untar the driver package into a working directory and cd to the
+top of the driver tree.
+
+
+Building and Installation
+-------------------------
+Run, as root:
+
+    ./fcinstall
+
+When prompted for a Medium Access Control (MAC) address for UniFi,
+enter: FF:FF:FF:FF:FF:FF
+Note:
+    If your UniFi hardware does not have settings in EEPROM, you can manually
+    enter a suitable MAC address here.
+
+
+Configuration
+-------------
+The UniFi firmware is installed into /lib/firmware/unifi-sdio-0 by the
+fcinstall script. If a ufmib.dat file has been supplied with your hardware,
+copy it to /lib/firmware/unifi-sdio-0.
+
+Use the system-config-network tool (follow menu tree: Desktop -> 
+System Settings -> Network) to configure the wireless network parameters:
+
+    Click "New"
+
+    Choose "Wireless connection", click "Forward".
+
+    [ Select Wireless Device form ]
+    Choose "Other Wireless Card", click "Forward".
+
+    [ Select Ethernet Adapter form ]
+    In the "Adapter" selection box, choose "CSR UniFi SDIO",
+    leave "Device" as eth1.
+    Click "Forward".
+
+    [ Configure Wireless Connection form ]
+    Set "Mode" to "Managed".
+    Choose "Network Name (SSID)" to be "Specified".
+    In the "Key" field, enter the WEP key or leave as blank for none.
+    Click "Forward".
+
+    [ Configure Network Settings form ]
+    Set as required for your network.
+    Note: if you tick "Automatically obtain DNS information...", your
+    /etc/resolv.conf file will be overwritten, and you may loose DNS
+    functionality.
+    Click "Forward".
+
+    [ Create Wireless Device ]
+    Click "Apply".
+
+    From the menu bar, select File->Save.
+    From the menu bar, select File->Quit.
+
+The values entered in the system-config-network tool are used to write the file
+/etc/sysconfig/network-scripts/ifcfg-eth1.
+
+ From a command prompt, now run:
+    modprobe eth1
+
+
+Verification of success
+-----------------------
+You can verify that the driver is loaded by running lsmod; you should see
+unifi_sdio listed (among others).
+
+dmesg should show messages such as (N.B. version numbers and dates will vary):
+
+    UniFi SDIO Driver: v5.0 (build:84) Jun 30 2008 17:24:29
+    CSR SME with WEXT support, API version: 0.2
+    Unifi: Using CSR embedded SDIO driver
+
+When you insert a UniFi module, dmesg should show messages such as:
+
+    unifi: card inserted
+    unifi0: unifi0 is eth1
+    unifi0: Initialising UniFi, attempt 1
+    unifi0: Chip ID 0x01
+    unifi0: Chip Version 0x1301
+    unifi0: unifi_sdio_hard_reset succeeded on reseting UniFi
+    unifi0: Chip ID 0x01
+    unifi0: Chip Version 0x1301
+    unifi0: needs firmware
+    unifi0: UniFi f/w protocol version 5.1 (driver 5.1)
+    unifi0: Firmware build 420: 2008-06-26 19:34 bgft_core_sta_rambo_sdio_gcc 42
+    unifi0: UniFi ready
+

@@ -1,0 +1,24 @@
+# ----------------------------------------------------------------------------
+# FILE: Kbuild
+#
+# PURPOSE:
+#       Build instructions for SDIO Glue Module.
+#
+#
+# Copyright (C) 2008 by Cambridge Silicon Radio Ltd.
+# ----------------------------------------------------------------------------
+
+# Read platform config details.
+DRIVERTOP := $(src)
+
+obj-m := fs_sdio.o
+
+
+fs_sdio-y :=  \
+	fs_lx.o
+
+
+U_INCLUDES = -I$(src)
+U_DEFINES = -DMODULE -D__KERNEL__ 
+
+EXTRA_CFLAGS += $(U_DEFINES) $(U_INCLUDES)
