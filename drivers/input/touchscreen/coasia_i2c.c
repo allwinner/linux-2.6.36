@@ -74,7 +74,7 @@ static int aw_get_pendown_state(void)
 
     //get the input port state
     reg_val = readl(gpio_addr + PIOH_DATA);
-	//printk("reg_val = %x\n",reg_val);
+	  //printk("reg_val = %x\n",reg_val);
     if(!(reg_val & (1<<IRQ_NO))) 
     {
         state = PRESS_DOWN;
@@ -96,16 +96,9 @@ static int aw_get_pendown_state(void)
 static void aw_clear_penirq(void)
 {
 	int reg_val;
-	//clear the IRQ_EINT29 interrupt pending
-	//printk("clear pend irq pending\n");
-	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
-	//writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
-    //writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
-    if((reg_val = (reg_val&(1<<(IRQ_NO)))))
-    {
-        //printk("==IRQ_EINT29=\n");              
-        writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
-    }
+	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);         
+  writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
+
 }
 
 /**
@@ -119,60 +112,26 @@ static int aw_set_irq_mode(void)
 {
     int reg_val;
     int ret = 0;
-
-   // return ret;
-    //config gpio to int mode
-    printk("config gpio to int mode. \n");
-    #ifndef SYSCONFIG_GPIO_ENABLE
-    #else
-        if(gpio_int_hdle)
-        {
-            gpio_release(gpio_int_hdle, 2);
-        }
-        gpio_int_hdle = gpio_request_ex("ctp_para", "ctp_int_port");
-        if(!gpio_int_hdle)
-        {
-            printk("request tp_int_port failed. \n");
-            ret = -1;
-            goto request_tp_int_port_failed;
-        }
-    #endif
+    //printk("INT21 INTERRUPT CONFIG\n");
+    reg_val = readl(gpio_addr + PIO_PH_CFG2);
+    reg_val &=(~(7<<20));
+    reg_val |=(6<<20);
+    writel(reg_val,gpio_addr + PIO_PH_CFG2);
     
-#ifdef AW_GPIO_INT_API_ENABLE
+    
+    //Config IRQ_EINT21 Negative Edge Interrupt
+    reg_val = readl(gpio_addr + PIO_INT_CFG2_OFFSET);
+    reg_val &=(~(7<<20));
+    reg_val |=(1<<20);  
+    writel(reg_val,gpio_addr + PIO_INT_CFG2_OFFSET);
+    
+    //Enable IRQ_EINT21 of PIO Interrupt
+    reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
+    reg_val |=(1<<IRQ_EINT21);
+    writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
+    msleep(2);
 
-#else
 
-       printk("INT21 INTERRUPT CONFIG\n");
-        //Config IRQ_EINT21 Negative Edge Interrupt
-        reg_val = readl(gpio_addr + PIO_INT_CFG2_OFFSET);
-        reg_val &=(~(7<<20));
-       // reg_val |=(1<<20);  
-        writel(reg_val,gpio_addr + PIO_INT_CFG2_OFFSET);
-        
-        //Enable IRQ_EINT21 of PIO Interrupt
-        reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
-        reg_val |=(1<<IRQ_EINT21);
-        writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
-        
-//
-//        //Config IRQ_EINT25 Negative Edge Interrupt
-//        reg_val = readl(gpio_addr + PIO_INT_CFG3_OFFSET);
-//        reg_val &=(~(7<<4));
-//        reg_val |=(1<<4);  
-//        writel(reg_val,gpio_addr + PIO_INT_CFG3_OFFSET);
-//        
-//        aw_clear_penirq();
-//            
-//        //Enable IRQ_EINT25 of PIO Interrupt
-//        reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
-//        reg_val |=(1<<IRQ_NO);
-//        writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
-//	    //disable_irq(IRQ_EINT);
-	    	
-    mdelay(2);
-#endif
-
-request_tp_int_port_failed:
     return ret;  
 }
 
@@ -187,27 +146,18 @@ static int aw_set_gpio_mode(void)
 {
     //int reg_val;
     int ret = 0;
+    int reg_val;
     //config gpio to io mode
-    printk("config gpio to io mode. \n");
-    #ifndef SYSCONFIG_GPIO_ENABLE
-    #else
-        if(gpio_int_hdle)
-        {
-            gpio_release(gpio_int_hdle, 2);
-        }
-        gpio_int_hdle = gpio_request_ex("ctp_para", "ctp_io_port");
-        if(!gpio_int_hdle)
-        {
-            printk("request ctp_io_port failed. \n");
-            ret = -1;
-            goto request_tp_io_port_failed;
-        }
-    #endif
-    return ret;
-
-request_tp_io_port_failed:
+    reg_val = readl(gpio_addr + PIO_INT_CTRL_OFFSET);
+    reg_val &=(~(1<<IRQ_EINT21));
+    writel(reg_val,gpio_addr + PIO_INT_CTRL_OFFSET);
+ 
+    reg_val = readl(gpio_addr + PIO_PH_CFG2);
+    reg_val &=(~(7<<20));
+    writel(reg_val,gpio_addr + PIO_PH_CFG2);
     return ret;
 }
+
 
 /**
  * aw_judge_int_occur - whether interrupt occur.
@@ -218,7 +168,6 @@ request_tp_io_port_failed:
  */
 static int aw_judge_int_occur(void)
 {
-    //int reg_val[3];
     int reg_val;
     int ret = -1;
 
@@ -266,11 +215,11 @@ static int aw_init_platform_resource(void)
 	
         gpio_addr = ioremap(PIO_BASE_ADDRESS, PIO_RANGE_SIZE);
         //printk("%s, gpio_addr = 0x%x. \n", __func__, gpio_addr);
-        if(!gpio_addr) {
+   if(!gpio_addr) {
 	    ret = -EIO;
 	    goto exit_ioremap_failed;	
-	}
-//    gpio_wakeup_enable = 1;
+	 }
+	 
     gpio_wakeup_hdle = gpio_request_ex("ctp_para", "ctp_wakeup");
     if(!gpio_wakeup_hdle) {
         pr_warning("touch panel tp_wakeup request gpio fail!\n");
@@ -288,13 +237,12 @@ static int aw_init_platform_resource(void)
         
     }
     
-    printk("==TP IRQ INITAL==\n");
+ 
     ret = aw_set_irq_mode();
     if(ret){
         ret = -EIO;
         goto exit_gpio_int_request_failed;
     }
-    printk("ret = %d\n",ret);
     return ret;
     
 exit_gpio_int_request_failed: 
@@ -378,15 +326,17 @@ script_parser_fetch_err:
 static void aw_ts_reset(void)
 {
     printk("%s. \n", __func__);
-    if(gpio_reset_enable){
+    if(1 == gpio_reset_enable){
         if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 0, "ctp_reset")){
             printk("ilitek_ts_reset: err when operate gpio. \n");
         }
-        mdelay(TS_RESET_LOW_PERIOD);
-        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
-            printk("ilitek_ts_reset: err when operate gpio. \n");
+    }
+    
+    if(1 == gpio_wakeup_enable){  
+        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
+            printk("ts_resume: err when operate gpio. \n");
         }
-        mdelay(TS_INITIAL_HIGH_PERIOD);
+
     }
     
 }
@@ -397,17 +347,18 @@ static void aw_ts_reset(void)
  */
 static void aw_ts_wakeup(void)
 {
-    printk("%s. \n", __func__);
-    if(1 == gpio_wakeup_enable){  
-        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 0, "ctp_wakeup")){
-            printk("ts_resume: err when operate gpio. \n");
+    if(1 == gpio_reset_enable){
+        if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_reset_hdle, 1, "ctp_reset")){
+            printk("ilitek_ts_reset: err when operate gpio. \n");
         }
-        mdelay(TS_WAKEUP_LOW_PERIOD);
+        msleep(10);
+    }
+    
+    if(1 == gpio_wakeup_enable){  
         if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_wakeup_hdle, 1, "ctp_wakeup")){
             printk("ts_resume: err when operate gpio. \n");
         }
-        mdelay(TS_WAKEUP_HIGH_PERIOD);
-
+        msleep(10);
     }
     
     return;
@@ -485,9 +436,7 @@ struct coasia_dev *gcoasia_ts = NULL;
 #define POINT_INFO_MASK 0x07
 #define POINT_PLAM_MASK 0x01
 
-#define POINT_INT_MODE 0x15
 
-#define COASIA_IIC_SPEED  400*1000
 
 static u8 calibration_flag = 0;
 
@@ -504,10 +453,11 @@ static int cj3b_read_regs(struct i2c_client *client, u8 reg, u8 buf[], unsigned 
 	//接收数据
 	msgs[1].flags = I2C_M_RD;//读消息
 	msgs[1].addr = client->addr;
-	msgs[1].len = len-1;
+	//msgs[1].len = len-1;
+	msgs[1].len = len;
 	msgs[1].buf = buf;
 	
-	printk("%s. \n", __func__);
+	//printk("%s. \n", __func__);
 	ret=i2c_transfer(client->adapter, msgs, 2);
 	if(ret<0){
             printk("%s. i2c_transfer err. \n", __func__);
@@ -529,7 +479,6 @@ static int cj3b_set_regs(struct i2c_client *client, u8 reg, u8 buf[], unsigned s
 	msg.addr = client->addr;
 	msg.len = len + 1;
 	msg.buf = buff;		
-	printk("======%s set data=======.\n", __func__);
 	ret=i2c_transfer(client->adapter, &msg,1);
 	if(ret<0){
             printk("%s. i2c_transfer err. \n", __func__);
@@ -543,6 +492,43 @@ static int cj3b_set_regs(struct i2c_client *client, u8 reg, u8 buf[], unsigned s
 	
 }
 
+
+static int i2c_read_bytes(struct i2c_client *client, uint8_t *buf, uint16_t len)
+{
+	struct i2c_msg msgs[2];
+	int ret=-1;
+	//·￠?íD?μ??·
+	msgs[0].flags = !I2C_M_RD;
+	msgs[0].addr = client->addr;
+	msgs[0].len = 1;		//data address
+	msgs[0].buf = buf;
+	//?óê?êy?Y
+	msgs[1].flags = I2C_M_RD;//?á???￠
+	msgs[1].addr = client->addr;
+	msgs[1].len = len-1;
+	msgs[1].buf = buf+1;
+	
+	ret=i2c_transfer(client->adapter, msgs, 2);
+	return ret;
+}
+
+//Function as i2c_write_bytes, and return 1 if operation is successful. 
+static int i2c_write_bytes(struct i2c_client *client, uint8_t *data, uint16_t len)
+{
+	struct i2c_msg msg;
+	int ret=-1;
+	
+	msg.flags = !I2C_M_RD;//D????￠
+	msg.addr = client->addr;
+	msg.len = len;
+	msg.buf = data;		
+	
+	ret=i2c_transfer(client->adapter, &msg,1);
+	return ret;
+}
+
+
+
 #define TP_STATE_IDLE         0
 #define TP_STATE_PRE_DOWN     1
 #define TP_STATE_DOWN         2
@@ -550,23 +536,30 @@ static int cj3b_set_regs(struct i2c_client *client, u8 reg, u8 buf[], unsigned s
 
 unsigned char tp_state = TP_STATE_IDLE;
 
+
 int read_point(struct coasia_dev *ts_dev )
 {
-	u8 pucPoint[10];
-	int X,Y,X1,Y1;
-	short Status;
-	
-	cj3b_read_regs(ts_dev->client,COMMAND_XY,pucPoint,10);
-	
-	Status = 0;
-	Status = pucPoint[0];
-	printk("status = %d\n",Status);
-
-	X =  ((pucPoint[3]<<8) | pucPoint[2]);
-  Y =  ((pucPoint[5]<<8) | pucPoint[4]);
-	
-	X1 = ((pucPoint[7]<<8) | pucPoint[6]);
-  Y1 = ((pucPoint[9]<<8) | pucPoint[8]);
+		u8 pucPoint[10];
+		int X,Y,X1,Y1;
+		short Status;
+		int ret;
+		u8 data;
+		
+		cj3b_read_regs(ts_dev->client,COMMAND_XY,pucPoint,10);
+		
+		Status = 0;
+		X =  ((pucPoint[1]<<8) | pucPoint[0]);
+	  Y =  ((pucPoint[3]<<8) | pucPoint[2]);
+		
+		X1 = ((pucPoint[5]<<8) | pucPoint[4]);
+	  Y1 = ((pucPoint[7]<<8) | pucPoint[6]);
+  
+	  if((X != 0) || (Y != 0) || (X1 != 0) || (Y1 != 0)){
+			data = 113;
+			ret = i2c_write_bytes(tsdata->client, &data, 1);
+			ret = i2c_read_bytes(tsdata->client,, &data, 1);
+			Status = data>>5;
+		}
 
     if(Status == 1)
     {	
@@ -578,7 +571,7 @@ int read_point(struct coasia_dev *ts_dev )
         input_mt_sync(ts_dev->input);
         input_sync(ts_dev->input);
         ts_dev->pendown =1;
-        printk("state=%d, send coordinate: x=%d, y=%d\n", Status, X, Y);
+        //printk("state=%d, send coordinate: x=%d, y=%d\n", Status, X, Y);
     }
     else if(Status == 2)
     {
@@ -598,9 +591,9 @@ int read_point(struct coasia_dev *ts_dev )
         input_mt_sync(ts_dev->input);   
         input_sync(ts_dev->input);     	
         ts_dev->pendown =1;
-        printk("state=%d, send coordinate: x=%d, y=%d , x1 = %d, y1 = %d\n", Status, X, Y, X1, Y1);
+        //printk("state=%d, send coordinate: x=%d, y=%d , x1 = %d, y1 = %d\n", Status, X, Y, X1, Y1);
     }
-    else// if(Status == 0)
+    else if(Status == 0)
     {
         input_report_abs(ts_dev->input, ABS_MT_TOUCH_MAJOR,0);
         input_mt_sync(ts_dev->input);
@@ -611,60 +604,30 @@ int read_point(struct coasia_dev *ts_dev )
 }
 
 int consia_irq_flag = 0;
-//extern int rk29_get_hold_key_state(void);
 static void coasia_work(struct work_struct *work)
 {
 	int rt;
 	struct coasia_dev *ts = container_of(to_delayed_work(work), struct coasia_dev, work);
-    
-    /////////////////////////////////////////////
-    //only test for irq
-    if (consia_irq_flag)
-    {
-        consia_irq_flag = 0;
-        printk("coasia_irq!\n");
-    }
-    ////////////////////////////////////////////
- /*   
-    if (rk29_get_hold_key_state())
-    {
-        printk("rk29_get_hold_key_state = 1\n");
-        enable_irq(ts->irq);
-        return;
-    }*/
-     
-	if (calibration_flag == 0)
+  msleep(2);
+  if(aw_ops.get_pendown_state() == PRESS_DOWN)
+  {
+		  rt = read_point(ts);
+			queue_delayed_work(ts->wq, &ts->work, msecs_to_jiffies(20));
+	}else
 	{
-	    rt = read_point(ts);
-	}
-
-	if (ts->pendown)
-	{
-		queue_delayed_work(ts->wq, &ts->work, msecs_to_jiffies(10));
-		ts->pendown = 0;
-	}
-	else
-	{
-		//enable_irq(ts->irq);
+		rt = read_point(ts);
+		aw_ops.set_irq_mode();
 	}
 }
 
 static irqreturn_t coasia_irq(int irq, void *handle)
 {
 	struct coasia_dev *ts = handle;
-	
-    consia_irq_flag = 1;
-	int reg_val;	
-	printk("==========------TS Interrupt-----============\n"); 
-
-	//clear the IRQ_EINT21 interrupt pending
-	reg_val = readl(gpio_addr + PIO_INT_STAT_OFFSET);
-     
-	if(reg_val&(1<<(IRQ_EINT21)))
+	if(!aw_judge_int_occur())
 	{	
-		printk("==IRQ_EINT21=\n");
-		writel(reg_val&(1<<(IRQ_EINT21)),gpio_addr + PIO_INT_STAT_OFFSET);
-		queue_delayed_work(ts->wq, &ts->work, 0);
+		aw_clear_penirq();
+		aw_set_gpio_mode();
+		queue_delayed_work(ts->wq, &ts->work, 5);
 	}
 	else
 	{
@@ -684,41 +647,20 @@ static void coasia_free_irq(struct coasia_dev *ts)
 		 * IRQ here to balance the disable_irq() done in the
 		 * interrupt handler.
 		 */
-		//enable_irq(ts->irq);
 	}
 }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void coasia_early_suspend(struct early_suspend *handler)
 {
-    #if 0
-    if(gcoasia_ts->power_pin != INVALID_GPIO)
-    {
-        gpio_set_value(gcoasia_ts->power_pin,GPIO_HIGH);
-    }
-
-    if(gcoasia_ts->rest_pin != INVALID_GPIO)
-    {
-        gpio_set_value(gcoasia_ts->rest_pin,GPIO_LOW);
-    }
-	#endif
+	printk("===Enter early suspend mode====\n");
+	aw_ops.ts_reset();
 }
 
 static void coasia_early_resume(struct early_suspend *handler)
 {
-    #if 0
-    if(gcoasia_ts->power_pin != INVALID_GPIO)
-    {
-        gpio_set_value(gcoasia_ts->power_pin,GPIO_HIGH);
-    }
-
-    if(gcoasia_ts->rest_pin != INVALID_GPIO)
-    {
-        //gpio_set_value(gcoasia_ts->rest_pin,GPIO_LOW);
-        msleep(500);
-        gpio_set_value(gcoasia_ts->rest_pin,GPIO_HIGH);
-    }
-	#endif
+	printk("===Enter early Resume mode====\n");
+	aw_ops.ts_wakeup();
 }
 
 static struct early_suspend coasia_i2c_early_suspend = {
@@ -731,17 +673,16 @@ static struct early_suspend coasia_i2c_early_suspend = {
 #ifdef CONFIG_PM
 static int coasia_suspend(struct i2c_client *client, pm_message_t mesg)
 {
-	struct coasia_dev *ts = i2c_get_clientdata(client);
-	struct coasia_platform_data *pdata = client->dev.platform_data;
+	printk("===Coasia Enter suspend mode====\n");
+  aw_ops.ts_reset();
 	
 	return 0;
 }
 
 static int coasia_resume(struct i2c_client *client)
 {
-	struct coasia_dev *ts = i2c_get_clientdata(client);
-	struct coasia_platform_data *pdata = client->dev.platform_data;
-
+	printk("===Coasia Enter Resume mode====\n");
+	aw_ops.ts_wakeup();
 	return 0;
 }
 #endif
@@ -779,7 +720,7 @@ static ssize_t touch_mode_store(struct class *cls, const char *_buf, size_t _cou
     return _count;
 } 
 static struct class *tp_class = NULL;
-static CLASS_ATTR(touchcalibration, 0666, touch_mode_show, touch_mode_store);
+//static CLASS_ATTR(touchcalibration, 0666, touch_mode_show, touch_mode_store);
 
 static int __devinit coasia_probe(struct i2c_client *client,
 				   const struct i2c_device_id *id)
@@ -859,11 +800,7 @@ static int __devinit coasia_probe(struct i2c_client *client,
 	input_set_abs_params(input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
 	input_set_abs_params(input_dev, ABS_MT_TRACKING_ID, 0, 10, 0, 0);   
 #endif
-/*
-	if (pdata->init_platform_hw)
-	{
-		pdata->init_platform_hw();
-	}*/
+
 	
 	err = input_register_device(input_dev);
 	if (err)
@@ -900,7 +837,7 @@ static int __devinit coasia_probe(struct i2c_client *client,
 	
 	ucData = 0x0a;
 	cj3b_set_regs(ts->client,COMMAND_BUFFER_INDEX,&ucData,1);
-	mdelay(10);
+	msleep(100);
 	
 	if (!ts->irq) 
 	{
@@ -914,7 +851,7 @@ static int __devinit coasia_probe(struct i2c_client *client,
 		
 	}
 
-	//err = request_irq(ts->irq, coasia_irq, IRQF_TRIGGER_LOW,client->dev.driver->name, ts);
+
 	err = request_irq(ts->irq, coasia_irq, IRQF_TRIGGER_FALLING,client->dev.driver->name, ts);
 	if (err < 0) 
 	{
@@ -927,8 +864,6 @@ static int __devinit coasia_probe(struct i2c_client *client,
 
 err_free_irq:
 	coasia_free_irq(ts);
-	//if (pdata->exit_platform_hw)
-	//	pdata->exit_platform_hw();
 err_free_mem:
 	input_free_device(input_dev);
 	kfree(ts);
@@ -940,16 +875,13 @@ exit_create_singlethread:
 static int __devexit coasia_remove(struct i2c_client *client)
 {
 	struct coasia_dev *ts = i2c_get_clientdata(client);
-	struct coasia_platform_data *pdata = client->dev.platform_data;
-
 	coasia_free_irq(ts);
 	
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	unregister_early_suspend(&coasia_i2c_early_suspend);
 #endif
 
-	//if (pdata->exit_platform_hw)
-	//	pdata->exit_platform_hw();
+
 
 	input_unregister_device(ts->input);
 	kfree(ts);
@@ -991,8 +923,8 @@ static int __init coasia_init(void)
 	if (aw_ops.fetch_sysconfig_para)
 	{
 		if(aw_ops.fetch_sysconfig_para()){
-                    printk("%s: err.\n", __func__);
-                    return -1;
+         printk("%s: err.\n", __func__);
+         return -1;
 		}
 	}
 	async_schedule(coasia_init_async, NULL);

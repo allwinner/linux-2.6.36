@@ -51,6 +51,7 @@
 #define GPIO_ENABLE
 #define SYSCONFIG_GPIO_ENABLE
 
+#define PIO_PH_CFG2                  (0x104)
 #define PIO_INT_STAT_OFFSET          (0x214)
 #define PIO_INT_CTRL_OFFSET          (0x210)
 #define PIO_INT_CFG2_OFFSET          (0x208)
@@ -76,6 +77,7 @@ struct aw_platform_ops{
 	void        (*clear_penirq)(void);
 	int         (*set_irq_mode)(void);
 	int         (*set_gpio_mode)(void);
+	int         (*get_gpio_status)(void);
 	int         (*judge_int_occur)(void);
     int         (*init_platform_resource)(void);
     void        (*free_platform_resource)(void);
