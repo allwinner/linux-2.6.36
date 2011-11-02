@@ -786,16 +786,19 @@ static int ft5x_read_data(void)
 		case 1:
 			event->x1 = (s16)(buf[3] & 0x0F)<<8 | (s16)buf[4];
 			event->y1 = (s16)(buf[5] & 0x0F)<<8 | (s16)buf[6];
-			if(1 == revert_x_flag){
-                event->x1 = SCREEN_MAX_X - event->x1;
-			}
-			if(1 == revert_y_flag){
-                event->y1 = SCREEN_MAX_Y - event->y1;
-			}
-			//printk("before swap: event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
-			if(1 == exchange_x_y_flag){
-                                  swap(event->x1, event->y1);
-			}
+			if(event->x1 < 60000)
+			{
+				if(1 == revert_x_flag){
+	                event->x1 = SCREEN_MAX_X - event->x1;
+				}
+				if(1 == revert_y_flag){
+	                event->y1 = SCREEN_MAX_Y - event->y1;
+				}
+				//printk("before swap: event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
+				if(1 == exchange_x_y_flag){
+	                                  swap(event->x1, event->y1);
+				}
+		 }
 
 			//printk("after swap: event->x1 = %d, event->y1 = %d. \n", event->x1, event->y1);
 			event->touch_ID1=(s16)(buf[0x05] & 0xF0)>>4;
