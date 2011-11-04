@@ -166,7 +166,8 @@ static int __HIFCheckR1Ready(HIF_DEVICE *device)
 {
     AR_DEBUG_ASSERT(device != NULL);
     AR_DEBUG_ASSERT(device->func != NULL);
-    return sdio_check_r1_ready(device->func, 0xffffff);
+    //return sdio_check_r1_ready(device->func, 0xffffff);
+    return 1;
 }
 
 static A_STATUS

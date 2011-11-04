@@ -50,21 +50,19 @@
 
 #if (defined CONFIG_ARCH_SUN4I || defined CONFIG_ARCH_SUN5I)
 #define SUPPORTED_BCM_BT
-extern unsigned int get_sdio_wifi_module_select(void);
-extern int usi_bm01a_gpio_ctrl(const char* name, int level);
-extern int usi_bm01a_get_gpio_value(const char* name);
-extern int swbb23_gpio_ctrl(const char* name, int level);
-extern int swbb23_get_gpio_value(const char* name);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
 static void sleep_brcm_bt(void)
 {
-    unsigned int mod_sel = get_sdio_wifi_module_select();
+    unsigned int mod_sel = mmc_pm_get_mod_type();
 	//fill your code to pull BT_wake_pin to high for BT sleep;
 	switch (mod_sel) {
 	    case 2: /* usi bm01a */
-            usi_bm01a_gpio_ctrl("usi_bm01a_bt_wake", 1);
+            mmc_pm_gpio_ctrl("usi_bm01a_bt_wake", 1);
             break;
         case 5: /* swb b23 */
-            swbb23_gpio_ctrl("swbb23_bt_wake", 1);
+            mmc_pm_gpio_ctrl("swbb23_bt_wake", 1);
             break;
         default:
             BT_DBG("no bt module matched !!\n");

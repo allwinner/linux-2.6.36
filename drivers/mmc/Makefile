@@ -8,6 +8,6 @@ endif
 
 obj-$(CONFIG_MMC)		+= core/
 obj-$(CONFIG_MMC)		+= card/
+obj-$(CONFIG_MMC)		+= mmc-pm/
 obj-$(CONFIG_MMC)		+= sun4i-host/
-obj-$(CONFIG_MMC)       += mmc-power/
 

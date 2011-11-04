@@ -49,6 +49,7 @@ static unsigned int smc_mod_clock = SMC_MAX_MOD_CLOCK;
 module_param_named(mod_clock, smc_mod_clock, int, 0);
 
 static int sdc_used[4] = {0};
+extern int mmc_pm_get_mod_type(void);
 
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
@@ -442,7 +443,7 @@ void sw_mmc_rescan_card(unsigned id, unsigned insert)
     smc_host = sw_host[id];
     
     smc_host->present = insert ? 1 : 0;
-    mmc_detect_change(smc_host->mmc, 1);
+    mmc_detect_change(smc_host->mmc, 0);
     return;
 }
 EXPORT_SYMBOL_GPL(sw_mmc_rescan_card);
@@ -965,8 +966,7 @@ static struct mmc_host_ops awsmc_ops = {
     .set_ios	     = awsmc_set_ios,
     .get_ro		     = awsmc_get_ro,
     .get_cd		     = awsmc_card_present,
-    .enable_sdio_irq = awsmc_enable_sdio_irq,
-    .check_r1_ready	 = awsmc_check_r1_ready
+    .enable_sdio_irq = awsmc_enable_sdio_irq
 };
 
 static int __devinit awsmc_probe(struct platform_device *pdev)
@@ -1007,7 +1007,8 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
     mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
-//    mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
+    if (mmc_pm_get_mod_type()==2)
+        mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
 
     mmc->max_blk_count	= 0xffff;
     mmc->max_blk_size	= 0xffff;
@@ -1171,7 +1172,7 @@ static int awsmc_suspend(struct device *dev)
     {
         struct awsmc_host *smc_host = mmc_priv(mmc);
         
-        if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_get_mod_type()!=2))
             ret = mmc_suspend_host(mmc);
             
         if (smc_host->power_on) {
@@ -1227,7 +1228,7 @@ static int awsmc_resume(struct device *dev)
             enable_irq(smc_host->irq);
         }
     
-        if (mmc->card && mmc->card->type!=MMC_TYPE_SDIO)
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_get_mod_type()!=2))
             ret = mmc_resume_host(mmc);
     }
 

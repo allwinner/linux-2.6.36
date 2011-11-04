@@ -41,11 +41,9 @@
 #define CUSTOMER_ALLWINNER
 #ifdef CUSTOMER_ALLWINNER
 extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
-extern unsigned int get_sdio_wifi_module_select(void);
-extern int usi_bm01a_gpio_ctrl(const char* name, int level);
-extern int usi_bm01a_get_gpio_value(const char* name);
-extern int swbb23_gpio_ctrl(const char* name, int level);
-extern int swbb23_get_gpio_value(const char* name);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
 #endif
 
 #ifdef CUSTOMER_HW
@@ -114,7 +112,7 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 void
 dhd_customer_gpio_wlan_ctrl(int onoff)
 {
-    unsigned int mod_sel = get_sdio_wifi_module_select();
+    unsigned int mod_sel = mmc_pm_get_mod_type();
 
 	switch (onoff) {
 		case WLAN_RESET_OFF:
@@ -125,11 +123,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_rst", 0);
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_regon", 0);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 0);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 0);
                     break;
                 case 5: /* swb b23 */
-                    swbb23_gpio_ctrl("swbb23_wl_shdn", 0);
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 0);
                     break;
                 default:
                     printk("[bcm4329]: no wifi module matched !!\n");
@@ -153,11 +151,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_regon", 1);
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_rst", 1);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 1);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 1);
                     break;
                 case 5: /* swb b23 */
-                    swbb23_gpio_ctrl("swbb23_wl_shdn", 1);
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 1);
                     break;
                 default:
                     printk("[bcm4329]: no wifi module matched !!\n");
@@ -183,11 +181,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_rst", 0);
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_regon", 0);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 0);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 0);
                     break;
                 case 5: /* swb b23 */
-                    swbb23_gpio_ctrl("swbb23_wl_shdn", 0);
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 0);
                     break;
                 default:
                     printk("[bcm4329]: no wifi module matched !!\n");
@@ -207,11 +205,11 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_regon", 1);
-                    usi_bm01a_gpio_ctrl("usi_bm01a_wl_rst", 1);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 1);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 1);
                     break;
                 case 5: /* swb b23 */
-                    swbb23_gpio_ctrl("swbb23_wl_shdn", 1);
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 1);
                     break;
                 default:
                     printk("[bcm4329]: no wifi module matched !!\n");

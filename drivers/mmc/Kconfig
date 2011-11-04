@@ -27,7 +27,7 @@ source "drivers/mmc/card/Kconfig"
 
 if ARCH_SUN4I
 source "drivers/mmc/sun4i-host/Kconfig"
-source "drivers/mmc/mmc-power/Kconfig"
+source "drivers/mmc/mmc-pm/Kconfig"
 endif
 
 endif # MMC

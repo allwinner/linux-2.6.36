@@ -1749,14 +1749,7 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 	struct mmc_host *host = container_of(
 		notify_block, struct mmc_host, pm_notify);
 	unsigned long flags;
-    
-    {
-        extern unsigned int get_sdio_wifi_module_select(void);
-        if (host->card && host->card->type==MMC_TYPE_SDIO && get_sdio_wifi_module_select()==2) {
-            printk(KERN_WARNING "%s: do not excute pm_notify in sdio card\n", mmc_hostname(host));
-            return 0;
-        }
-    }
+
 	switch (mode) {
 	case PM_HIBERNATION_PREPARE:
 	case PM_SUSPEND_PREPARE:

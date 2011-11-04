@@ -6,24 +6,22 @@
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
 
-#if CONFIG_BT_HCIUART_DEBUG
+#if defined CONFIG_BT_HCIUART_DEBUG
 #define RF_MSG(...)     do {printk("[rfkill]: "__VA_ARGS__);} while(0)
 #else
 #define RF_MSG(...)
 #endif
 
 #if (defined CONFIG_ARCH_SUN4I || defined CONFIG_ARCH_SUN5I)
-extern unsigned int get_sdio_wifi_module_select(void);
-extern int usi_bm01a_gpio_ctrl(const char* name, int level);
-extern int usi_bm01a_get_gpio_value(const char* name);
-extern int swbb23_gpio_ctrl(const char* name, int level);
-extern int swbb23_get_gpio_value(const char* name);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
 #else
-#define get_sdio_wifi_module_select
-#define usi_bm01a_gpio_ctrl
-#define usi_bm01a_get_gpio_value
-#define swbb23_gpio_ctrl
-#define swbb23_get_gpio_value
+#define mmc_pm_get_mod_type
+#define mmc_pm_gpio_ctrl
+#define mmc_pm_get_io_val
+#define mmc_pm_gpio_ctrl
+#define mmc_pm_get_io_val
 #endif
 
 static DEFINE_SPINLOCK(bt_power_lock);
@@ -31,7 +29,7 @@ static const char bt_name[] = "bcm4329";
 static struct rfkill *sw_rfkill;
 static int rfkill_set_power(void *data, bool blocked)
 {
-    unsigned int mod_sel = get_sdio_wifi_module_select();
+    unsigned int mod_sel = mmc_pm_get_mod_type();
     
     RF_MSG("rfkill set power %d\n", blocked);
     
@@ -40,18 +38,18 @@ static int rfkill_set_power(void *data, bool blocked)
     {
         case 2: /* usi bm01a */
             if (!blocked) {
-                usi_bm01a_gpio_ctrl("usi_bm01a_bt_regon", 1);
-                usi_bm01a_gpio_ctrl("usi_bm01a_bt_rst", 1);
+                mmc_pm_gpio_ctrl("usi_bm01a_bt_regon", 1);
+                mmc_pm_gpio_ctrl("usi_bm01a_bt_rst", 1);
             } else {
-                usi_bm01a_gpio_ctrl("usi_bm01a_bt_regon", 0);
-                usi_bm01a_gpio_ctrl("usi_bm01a_bt_rst", 0);
+                mmc_pm_gpio_ctrl("usi_bm01a_bt_regon", 0);
+                mmc_pm_gpio_ctrl("usi_bm01a_bt_rst", 0);
             }
             break;
         case 5: /* swb b23 */
             if (!blocked) {
-                swbb23_gpio_ctrl("swbb23_wl_shdn", 1);
+                mmc_pm_gpio_ctrl("swbb23_wl_shdn", 1);
             } else {
-                swbb23_gpio_ctrl("swbb23_wl_shdn", 0);
+                mmc_pm_gpio_ctrl("swbb23_wl_shdn", 0);
             }
             break;
         default:

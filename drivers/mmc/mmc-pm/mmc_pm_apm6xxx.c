@@ -12,14 +12,14 @@
 #include <linux/module.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include "mmc_pm.h"
 
 #define apm_msg(...)    do {printk("[apm_wifi]: "__VA_ARGS__);} while(0)
 
-extern u32 mmc_pio_hdle;
-
-int apm_6xxx_gpio_ctrl(const char* name, int level)
+static int apm_6xxx_gpio_ctrl(char* name, int level)
 {
-    const char* gpio_cmd[5] = {"apm_6981_vcc_en", "apm_6981_vdd_en", "apm_6981_wakeup", 
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    char* gpio_cmd[5] = {"apm_6981_vcc_en", "apm_6981_vdd_en", "apm_6981_wakeup", 
                                "apm_6981_rst_n", "apm_6981_pwd_n"};
     int i = 0;
     int ret = 0;
@@ -33,7 +33,7 @@ int apm_6xxx_gpio_ctrl(const char* name, int level)
         return -1;
     }
     
-    ret = gpio_write_one_pin_value(mmc_pio_hdle, level, name);
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, name);
     if (ret) {
         apm_msg("Failed to set gpio %s to %d !\n", name, level);
         return -1;
@@ -41,18 +41,18 @@ int apm_6xxx_gpio_ctrl(const char* name, int level)
     apm_msg("Set gpio %s to %d !\n", name, level);
     return 0;
 }
-EXPORT_SYMBOL(apm_6xxx_gpio_ctrl);
 
-
-int apm_6xxx_get_gpio_value(const char* name)
+int apm_6xxx_get_gpio_value(char* name)
 {
     return -1;
 }
-EXPORT_SYMBOL(apm_6xxx_get_gpio_value);
 
 void apm_6xxx_gpio_init(void)
 {
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
     apm_6xxx_gpio_ctrl("apm_6981_wakeup", 1);
     apm_6xxx_gpio_ctrl("apm_6981_pwd_n", 1);
     apm_6xxx_gpio_ctrl("apm_6981_rst_n", 1);
+    ops->gpio_ctrl = apm_6xxx_gpio_ctrl;
+    ops->get_io_val = apm_6xxx_get_gpio_value;
 }

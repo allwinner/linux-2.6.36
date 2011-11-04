@@ -1,7 +1,7 @@
 
 /*
  * USI wm-bn-bm-01-5(bcm4329) sdio wifi power management API
- * gpio define
+ * evb gpio define
  * usi_bm01a_wl_pwr        = port:PH12<1><default><default><0>
  * usi_bm01a_wlbt_regon    = port:PI11<1><default><default><0>
  * usi_bm01a_wl_rst        = port:PI10<1><default><default><0>
@@ -14,16 +14,16 @@
 #include <linux/module.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include "mmc_pm.h"
 
 #define usi_msg(...)    do {printk("[usi_bm01a]: "__VA_ARGS__);} while(0)
 static int usi_bm01a_wl_on = 0;
 static int usi_bm01a_bt_on = 0;
 
-extern u32 mmc_pio_hdle;
-
-int usi_bm01a_gpio_ctrl(const char* name, int level)
+static int usi_bm01a_gpio_ctrl(char* name, int level)
 {
-    const char* gpio_cmd[6] = {"usi_bm01a_wl_regon", "usi_bm01a_bt_regon", "usi_bm01a_wl_rst", 
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    char* gpio_cmd[6] = {"usi_bm01a_wl_regon", "usi_bm01a_bt_regon", "usi_bm01a_wl_rst", 
                                "usi_bm01a_wl_wake", "usi_bm01a_bt_rst", "usi_bm01a_bt_wake"};
     int i = 0;
     int ret = 0;
@@ -79,7 +79,7 @@ int usi_bm01a_gpio_ctrl(const char* name, int level)
     }
     
     
-    ret = gpio_write_one_pin_value(mmc_pio_hdle, level, name);
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, name);
     if (ret) {
         usi_msg("Failed to set gpio %s to %d !\n", name, level);
         return -1;
@@ -88,12 +88,12 @@ int usi_bm01a_gpio_ctrl(const char* name, int level)
     return 0;
     
 power_change:
-    ret = gpio_write_one_pin_value(mmc_pio_hdle, level, "usi_bm01a_wl_pwr");
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, "usi_bm01a_wl_pwr");
     if (ret) {
         usi_msg("Failed to power off USI-BM01A module!\n");
         return -1;
     }
-    ret = gpio_write_one_pin_value(mmc_pio_hdle, level, "usi_bm01a_wlbt_regon");
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, "usi_bm01a_wlbt_regon");
     if (ret) {
         usi_msg("Failed to regon off for  USI-BM01A module!\n");
         return -1;
@@ -107,24 +107,25 @@ change_state:
     usi_msg("USI-BM01A power state change: wifi %d, bt %d !!\n", usi_bm01a_wl_on, usi_bm01a_bt_on);
     return 0;
 }
-EXPORT_SYMBOL(usi_bm01a_gpio_ctrl);
 
-
-int usi_bm01a_get_gpio_value(const char* name)
+static int usi_bm01a_get_gpio_value(char* name)
 {
-    const char* bt_hostwake =  "usi_bm01a_bt_hostwake";
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    char* bt_hostwake =  "usi_bm01a_bt_hostwake";
     
     if (strcmp(name, bt_hostwake)) {
         usi_msg("No gpio %s for USI-BM01A\n", name);
         return -1;
     }
     
-    return gpio_read_one_pin_value(mmc_pio_hdle, name);
+    return gpio_read_one_pin_value(ops->pio_hdle, name);
 }
-EXPORT_SYMBOL(usi_bm01a_get_gpio_value);
 
 void usi_bm01a_gpio_init(void)
 {
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
     usi_bm01a_wl_on = 0;
     usi_bm01a_bt_on = 0;
+    ops->gpio_ctrl = usi_bm01a_gpio_ctrl;
+    ops->get_io_val = usi_bm01a_get_gpio_value;
 }

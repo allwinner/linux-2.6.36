@@ -9,20 +9,21 @@
  * swbb23_bt_wake          = port:PI20<1><default><default><0>
  * swbb23_bt_hostwake      = port:PI21<0><default><default><0>
  */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include "mmc_pm.h"
 
 #define swb_msg(...)    do {printk("[swbb23]: "__VA_ARGS__);} while(0)
 static int swbb23_wl_on = 0;
 static int swbb23_bt_on = 0;
 
-extern u32 mmc_pio_hdle;
-
-int swbb23_gpio_ctrl(const char* name, int level)
+static int swbb23_gpio_ctrl(char* name, int level)
 {
-    const char* gpio_cmd[5] = {"swbb23_wl_shdn", "swbb23_wl_wake", "swbb23_bt_shdn", 
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    char* gpio_cmd[5] = {"swbb23_wl_shdn", "swbb23_wl_wake", "swbb23_bt_shdn", 
                                "swbb23_bt_wake", "swbb23_bt_hostwake"};
     int i = 0;
     int ret = 0;
@@ -67,7 +68,7 @@ int swbb23_gpio_ctrl(const char* name, int level)
     }
 
 gpio_state_change:
-    ret = gpio_write_one_pin_value(mmc_pio_hdle, level, name);
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, name);
     if (ret) {
         swb_msg("Failed to set gpio %s to %d !\n", name, level);
         return -1;
@@ -76,7 +77,7 @@ gpio_state_change:
     return 0;
     
 power_change:
-    ret = gpio_write_one_pin_value(mmc_pio_hdle, level, "swbb23_wl_pwr");
+    ret = gpio_write_one_pin_value(ops->pio_hdle, level, "swbb23_wl_pwr");
     if (ret) {
         swb_msg("Failed to power off SWB-B23 module!\n");
         return -1;
@@ -91,24 +92,25 @@ state_change:
     
     goto gpio_state_change;
 }
-EXPORT_SYMBOL(swbb23_gpio_ctrl);
 
-
-int swbb23_get_gpio_value(const char* name)
+static int swbb23_get_gpio_value(char* name)
 {
-    const char* bt_hostwake =  "swbb23_bt_hostwake";
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    char* bt_hostwake =  "swbb23_bt_hostwake";
     
     if (strcmp(name, bt_hostwake)) {
         swb_msg("No gpio %s for SWB-B23\n", name);
         return -1;
     }
     
-    return gpio_read_one_pin_value(mmc_pio_hdle, name);
+    return gpio_read_one_pin_value(ops->pio_hdle, name);
 }
-EXPORT_SYMBOL(swbb23_get_gpio_value);
 
 void swbb23_gpio_init(void)
 {
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
     swbb23_wl_on = 0;
     swbb23_bt_on = 0;
+    ops->gpio_ctrl = swbb23_gpio_ctrl;
+    ops->get_io_val = swbb23_get_gpio_value;
 }

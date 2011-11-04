@@ -106,9 +106,26 @@
 
 
 #ifdef WINNER_POWER_ONOFF_CTRL
-extern int nano_sdio_powerup(u32 id, char* mname);
-extern int nano_sdio_poweroff(u32 id, char* mname);
 extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
+int nano_sdio_powerup(void)
+{
+    mmc_pm_gpio_ctrl("swl_n20_vcc_en", 1);
+    udelay(100);
+    mmc_pm_gpio_ctrl("swl_n20_shdn", 1);
+    udelay(50);
+    mmc_pm_gpio_ctrl("swl_n20_vdd_en", 1);
+    return 0;
+}
+int nano_sdio_poweroff(void)
+{
+    mmc_pm_gpio_ctrl("swl_n20_shdn", 0);
+    mmc_pm_gpio_ctrl("swl_n20_vdd_en", 0);
+    mmc_pm_gpio_ctrl("swl_n20_vcc_en", 0);
+    return 0;
+}
 #endif
 
 #undef  PROCFS_HIC
@@ -1520,7 +1537,7 @@ static int __init sdio_nrx_init(void)
 #endif
     
 #ifdef WINNER_POWER_ONOFF_CTRL
-    nano_sdio_powerup(3, "Nano-n20s");
+    nano_sdio_powerup();
     sw_mmc_rescan_card(3, 1);
 #endif
 
@@ -1548,7 +1565,7 @@ static void __exit sdio_nrx_exit(void)
     sdio_unregister_driver(&sdio_nrx_driver);
     
 #ifdef WINNER_POWER_ONOFF_CTRL
-    nano_sdio_poweroff(3, "Nano-n20s");
+    nano_sdio_poweroff();
     sw_mmc_rescan_card(3, 0);
 #endif
 }
