@@ -39,7 +39,7 @@
 #define WL_TRACE(x)
 
 #define CUSTOMER_ALLWINNER
-#ifdef CUSTOMER_ALLWINNER
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
 extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
 extern int mmc_pm_get_mod_type(void);
 extern int mmc_pm_gpio_ctrl(char* name, int level);
@@ -112,14 +112,16 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 void
 dhd_customer_gpio_wlan_ctrl(int onoff)
 {
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
     unsigned int mod_sel = mmc_pm_get_mod_type();
+#endif
 
 	switch (onoff) {
 		case WLAN_RESET_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
@@ -147,7 +149,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
@@ -177,7 +179,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
@@ -201,7 +203,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
             switch (mod_sel)
             {
                 case 2: /* usi bm01a */
@@ -220,7 +222,7 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 #endif /* CUSTOMER_HW */
 			/* Lets customer power to get stable */
 			OSL_DELAY(200);
-#ifdef CUSTOMER_ALLWINNER
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
             sw_mmc_rescan_card(3, 1);
 #endif
 		break;

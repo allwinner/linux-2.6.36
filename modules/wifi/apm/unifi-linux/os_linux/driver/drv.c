@@ -1841,15 +1841,18 @@ uf_remove_debug_device(void)
  *
  * ---------------------------------------------------------------------------
  */
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
 extern int mmc_pm_get_mod_type(void);
 extern int mmc_pm_gpio_ctrl(char* name, int level);
 extern int mmc_pm_get_io_val(char* name);
 extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
+#endif
 int __init
 unifi_load(void)
 {
     int r;
     
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
     printk("unifi_load\n");
     mmc_pm_gpio_ctrl("apm_6981_vcc_en", 1);
     msleep(1);
@@ -1862,7 +1865,7 @@ unifi_load(void)
     msleep(300);
     sw_mmc_rescan_card(3, 1);
     msleep(100);
-    
+#endif
     mdelay(100);
     printk("UniFi SDIO Driver: v%s (build:%d) %s %s\n",
            UNIFI_DRIVER_VERSION,
@@ -1937,12 +1940,14 @@ unifi_unload(void)
 
     uf_remove_debug_device();
     
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
     printk("unifi_sdio: power off\n");
     
     mmc_pm_gpio_ctrl("apm_6981_rst_n", 0);
     mmc_pm_gpio_ctrl("apm_6981_pwd_n", 0);
     sw_mmc_rescan_card(3, 0);
     msleep(100);
+#endif
 } /* unifi_unload() */
 
 module_init(unifi_load);

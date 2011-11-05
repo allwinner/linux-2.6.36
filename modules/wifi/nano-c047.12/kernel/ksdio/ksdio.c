@@ -105,7 +105,7 @@
 #include <linux/sched.h>
 
 
-#ifdef WINNER_POWER_ONOFF_CTRL
+#if defined WINNER_POWER_ONOFF_CTRL && defined CONFIG_SW_MMC_POWER_CONTROL
 extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
 extern int mmc_pm_get_mod_type(void);
 extern int mmc_pm_gpio_ctrl(char* name, int level);
@@ -1536,7 +1536,7 @@ static int __init sdio_nrx_init(void)
     */
 #endif
     
-#ifdef WINNER_POWER_ONOFF_CTRL
+#if defined WINNER_POWER_ONOFF_CTRL && defined CONFIG_SW_MMC_POWER_CONTROL
     nano_sdio_powerup();
     sw_mmc_rescan_card(3, 1);
 #endif
@@ -1564,7 +1564,7 @@ static void __exit sdio_nrx_exit(void)
 
     sdio_unregister_driver(&sdio_nrx_driver);
     
-#ifdef WINNER_POWER_ONOFF_CTRL
+#if defined WINNER_POWER_ONOFF_CTRL && defined CONFIG_SW_MMC_POWER_CONTROL
     nano_sdio_poweroff();
     sw_mmc_rescan_card(3, 0);
 #endif

@@ -52,7 +52,7 @@ static int sdc_used[4] = {0};
 #ifdef CONFIG_SW_MMC_POWER_CONTROL
 extern int mmc_pm_get_mod_type(void);
 #else
-#define static __inline int mmc_pm_get_mod_type(void){return 0};
+static __inline int mmc_pm_get_mod_type(void){return 0;}
 #endif
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {

@@ -12,16 +12,14 @@
 #define RF_MSG(...)
 #endif
 
-#if (defined CONFIG_ARCH_SUN4I || defined CONFIG_ARCH_SUN5I)
+#if (defined CONFIG_SW_MMC_POWER_CONTROL)
 extern int mmc_pm_get_mod_type(void);
 extern int mmc_pm_gpio_ctrl(char* name, int level);
 extern int mmc_pm_get_io_val(char* name);
 #else
-#define mmc_pm_get_mod_type
-#define mmc_pm_gpio_ctrl
-#define mmc_pm_get_io_val
-#define mmc_pm_gpio_ctrl
-#define mmc_pm_get_io_val
+static __inline int mmc_pm_get_mod_type(void) {return 0;}
+static __inline int mmc_pm_gpio_ctrl(char* name, int level) {return -1;}
+static __inline int mmc_pm_get_io_val(char* name) {return -1;}
 #endif
 
 static DEFINE_SPINLOCK(bt_power_lock);

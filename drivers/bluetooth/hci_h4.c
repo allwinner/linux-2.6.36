@@ -48,7 +48,7 @@
 
 #define VERSION "1.2"
 
-#if (defined CONFIG_ARCH_SUN4I || defined CONFIG_ARCH_SUN5I)
+#if defined CONFIG_SW_MMC_POWER_CONTROL
 #define SUPPORTED_BCM_BT
 extern int mmc_pm_get_mod_type(void);
 extern int mmc_pm_gpio_ctrl(char* name, int level);
