@@ -17,21 +17,36 @@ static char* wifi_mod[] = {" ", "swl-n20", "usi-bm01a", "ar6302qfn", "apm6xxx", 
 int mmc_pm_get_mod_type(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    return ops->module_sel;
+    if (ops->sdio_card_used)
+        return ops->module_sel;
+    else {
+        mmc_pm_msg("No sdio card, please check your config !!\n");
+        return 0;
+    }
 }
 EXPORT_SYMBOL(mmc_pm_get_mod_type);
 
 int mmc_pm_gpio_ctrl(char* name, int level)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    return ops->gpio_ctrl(name, level);
+    if (ops->sdio_card_used)
+        return ops->gpio_ctrl(name, level);
+    else {
+        mmc_pm_msg("No sdio card, please check your config !!\n");
+        return -1;
+    }
 }
 EXPORT_SYMBOL(mmc_pm_gpio_ctrl);
 
 int mmc_pm_get_io_val(char* name)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
-    return ops->get_io_val(name);
+    if (ops->sdio_card_used)
+        return ops->get_io_val(name);
+    else {
+        mmc_pm_msg("No sdio card, please check your config !!\n");
+        return -1;
+    }
 }
 EXPORT_SYMBOL(mmc_pm_get_io_val);
 

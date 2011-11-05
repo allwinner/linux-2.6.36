@@ -49,8 +49,11 @@ static unsigned int smc_mod_clock = SMC_MAX_MOD_CLOCK;
 module_param_named(mod_clock, smc_mod_clock, int, 0);
 
 static int sdc_used[4] = {0};
+#ifdef CONFIG_SW_MMC_POWER_CONTROL
 extern int mmc_pm_get_mod_type(void);
-
+#else
+#define static __inline int mmc_pm_get_mod_type(void){return 0};
+#endif
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
     __u32 i;
@@ -1007,7 +1010,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
     mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
-    if (mmc_pm_get_mod_type()==2)
+    if (pdev->id==3 && mmc_pm_get_mod_type()==2)
         mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
 
     mmc->max_blk_count	= 0xffff;

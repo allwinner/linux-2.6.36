@@ -620,10 +620,12 @@ int fs_sdio_set_block_size(struct sdio_dev *fdev, int blksz)
     return 0;
 }
 
-#ifdef CONFIG_MX31_3STACK
-
-extern struct mxcmci_host *mxc_get_mmc_host(int id);
-
+/* AW SUN4I */
+#ifdef CONFIG_ARCH_SUN4I
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
+extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
 /*
  * ---------------------------------------------------------------------------
  *
@@ -633,47 +635,19 @@ extern struct mxcmci_host *mxc_get_mmc_host(int id);
  */
 static void fs_unifi_power_on( int check_card )
 {
-    struct mxcmci_host * mmc_host = mxc_get_mmc_host(1);
-    t_regulator_voltage voltage;
-    
-    /* All comments below for SPF-23250_REV_D and SPF_23251_REV_B */
-    
-    /* GPO3 -> enables SW2B 1.8V out - this becomes 1V8 on personality board,
-     * then 1V8_EXT, then BT_VUSB
-     */
-    pmic_power_regulator_on(REGU_GPO3);
-
-    /* GPO4 -> WiFi_PWEN, but this signal is not used on current boards */
-    pmic_power_regulator_on(REGU_GPO4);
-   
-    /* VRF1 -> WL_1V5ANA and WL_1V5BB */
-    voltage.vrf1 = VRF1_1_5V;//VRF1_2_775V
-    pmic_power_regulator_set_voltage(REGU_VRF1, voltage);
-    pmic_power_regulator_on(REGU_VRF1);
-      
-    /* VMMC2 -> WL_VDD and WL_VPA */
-    voltage.vmmc2 = VMMC2_3V;
-    pmic_power_regulator_set_voltage(REGU_VMMC2, voltage);
-    pmic_power_regulator_on(REGU_VMMC2);
-   
-    /* WL_1V5DD should come on last, 10ms after other supplies */
-    mdelay(10);    
-    /* VRF2 -> WL_1V5DD */
-    voltage.vrf2 = VRF2_1_5V;//VRF1_2_775V
-    pmic_power_regulator_set_voltage(REGU_VRF2, voltage);
-    pmic_power_regulator_on(REGU_VRF2);
-
-    clk_enable(mmc_host->clk);
-    
-    /* MX31_PIN_DCD_DCE1 is connected to both WiFi and BT reset - this will reset BT */
-    /* So don't do it - assume the power up has reset the device */
-    /* mxc_set_gpio_dataout(MX31_PIN_DCD_DCE1, 0);  */    //Low
-    /* mdelay(10); */
-    mxc_set_gpio_dataout(MX31_PIN_DCD_DCE1, 1);    //high
-    mdelay(10);
-    
-    if( check_card && mmc_host ) {
-        mmc_detect_change(mmc_host->mmc, msecs_to_jiffies(100));
+    printk("unifi_sdio: power on\n");
+    mmc_pm_gpio_ctrl("apm_6981_vcc_en", 1);
+    msleep(1);
+    mmc_pm_gpio_ctrl("apm_6981_vdd_en", 1);
+    msleep(1);
+    mmc_pm_gpio_ctrl("apm_6981_pwd_n", 1);
+    mmc_pm_gpio_ctrl("apm_6981_rst_n", 0);
+    msleep(100);
+    mmc_pm_gpio_ctrl("apm_6981_rst_n", 1);
+    msleep(300);
+    if(check_card) {
+        sw_mmc_rescan_card(3, 1);
+        msleep(100);
     }
 }
 
@@ -686,27 +660,13 @@ static void fs_unifi_power_on( int check_card )
  */
 static void fs_unifi_power_off( int check_card )
 {
-    struct mxcmci_host * mmc_host = mxc_get_mmc_host(1);
+    printk("unifi_sdio: power off\n");
     
-    if( check_card && mmc_host )
-    {
-        mmc_detect_change(mmc_host->mmc, msecs_to_jiffies(50));
-        mdelay(10);
-        clk_disable(mmc_host->clk);
+    mmc_pm_gpio_ctrl("apm_6981_rst_n", 0);
+    if(check_card) {
+        sw_mmc_rescan_card(3, 0);
+        msleep(100);
     }
-
-    /* Don't switch off, will switch off bluetooth! */
-    /* pmic_power_regulator_off(REGU_GPO3); */
-    
-    pmic_power_regulator_off(REGU_GPO4);
-    pmic_power_regulator_off(REGU_VRF1);
-    
-    pmic_power_regulator_off(REGU_VRF2);
-    
-    pmic_power_regulator_off(REGU_VMMC2);
-    
-    /* Don't do this, will hold Bluetooth in reset */
-    /* mxc_set_gpio_dataout(MX31_PIN_DCD_DCE1, 0); */    //Low
 }
 
 /* This should be made conditional on being slot 2 too - so we can

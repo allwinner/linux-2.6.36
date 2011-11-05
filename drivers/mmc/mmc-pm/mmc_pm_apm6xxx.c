@@ -51,8 +51,8 @@ void apm_6xxx_gpio_init(void)
 {
     struct mmc_pm_ops *ops = &mmc_card_pm_ops;
     apm_6xxx_gpio_ctrl("apm_6981_wakeup", 1);
-    apm_6xxx_gpio_ctrl("apm_6981_pwd_n", 1);
-    apm_6xxx_gpio_ctrl("apm_6981_rst_n", 1);
+    apm_6xxx_gpio_ctrl("apm_6981_pwd_n", 0);
+    apm_6xxx_gpio_ctrl("apm_6981_rst_n", 0);
     ops->gpio_ctrl = apm_6xxx_gpio_ctrl;
     ops->get_io_val = apm_6xxx_get_gpio_value;
 }
