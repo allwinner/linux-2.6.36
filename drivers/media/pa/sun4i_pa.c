@@ -69,7 +69,7 @@ pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){
 			#ifdef PA_DEBUG
 			printk("%s,%d\n", __func__, __LINE__);
 			#endif			
-			gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");  
+			gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");  
 			break;
 		default:
 			break;
