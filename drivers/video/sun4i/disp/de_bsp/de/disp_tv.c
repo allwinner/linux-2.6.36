@@ -248,10 +248,10 @@ __s32 BSP_disp_tv_open(__u32 sel)
                 }
             }
             /************for audio*****************/
-			reg_val = readl(0xf1c22c10);
-			reg_val &=~(1<<27);
-			reg_val |=(1<<27);
-			writel(reg_val, 0xf1c22c10);
+//			reg_val = readl(0xf1c22c10);
+//			reg_val &=~(1<<27);
+//			reg_val |=(1<<27);
+//			writel(reg_val, 0xf1c22c10);
 			/************for audio*****************/
         }
 #endif
@@ -311,9 +311,9 @@ __s32 BSP_disp_tv_close(__u32 sel)
                 }
             }
             /************for audio*****************/
-			reg_val = readl(0xf1c22c10);
-			reg_val &=~(1<<27);
-			writel(reg_val, 0xf1c22c10);
+//			reg_val = readl(0xf1c22c10);
+//			reg_val &=~(1<<27);
+//			writel(reg_val, 0xf1c22c10);
 			/************for audio*****************/
         }
 #endif
