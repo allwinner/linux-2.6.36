@@ -32,21 +32,48 @@ static struct class *pa_dev_class;
 static struct cdev *pa_dev;
 static dev_t dev_num ;
 
+#define PA_DEBUG
+typedef enum PA_OPT
+{
+	PA_OPEN = 200,
+	PA_CLOSE,
+	PA_DEV_
+}__ace_ops_e;
+
+
 static int pa_dev_open(struct inode *inode, struct file *filp){
+	#ifdef PA_DEBUG
 	 printk("%s,%d\n", __func__, __LINE__);
-	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");  
+	 #endif
     return 0;
 }
 
 static int pa_dev_release(struct inode *inode, struct file *filp){  
-	printk("%s,%d\n", __func__, __LINE__);
-	gpio_write_one_pin_value(gpio_pa_shutdown, 0, "audio_pa_ctrl");
+	#ifdef PA_DEBUG
+	 printk("%s,%d\n", __func__, __LINE__);
+	 #endif
     return 0;
 }
 
 static long
 pa_dev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg){	
 	
+	switch (cmd) {	
+		case PA_OPEN:
+			#ifdef PA_DEBUG
+			printk("%s,%d\n", __func__, __LINE__);
+			#endif
+			gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");  
+			break;
+		case PA_CLOSE:
+			#ifdef PA_DEBUG
+			printk("%s,%d\n", __func__, __LINE__);
+			#endif			
+			gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");  
+			break;
+		default:
+			break;
+	}
 	return 0;
 }
 
