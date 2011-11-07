@@ -39,7 +39,7 @@
 #endif
 
 static cycle_t aw_clksrc_read(struct clocksource *cs);
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 static irqreturn_t aw_clkevt_irq(int irq, void *handle);
 static spinlock_t timer1_spin_lock;
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev);
@@ -61,7 +61,7 @@ static struct clocksource aw_clocksrc =
     .flags = CLOCK_SOURCE_IS_CONTINUOUS,
 };
 
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 static struct clock_event_device aw_clock_event =
 {
     .name = "aw clock event device",
@@ -141,7 +141,7 @@ static cycle_t aw_clksrc_read(struct clocksource *cs)
 *
 *********************************************************************************************************
 */
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
 {
     CLKSRC_DBG("aw_set_clkevt_mode:%u\n", mode);
@@ -199,7 +199,7 @@ static void aw_set_clkevt_mode(enum clock_event_mode mode, struct clock_event_de
 *
 *********************************************************************************************************
 */
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *dev)
 {
 	unsigned long flags;
@@ -250,7 +250,7 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 *
 *********************************************************************************************************
 */
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 static irqreturn_t aw_clkevt_irq(int irq, void *handle)
 {
     if(TMR_REG_IRQ_STAT & (1<<1))
@@ -327,7 +327,7 @@ static int __init aw_clksrc_init(void)
 *
 *********************************************************************************************************
 */
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 static int __init aw_clkevt_init(void)
 {
     /* register clock event irq     */
@@ -364,6 +364,6 @@ static int __init aw_clkevt_init(void)
 #endif
 
 arch_initcall(aw_clksrc_init);
-#if 0
+#ifdef CONFIG_HIGH_RES_TIMERS
 arch_initcall(aw_clkevt_init);
 #endif
