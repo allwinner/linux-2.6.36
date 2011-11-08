@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.36
-# Thu Nov  3 11:04:50 2011
+# Tue Nov  8 09:34:15 2011
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -815,7 +815,17 @@ CONFIG_SCSI_LOWLEVEL=y
 # CONFIG_SCSI_DEBUG is not set
 # CONFIG_SCSI_DH is not set
 # CONFIG_SCSI_OSD_INITIATOR is not set
-# CONFIG_ATA is not set
+CONFIG_ATA=y
+# CONFIG_ATA_NONSTANDARD is not set
+CONFIG_ATA_VERBOSE_ERROR=y
+CONFIG_SATA_PMP=y
+
+#
+# Controllers with non-SFF native interface
+#
+# CONFIG_SATA_AHCI_PLATFORM is not set
+CONFIG_SW_SATA_AHCI_PLATFORM=m
+# CONFIG_ATA_SFF is not set
 CONFIG_MD=y
 # CONFIG_BLK_DEV_MD is not set
 CONFIG_BLK_DEV_DM=y
@@ -1420,6 +1430,8 @@ CONFIG_RADIO_ADAPTERS=y
 # CONFIG_RADIO_TEF6862 is not set
 CONFIG_AUDIO_ENGINE=y
 CONFIG_ACE_CONFIG=y
+CONFIG_PA_CONTROL=y
+CONFIG_PA_CONFIG=y
 # CONFIG_DAB is not set
 
 #
