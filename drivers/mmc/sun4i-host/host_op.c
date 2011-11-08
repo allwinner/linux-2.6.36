@@ -1010,7 +1010,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
     mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
-    if (pdev->id==3 && mmc_pm_get_mod_type()==2)
+    if (pdev->id==3 && (mmc_pm_get_mod_type()==2 || mmc_pm_get_mod_type()==5))
         mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
 
     mmc->max_blk_count	= 0xffff;
@@ -1175,7 +1175,7 @@ static int awsmc_suspend(struct device *dev)
     {
         struct awsmc_host *smc_host = mmc_priv(mmc);
         
-        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_get_mod_type()!=2))
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || (mmc_pm_get_mod_type()!=2 && mmc_pm_get_mod_type()!=5)))
             ret = mmc_suspend_host(mmc);
             
         if (smc_host->power_on) {

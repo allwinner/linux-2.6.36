@@ -45,9 +45,9 @@ static int rfkill_set_power(void *data, bool blocked)
             break;
         case 5: /* swb b23 */
             if (!blocked) {
-                mmc_pm_gpio_ctrl("swbb23_wl_shdn", 1);
+                mmc_pm_gpio_ctrl("swbb23_bt_shdn", 1);
             } else {
-                mmc_pm_gpio_ctrl("swbb23_wl_shdn", 0);
+                mmc_pm_gpio_ctrl("swbb23_bt_shdn", 0);
             }
             break;
         default:
