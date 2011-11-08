@@ -976,7 +976,6 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
 {
     struct awsmc_host *smc_host = NULL;
     struct mmc_host	*mmc = NULL;
-    unsigned long iflags;
     int ret = 0;
     char* mmc_para[4] = {"mmc0_para", "mmc1_para", "mmc2_para", "mmc3_para"};
     int card_detmode = 0;
@@ -1021,7 +1020,6 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->max_phys_segs	= 256;
     mmc->max_hw_segs	= 256;
 
-    spin_lock_irqsave(&smc_host->lock, iflags);
     if (awsmc_resource_request(smc_host))
     {
         awsmc_msg("%s: Failed to get resouce.\n", dev_name(&pdev->dev));
@@ -1033,7 +1031,6 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     }
     awsmc_init_controller(smc_host);
     smc_host->power_on = 1;
-    spin_unlock_irqrestore(&smc_host->lock, iflags);
     
 //    awsmc_debugfs_attach(smc_host);
     awsmc_procfs_attach(smc_host);
