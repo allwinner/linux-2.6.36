@@ -45,16 +45,16 @@ typedef unsigned int __hdle;
 #include "../OSAL/OSAL.h"
 
 #if 1
-#define OSAL_PRINTF(msg...)     {printk(KERN_WARNING msg);}
+#define OSAL_PRINTF(msg...) {printk(KERN_WARNING "[DISP] ");printk(msg);}
 #define __inf(msg...)
 #define __msg(msg...)
-#define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
+#define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
 #define __here__
 #else
-#define OSAL_PRINTF(msg...) {printk(KERN_WARNING msg);}
-#define __inf(msg...)       {printk(KERN_WARNING "[DISP] ");                                            printk(msg);}
-#define __msg(msg...)       {printk(KERN_WARNING "[DISP] file:%s,line:%d:    ",__FILE__,__LINE__);      printk(msg);}
-#define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);  printk(msg);}
+#define OSAL_PRINTF(msg...) {printk(KERN_WARNING "[DISP] ");printk(msg);}
+#define __inf(msg...)       {printk(KERN_WARNING "[DISP] ");printk(msg);}
+#define __msg(msg...)       {printk(KERN_WARNING "[DISP] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
+#define __wrn(msg...)       {printk(KERN_WARNING "[DISP WRN] file:%s,line:%d:    ",__FILE__,__LINE__);printk(msg);}
 #define __here__            {printk(KERN_WARNING "[DISP] file:%s,line:%d\n",__FILE__,__LINE__);}
 #endif
 

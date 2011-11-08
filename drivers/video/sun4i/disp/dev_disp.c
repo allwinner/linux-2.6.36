@@ -19,7 +19,6 @@ static struct info_mm  g_disp_mm[10];
 static int g_disp_mm_sel = 0;
 
 atomic_t cmd_index;
-//static __u32 cmd_index = 0;
 
 static struct cdev *my_cdev;
 static dev_t devid ;

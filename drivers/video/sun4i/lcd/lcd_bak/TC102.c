@@ -12,27 +12,27 @@ static void LCD_vcc_off(__u32 sel);
 #define LCD_PARA_USE_CONFIG
 
 #ifdef LCD_PARA_USE_CONFIG
-
-static __u32 g_gamma_tbl[18] = 
+static __u8 g_gamma_tbl[][2] = 
 {
-0,      //0
-16,     //15
-40,     //30
-55,     //45
-66,     //60
-82,     //75
-96,     //90
-112,    //105 
-131,    //120
-145,    //135
-160,    //150
-173,    //165
-187,    //180
-199,    //195
-213,    //210
-224,    //225
-234,    //240
-255     //255
+//{input value, corrected value}
+    {0, 0},
+    {15, 16},
+    {30, 40},
+    {45, 55},
+    {60, 66},
+    {75, 82},
+    {90, 96},
+    {105, 112},
+    {120, 131},
+    {135, 145},
+    {150, 160},
+    {165, 173},
+    {180, 187},
+    {195, 199},
+    {210, 213},
+    {225, 224},
+    {240, 234},
+    {255, 255},
 };
 
 static void LCD_cfg_panel_info(__panel_para_t * info)
@@ -54,15 +54,15 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
 
     info->lcd_hbp           = 3;      //hsync back porch
     info->lcd_ht            = 1440;     //hsync total cycle
+    info->lcd_hv_hspw       = 0;        //hsync plus width
     info->lcd_vbp           = 3;       //vsync back porch
     info->lcd_vt            = 1580;  //vysnc total cycle *2
+    info->lcd_hv_vspw       = 0;        //vysnc plus width
 
     info->lcd_hv_if         = 0;        //0:hv parallel 1:hv serial 
     info->lcd_hv_smode      = 0;        //0:RGB888 1:CCIR656
     info->lcd_hv_s888_if    = 0;        //serial RGB format
     info->lcd_hv_syuv_if    = 0;        //serial YUV format
-    info->lcd_hv_hspw       = 0;        //hsync plus width
-    info->lcd_hv_vspw       = 0;        //vysnc plus width
 
     info->lcd_cpu_if        = 0;        //0:18bit 4:16bit
     info->lcd_frm           = 1;        //0: disable; 1: enable rgb666 dither; 2:enable rgb656 dither
@@ -75,17 +75,27 @@ static void LCD_cfg_panel_info(__panel_para_t * info)
     info->lcd_io_cfg0       = 0x00000000;
 
     info->lcd_gamma_correction_en = 1;
-    for(i=0; i<17; i++)
+    if(info->lcd_gamma_correction_en)
     {
-        for(j=0; j<15; j++)
+        __u32 items = sizeof(g_gamma_tbl)/2;
+        
+        for(i=0; i<items-1; i++)
         {
-            __u32 value = 0;
+            __u32 num = g_gamma_tbl[i+1][0] - g_gamma_tbl[i][0];
 
-            value = g_gamma_tbl[i] + ((g_gamma_tbl[i+1] - g_gamma_tbl[i]) * j)/15;
-            info->lcd_gamma_tbl[i*15 + j] = (value<<16) + (value<<8) + value;
+            //__inf("handling{%d,%d}\n", g_gamma_tbl[i][0], g_gamma_tbl[i][1]);
+            for(j=0; j<num; j++)
+            {
+                __u32 value = 0;
+
+                value = g_gamma_tbl[i][1] + ((g_gamma_tbl[i+1][1] - g_gamma_tbl[i][1]) * j)/num;
+                info->lcd_gamma_tbl[g_gamma_tbl[i][0] + j] = (value<<16) + (value<<8) + value;
+                //__inf("----gamma %d, %d\n", g_gamma_tbl[i][0] + j, value);
+            }
         }
+        info->lcd_gamma_tbl[255] = (g_gamma_tbl[items-1][1]<<16) + (g_gamma_tbl[items-1][1]<<8) + g_gamma_tbl[items-1][1];
+        //__inf("----gamma 255, %d\n", g_gamma_tbl[items-1][1]);
     }
-    info->lcd_gamma_tbl[255] = (g_gamma_tbl[17]<<16) + (g_gamma_tbl[17]<<8) + g_gamma_tbl[17];
 }
 #endif
 

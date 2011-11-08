@@ -385,6 +385,15 @@ __s32 TCON0_set_dclk_div(__u32 sel, __u8 div)
 	return 0;
 }
 
+__u32 TCON0_get_dclk_div(__u32 sel)
+{
+	__u32  tmp;
+
+	tmp = LCDC_RUINT32(sel, LCDC_DCLK_OFF) & 0xff;
+	
+	return tmp;
+}
+
 
 #define ____SEPARATOR_TCON1____
 
