@@ -18,7 +18,8 @@ static __u32 suspend_status = 0;//0:normal; suspend_status&1 != 0:in early_suspe
 static struct info_mm  g_disp_mm[10];
 static int g_disp_mm_sel = 0;
 
-static __u32 cmd_index = 0;
+atomic_t cmd_index;
+//static __u32 cmd_index = 0;
 
 static struct cdev *my_cdev;
 static dev_t devid ;
@@ -276,19 +277,17 @@ void DRV_disp_wait_cmd_finish(__u32 sel)
 #if 1
 	__u32 timeout = (20 * HZ)/1000,ret;//20ms
 	__u32 i;
-	spinlock_t mr_lock;
 
     timeout = (HZ * 2) / BSP_disp_get_frame_rate(sel);//wait two frame
 
     if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
     {
-        spin_lock(&mr_lock);
-        if(cmd_index >= 20)
+        if(atomic_read(&cmd_index) >= 20)
         {
-            cmd_index = 0;
+            atomic_set(&cmd_index, 0);
         }
-        i = cmd_index++;
-        spin_unlock(&mr_lock);
+        i = atomic_read(&cmd_index);
+        atomic_inc(&cmd_index);
 
         g_disp_drv.b_cmd_finished[sel][i] = 1;
     	ret = wait_event_interruptible_timeout(g_disp_drv.my_queue[sel][i], g_disp_drv.b_cmd_finished[sel][i] == 2, timeout);
@@ -1947,10 +1946,11 @@ struct platform_device disp_device =
 
 int __init disp_module_init(void)
 {
-	int ret, err;
+    int ret, err;
 
-	__inf("disp_module_init\n");
+    __inf("disp_module_init\n");
 
+    atomic_set(&cmd_index, 0);
     alloc_chrdev_region(&devid, 0, 1, "disp");
     my_cdev = cdev_alloc();
     cdev_init(my_cdev, &disp_fops);
