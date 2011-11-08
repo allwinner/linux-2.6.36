@@ -30,6 +30,8 @@
 //print unconditional, for important info
 #define csi_print(x,arg...) printk(KERN_INFO"[CSI]"x,##arg)
 
+#define MAX_NUM_INPUTS 2
+
 struct csi_subdev_info {
 	const char *name;
 	struct i2c_board_info board_info;
@@ -225,7 +227,7 @@ typedef struct tag_CSI_SUBDEV_INFO
     __csi_ref_t        vref;        /* input vref signal polarity */
     __csi_ref_t        href;        /* input href signal polarity */
     __csi_clk_t        clock;       /* input data valid of the input clock edge type */
-    int								 iocfg;				/*0 for csi0 , 1 for csi1*/						 
+    int								 iocfg;				/*0 for csi back , 1 for csi front*/				 
 }__csi_subdev_info_t;
 struct csi_buf_addr {
 	dma_addr_t	y;
@@ -264,10 +266,29 @@ struct csi_dmaqueue {
 
 static LIST_HEAD(csi_devlist);
 
+struct ccm_config {
+	char ccm[I2C_NAME_SIZE];
+	char iovdd_str[32];
+	char avdd_str[32];
+	char dvdd_str[32];
+	int twi_id;
+	uint i2c_addr;
+	int vflip;
+	int hflip;
+	int stby_mode;
+	int interface;
+	int flash_pol;		
+	struct regulator 	 *iovdd;		  /*interface voltage source of sensor module*/
+	struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
+	struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
+	__csi_subdev_info_t ccm_info;  
+	struct v4l2_subdev			*sd;
+};
+
 struct csi_dev {
 	struct list_head       	csi_devlist;
 	struct v4l2_device 	   	v4l2_dev;
-	struct v4l2_subdev		*sd;
+	struct v4l2_subdev			*sd;
 	struct platform_device	*pdev;
 
 	int						id;
@@ -310,15 +331,27 @@ struct csi_dev {
 	struct resource			*regs_res;
 	
 	/*power issue*/
+	
 	int								 stby_mode;
-	struct regulator 	 *iovdd;		/*interface voltage source of sensor module*/
+	struct regulator 	 *iovdd;		  /*interface voltage source of sensor module*/
   struct regulator 	 *avdd;			/*anlog voltage source of sensor module*/
   struct regulator 	 *dvdd;			/*core voltage source of sensor module*/
+	
+	/* attribution */
+	int interface;
+	int vflip;
+	int hflip;
+	int flash_pol;
 	
 	/*parameters*/
 	__csi_conf_t			csi_mode;
 	struct csi_buf_addr		csi_buf_addr;
-	__csi_subdev_info_t ccm_info;
+	
+	/* ccm config */
+  int dev_qty;
+	int module_flag;
+	__csi_subdev_info_t *ccm_info;  /*current config*/
+	struct ccm_config *ccm_cfg[MAX_NUM_INPUTS];
 };
 
 void  bsp_csi_open(struct csi_dev *dev);
