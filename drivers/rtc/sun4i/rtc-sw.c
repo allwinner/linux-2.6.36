@@ -102,7 +102,7 @@ static int f23_rtc_gettime(struct device *dev, struct rtc_time *rtc_tm)
 		rtc_tm->tm_sec  = 0;
 		rtc_tm->tm_min  = 0;
 		rtc_tm->tm_hour = 0;
-		rtc_tm->tm_wday = 0;
+//		rtc_tm->tm_wday = 0;
 
 		
 		rtc_tm->tm_mday = 0;
@@ -119,8 +119,7 @@ retry_get_time:
 
 	rtc_tm->tm_sec  = TIME_GET_SEC_VALUE(time_tmp);
 	rtc_tm->tm_min  = TIME_GET_MIN_VALUE(time_tmp);
-	rtc_tm->tm_hour = TIME_GET_HOUR_VALUE(time_tmp);
-	rtc_tm->tm_wday = TIME_GET_WEEK_VALUE(time_tmp);
+	rtc_tm->tm_hour = TIME_GET_HOUR_VALUE(time_tmp);	
 	
 	rtc_tm->tm_mday = DATE_GET_DAY_VALUE(date_tmp);
 	rtc_tm->tm_mon  = DATE_GET_MON_VALUE(date_tmp);
@@ -137,9 +136,9 @@ retry_get_time:
 
 	rtc_tm->tm_year += 110;
 	rtc_tm->tm_mon      -= 1;
-	_dev_info(dev,"read time %d-%d-%d %d:%d:%d:%d\n",
+	_dev_info(dev,"read time %d-%d-%d %d:%d:%d\n",
 	       rtc_tm->tm_year + 1900, rtc_tm->tm_mon + 1, rtc_tm->tm_mday,
-	       rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec, rtc_tm->tm_wday);
+	       rtc_tm->tm_hour, rtc_tm->tm_min, rtc_tm->tm_sec);
 
 	return 0;
 }
@@ -187,6 +186,82 @@ static int f23_rtc_settime(struct device *dev, struct rtc_time *tm)
 	tm->tm_year -= 110;
 	tm->tm_mon  += 1;
 	
+	/*prevent the application seting the error time*/
+	if(tm->tm_mon > 12){
+		_dev_info(dev, "set time month error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+	       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+	       tm->tm_hour, tm->tm_min, tm->tm_sec);
+		switch(tm->tm_mon){
+			case 1:
+			case 3:
+			case 5:
+			case 7:
+			case 8:
+			case 10:
+			case 12:
+				if(tm->tm_mday > 31){
+					_dev_info(dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);					
+				}
+				if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+						_dev_info(dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+				}
+				break;
+			case 4:
+			case 6:
+			case 9:
+			case 11:
+				if(tm->tm_mday > 30){
+					_dev_info(dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);					
+				}
+				if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+					_dev_info(dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+				}
+				break;				
+			case 2:
+				if((leap_year%400==0) || ((leap_year%100!=0) && (leap_year%4==0))) {
+					if(tm->tm_mday > 28){
+						_dev_info(dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+				       		tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+				       		tm->tm_hour, tm->tm_min, tm->tm_sec);					
+					}
+					if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+						_dev_info(dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+					       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+					       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+					}
+				}else{
+					if(tm->tm_mday > 29){
+						_dev_info(dev, "set time day error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+					       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+					       tm->tm_hour, tm->tm_min, tm->tm_sec);					
+					}
+					if((tm->tm_hour > 24)||(tm->tm_min > 59)||(tm->tm_sec > 59)){
+						_dev_info(dev, "set time error:line:%d,%d-%d-%d %d:%d:%d\n",__LINE__,
+					       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
+					       tm->tm_hour, tm->tm_min, tm->tm_sec);									
+					}
+
+				}
+				break;
+			default:				
+				break;
+		}
+		tm->tm_sec  = 0;
+		tm->tm_min  = 0;
+		tm->tm_hour = 0;		
+		tm->tm_mday = 0;
+		tm->tm_mon  = 0;
+		tm->tm_year = 0;
+	}
+		
 	_dev_info(dev, "set time %d-%d-%d %d:%d:%d\n",
 	       tm->tm_year + 2010, tm->tm_mon, tm->tm_mday,
 	       tm->tm_hour, tm->tm_min, tm->tm_sec);
