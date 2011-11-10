@@ -41,6 +41,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/core.h>
+#include <linux/mmc/card.h>
 
 #include <asm/cacheflush.h>
 #include <mach/dma.h>
@@ -176,6 +177,7 @@ struct awsmc_host {
     struct clk                  *mclk;              //
     u32                         clk_source;         // clock, source, 0-video pll, 1-ac320 pll
     
+    u32                         power_on;         // power save, 0-normal, 1-power save
     u32                         power_save;         // power save, 0-normal, 1-power save
     u32                         mod_clk;            // source clock of controller
     u32                         cclk;               // requested card clock frequence

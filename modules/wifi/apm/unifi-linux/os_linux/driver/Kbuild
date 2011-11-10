@@ -1,0 +1,346 @@
+# ----------------------------------------------------------------------------
+# FILE: os_linux/Kbuild
+#
+# PURPOSE:
+#       Build instructions for UniFi linux driver for 2.6 kernels.
+#
+#
+# Copyright (C) 2005-2009 by Cambridge Silicon Radio Ltd.
+# ----------------------------------------------------------------------------
+
+# Read platform config details.
+DRIVERTOP := $(src)/..
+
+
+ifeq ($(SDIO_DRIVER),emb)
+
+SDIO_DEFS = -DSDIO_EXPORTS_STRUCT_DEVICE
+SDIO_INCLUDES ?= -I$(SDIODIR)/include
+
+SDIO_OBJS := \
+          sdio_emb.o
+endif
+
+ifeq ($(SDIO_DRIVER),mmc_fs)
+
+SDIO_INCLUDES ?= -I.
+
+SDIO_OBJS := \
+          sdio_mmc_fs.o
+endif
+
+
+ifeq ($(SDIO_DRIVER),mmc)
+
+SDIO_DEFS = -DSDIO_EXPORTS_STRUCT_DEVICE
+
+SDIO_INCLUDES =
+
+SDIO_OBJS := \
+          sdio_mmc.o
+endif
+
+ifeq ($(SDIO_DRIVER),mobstor)
+
+SDIO_INCLUDES ?= -I. -I$(MOBSTOR_DIR)
+
+SDIO_OBJS := \
+          sdio_mobstor.o
+
+endif
+
+# mmc_std is deprecated, maintained for compatibility only.
+ifeq ($(SDIO_DRIVER),mmc_std)
+
+SDIO_DEFS = -DSDIO_EXPORTS_STRUCT_DEVICE
+
+SDIO_INCLUDES =
+
+SDIO_OBJS := \
+          sdio_mmc.o
+endif
+
+
+SYNERGY_FRAMEWORK_CORE_DIR = $(DRIVERTOP)/../common/synergy_framework/linuxkernel
+SYNERGY_FRAMEWORK_CODE_DIR = ../../common/synergy_framework/linuxkernel
+
+SYNERGY_FRAMEWORK_OBJS := \
+    $(SYNERGY_FRAMEWORK_CODE_DIR)/csr_extensions.o \
+    $(SYNERGY_FRAMEWORK_CODE_DIR)/csr_pmalloc.o \
+    $(SYNERGY_FRAMEWORK_CODE_DIR)/csr_get_time.o
+
+
+# SME related staff
+ifeq ($(SME), csr)
+
+#SME_INCLUDES += -I$(DRIVERTOP)/smeproxy
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/common
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/saps
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/sme
+
+SME_DEFS = -DCSR_SME_USERSPACE -DCSR_SUPPORT_SME -DREMOTE_SYS_SAP -DCSR_WIFI_SECURITY_WAPI_ENABLE
+OS_OBJS := \
+	sme_csr/sme_userspace.o					\
+	sme_csr/sme_sys_sap.o					\
+	sme_csr/sme_proxy.o					\
+	sme_csr/sys_sap/sys_sap_remoteserver_to_sme_interface.o	\
+	sme_csr/sys_sap/sys_sap_serialise.o		\
+	sme_csr/event_pack_unpack/event_pack_unpack.o		\
+	sme_sys.o						\
+	sme_blocking.o		\
+	unifi_sme.o						\
+	data_tx.o						\
+	bh.o drv.o firmware.o					\
+	indications.o io.o netdev.o				\
+	os.o							\
+	init_hw.o						\
+	unifi_event.o					\
+	sdio_events.o					\
+	ul_int.o						\
+	putest.o						\
+	unifi_dbg.o
+
+WEXT_OBJS :=
+endif
+
+
+ifeq ($(SME), csr_wext)
+
+#SME_INCLUDES += -I$(DRIVERTOP)/smeproxy
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/common
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/saps
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/sme
+#SME_INCLUDES += -I$(SME_CORE_DIR)
+#SME_INCLUDES += -I$(SME_CORE_DIR)/smeproxy
+#SME_INCLUDES += -I$(SME_CORE_DIR)/saps
+#SME_INCLUDES += -I$(SME_CORE_DIR)/common
+#SME_INCLUDES += -I$(SME_CORE_DIR)/common/abstractions
+
+SME_DEFS = -DCSR_SME_USERSPACE -DCSR_SUPPORT_WEXT -DCSR_SUPPORT_SME  \
+           -DREMOTE_SYS_SAP  -DREMOTE_MGT_SAP -DCSR_WIFI_SECURITY_WAPI_ENABLE
+OS_OBJS := \
+	sme_csr/sme_userspace.o					\
+    sme_csr/sme_dbg_sap.o                   \
+    sme_csr/sme_sys_sap.o                   \
+	sme_csr/sme_mgt_sap.o					\
+	sme_csr/sme_proxy.o					\
+    sme_csr/dbg_sap/dbg_sap_remoteserver_to_sme_interface.o \
+    sme_csr/dbg_sap/dbg_sap_serialise.o     \
+    sme_csr/mgt_sap/mgt_sap_remoteserver_to_sme_interface.o \
+	sme_csr/mgt_sap/mgt_sap_serialise.o		\
+	sme_csr/sys_sap/sys_sap_remoteserver_to_sme_interface.o	\
+	sme_csr/sys_sap/sys_sap_serialise.o		\
+	sme_csr/event_pack_unpack/event_pack_unpack.o		\
+	sme_sys.o						\
+	unifi_sme.o						\
+	data_tx.o						\
+	bh.o drv.o firmware.o					\
+	indications.o io.o netdev.o				\
+	os.o							\
+	init_hw.o						\
+	unifi_event.o					\
+	sdio_events.o					\
+	ul_int.o						\
+	inet.o							\
+	putest.o						\
+	unifi_dbg.o
+
+WEXT_OBJS := \
+	sme_mgt.o				\
+	sme_blocking.o		\
+	wext_events.o				\
+	sme_wext.o
+endif
+
+
+ifeq ($(SME), native)
+SME_DEFS = -DCSR_NATIVE_LINUX -DCSR_SUPPORT_WEXT
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/common
+OS_OBJS := \
+	sme_native/scan.o			\
+	sme_native/mib.o			\
+	sme_native/mlme.o			\
+	sme_native/autojoin.o			\
+	sme_native/sme_native.o			\
+	data_tx.o				\
+	bh.o drv.o firmware.o			\
+	indications.o io.o netdev.o		\
+	os.o					\
+	init_hw.o				\
+	unifi_event.o			\
+	sdio_events.o			\
+	ul_int.o				\
+	monitor.o				\
+	putest.o				\
+	unifi_dbg.o
+
+WEXT_OBJS := \
+	wext_events.o \
+	sme_native/wext.o
+
+endif
+
+
+
+ifeq ($(SME), csr_emb)
+
+SME_CORE_DIR = $(DRIVERTOP)/../lib_sme
+
+SME_CODE_DIR = ../../lib_sme
+LIB_INFO_ELEMENTS_DIR = ../../lib_info_elements
+
+SME_INCLUDES += -I$(DRIVERTOP)/os_embedded/sme_csr
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/common
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/saps
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/sme
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_sme/ccx
+SME_INCLUDES += -I$(DRIVERTOP)/../lib_info_elements
+
+SME_OBJS := \
+    $(SME_CODE_DIR)/sme/coex_fsm/coex_fsm.o \
+    $(SME_CODE_DIR)/sme/coex_fsm/ta_analyse.o \
+    $(SME_CODE_DIR)/sme/connection_manager_fsm/connection_manager_fsm.o \
+    $(SME_CODE_DIR)/sme/dbg_test_fsm/dbg_fsm.o \
+    $(SME_CODE_DIR)/sme/hip_proxy_fsm/mib_access_fsm.o \
+    $(SME_CODE_DIR)/sme/hip_proxy_fsm/mib_action_sub_fsm.o \
+    $(SME_CODE_DIR)/sme/hip_proxy_fsm/mibdefs.o \
+    $(SME_CODE_DIR)/sme/hip_proxy_fsm/mib_encoding.o \
+    $(SME_CODE_DIR)/sme/hip_proxy_fsm/mib_utils.o \
+    $(SME_CODE_DIR)/sme/hip_proxy_fsm/hip_signal_proxy_fsm.o \
+    $(SME_CODE_DIR)/sme/link_quality_fsm/link_quality_fsm.o \
+    $(SME_CODE_DIR)/sme/network_selector_fsm/network_selector_fsm.o \
+    $(SME_CODE_DIR)/sme/power_manager_fsm/power_manager_fsm.o \
+    $(SME_CODE_DIR)/sme/qos_fsm/qos_fsm.o \
+    $(SME_CODE_DIR)/sme/qos_fsm/qos_tclas.o \
+    $(SME_CODE_DIR)/sme/qos_fsm/qos_tspec.o \
+    $(SME_CODE_DIR)/sme/qos_fsm/qos_block_ack.o \
+    $(SME_CODE_DIR)/sme/qos_fsm/qos_action_sub_fsm.o \
+    $(SME_CODE_DIR)/sme/regulatory_domain/regulatory_domain.o \
+    $(SME_CODE_DIR)/sme/scan_manager_fsm/roaming_channel_lists.o \
+    $(SME_CODE_DIR)/sme/scan_manager_fsm/scan_manager_fsm.o \
+    $(SME_CODE_DIR)/sme/scan_manager_fsm/scan_results_storage.o \
+    $(SME_CODE_DIR)/sme/security_manager_fsm/security_manager_fsm.o \
+    $(SME_CODE_DIR)/sme/security_manager_fsm/pmk_cache.o \
+    $(SME_CODE_DIR)/sme/sme_configuration/sme_configuration_fsm.o \
+    $(SME_CODE_DIR)/sme/sme_core_fsm/sme_core_fsm.o \
+    $(SME_CODE_DIR)/sme/sme_top_level_fsm/sme_top_level_fsm.o \
+    $(SME_CODE_DIR)/sme/sync_access/sync_access.o \
+    $(SME_CODE_DIR)/sme/unifi_driver_fsm/unifi_driver_fsm.o \
+    $(SME_CODE_DIR)/saps/sys_sap/sme_interface_hip_signal_from_sys_sap.o \
+    $(SME_CODE_DIR)/saps/sys_sap/sme_interface_hip_auto_cfm.o \
+    $(SME_CODE_DIR)/saps/sys_sap/sme_interface_hip_signal_to_sys_sap.o \
+    $(SME_CODE_DIR)/saps/sys_sap/sys_sap__to_sme_interface.o \
+    $(SME_CODE_DIR)/saps/dbg_sap/dbg_sap__to_sme_interface.o \
+    $(SME_CODE_DIR)/saps/mgt_sap/mgt_sap__to_sme_interface.o \
+    $(SME_CODE_DIR)/common/ap_utils/ap_validation.o \
+    $(SME_CODE_DIR)/common/fsm/fsm.o \
+    $(SME_CODE_DIR)/common/fsm/fsm_private.o \
+    $(SME_CODE_DIR)/common/fsm/fsm_debug.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access_dot11n.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access_dot11n_ht_cap.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access_rsn.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access_wmm.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access_wps.o \
+    $(SME_CODE_DIR)/common/ie_access/ie_access_ssid.o \
+    $(SME_CODE_DIR)/common/ie_message_handling/ie_access_associate_req.o \
+    $(SME_CODE_DIR)/common/ie_message_handling/ie_access_scan_req.o \
+    $(SME_CODE_DIR)/common/payload_manager/payload_manager.o \
+    $(SME_CODE_DIR)/common/csr_cstl/csr_list.o \
+    $(SME_CODE_DIR)/common/event_pack_unpack/event_pack_unpack.o \
+    $(SME_CODE_DIR)/common/version/version.o \
+    $(SME_CODE_DIR)/common/sme_trace/sme_trace_common.o \
+    $(SME_CODE_DIR)/common/sme_trace/sme_trace_utils.o \
+    $(SME_CODE_DIR)/common/smeio/smeio_trace_types.o \
+    $(SME_CODE_DIR)/common/smeio/smeio_fsm_trace_events.o \
+    $(SME_CODE_DIR)/common/smeio/smeio_trace_signals.o \
+    inet.o \
+    sme_csr_emb/sme_trace.o \
+    sme_csr_emb/sme_stub.o \
+    sme_csr_emb/sme_emb.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access/ie_ccx_ssidl.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access/ie_rsn.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access/ie_wpa.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_ccx_ssidl_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_ccx_ts_metrics_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_ccx_version_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_country_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_ht_capabilities_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_ht_information_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_qbss_load_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_rsn_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_ssid_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_tclas_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_wmm_information_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_wmm_parameter_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_wmm_tspec_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/ie_wpa_trace.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_access_trace/lib_info_element_trace_fields.o \
+    $(LIB_INFO_ELEMENTS_DIR)/ie_utils/ie_utils.o 
+
+SME_DEFS = -DCSR_SME_EMB \
+           -DCSR_SUPPORT_SME \
+           -DCSR_SUPPORT_WEXT \
+           -DPACKED_HIP \
+           -DSME_SYNC_ACCESS \
+           -DSME_TRACE_ENABLE \
+           -DSME_PBC_NO_ASSERTS \
+           -DFSM_MUTEX_ENABLE \
+           -DFSM_TRANSITION_LOCK \
+           -DFSM_DEBUG_DUMP \
+           -DFSM_DEBUG \
+           -DSME_TRACE_TYPES_ENABLE \
+           -DCSR_WIFI_SECURITY_WAPI_ENABLE
+
+OS_OBJS := \
+	bh.o drv.o firmware.o \
+	data_tx.o \
+	indications.o io.o netdev.o \
+	os.o \
+	init_hw.o	\
+	unifi_event.o	\
+	sdio_events.o	\
+	ul_int.o \
+	unifi_sme.o \
+	putest.o	\
+	unifi_dbg.o
+
+WEXT_OBJS := \
+	sme_mgt.o \
+	sme_blocking.o	\
+	sme_sys.o \
+	wext_events.o \
+	sme_wext.o
+
+endif
+
+
+obj-m := unifi_sdio.o
+
+
+unifi_sdio-y :=  \
+	$(SDIO_OBJS)				\
+	sdio_stubs.o				\
+	../../lib_hip/card_sdio.o		\
+	../../lib_hip/card_sdio_mem.o		\
+	../../lib_hip/card_sdio_intr.o		\
+	../../lib_hip/send.o			\
+	../../lib_hip/signals.o			\
+	../../lib_hip/ta_sampling.o		\
+	../../lib_hip/udi.o			\
+	../../lib_hip/unifi_signal_names.o	\
+	../../lib_hip/dump.o			\
+	../../lib_hip/download.o		\
+	../../lib_hip/xbv.o			\
+	../../lib_hip/chiphelper.o		\
+	../../lib_hip/packing.o			\
+	$(OS_OBJS)				\
+	$(SYNERGY_FRAMEWORK_OBJS) \
+	$(SME_OBJS)				\
+	$(WEXT_OBJS)
+
+
+U_INCLUDES = -I$(DRIVERTOP)/../common -I$(SYNERGY_FRAMEWORK_CORE_DIR) -I$(src) $(SDIO_INCLUDES) $(SME_INCLUDES)
+U_DEFINES = -DMODULE -D__KERNEL__ -DUNIFI_DEBUG $(SDIO_DEFS) $(SME_DEFS)
+
+EXTRA_CFLAGS += $(U_DEFINES) $(U_INCLUDES) $(EXTRA_DRV_CFLAGS)

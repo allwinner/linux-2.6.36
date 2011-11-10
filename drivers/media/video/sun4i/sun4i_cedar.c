@@ -62,7 +62,7 @@
 #define CEDARDEV_MINOR (0)
 #endif
 
-#define CEDAR_DEBUG
+//#define CEDAR_DEBUG
 
 #undef cdebug
 #ifdef CEDAR_DEBUG
@@ -89,7 +89,6 @@ struct clk *dram_veclk = NULL;
 struct clk *avs_moduleclk = NULL;
 struct clk *hosc_clk = NULL;
 
-static unsigned long suspend_veclk_rate = 0;
 static unsigned long pll4clk_rate = 720000000;
 
 void *reserved_mem = (void *)( (CONFIG_SW_SYSMEM_RESERVED_BASE | 0xC0000000) + 64*1024);
@@ -124,6 +123,7 @@ struct cedar_dev {
 	u32 irq_flag;                    /* flag of video engine irq generated */
 	u32 irq_value;                   /* value of video engine irq          */
 	u32 irq_has_enable;
+	u32 ref_count;
 };
 struct cedar_dev *cedar_devp;
 
@@ -532,6 +532,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			return task_ptr->is_first_task;//插入run_task_list链表中的任务是第一个任务，返回1，不是第一个任务返回0. hx modify 2011-7-28 16:59:16！！！			
 		#else
 			enable_cedar_hw_clk();
+			cedar_devp->ref_count++; 
 			break;
 		#endif	
     	case IOCTL_ENGINE_REL:
@@ -543,6 +544,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 			ret = cedardev_del_task(rel_taskid);					
 		#else
 			disable_cedar_hw_clk();
+			cedar_devp->ref_count--;
 		#endif
 			return ret;
 		case IOCTL_ENGINE_CHECK_DELAY:		
@@ -913,25 +915,18 @@ static int cedardev_mmap(struct file *filp, struct vm_area_struct *vma)
 
 static int snd_sw_cedar_suspend(struct platform_device *pdev,pm_message_t state)
 {		
-	suspend_veclk_rate = clk_get_rate(ve_moduleclk);	
-	clk_disable(dram_veclk);		
-	clk_disable(ve_moduleclk);	
-	clk_disable(ahb_veclk); 			
-	clk_disable(avs_moduleclk); 
+	disable_cedar_hw_clk();
 
-	/*for clk test*/
-	printk("[cedar suspend reg]\n");
-	printk("PLL4 CLK:0xf1c20018 is:%x\n", *(volatile int *)0xf1c20018);
-	printk("AHB CLK:0xf1c20064 is:%x\n", *(volatile int *)0xf1c20064);
-	printk("VE CLK:0xf1c2013c is:%x\n", *(volatile int *)0xf1c2013c);
-	printk("SDRAM CLK:0xf1c20100 is:%x\n", *(volatile int *)0xf1c20100);
-	printk("AVS CLK:0xf1c20144 is:%x\n", *(volatile int *)0xf1c20144);	
-	printk("[cedar suspend reg]\n");
 	return 0;
 }
 
 static int snd_sw_cedar_resume(struct platform_device *pdev)
 {
+	if(cedar_devp->ref_count == 0){
+		return 0;
+	}
+	enable_cedar_hw_clk();
+	
 	return 0;
 }
 
@@ -996,7 +991,7 @@ static int __init cedardev_init(void)
 	}		
 	memset(cedar_devp, 0, sizeof(struct cedar_dev));
 	cedar_devp->irq = VE_IRQ_NO;
-
+	
 	init_MUTEX(&cedar_devp->sem);
 	init_waitqueue_head(&cedar_devp->wq);	
 

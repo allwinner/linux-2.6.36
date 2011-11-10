@@ -42,6 +42,7 @@
 #include <mach/gpio_v2.h>
 #include <mach/irqs.h>
 #include <mach/script_v2.h>
+#define TP_ID (0x10000000)
 
 //////////////////////////////////////////////////////
 static void* __iomem gpio_addr = NULL;
@@ -399,7 +400,7 @@ static struct aw_platform_ops aw_ops = {
 	.get_pendown_state = aw_get_pendown_state,
 	.clear_penirq	   = aw_clear_penirq,
 	.set_irq_mode      = aw_set_irq_mode,
-	.set_gpio_mode     = aw_set_gpio_mode,	
+	.set_gpio_mode     = aw_set_gpio_mode,
 	.judge_int_occur   = aw_judge_int_occur,
 	.init_platform_resource = aw_init_platform_resource,
 	.free_platform_resource = aw_free_platform_resource,
@@ -597,8 +598,8 @@ static void zt_report_value(void)
 	struct ts_event *event = &data->event;
         //printk("%s. \n", __func__);
         
-	input_report_abs(data->input_dev, ABS_X, event->x);
-	input_report_abs(data->input_dev, ABS_Y, event->y);
+	input_report_abs(data->input_dev, ABS_X, (event->x |TP_ID));
+	input_report_abs(data->input_dev, ABS_Y, (event->y |TP_ID) );
 	//printk("event->x = %x,event->y = %x\n",event->x,event->y);
 	input_report_abs(data->input_dev, ABS_PRESSURE, event->pressure);
 	input_report_key(data->input_dev, BTN_TOUCH, 1);
@@ -699,8 +700,8 @@ zt_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	set_bit(ABS_PRESSURE, input_dev->absbit);
 	set_bit(BTN_TOUCH, input_dev->keybit);
 
-	input_set_abs_params(input_dev, ABS_X, 0, 0x1fff, 0, 0);
-	input_set_abs_params(input_dev, ABS_Y, 0, 0x1fff, 0, 0);
+	input_set_abs_params(input_dev, ABS_X, 0, (0xfff|TP_ID), 0, 0);
+	input_set_abs_params(input_dev, ABS_Y, 0, (0xfff|TP_ID), 0, 0);
 	input_set_abs_params(input_dev, ABS_PRESSURE, 0, 0xff, 0 , 0);
 
 

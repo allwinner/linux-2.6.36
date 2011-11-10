@@ -1,0 +1,13 @@
+#
+# MMC/SD host controller drivers
+#
+
+comment "MMC/SD/SDIO Card Power Management Drivers"
+
+config SW_MMC_POWER_CONTROL
+	tristate "SW Card Power Management support"
+	depends on SUN4I_MMC_SW
+	help
+	  This selects Allwinner MMC Card Power Management support.  
+	  All power relative gpio control here.
+	  

@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- XML schema to define wire format protocols -->
+<!-- Copyright Cambridge Silicon Radio Limitied 2005. All Rights Reserved.  -->
+<!-- $Id: //depot/dot11/main/common/hostio/hip.xsd#18 $ -->
+<xs:schema elementFormDefault="qualified" attributeFormDefault="unqualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <!-- Each file contains a single root entry called <definitions>.
+             The <definitions> block contains three lists, <resource>s followed by <type>s followed by <transaction>s.
+             <resource>s describe how <type>s are grouped.  <transaction>s describe how types in a resource are linked. -->
+        <xs:element name="definitions">
+                <xs:complexType>
+                        <xs:choice minOccurs="0" maxOccurs="unbounded">
+                                <xs:element name="resource" type="resource" maxOccurs="unbounded"/>
+                                <xs:element name="type" type="type" maxOccurs="unbounded"/>
+                                <xs:element name="transaction" type="transaction" minOccurs="0" maxOccurs="unbounded"/>
+                                <xs:element name="sap" type="sap" minOccurs="0" maxOccurs="unbounded"/>
+                        </xs:choice>
+                </xs:complexType>
+        </xs:element>
+
+        <!-- <basictype> -->
+
+        <!-- A basictype is an enumerated set of values that specify the type of a basic
+             type field.
+             -->
+        <xs:simpleType name="basictype">
+          <xs:restriction  base="xs:string">
+            <xs:enumeration value="number"/>
+            <xs:enumeration value="asciistring"/>
+            <xs:enumeration value="ber"/>
+          </xs:restriction>
+        </xs:simpleType>
+
+        <!-- <type> -->
+
+        <!-- A type is a data type.  It can be one of three things:
+             *  a basic type: integer (signed or unsigned) or asciistring;
+             *  an enumeration (with <value>s);
+             *  or a data structure (with <field>s).
+             A <type> may not contain both <value>s and <field>s.  If it contains neither, it is an integer.
+             Integers can contain <mask>s, to provide special values.
+             Attributes:
+                 name (required)
+                 abbr (optional)
+                 resource (required)
+                     The resource attribute contains the name of a resource.
+                     Each <type> is considered to be a member of a resource.
+                 dvalue (optional)
+                     If the <resource> in the resource attribute is discriminated, then
+                     the dvalue attribute contains the value of the discriminant corresponding
+                     to this <type>.
+                     Setting this attribute is equivalent to an <rmap> in the resource.
+                 size (optional)
+                     In a <type> without fields, size defines the width of of the type in bits.
+                 subsidiary (optional)
+                     subsidiary indicates that the <type> is never found on its own.  It is always part of a larger <type>.
+                 signed (optional)
+                     signed indicates that the field should be interpreted as a twos complement number.
+                 basictype (optional)
+                     basictype specifies the basic type of a field. All basic type fields default to "number".
+             -->
+        <xs:complexType name="type">
+                <xs:choice minOccurs="0">
+                        <xs:element name="field" type="field" maxOccurs="unbounded"/>
+                        <xs:element name="value" type="value" maxOccurs="unbounded"/>
+                        <xs:element name="mask" type="mask" maxOccurs="unbounded"/>
+                </xs:choice>
+                <xs:attribute name="name" use="required"/>
+                <xs:attribute name="abbr" use="optional"/>
+                <xs:attribute name="resource" use="required"/>
+                <xs:attribute name="size" type="xs:unsignedShort" use="optional"/>
+                <xs:attribute name="subsidiary" type="xs:boolean" use="optional"/>
+                <xs:attribute name="signed" type="xs:boolean" use="optional"/>
+                <xs:attribute name="dvalue" use="optional"/>
+                <xs:attribute name="basictype" type="basictype" use="optional" default="number"/>
+                <xs:attribute name="file" use="optional"/>
+        </xs:complexType>
+
+        <!-- <value> -->
+
+        <!-- A value can be part of a type, if that type is an enumeration.
+             Attributes:
+                 name (required)
+                 abbr (optional)
+                 value (required)
+                     The format of the value attribute is defined by the program that reads the XML.
+             -->
+        <xs:complexType name="value">
+                <xs:attribute name="name" type="xs:string" use="required"/>
+                <xs:attribute name="abbr" use="optional"/>
+                <xs:attribute name="value" use="required"/>
+        </xs:complexType>
+
+        <!-- <field> -->
+
+        <!-- A field can be part of a <type>, if that type is a data structure.
+             Elements:
+                 The field may have either a resource child element or a type child element.
+                 resource
+                     A resource element indicates that the field is a discriminated union.
+                     The text in the resource must be the name of a <resource>.
+                     The field must have a discriminant attribute, which points to a field of the right type.
+                     The field must not have a blocklength attribute.
+                     (ie the type of the field pointed to by the discriminant attribute must match the discriminant attribute of the resource.)
+                 type
+                     A type element indicates that the field is a known data type.
+                     The text in the type must be the name of a <type>.
+                     The field must not have a discriminant attribute.
+                     The field may have a blocklength attribute, indicating it is a variable length array.
+                     The type element may optionally contain a file attribute with a relative path to another
+                     file containing more information about the type given.  The file may not exist.
+             Attributes:
+                 name (required)
+                 abbr (optional)
+                 discriminant (optional)
+                     The discriminant attribute is a description of the location of the discriminant in the field's parent type.
+                     It is written with a leading & followed by a period separated list of field names.
+                     Must exist, if the field has a resource element.
+                 array (unsignedShort, optional)
+                     A number of identical <type>s is marked by an array.
+                     Must not be used with the blocklength attribute.
+                 blocklength (optional)
+                     The blocklength attribute indicates that the field is
+                     a variable length array. The value of the blocklength
+                     attribute can contain the name of another field in the
+                     parent type the value of which will be equal to the number of
+                     elements in the variable length array. The blocklength
+                     attribute can also be an empty string which indicates
+                     that no other field contains the number of elements.
+                     In this case the size of the variable array will be determined
+                     by a field containing the bytelength attribute.
+                     Must not exist, if the field has a resource element.
+                 bytelength (optional)
+                     The bytelength attribute specifies the name of another field
+                     in the parent type. The value of the field containing the 
+                     bytelength attribute will be equal to the number of bytes occupied
+                     by the field specified in the bytelength attribute.
+                 suppress (boolean, optional)
+                     Suppress indicates an often defaulted field - it must have a default attribute also.
+                     The hidden and suppress attributes are mutually exclusive.
+                     If both are specified the hidden attribute takes precedence.
+                 default (optional)
+                     Default gives a value to be used if the creator is suppressing the field
+                     or if the field is hidden.
+                 hidden (boolean, optional)
+                     hidden indicates a field which cannot be overridden. An example
+                     would be for padding a type to a fixed alignment.
+                     The hidden and suppress attributes are mutually exclusive.
+                     If both are specified the hidden attribute takes precedence.
+                 ber_encoded (boolean, optional)
+                     ber_encoded indicates a field which contains a BER encoded ASN.1 triplet (TLV).
+                     Usually this is of variable length and lives at the end of a pointer or DataReference.
+             -->
+        <xs:complexType name="field">
+                <xs:choice>
+                        <xs:element name="resource" maxOccurs="unbounded"/>
+                        <xs:element name="type" maxOccurs="unbounded">
+                                <xs:complexType>
+                                        <xs:simpleContent>
+                                                <xs:extension base="xs:string">
+                                                        <xs:attribute name="file" use="optional"/>
+                                                </xs:extension>
+                                        </xs:simpleContent>
+                                </xs:complexType>
+                        </xs:element>
+                </xs:choice>
+                <xs:attribute name="name" use="required"/>
+                <xs:attribute name="abbr" use="optional"/>
+                <xs:attribute name="discriminant" use="optional"/>
+                <xs:attribute name="array" type="xs:unsignedShort" use="optional"/>
+                <xs:attribute name="blocklength" use="optional"/>
+                <xs:attribute name="suppress" type="xs:boolean" use="optional"/>
+                <xs:attribute name="default" use="optional"/>
+                <xs:attribute name="hidden" type="xs:boolean" use="optional"/>
+                <xs:attribute name="ber_encoded" type="xs:boolean" use="optional"/>
+                <xs:attribute name="bytelength" use="optional"/>
+  </xs:complexType>
+
+  <!-- <mask> -->
+
+        <!-- A mask is a value and mask, used to give special values in integer <type>s.
+             For example ff-ff-ff-ff-ff-ff is the broadcast MAC address.
+             Attributes:
+                 name (required)
+                 mask (required)
+                     The mask attribute is a bit field to describe which bits of the value attribute are part of the mask.
+                 value (required)
+                 abbr (optional)
+             -->
+        <xs:complexType name="mask">
+                <xs:attribute name="name" use="required"/>
+                <xs:attribute name="mask" use="required"/>
+                <xs:attribute name="value" use="required"/>
+                <xs:attribute name="abbr" use="optional"/>
+        </xs:complexType>
+
+        <!-- <resource> -->
+
+        <!-- A resource is a holder for <type>s.
+             There are two kinds of resource:
+             *  ones which are simple holders,
+             *  and ones which are discriminated unions.
+             Discriminated unions must have a discriminant, and can have <rmap>s,
+             although a single <rmap> can be defined in the <type>.
+             Elements:
+                 The resource may have any nnumber of <rmap> elements.
+                 There should be no <rmap>s if the discriminant attribute is not set.
+                 If the discriminant attribute is set, then the <rmap>s must take their discriminant value from the type given in the discriminant attribute.
+             Attributes:
+                 name (required)
+                 discriminant (optional)
+                     The discriminant attribute is the name of an enumerated type.
+                     Its existance implies that the resource is a discriminated union and may have <rmap>s.
+                 direction (optional)
+                     Direction may only be "send_req" or "recv_req".
+             -->
+        <xs:complexType name="resource">
+                <xs:sequence minOccurs="0">
+                        <xs:element name="rmap" type="rmap" maxOccurs="unbounded"/>
+                </xs:sequence>
+                <xs:attribute name="name" use="required"/>
+                <xs:attribute name="discriminant" use="optional"/>
+                <xs:attribute name="direction" use="optional"/>
+        </xs:complexType>
+
+        <!-- <rmap> -->
+
+        <!-- An <rmap> is a resource map, which is a list of discriminant <value>s and <type>s.
+             A <resource> may have <rmap>s and a <type> may define a single <rmap> using its dvalue attribute.
+             Attributes:
+                 type (required)
+                     dvalue attribute must be a value from the type given in the <resource>s discriminant attribute.
+                 dvalue (required)
+                 name (optional)
+             -->
+        <xs:complexType name="rmap">
+                <xs:attribute name="type" use="required"/>
+                <xs:attribute name="dvalue" use="required"/>
+                <xs:attribute name="name" use="optional"/>
+        </xs:complexType>
+
+        <!-- <transaction> -->
+
+        <!-- A transaction is a pairing of two discriminated unions in a single resource.
+             It is a marker that the information stored in the initiator may be required to process the resultant.
+             Attributes:
+                 discriminant (required)
+                 initiator (required)
+                 resultant (required)
+             -->
+        <xs:complexType name="transaction">
+                <xs:attribute name="discriminant" use="required"/>
+                <xs:attribute name="initiator" use="required"/>
+                <xs:attribute name="resultant" use="required"/>
+        </xs:complexType>
+        
+        <!-- <sap> -->
+        
+        <!-- A sap defines which types are used as the starting point for
+             encoding and decoding downstream and upstream primitives respectively.
+             Attributes:
+                 id (required)
+                     A unique name for the sap.
+                 downstream (required)
+                     The name of a <type> that is used as the starting point for
+                     encoding downstream primitives.
+                 upstream (required)
+                     The name of a <type> that is used as the starting point for
+                     decoding upstream primitives.
+                 
+             -->
+        <xs:complexType name="sap">
+          <xs:attribute name="downstream" use="required"/>
+          <xs:attribute name="upstream" use="required"/>
+          <xs:attribute name="id" use="required"/>
+        </xs:complexType>
+</xs:schema>

@@ -272,13 +272,21 @@ __s32 Parse_DTD_Block(__u8 *pbuf)
     
     return 0;
 }
+
 __s32 Parse_VideoData_Block(__u8 *pbuf,__u8 size)
 {
 	int i=0;
 	while(i<size)
 	{
 		Device_Support_VIC[pbuf[i] &0x7f] = 1;
-		__inf("Parse_VideoData_Block: VIC %d support\n", pbuf[i]);
+		if(pbuf[i] &0x80)
+		{
+		   __inf("Parse_VideoData_Block: VIC %d(native) support\n", pbuf[i]&0x7f);
+		}
+		else
+		{
+		   __inf("Parse_VideoData_Block: VIC %d support\n", pbuf[i]);
+		}
 		i++;
 	}
 	return 0;

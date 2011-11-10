@@ -70,8 +70,8 @@ static _mali_osk_resource_t arch_configuration [] =
 	{
 		.type = OS_MEMORY,
 		.description = "OS Memory",
-		.alloc_order = 10, /* Lowest preference for this memory */
-		.size = 64 * 1024 * 1024, /* 64 MB */
+		.alloc_order = 1, /* Lowest preference for this memory */
+		.size = 192 * 1024 * 1024, /* 64 MB */
 		.flags = _MALI_CPU_WRITEABLE | _MALI_CPU_READABLE | _MALI_MMU_READABLE | _MALI_MMU_WRITEABLE
 	},
 	{

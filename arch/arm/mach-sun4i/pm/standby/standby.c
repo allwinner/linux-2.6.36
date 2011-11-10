@@ -100,6 +100,10 @@ int main(struct aw_pm_info *arg)
         standby_enable_int(INT_SOURCE_IR0);
         standby_enable_int(INT_SOURCE_IR1);
     }
+    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_ALARM){
+        //standby_alarm_init();???
+        standby_enable_int(INT_SOURCE_ALARM);
+    }
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_USB){
         standby_usb_init();
         standby_enable_int(INT_SOURCE_USB0);
@@ -134,6 +138,9 @@ int main(struct aw_pm_info *arg)
     }
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_IR){
         standby_ir_exit();
+    }
+    if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_ALARM){
+        //standby_alarm_exit();
     }
     if(pm_info.standby_para.event & SUSPEND_WAKEUP_SRC_KEY){
         standby_key_exit();
@@ -222,6 +229,7 @@ static void standby(void)
     pm_info.standby_para.event |= standby_query_int(INT_SOURCE_USB0)? 0:SUSPEND_WAKEUP_SRC_USB;
     pm_info.standby_para.event |= standby_query_int(INT_SOURCE_LRADC)? 0:SUSPEND_WAKEUP_SRC_KEY;
     pm_info.standby_para.event |= standby_query_int(INT_SOURCE_IR0)? 0:SUSPEND_WAKEUP_SRC_IR;
+    pm_info.standby_para.event |= standby_query_int(INT_SOURCE_ALARM)? 0:SUSPEND_WAKEUP_SRC_ALARM;
     pm_info.standby_para.event |= standby_query_int(INT_SOURCE_TIMER0)? 0:SUSPEND_WAKEUP_SRC_TIMEOFF;
 
     /* restore voltage for exit standby */

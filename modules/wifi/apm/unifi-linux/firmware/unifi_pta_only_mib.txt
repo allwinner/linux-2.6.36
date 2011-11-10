@@ -1,0 +1,274 @@
+-- **********************************************************************
+-- * FILE
+-- *    unifi_pta_only_mib.txt  -  UniFi specific MIB for PTA configuration
+-- *
+-- * DESCRIPTION
+-- *    The UniFi firmware presents a conventional MIB to the host.  As
+-- *    far as UniFi's normal users are concerned, this has been extended
+-- *    with functionality specific to UniFi, defined by file unifi_mib.txt.
+-- *
+-- *    This file, unifi_pta_only_mib.txt, extends the MIB still further,
+-- *    but with entries that are for use in configuring the (IEEE 802.15.2
+-- *    style) Packet Traffic Arbitrator (PTA) only.
+-- *
+-- * MODIFICATION HISTORY
+-- *    #1    21:jun:05  shm   B-7126: Created.
+-- *    #2    05:jul:05  cjo   Comments.
+-- *    #3    18:jul:05  at    B-8119: Improved compatibility with MIB tools.
+-- * File renamed to unifi_pta_only_mib.txt:
+-- *    #1    08:may:06  daa   B-13839: Renamed PTA MIB variables.
+-- *    #2    10:jul:06  at    B-15240: Updated comments.
+-- *    #3    19:dec:06  shm   B-19902: Corrected contact info.
+-- *    #4    12:dec:07  daa   B-35545: Make 3-wire coex timings configurable
+-- *    #5    21:jul:08  daa   B-35036: Smallest common BT_STATUS timing.
+-- *    #6    13:jan:09  pws   B-56550: Add Date keyword.
+-- *    #7    13:jan:09  pws   B-56550: Test for LAST-UPDATED.
+-- *
+-- * REVISION
+-- *    $Id: //depot/dot11/main/common/mib/unifi_pta_only_mib.txt#14 $
+-- *    $Date: 2009/08/05 $
+-- **********************************************************************
+
+
+UNIFI-MIB-PTA-ONLY DEFINITIONS ::= BEGIN
+
+    IMPORTS
+        MODULE-IDENTITY, OBJECT-TYPE           FROM SNMPv2-SMI;
+
+-- **********************************************************************
+-- *  MODULE IDENTITY
+-- **********************************************************************
+
+    org                 OBJECT IDENTIFIER ::= { iso 3 }
+    dod                 OBJECT IDENTIFIER ::= { org 6 }
+    internet            OBJECT IDENTIFIER ::= { dod 1 }
+    private             OBJECT IDENTIFIER ::= { internet 4 }
+    enterprises         OBJECT IDENTIFIER ::= { private 1 }
+    csrplc              OBJECT IDENTIFIER ::= { enterprises 22164 }
+    csrdot11            OBJECT IDENTIFIER ::= { csrplc 1 }
+    csrdot11customer    OBJECT IDENTIFIER ::= { csrdot11 3 }
+
+unifipta MODULE-IDENTITY
+    LAST-UPDATED "200908051000Z"
+    ORGANIZATION "CSR plc"
+    CONTACT-INFO
+        "techsupport@csr.com"
+    DESCRIPTION
+        "UniFi - IEEE 802.15.2-style PTA configuration."
+    ::= { csrdot11customer 1 }
+
+
+-- **********************************************************************
+-- *  802.15.2 PTA-style coexistence.
+-- **********************************************************************
+
+unifiPTACoex OBJECT IDENTIFIER ::= { unifipta 1 }
+
+unifiCoexPTAWLANDenyPIO OBJECT-TYPE
+        SYNTAX INTEGER (0..15)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The number of the PIO line to use as output for the WLAN_DENY
+             signal when unifiCoexScheme is set to pta (3).  This must be 4
+             for current hardware.  It is not possible to disable this signal
+             when the PTA coexistence signalling scheme is used."
+    ::= { unifiPTACoex 1 }
+
+unifiCoexPTABTStatusPIO OBJECT-TYPE
+        SYNTAX INTEGER (-1..15)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The number of the PIO line to use as input for the BT_STATUS
+             signal when unifiCoexScheme is set to pta (3).  This must be 5
+             for current hardware.  A value of -1 means that this signal is
+             not used."
+    ::= { unifiPTACoex 2 }
+
+unifiCoexPTABTInbandPIO OBJECT-TYPE
+        SYNTAX INTEGER (-1..15)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The number of the PIO line to use as input for the BT_INBAND
+             signal when unifiCoexScheme is set to pta (3).  This must be 6
+             for current hardware.  A value of -1 means that this signal is
+             not used."
+    ::= { unifiPTACoex 3 }
+
+unifiCoexPTABTActivePIO OBJECT-TYPE
+        SYNTAX INTEGER (0..15)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The number of the PIO line to use as input for the BT_ACTIVE
+             signal when unifiCoexScheme is set to pta (3).  This must be 7
+             for current hardware.  It is not possible to disable this signal
+             when the unifiCoexScheme is set to 3."
+    ::= { unifiPTACoex 4 }
+
+unifiCoexPTABTActiveLeadTime OBJECT-TYPE
+        SYNTAX INTEGER (0..250)
+        UNITS "microseconds"
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This attribute specifies the duration by which the assertion
+             of the BT_ACTIVE coexistence signal leads the start of the gain
+             ramp for a transmission or the receiver being enabled.  The value
+             is in microseconds and only has effect when unifiCoexScheme is
+             set to pta (3)."
+    ::= { unifiPTACoex 5 }
+
+unifiCoexPTABTStatusPrioritySampleTime OBJECT-TYPE
+        SYNTAX INTEGER (0..15)
+        UNITS "microseconds"
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This attribute specifies the time after assertion of the
+             BT_ACTIVE coexistence signal at which the BT_STATUS signal is
+             sampled to determine activity priority.  The value is in
+             microseconds and only has effect when unifiCoexScheme is set
+             to pta (3)."
+    ::= { unifiPTACoex 6 }
+
+unifiCoexPTABTStatusDirectionSampleTime OBJECT-TYPE
+        SYNTAX INTEGER (0..30)
+        UNITS "microseconds"
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This attribute specifies the time after assertion of the
+             BT_ACTIVE coexistence signal at which the BT_STATUS signal is
+             sampled to determine activity direction.  The value is in
+             microseconds and only has effect when unifiCoexScheme is set
+             to pta (3)."
+    ::= { unifiPTACoex 7 }
+
+unifiCoexPTABTStatusDirectionPostSlotSampleTime OBJECT-TYPE
+        SYNTAX INTEGER (0..625)
+        UNITS "microseconds"
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This attribute specifies the time after the BT_STATUS line
+             changing to indicate a change of direction to that change
+             happening on the air.  This must be specified as t=625-x where
+             t is the MIB value, and x is the desired time (this is for
+             historical reasons).  The value is in microseconds and only
+             has effect when unifiCoexScheme is set to pta (3)."
+    ::= { unifiPTACoex 8 }
+
+unifiCoexPTABTIdPacketDuration OBJECT-TYPE
+        SYNTAX INTEGER (0..400)
+        UNITS "microseconds"
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "Duration used for advertisement of Bluetooth ID packets in
+             page or inquiry modes.  This defines the duration of a
+             Bluetooth ID packet plus a bit of slop to allow for timing
+             misalignments, defaulted to 68 microseconds plus 50
+             microseconds (i.e 118).  The value is in microseconds
+             and only has effect when unifiCoexScheme is set
+             to pta (3)."
+    ::= { unifiPTACoex 9 }
+
+unifiCoexPTABTTXEnablePIO OBJECT-TYPE
+        SYNTAX INTEGER (-1..15)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The number of the PIO line the UF602x uses as input for the
+             BT_TX_ENABLE signal when unifiCoexScheme is set to pta (3).
+             If left at the default of -1, the UF602x derives front end
+             control logic from the BT_ACTIVE and BT_STATUS PIOs, otherwise
+             it uses this PIO directly.  If this attribute is set it must
+             be even and unifiCoexPTABTRXEnablePIO must be set to a valid
+             value or a fault will be raised.  This MIB entry is not used
+             in UF105x."
+    ::= { unifiPTACoex 10 }
+
+unifiCoexPTABTRXEnablePIO OBJECT-TYPE
+        SYNTAX INTEGER (-1..15)
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "The number of the PIO line the UF602x uses as input for the
+             BT_RX_ENABLE signal when unifiCoexScheme is set to pta (3).
+             If left at the default of -1, the UF602x derives front end
+             control logic from the BT_ACTIVE and BT_STATUS PIOs, otherwise
+             it uses this PIO directly.  If this attribute is set it must
+             be odd and unifiCoexPTABTTXEnablePIO must be set to a valid
+             value or a fault will be raised.  This MIB entry is not used
+             in UF105x."
+    ::= { unifiPTACoex 11 }
+
+unifiCoexPTABTPriorityLevels OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(10))
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This attribute controls the assignment of coexistence priorities to
+             Bluetooth activities when unifiCoexScheme is set to pta (3).
+
+             The elements of this octet string define a mapping from four
+             possible levels given by the sampling of the PIOs specified by
+             unifiCoexPTABTStatusPIO (the BT_STATUS signal) and
+             unifiCoexPeriodicPIO (the BT_PERIODIC signal) at the point
+             defined by unifiCoexPTABTStatusPrioritySampleTime after assertion
+             of the PIO specified by unifiCoexPTABTActivePIO (the BT_ACTIVE
+             signal), to the 16 levels of priority used internally by UF602x
+             Coexistence Decision Logic.
+
+             Each consecutive pair of octets defines the priority used for a
+             given combination of BT_STATUS and BT_PERIODIC.  The first octet
+             of each pair must be zero, and the second octet of each pair should
+             contain the required priority in the least significant nibble.  The
+             most significant nibble of the second octet must be set to zero.
+
+             The octets within the string are assigned as follows.
+
+              0-1  Both BT_STATUS and BT_PERIODIC low
+              2-3  BT_STATUS high and BT_PERIODIC low
+              4-5  BT_STATUS low and BT_PERIODIC high
+              6-7  Both BT_STATUS and BT_PERIODIC high
+              8-9  Unused.  Reserved for future use.
+
+             The last two octets in the string are reserved for future extension
+             and must be set to zero.
+
+             Changes to this MIB attribute take effect when unifiCoexScheme is
+             next written."
+    ::= { unifiPTACoex 12 }
+
+unifiCoexPTACDLConfig OBJECT-TYPE
+        SYNTAX OCTET STRING (SIZE(17))
+        MAX-ACCESS read-write
+        STATUS current
+        DESCRIPTION
+            "This string contains the UF602x coexistence configuration for
+             the BT CDL when unifiCoexScheme is set to pta (3).
+             Description:
+                 octet  0  -  collision_table.spectral_threshs.thresh_2
+                 octet  1  -  collision_table.spectral_threshs.thresh_1
+                 octet  2  -  collision_table.spectral_threshs.thresh_0
+                 octet  3  -  collision_table.local_tx_col_table (msw)
+                 octet  4  -  collision_table.local_tx_col_table (lsw)
+                 octet  5  -  collision_table.local_rx_col_table (msw)
+                 octet  6  -  collision_table.local_rx_col_table (lsw)
+                 octet  7  -  priority_difference_table.thresh_neg
+                 octet  8  -  priority_difference_table.thresh_0
+                 octet  9  -  priority_difference_table.thresh_1
+                 octet 10  -  priority_difference_table.thresh_2
+                 octet 11  -  action_table.abort_table (msw)
+                 octet 12  -  action_table.abort_table (lsw)
+                 octet 13  -  action_table.lcl_table_1 (msw)
+                 octet 14  -  action_table.lcl_table_1 (lsw)
+                 octet 15  -  action_table.lcl_table_1 (msw)
+                 octet 16  -  action_table.lcl_table_1 (lsw)"
+    ::= { unifiPTACoex 13 }
+
+END

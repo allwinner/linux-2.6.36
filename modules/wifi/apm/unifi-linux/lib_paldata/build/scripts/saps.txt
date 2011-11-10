@@ -1,0 +1,2 @@
+SAP name        Path              XML Filename      Target Name     Direction   Namespace
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

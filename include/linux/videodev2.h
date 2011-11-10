@@ -1056,6 +1056,16 @@ enum v4l2_colorfx {
 /* last CID + 1 */
 #define V4L2_CID_LASTP1                         (V4L2_CID_BASE+37)
 
+/* Add camera flash light by raymonxiu */
+#define V4L2_CID_CAMERA_FLASH_MODE              (V4L2_CID_PRIVATE_BASE+0)
+enum v4l2_flash_mode {
+	V4L2_FLASH_MODE_OFF = 0,
+	V4L2_FLASH_MODE_AUTO = 1,
+	V4L2_FLASH_MODE_ON = 2,
+	V4L2_FLASH_MODE_TORCH = 3,
+	V4L2_FLASH_MODE_RED_EYE = 4,
+};
+
 /*  MPEG-class control IDs defined by V4L2 */
 #define V4L2_CID_MPEG_BASE 			(V4L2_CTRL_CLASS_MPEG | 0x900)
 #define V4L2_CID_MPEG_CLASS 			(V4L2_CTRL_CLASS_MPEG | 1)

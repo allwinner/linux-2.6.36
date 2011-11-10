@@ -1,0 +1,82 @@
+#!/system/bin/sh
+# Copyright (C) 2009 by Cambridge Silicon Radio Ltd.
+# /system/bin/unififw
+# This is run from the driver via kerneld when a UniFi card
+# is inserted.
+#
+
+# Set up the uevent helper script
+# Has to be done this way to stop all output from this script being
+# piped to uevent_helper, and echo is a builtin, so $(echo blah) does
+# not work!
+#
+# New android releases have a firmware helper script, DO NOT SET THIS
+#$(/system/bin/sh -c "echo /system/bin/hotplug > /sys/kernel/uevent_helper")
+
+# Find files for:
+#   ufmib.dat     - standard MIB for the h/w
+#   mac.txt       - MAC address (in text format)
+
+instance="$1"
+
+init_mode="$2"
+
+
+fwpath=/system/etc/firmware/unifi-sdio-$instance
+
+echo "unififw instance " $1 "init mode " $2
+
+case "$init_mode" in
+        2)
+                mibfileparam=""
+                if /system/bin/ls $fwpath/ufmib.dat; then
+                        mibfileparam="-mib=$fwpath/ufmib.dat"
+                fi
+
+                macfileparam=""
+                if /system/bin/ls $fwpath/mac.txt; then
+                        macfileparam="-mac=$fwpath/mac.txt"
+                fi
+
+                /system/bin/unifi_helper -dev=/dev/unifi$instance -wifion $macfileparam $mibfileparam &
+                unifi_helper_pid=$!
+                /system/bin/setprop wlan.driver.unifi_helper_pid $unifi_helper_pid
+                wait $unifi_helper_pid
+                /system/bin/setprop wlan.driver.unifi_helper_pid 0
+                /system/bin/setprop wlan.driver.status "failed"
+				#/system/bin/rmmod unifi_sdio
+                exit 0
+esac
+
+# unifi_manager mode
+
+# This is a bit of a hack.  When we have no firmware, sometimes when we
+# run unifi_manager the device nodes are not there yet, and it fails.
+# I guess this is some sort of a race, but I odn't know how to fix it.
+sleep 0.25
+
+# Set the MAC address, MIB(s) and start the driver.
+
+# Fallback to the broadcast MAC addr, which UniFi takes to mean "use the
+# MAC address from MIB", typically read from EEPROM
+macaddr="FF:FF:FF:FF:FF:FF"
+if /system/bin/ls $fwpath/mac.txt; then
+    macaddr=$(/system/bin/cat $fwpath/mac.txt)
+fi
+
+mibfile=""
+if /system/bin/ls $fwpath/ufmib.dat; then
+    mibfile="$fwpath/ufmib.dat"
+fi
+
+/system/bin/unifi_manager -d /dev/unifi$instance -s $macaddr -b $init_mode $mibfile &
+unifi_helper_pid=$!
+/system/bin/setprop wlan.driver.unifi_helper_pid $unifi_helper_pid
+# FIXME TBD
+/system/bin/sleep 4
+/system/bin/setprop wlan.driver.status "ok"
+wait $unifi_helper_pid
+/system/bin/setprop wlan.driver.unifi_helper_pid 0
+/system/bin/setprop wlan.driver.status "failed"
+/system/bin/rmmod unifi_sdio
+exit 0

@@ -48,6 +48,28 @@
 
 #define VERSION "2.2"
 
+#if (defined CONFIG_SW_MMC_POWER_CONTROL)
+#define SUPPORTED_BCM_BT
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
+static void wake_up_brcm_bt(void)
+{
+    unsigned int mod_sel = mmc_pm_get_mod_type();
+	//fill your code to pull BT_wake_pin to low for BT wakeup;
+	switch (mod_sel) {
+	    case 2: /* usi bm01a */
+            mmc_pm_gpio_ctrl("usi_bm01a_bt_wake", 0);
+            break;
+        case 5: /* swb b23 */
+            mmc_pm_gpio_ctrl("swbb23_bt_wake", 0);
+            break;
+        default:
+            BT_DBG("no bt module matched !!\n");
+	}
+}
+#endif
+
 static int reset = 0;
 
 static struct hci_uart_proto *hup[HCI_UART_MAX_PROTO];
@@ -133,7 +155,10 @@ int hci_uart_tx_wakeup(struct hci_uart *hu)
 
 restart:
 	clear_bit(HCI_UART_TX_WAKEUP, &hu->tx_state);
-
+#ifdef SUPPORTED_BCM_BT  
+      BT_DBG("wakeup_bt");
+      wake_up_brcm_bt();
+#endif
 	while ((skb = hci_uart_dequeue(hu))) {
 		int len;
 
@@ -210,6 +235,7 @@ static int hci_uart_close(struct hci_dev *hdev)
 static int hci_uart_send_frame(struct sk_buff *skb)
 {
 	struct hci_dev* hdev = (struct hci_dev *) skb->dev;
+	struct tty_struct *tty;
 	struct hci_uart *hu;
 
 	if (!hdev) {
@@ -221,6 +247,7 @@ static int hci_uart_send_frame(struct sk_buff *skb)
 		return -EBUSY;
 
 	hu = (struct hci_uart *) hdev->driver_data;
+	tty = hu->tty;
 
 	BT_DBG("%s: type %d len %d", hdev->name, bt_cb(skb)->pkt_type, skb->len);
 
@@ -464,6 +491,7 @@ static int hci_uart_tty_ioctl(struct tty_struct *tty, struct file * file,
 				clear_bit(HCI_UART_PROTO_SET, &hu->flags);
 				return err;
 			}
+			tty->low_latency = 1;
 		} else
 			return -EBUSY;
 		break;

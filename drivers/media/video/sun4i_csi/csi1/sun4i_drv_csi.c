@@ -52,7 +52,7 @@
 #define REGS_pBASE					(0x01C00000)	 	      // register base addr
 #define SDRAM_REGS_pBASE    (REGS_pBASE + 0x01000)    // SDRAM Controller
 
-#define NUM_INPUTS 1
+#define NUM_INPUTS 2
 #define CSI_OUT_RATE      (24*1000*1000)
 #define CSI_ISP_RATE			(100*1000*1000)
 #define CSI_MAX_FRAME_MEM (32*1024*1024)
@@ -66,17 +66,34 @@
 static unsigned video_nr = 1;
 static unsigned first_flag = 0;
 
+
+
 static char ccm[I2C_NAME_SIZE] = "";
 static uint i2c_addr = 0xff;
-static char iovdd[32] = "";
-static char avdd[32] = "";
-static char dvdd[32] = "";
+
+static char ccm_b[I2C_NAME_SIZE] = "";
+static uint i2c_addr_b = 0xff;
+
+
+static struct ccm_config ccm_cfg[NUM_INPUTS] = {
+	{
+		.i2c_addr = 0xff,
+	},
+	{
+		.i2c_addr = 0xff,
+	},
+};
 
 module_param_string(ccm, ccm, sizeof(ccm), S_IRUGO|S_IWUSR);
 module_param(i2c_addr,uint, S_IRUGO|S_IWUSR);
-
+module_param_string(ccm_b, ccm_b, sizeof(ccm_b), S_IRUGO|S_IWUSR);
+module_param(i2c_addr_b,uint, S_IRUGO|S_IWUSR);
 
 static struct i2c_board_info  dev_sensor[] =  {
+	{
+		//I2C_BOARD_INFO(ccm, i2c_addr),
+		.platform_data	= NULL,
+	},
 	{
 		//I2C_BOARD_INFO(ccm, i2c_addr),
 		.platform_data	= NULL,
@@ -299,8 +316,8 @@ static int csi_clk_get(struct csi_dev *dev)
        	csi_err("get csi1 ahb clk error!\n");	
 		return -1;
     }
-
-	if(dev->ccm_info.mclk==24000000)
+	
+	if(dev->ccm_info->mclk==24000000)
 	{
 		dev->csi_clk_src=clk_get(NULL,"hosc");
 		if (dev->csi_clk_src == NULL) {
@@ -316,7 +333,7 @@ static int csi_clk_get(struct csi_dev *dev)
 			return -1;
     }
 	}  
-    
+   
 	dev->csi_module_clk=clk_get(NULL,"csi1");
 	if(dev->csi_module_clk == NULL) {
        	csi_err("get csi1 module clk error!\n");	
@@ -331,7 +348,7 @@ static int csi_clk_get(struct csi_dev *dev)
      
 	clk_put(dev->csi_clk_src);
 	
-	ret = clk_set_rate(dev->csi_module_clk,dev->ccm_info.mclk);
+	ret = clk_set_rate(dev->csi_module_clk,dev->ccm_info->mclk);
 	if (ret == -1) {
         csi_err("set csi1 module clock error\n");
 		return -1;
@@ -375,7 +392,7 @@ static int csi_clk_get(struct csi_dev *dev)
 static int csi_clk_out_set(struct csi_dev *dev)
 {
 	int ret;
-	ret = clk_set_rate(dev->csi_module_clk, dev->ccm_info.mclk);
+	ret = clk_set_rate(dev->csi_module_clk, dev->ccm_info->mclk);
 	if (ret == -1) {
 		csi_err("set csi1 module clock error\n");
 		return -1;
@@ -446,13 +463,27 @@ static void csi_stop_generating(struct csi_dev *dev)
 	 return;
 }
 
+static int update_ccm_info(struct csi_dev *dev , struct ccm_config *ccm_cfg)
+{
+   dev->sd = ccm_cfg->sd;
+   dev->ccm_info = &ccm_cfg->ccm_info;
+   dev->interface = ccm_cfg->interface;
+	 dev->vflip = ccm_cfg->vflip;
+	 dev->hflip = ccm_cfg->hflip;
+	 dev->flash_pol = ccm_cfg->flash_pol;
+	 dev->iovdd = ccm_cfg->iovdd;
+	 dev->avdd = ccm_cfg->avdd;
+	 dev->dvdd = ccm_cfg->dvdd;
+	 return v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_SET_INFO,dev->ccm_info);
+}
+
 static irqreturn_t csi_isr(int irq, void *priv)
 {
 	struct csi_buffer *buf;	
 	struct csi_dev *dev = (struct csi_dev *)priv;
 	struct csi_dmaqueue *dma_q = &dev->vidq;
 //	__csi_int_status_t * status;
-	
+
 	csi_dbg(3,"csi_isr\n");
 	
 	bsp_csi_int_disable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
@@ -522,7 +553,6 @@ unlock:
 //		bsp_csi_int_clear_status(dev,CSI_INT_HBLANK_OVERFLOW);
 //		csi_err("hblank overflow\n");
 //	}
-	
 	bsp_csi_int_clear_status(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
 	bsp_csi_int_enable(dev,CSI_INT_FRAME_DONE);//CSI_INT_FRAME_DONE
 	
@@ -535,7 +565,7 @@ unlock:
 static int buffer_setup(struct videobuf_queue *vq, unsigned int *count, unsigned int *size)
 {
 	struct csi_dev *dev = vq->priv_data;
-
+	
 	csi_dbg(1,"buffer_setup\n");
 	
 	if(dev->fmt->input_fmt == CSI_RAW)
@@ -632,8 +662,8 @@ static int buffer_prepare(struct videobuf_queue *vq, struct videobuf_buffer *vb,
 		return -EINVAL;
 	}
 	
-	buf->vb.size = dev->frame_size;
-		
+	buf->vb.size = dev->frame_size;			
+	
 	if (0 != buf->vb.baddr && buf->vb.bsize < buf->vb.size) {
 		return -EINVAL;
 	}
@@ -697,8 +727,8 @@ static int vidioc_querycap(struct file *file, void  *priv,
 {
 	struct csi_dev *dev = video_drvdata(file);
 
-	strcpy(cap->driver, "sun4i_csi1");
-	strcpy(cap->card, "sun4i_csi1");
+	strcpy(cap->driver, "sun4i_csi");
+	strcpy(cap->card, "sun4i_csi");
 	strlcpy(cap->bus_info, dev->v4l2_dev.name, sizeof(cap->bus_info));
 
 	cap->version = CSI_VERSION;
@@ -1027,11 +1057,12 @@ static int vidioc_streamoff(struct file *file, void *priv, enum v4l2_buf_type i)
 }
 
 
-/* only one input in this sample driver */
 static int vidioc_enum_input(struct file *file, void *priv,
 				struct v4l2_input *inp)
 {
-	if (inp->index > NUM_INPUTS-1) {
+	struct csi_dev *dev = video_drvdata(file);
+	
+	if (inp->index > dev->dev_qty-1) {
 		csi_err("input index invalid!\n");
 		return -EINVAL;
 	}
@@ -1052,14 +1083,98 @@ static int vidioc_g_input(struct file *file, void *priv, unsigned int *i)
 static int vidioc_s_input(struct file *file, void *priv, unsigned int i)
 {
 	struct csi_dev *dev = video_drvdata(file);
-
-	if (i > NUM_INPUTS-1) {
+	int ret;
+	struct v4l2_control ctrl;
+	
+	if (i > dev->dev_qty-1) {
 		csi_err("set input error!\n");
 		return -EINVAL;
 	}
-	dev->input = i;
 	
-	return 0;
+	if (i == dev->input)
+		return 0;
+	
+	csi_dbg(0,"input_num = %d\n",i);
+	
+//	spin_lock(&dev->slock);
+	
+	/*Power down current device*/
+	
+	ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+	if(ret < 0)
+		goto altend;
+	
+	/* Alternate the device info and select target device*/
+  ret = update_ccm_info(dev, dev->ccm_cfg[i]);
+  if (ret < 0)
+	{
+		csi_err("Error when set ccm info when selecting input!,input_num = %d\n",i);
+		goto recover;
+	}
+	
+	/* change the csi setting */
+	csi_dbg(0,"dev->ccm_info->vref = %d\n",dev->ccm_info->vref);
+	csi_dbg(0,"dev->ccm_info->href = %d\n",dev->ccm_info->href);
+	csi_dbg(0,"dev->ccm_info->clock = %d\n",dev->ccm_info->clock);
+	csi_dbg(0,"dev->ccm_info->mclk = %d\n",dev->ccm_info->mclk);
+	
+	dev->csi_mode.vref       = dev->ccm_info->vref;
+  dev->csi_mode.href       = dev->ccm_info->href;
+  dev->csi_mode.clock      = dev->ccm_info->clock;
+  
+  bsp_csi_configure(dev,&dev->csi_mode);
+	csi_clk_out_set(dev);
+	 
+	/* Initial target device */
+	ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_FULL);
+	if (ret!=0) {
+		csi_err("sensor initial error when selecting target device!\n");
+		goto recover;
+	}
+	
+	/* Set the initial flip */
+	ctrl.id = V4L2_CID_VFLIP;
+	ctrl.value = dev->vflip;
+	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
+	if (ret!=0) {
+		csi_err("sensor sensor_s_ctrl V4L2_CID_VFLIP error when vidioc_s_input!input_num = %d\n",i);
+	}
+	
+	ctrl.id = V4L2_CID_HFLIP;
+	ctrl.value = dev->hflip;
+	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
+	if (ret!=0) {
+		csi_err("sensor sensor_s_ctrl V4L2_CID_HFLIP error when vidioc_s_input!input_num = %d\n",i);
+	}
+	
+	dev->input = i;
+  ret = 0;
+  
+altend:
+//  spin_unlock(&dev->slock);
+	return ret;
+	
+recover:
+	/*Power down target device*/
+	ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
+	if(ret < 0)
+		goto altend;
+
+	/* Alternate the device info and select the current device*/
+  ret = update_ccm_info(dev, dev->ccm_cfg[dev->input]);
+  if (ret < 0)
+	{
+		csi_err("Error when set ccm info when selecting input!\n");
+		goto altend;
+	}
+	
+	/*Re Initial current device*/
+	ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_FULL);
+	if (ret!=0) {
+		csi_err("sensor recovering error when selecting back current device!\n");
+	}
+	ret = 0;
+	goto altend;
 }
 
 
@@ -1162,9 +1277,9 @@ static unsigned int csi_poll(struct file *file, struct poll_table_struct *wait)
 static int csi_open(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
-	int ret,vflip,hflip;
+	int ret,input_num;
 	struct v4l2_control ctrl;
-
+	
 	csi_dbg(0,"csi_open\n");
 
 	if (dev->opened == 1) {
@@ -1172,16 +1287,39 @@ static int csi_open(struct file *file)
 		return -EBUSY;
 	}
 	
-  dev->csi_mode.vref       = dev->ccm_info.vref;
-  dev->csi_mode.href       = dev->ccm_info.href;
-  dev->csi_mode.clock      = dev->ccm_info.clock;
-  
+	//open all the device power
+	for (input_num=0; input_num<dev->dev_qty; input_num++) {
+		/* update target device info and select it*/
+		ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+		if (ret < 0)
+		{
+			csi_err("Error when set ccm info when csi open!\n");
+		}
+	
+		ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+	  if (ret!=0) {
+	  	csi_err("sensor power on error at device number %d when csi open!\n",input_num);
+	  }
+	}
+	
+	dev->input=0;//default input
+
+  ret = update_ccm_info(dev, dev->ccm_cfg[dev->input]);
+  if (ret < 0)
+	{
+		csi_err("Error when set ccm info when csi open!\n");
+	}
+
+	
+  dev->csi_mode.vref       = dev->ccm_info->vref;
+  dev->csi_mode.href       = dev->ccm_info->href;
+  dev->csi_mode.clock      = dev->ccm_info->clock;
+	
 	csi_clk_enable(dev);
 	csi_reset_disable(dev);
 	
 	bsp_csi_open(dev);
 	bsp_csi_set_offset(dev,0,0);//h and v offset is initialed to zero
-	
 	
 	ret = v4l2_subdev_call(dev->sd,core, init, CSI_SUBDEV_INIT_FULL);
 	if (ret!=0) {
@@ -1191,31 +1329,20 @@ static int csi_open(struct file *file)
 		csi_print("sensor initial success when csi open!\n");
 	}	
 
-	ret = script_parser_fetch("csi1_para","csi_vflip", &vflip , sizeof(int));
-	if (ret) {
-		csi_err("fetch csi1 vflip from sys_config failed\n");
-	}
-	
 	ctrl.id = V4L2_CID_VFLIP;
-	ctrl.value = vflip;
+	ctrl.value = dev->vflip;
 	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
 	if (ret!=0) {
 		csi_err("sensor sensor_s_ctrl V4L2_CID_VFLIP error when csi open!\n");
 	}
 	
-	ret = script_parser_fetch("csi1_para","csi_hflip", &hflip , sizeof(int));
-	if (ret) {
-		csi_err("fetch csi1 hflip from sys_config failed\n");
-	}
-	
 	ctrl.id = V4L2_CID_HFLIP;
-	ctrl.value = hflip;
+	ctrl.value = dev->hflip;
 	ret = v4l2_subdev_call(dev->sd,core, s_ctrl, &ctrl);
 	if (ret!=0) {
 		csi_err("sensor sensor_s_ctrl V4L2_CID_HFLIP error when csi open!\n");
 	}
-		
-	dev->input=0;//default input
+	
 	dev->opened=1;
 	
 	return 0;		
@@ -1224,7 +1351,7 @@ static int csi_open(struct file *file)
 static int csi_close(struct file *file)
 {
 	struct csi_dev *dev = video_drvdata(file);
-	int ret;
+	int ret,input_num;
 	
 	csi_dbg(0,"csi_close\n");
 
@@ -1243,7 +1370,7 @@ static int csi_close(struct file *file)
 
 	dev->opened=0;
 	csi_stop_generating(dev);
-
+	
 	if(dev->stby_mode == 0) {
 		ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
 		if(ret < 0)
@@ -1256,8 +1383,25 @@ static int csi_close(struct file *file)
 		ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 		if(ret < 0)
 			return ret;
-		return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+		
+		//close all the device power	
+		for (input_num=0; input_num<dev->dev_qty; input_num++) {
+      /* update target device info and select it */
+      ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+			if (ret < 0)
+			{
+				csi_err("Error when set ccm info when csi_close!\n");
+			}
+			
+			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+		  if (ret!=0) {
+		  	csi_err("sensor power off error at device number %d when csi open!\n",input_num);
+		  	return ret;
+		  }
+		}
 	}
+	
+	return 0;
 }
 
 static int csi_mmap(struct file *file, struct vm_area_struct *vma)
@@ -1319,6 +1463,176 @@ static struct video_device csi_template = {
 	.release	= video_device_release,
 };
 
+static int fetch_config(struct csi_dev *dev)
+{
+	int input_num,ret;
+	
+	/* fetch device quatity issue */
+	ret = script_parser_fetch("csi1_para","csi_dev_qty", &dev->dev_qty , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi_dev_qty from sys_config failed\n");
+	}
+	
+	/* fetch standby mode */
+	ret = script_parser_fetch("csi1_para","csi_stby_mode", &dev->stby_mode , sizeof(int));
+	if (ret) {
+		csi_err("fetch csi_stby_mode from sys_config failed\n");
+	}
+	
+	for(input_num=0; input_num<dev->dev_qty; input_num++)
+	{
+		dev->ccm_cfg[input_num] = &ccm_cfg[input_num]; 
+		csi_dbg(0,"dev->ccm_cfg[%d] = %p\n",input_num,dev->ccm_cfg[input_num]);
+	}
+	
+	if(dev->dev_qty > 0)
+	{
+		dev->ccm_cfg[0]->i2c_addr = i2c_addr;
+		strcpy(dev->ccm_cfg[0]->ccm,ccm);
+		
+		/* fetch i2c and module name*/
+		ret = script_parser_fetch("csi1_para","csi_twi_id", &dev->ccm_cfg[0]->twi_id , sizeof(int));
+		if (ret) {
+		}
+		
+		ret = strcmp(dev->ccm_cfg[0]->ccm,"");
+		if((dev->ccm_cfg[0]->i2c_addr == 0xff) && (ret == 0))	//when insmod without parm
+		{
+			ret = script_parser_fetch("csi1_para","csi_twi_addr", &dev->ccm_cfg[0]->i2c_addr , sizeof(int));
+			if (ret) {
+				csi_err("fetch csi_twi_addr from sys_config failed\n");
+			}
+			
+			ret = script_parser_fetch("csi1_para","csi_mname", (int *)&dev->ccm_cfg[0]->ccm , I2C_NAME_SIZE*sizeof(char));
+			if (ret) {
+				csi_err("fetch csi_mname from sys_config failed\n");
+			}
+		}
+		
+		/* fetch interface issue*/
+		ret = script_parser_fetch("csi1_para","csi_if", &dev->ccm_cfg[0]->interface , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_if from sys_config failed\n");
+		}
+		
+		/* fetch power issue*/
+	
+		ret = script_parser_fetch("csi1_para","csi_iovdd", (int *)&dev->ccm_cfg[0]->iovdd_str , 32*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_iovdd from sys_config failed\n");
+		} 
+		
+		ret = script_parser_fetch("csi1_para","csi_avdd", (int *)&dev->ccm_cfg[0]->avdd_str , 32*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_avdd from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi1_para","csi_dvdd", (int *)&dev->ccm_cfg[0]->dvdd_str , 32*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_dvdd from sys_config failed\n");
+		}
+		
+		/* fetch flip issue */
+		ret = script_parser_fetch("csi1_para","csi_vflip", &dev->ccm_cfg[0]->vflip , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi1 vflip from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi1_para","csi_hflip", &dev->ccm_cfg[0]->hflip , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi1 hflip from sys_config failed\n");
+		}
+		
+		/* fetch flash light issue */
+		ret = script_parser_fetch("csi1_para","csi_flash_pol", &dev->ccm_cfg[0]->flash_pol , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi1 csi_flash_pol from sys_config failed\n");
+		}
+	} 
+	
+	if(dev->dev_qty > 1)
+	{
+		dev->ccm_cfg[1]->i2c_addr = i2c_addr_b;
+		strcpy(dev->ccm_cfg[1]->ccm,ccm_b);
+	
+		/* fetch i2c and module name*/
+		ret = script_parser_fetch("csi1_para","csi_twi_id_b", &dev->ccm_cfg[1]->twi_id , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_twi_id_b from sys_config failed\n");
+		}
+		
+		ret = strcmp(dev->ccm_cfg[1]->ccm,"");
+		if((dev->ccm_cfg[1]->i2c_addr == 0xff) && (ret == 0))	//when insmod without parm
+		{
+			ret = script_parser_fetch("csi1_para","csi_twi_addr_b", &dev->ccm_cfg[1]->i2c_addr , sizeof(int));
+			if (ret) {
+				csi_err("fetch csi_twi_addr_b from sys_config failed\n");
+			}
+			
+			ret = script_parser_fetch("csi1_para","csi_mname_b", (int *)&dev->ccm_cfg[1]->ccm , I2C_NAME_SIZE*sizeof(char));
+			if (ret) {
+				csi_err("fetch csi_mname_b from sys_config failed\n");;
+			}
+		}
+		
+		/* fetch interface issue*/
+		ret = script_parser_fetch("csi1_para","csi_if_b", &dev->ccm_cfg[1]->interface , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi_if_b from sys_config failed\n");
+		}
+		
+		/* fetch power issue*/
+		ret = script_parser_fetch("csi1_para","csi_iovdd_b", (int *)&dev->ccm_cfg[1]->iovdd_str , 32*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_iovdd_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi1_para","csi_avdd_b", (int *)&dev->ccm_cfg[1]->avdd_str , 32*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_avdd_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi1_para","csi_dvdd_b", (int *)&dev->ccm_cfg[1]->dvdd_str , 32*sizeof(char));
+		if (ret) {
+			csi_err("fetch csi_dvdd_b from sys_config failed\n");
+		}
+		
+		/* fetch flip issue */
+		ret = script_parser_fetch("csi1_para","csi_vflip_b", &dev->ccm_cfg[1]->vflip , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi1 vflip_b from sys_config failed\n");
+		}
+		
+		ret = script_parser_fetch("csi1_para","csi_hflip_b", &dev->ccm_cfg[1]->hflip , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi1 hflip_b from sys_config failed\n");
+		}
+		
+		/* fetch flash light issue */
+		ret = script_parser_fetch("csi1_para","csi_flash_pol_b", &dev->ccm_cfg[1]->flash_pol , sizeof(int));
+		if (ret) {
+			csi_err("fetch csi1 csi_flash_pol_b from sys_config failed\n");
+		}
+	}
+
+	
+	for(input_num=0; input_num<dev->dev_qty; input_num++)
+	{
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm = %s\n",input_num,dev->ccm_cfg[input_num]->ccm);
+		csi_dbg(0,"dev->ccm_cfg[%d]->twi_id = %x\n",input_num,dev->ccm_cfg[input_num]->twi_id);
+		csi_dbg(0,"dev->ccm_cfg[%d]->i2c_addr = %x\n",input_num,dev->ccm_cfg[input_num]->i2c_addr);
+		csi_dbg(0,"dev->ccm_cfg[%d]->interface = %x\n",input_num,dev->ccm_cfg[input_num]->interface);
+		csi_dbg(0,"dev->ccm_cfg[%d]->vflip = %x\n",input_num,dev->ccm_cfg[input_num]->vflip);
+		csi_dbg(0,"dev->ccm_cfg[%d]->hflip = %x\n",input_num,dev->ccm_cfg[input_num]->hflip);
+		csi_dbg(0,"dev->ccm_cfg[%d]->iovdd_str = %s\n",input_num,dev->ccm_cfg[input_num]->iovdd_str);
+		csi_dbg(0,"dev->ccm_cfg[%d]->avdd_str = %s\n",input_num,dev->ccm_cfg[input_num]->avdd_str);
+		csi_dbg(0,"dev->ccm_cfg[%d]->dvdd_str = %s\n",input_num,dev->ccm_cfg[input_num]->dvdd_str);
+		csi_dbg(0,"dev->ccm_cfg[%d]->flash_pol = %x\n",input_num,dev->ccm_cfg[input_num]->flash_pol);
+	}
+	
+	return 0;
+}
+
 static int csi_probe(struct platform_device *pdev)
 {
 	struct csi_dev *dev;
@@ -1326,7 +1640,8 @@ static int csi_probe(struct platform_device *pdev)
 	struct video_device *vfd;
 	struct i2c_adapter *i2c_adap;
 	int ret = 0;
-	int twi_id;
+	int input_num;
+
 	csi_dbg(0,"csi_probe\n");
 
 	/*request mem for dev*/	
@@ -1397,126 +1712,140 @@ static int csi_probe(struct platform_device *pdev)
 	}
 
 	dev_set_drvdata(&(pdev)->dev, (dev));
-
-    /* v4l2 subdev register	*/
-	ret = script_parser_fetch("csi1_para","csi_twi_id", &twi_id , sizeof(int));
+	
+	/* fetch sys_config1 */
+	
+	ret = fetch_config(dev);
 	if (ret) {
-		csi_err("fetch csi_twi_id from sys_config failed\n");
-		return -1;
-	}
-	i2c_adap = i2c_get_adapter(twi_id);
-	
-	if (i2c_adap == NULL) {
-		csi_err("request i2c adapter failed\n");
-		ret = -EINVAL;
+		csi_err("Error at fetch_config\n");
+		goto err_irq;
 	}
 	
-	dev->sd = kmalloc(sizeof(struct v4l2_subdev *),GFP_KERNEL);
-	if (dev->sd == NULL) {
-		csi_err("unable to allocate memory for subdevice pointers\n");
-		ret = -ENOMEM;
-	}
+  /* v4l2 subdev register	*/
+	dev->module_flag = 0;
+	for(input_num=0; input_num<dev->dev_qty; input_num++)
+	{	
+//		if(dev->module_flag)
+//			break;
 
-	ret = strcmp(ccm,"");
-	if((i2c_addr == 0xff) && (ret == 0))	//when insmod without parm
-	{
-		ret = script_parser_fetch("csi1_para","csi_twi_addr", &i2c_addr , sizeof(int));
-		if (ret) {
-			csi_err("fetch csi_twi_addr from sys_config failed\n");
-			return -1;
+		if(!strcmp(dev->ccm_cfg[input_num]->ccm,""))
+			break;
+
+		if(dev->module_flag) {
+			dev->ccm_cfg[input_num]->sd = dev->ccm_cfg[input_num-1]->sd;
+			csi_dbg(0,"num = %d , sd_0 = %p,sd_1 = %p\n",input_num,dev->ccm_cfg[input_num]->sd,dev->ccm_cfg[input_num-1]->sd);
+			goto reg_sd;
+		}
+
+		if((dev->dev_qty > 1) && (input_num+1<dev->dev_qty))
+		{
+			if( (!strcmp(dev->ccm_cfg[input_num]->ccm,dev->ccm_cfg[input_num+1]->ccm)))
+				dev->module_flag = 1;
+		}
+
+		i2c_adap = i2c_get_adapter(dev->ccm_cfg[input_num]->twi_id);
+
+		if (i2c_adap == NULL) {
+			csi_err("request i2c adapter failed,input_num = %d\n",input_num);
+			ret = -EINVAL;
+		}
+
+		dev->ccm_cfg[input_num]->sd = kmalloc(sizeof(struct v4l2_subdev *),GFP_KERNEL);
+		if (dev->ccm_cfg[input_num]->sd == NULL) {
+			csi_err("unable to allocate memory for subdevice pointers,input_num = %d\n",input_num);
+			ret = -ENOMEM;
+		}
+
+		dev_sensor[input_num].addr = (unsigned short)(dev->ccm_cfg[input_num]->i2c_addr>>1);
+		strcpy(dev_sensor[input_num].type,dev->ccm_cfg[input_num]->ccm);
+
+		dev->ccm_cfg[input_num]->sd = v4l2_i2c_new_subdev_board(&dev->v4l2_dev,
+											i2c_adap,
+											dev_sensor[input_num].type,
+											&dev_sensor[input_num],
+											NULL);
+reg_sd:					
+		if (!dev->ccm_cfg[input_num]->sd) {
+			csi_err("Error registering v4l2 subdevice,input_num = %d\n",input_num);
+			goto free_dev;	
+		} else{
+			csi_print("registered sub device,input_num = %d\n",input_num);
 		}
 		
-		ret = script_parser_fetch("csi1_para","csi_mname", (int *)&ccm , I2C_NAME_SIZE*sizeof(char));
-		if (ret) {
-			csi_err("fetch csi_mname from sys_config failed\n");
-			return -1;
-		}
-	}
-	dev_sensor[0].addr = (unsigned short)(i2c_addr>>1);
-	strcpy(dev_sensor[0].type,ccm);
+		dev->ccm_cfg[input_num]->ccm_info.mclk = CSI_OUT_RATE;
+		dev->ccm_cfg[input_num]->ccm_info.vref = CSI_LOW;
+		dev->ccm_cfg[input_num]->ccm_info.href = CSI_LOW;
+		dev->ccm_cfg[input_num]->ccm_info.clock = CSI_FALLING;
 
-	dev->sd = v4l2_i2c_new_subdev_board(&dev->v4l2_dev,
-										i2c_adap,
-										dev_sensor[0].type,
-										dev_sensor,
-										NULL);
-	if (!dev->sd) {
-		csi_err("Error registering v4l2 subdevice\n");
-		goto free_dev;
+		ret = v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core,ioctl,CSI_SUBDEV_CMD_GET_INFO,&dev->ccm_cfg[input_num]->ccm_info);
+		if (ret < 0)
+		{
+			csi_err("Error when get ccm info,input_num = %d,use default!\n",input_num);
+		}
+
+		dev->ccm_cfg[input_num]->ccm_info.iocfg = input_num;
+
+		ret = v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core,ioctl,CSI_SUBDEV_CMD_SET_INFO,&dev->ccm_cfg[input_num]->ccm_info);
+		if (ret < 0)
+		{
+			csi_err("Error when set ccm info,input_num = %d,use default!\n",input_num);
+		}
+
+		/*power issue*/
+		dev->ccm_cfg[input_num]->iovdd = NULL;
+		dev->ccm_cfg[input_num]->avdd = NULL;
+		dev->ccm_cfg[input_num]->dvdd = NULL;
+	
+		if(strcmp(dev->ccm_cfg[input_num]->iovdd_str,"")) {
+			dev->ccm_cfg[input_num]->iovdd = regulator_get(NULL, dev->ccm_cfg[input_num]->iovdd_str);
+			if (dev->ccm_cfg[input_num]->iovdd == NULL) {
+				csi_err("get regulator csi_iovdd error!input_num = %d\n",input_num);
+				goto free_dev;
+			}
+		}
+
+		if(strcmp(dev->ccm_cfg[input_num]->avdd_str,"")) {
+			dev->ccm_cfg[input_num]->avdd = regulator_get(NULL, dev->ccm_cfg[input_num]->avdd_str);
+			if (dev->ccm_cfg[input_num]->avdd == NULL) {
+				csi_err("get regulator csi_avdd error!input_num = %d\n",input_num);
+				goto free_dev;
+			}
+		}
+	
+		if(strcmp(dev->ccm_cfg[input_num]->dvdd_str,"")) {
+			dev->ccm_cfg[input_num]->dvdd = regulator_get(NULL, dev->ccm_cfg[input_num]->dvdd_str);
+			if (dev->ccm_cfg[input_num]->dvdd == NULL) {
+				csi_err("get regulator csi_dvdd error!input_num = %d\n",input_num);
+				goto free_dev;
+			}
+		}	
 		
-	} else{
-		csi_print("registered sub device\n");
-	}
-	
-	/*power issue*/
-	dev->iovdd = NULL;
-	dev->avdd = NULL;
-	dev->dvdd = NULL;
-	
-	ret = script_parser_fetch("csi1_para","csi_stby_mode", &dev->stby_mode , sizeof(int));
-	if (ret) {
-		csi_err("fetch csi_stby_mode from sys_config failed\n");
-		goto free_dev;
-	}
-
-	ret = script_parser_fetch("csi1_para","csi_iovdd", (int *)&iovdd , 32*sizeof(char));
-	if (ret) {
-		csi_err("fetch csi_iovdd from sys_config failed\n");
-	} else {
-		if(strcmp(iovdd,"")) {
-			dev->iovdd = regulator_get(NULL, iovdd);
-			if (dev->iovdd == NULL) {
-				csi_err("get regulator csi_iovdd error!\n");
-				goto free_dev;
-			}
+		if(dev->stby_mode == 1) {
+			csi_print("power on and power off camera!\n");
+      ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+      if(ret<0)
+      	csi_err("Error when set ccm info when probe!\n");
+      
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+			v4l2_subdev_call(dev->ccm_cfg[input_num]->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
 		}
 	}
 	
-	ret = script_parser_fetch("csi1_para","csi_avdd", (int *)&avdd , 32*sizeof(char));
-	if (ret) {
-		csi_err("fetch csi_avdd from sys_config failed\n");
-	} else {
-		if(strcmp(avdd,"")) {
-			dev->avdd = regulator_get(NULL, avdd);
-			if (dev->avdd == NULL) {
-				csi_err("get regulator csi_avdd error!\n");
-				goto free_dev;
-			}
-		}
-	}
-	
-	ret = script_parser_fetch("csi1_para","csi_dvdd", (int *)&dvdd , 32*sizeof(char));
-	if (ret) {
-		csi_err("fetch csi_dvdd from sys_config failed\n");
-	} else {
-		if(strcmp(dvdd,"")) {
-			dev->dvdd = regulator_get(NULL, dvdd);
-			if (dev->dvdd == NULL) {
-				csi_err("get regulator csi_dvdd error!\n");
-				goto free_dev;
-			}
-		}
-	}
-	
-	dev->ccm_info.mclk = CSI_OUT_RATE;
-	dev->ccm_info.vref = CSI_LOW;
-	dev->ccm_info.href = CSI_LOW;
-	dev->ccm_info.clock	 = CSI_FALLING;
-	
-	
-	ret = v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_GET_INFO,&dev->ccm_info);
-	if (ret < 0)
+	for(input_num=0; input_num<dev->dev_qty; input_num++)
 	{
-		csi_err("Error when get ccm info,use default!\n");
+		csi_dbg(0,"dev->ccm_cfg[%d]->sd = %p\n",input_num,dev->ccm_cfg[input_num]->sd);
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm_info = %p\n",input_num,&dev->ccm_cfg[input_num]->ccm_info);
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm_info.iocfg = %d\n",input_num,dev->ccm_cfg[input_num]->ccm_info.iocfg);
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm_info.vref = %d\n",input_num,dev->ccm_cfg[input_num]->ccm_info.vref);
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm_info.href = %d\n",input_num,dev->ccm_cfg[input_num]->ccm_info.href);
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm_info.clock = %d\n",input_num,dev->ccm_cfg[input_num]->ccm_info.clock);
+		csi_dbg(0,"dev->ccm_cfg[%d]->ccm_info.mclk = %d\n",input_num,dev->ccm_cfg[input_num]->ccm_info.mclk);
+		csi_dbg(0,"dev->ccm_cfg[%d]->iovdd = %p\n",input_num,dev->ccm_cfg[input_num]->iovdd);
+		csi_dbg(0,"dev->ccm_cfg[%d]->avdd = %p\n",input_num,dev->ccm_cfg[input_num]->avdd);
+		csi_dbg(0,"dev->ccm_cfg[%d]->dvdd = %p\n",input_num,dev->ccm_cfg[input_num]->dvdd);
 	}
 	
-//	dev->ccm_info.iocfg	 = 1;
-	
-	ret = v4l2_subdev_call(dev->sd,core,ioctl,CSI_SUBDEV_CMD_SET_INFO,&dev->ccm_info);
-	if (ret < 0)
-	{
-		csi_err("Error when set ccm info,use default!\n");
-	}
+	update_ccm_info(dev, dev->ccm_cfg[0]);
 	
 	/*clock resource*/
 	if (csi_clk_get(dev)) {
@@ -1524,6 +1853,7 @@ static int csi_probe(struct platform_device *pdev)
 		ret = -ENXIO;
 		goto unreg_dev;
 	}
+	
 //	csi_dbg("%s(): csi-%d registered successfully\n",__func__, dev->id);
 
 	/*video device register	*/
@@ -1542,7 +1872,7 @@ static int csi_probe(struct platform_device *pdev)
 		goto rel_vdev;
 	}	
 	video_set_drvdata(vfd, dev);
-	
+
 	/*add device list*/
 	/* Now that everything is fine, let's add it to device list */
 	list_add_tail(&dev->csi_devlist, &csi_devlist);
@@ -1563,7 +1893,7 @@ static int csi_probe(struct platform_device *pdev)
 	/* init video dma queues */
 	INIT_LIST_HEAD(&dev->vidq.active);
 	//init_waitqueue_head(&dev->vidq.wq);
-
+	
 	return 0;
 
 rel_vdev:
@@ -1629,28 +1959,45 @@ static int __devexit csi_remove(struct platform_device *pdev)
 static int csi_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
-	int ret;
+	int ret,input_num;
 	
 	csi_print("csi_suspend\n");
 	
 	if (dev->opened==1) {
 		csi_clk_disable(dev);
-		
+
 		if(dev->stby_mode == 0) {
 			csi_print("reset camera ,and set it to standby!\n");
 			ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
 			if(ret < 0)
 				return ret;
+				
 			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 		} else {
 			csi_print("reset camera , set it to standby and power off!\n");
 			ret = v4l2_subdev_call(dev->sd,core, reset, CSI_SUBDEV_RST_ON);
 			if(ret < 0)
 				return ret;
+				
 			ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_STBY_ON);
 			if(ret < 0)
 				return ret;
-			return v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+			
+			//close all the device power	
+			for (input_num=0; input_num<dev->dev_qty; input_num++) {
+        /* update target device info and select it */
+        ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+        if (ret < 0)
+				{
+					csi_err("Error when set ccm info when csi_suspend!\n");
+				}
+		
+				ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_OFF);
+			  if (ret!=0) {
+			  	csi_err("sensor power off error at device number %d when csi_suspend!\n",input_num);
+			  	return ret;
+			  }
+			}
 		}
 	}
 	return 0;
@@ -1658,7 +2005,7 @@ static int csi_suspend(struct platform_device *pdev, pm_message_t state)
 
 static int csi_resume(struct platform_device *pdev)
 {
-	int ret;
+	int ret,input_num;
 	struct csi_dev *dev=(struct csi_dev *)dev_get_drvdata(&(pdev)->dev);
 	
 	csi_print("csi_resume\n");
@@ -1678,6 +2025,28 @@ static int csi_resume(struct platform_device *pdev)
 				csi_print("sensor initial success when resume from suspend!\n");
 			}
 		} else {
+			//open all the device power
+			for (input_num=0; input_num<dev->dev_qty; input_num++) {
+        /* update target device info and select it */
+        ret = update_ccm_info(dev, dev->ccm_cfg[input_num]);
+        if (ret < 0)
+				{
+					csi_err("Error when set ccm info when csi_resume!\n");
+				}
+					
+				ret = v4l2_subdev_call(dev->sd,core, s_power, CSI_SUBDEV_PWR_ON);
+			  if (ret!=0) {
+			  	csi_err("sensor power on error at device number %d when csi_resume!\n",input_num);
+			  }
+			}
+			
+			/* update target device info and select it */
+			ret = update_ccm_info(dev, dev->ccm_cfg[0]);
+			if (ret < 0)
+			{
+				csi_err("Error when set ccm info when csi_resume!\n");
+			}
+		
 			ret = v4l2_subdev_call(dev->sd,core, init,CSI_SUBDEV_INIT_FULL);
 			if (ret!=0) {
 				csi_err("sensor full initial error when resume from suspend!\n");

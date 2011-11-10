@@ -39,9 +39,11 @@
 #define WL_TRACE(x)
 
 #define CUSTOMER_ALLWINNER
-#ifdef CUSTOMER_ALLWINNER
-extern int sw_sdio_powerup(char* mname);
-extern int sw_sdio_poweroff(char* mname);
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
 #endif
 
 #ifdef CUSTOMER_HW
@@ -110,13 +112,28 @@ int dhd_customer_oob_irq_map(unsigned long *irq_flags_ptr)
 void
 dhd_customer_gpio_wlan_ctrl(int onoff)
 {
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+    unsigned int mod_sel = mmc_pm_get_mod_type();
+#endif
+
 	switch (onoff) {
 		case WLAN_RESET_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to insert WLAN RESET\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
-            sw_sdio_poweroff("USI-BM01A-WLRST");
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+            switch (mod_sel)
+            {
+                case 2: /* usi bm01a */
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 0);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 0);
+                    break;
+                case 5: /* swb b23 */
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 0);
+                    break;
+                default:
+                    printk("[bcm4329]: no wifi module matched !!\n");
+            }
 #endif
 
 #ifdef CUSTOMER_HW
@@ -132,8 +149,19 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			WL_TRACE(("%s: callc customer specific GPIO to remove WLAN RESET\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
-            sw_sdio_powerup("USI-BM01A-WLRST");
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+            switch (mod_sel)
+            {
+                case 2: /* usi bm01a */
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 1);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 1);
+                    break;
+                case 5: /* swb b23 */
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 1);
+                    break;
+                default:
+                    printk("[bcm4329]: no wifi module matched !!\n");
+            }
 #endif
 
 #ifdef CUSTOMER_HW
@@ -143,15 +171,28 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			wifi_set_power(1, 0);
 #endif
 			WL_ERROR(("=========== WLAN going back to live  ========\n"));
+			
+			OSL_DELAY(10000);
 		break;
 
 		case WLAN_POWER_OFF:
 			WL_TRACE(("%s: call customer specific GPIO to turn off WL_REG_ON\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
-            sw_sdio_poweroff("USI-BM01A-WL");
-            sw_sdio_poweroff("USI-BM01A-WLRST");
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+            switch (mod_sel)
+            {
+                case 2: /* usi bm01a */
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 0);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 0);
+                    break;
+                case 5: /* swb b23 */
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 0);
+                    break;
+                default:
+                    printk("[bcm4329]: no wifi module matched !!\n");
+            }
+            sw_mmc_rescan_card(3, 0);
 #endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_off(1);
@@ -162,15 +203,28 @@ dhd_customer_gpio_wlan_ctrl(int onoff)
 			WL_TRACE(("%s: call customer specific GPIO to turn on WL_REG_ON\n",
 				__FUNCTION__));
 /* winner's power control */
-#ifdef CUSTOMER_ALLWINNER
-            sw_sdio_powerup("USI-BM01A-WL");
-            sw_sdio_powerup("USI-BM01A-WLRST");
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+            switch (mod_sel)
+            {
+                case 2: /* usi bm01a */
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_regon", 1);
+                    mmc_pm_gpio_ctrl("usi_bm01a_wl_rst", 1);
+                    break;
+                case 5: /* swb b23 */
+                    mmc_pm_gpio_ctrl("swbb23_wl_shdn", 1);
+                    break;
+                default:
+                    printk("[bcm4329]: no wifi module matched !!\n");
+            }
 #endif
 #ifdef CUSTOMER_HW
 			bcm_wlan_power_on(1);
 #endif /* CUSTOMER_HW */
 			/* Lets customer power to get stable */
 			OSL_DELAY(200);
+#if defined CUSTOMER_ALLWINNER && defined CONFIG_SW_MMC_POWER_CONTROL
+            sw_mmc_rescan_card(3, 1);
+#endif
 		break;
 	}
 }

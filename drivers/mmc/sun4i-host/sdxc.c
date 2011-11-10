@@ -875,7 +875,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     msk_int = sdc_read(SDXC_REG_MISTA);
     
     smc_host->int_sum |= raw_int;
-    //awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
+    awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
     
 	if (msk_int & SDXC_SDIOInt) 
 	{

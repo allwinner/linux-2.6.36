@@ -112,8 +112,6 @@ struct mmc_host_ops {
 	/* optional callback for HC quirks */
 	void	(*init_card)(struct mmc_host *host, struct mmc_card *card);
 
-	/* check R1 ready status by host */
-	int (*check_r1_ready)(struct mmc_host *host);
 };
 
 struct mmc_card;

@@ -317,6 +317,24 @@ unsigned long clk_get_rate(struct clk *clk)
 }
 EXPORT_SYMBOL(clk_get_rate);
 
+unsigned long clk_get_rate_nolock(struct clk *clk)
+{
+    unsigned long   ret = 0;
+
+    if((clk == NULL) || IS_ERR(clk))
+    {
+        return 0;
+    }
+
+    CCU_DBG("%s:%d:%s: %s !\n", __FILE__, __LINE__, __FUNCTION__, clk->clk->name);
+
+    clk->clk = clk->get_clk(clk->clk->id);
+    ret = (unsigned long)clk->clk->rate;
+
+    return ret;
+}
+
+
 
 int clk_set_rate(struct clk *clk, unsigned long rate)
 {
@@ -381,7 +399,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
     /* update clock parameter */
     clk->clk = clk->get_clk(clk->clk->id);
     old_parent = clk->parent;
-    clk->clk->rate = clk_get_rate(parent) / (clk_get_rate(old_parent) / clk_get_rate(clk));
+    clk->clk->rate = clk_get_rate_nolock(parent) / (clk_get_rate_nolock(old_parent) / clk_get_rate_nolock(clk));
     clk->clk->parent = parent->clk->id;
     ret = clk->set_clk(clk->clk);
     if(ret){

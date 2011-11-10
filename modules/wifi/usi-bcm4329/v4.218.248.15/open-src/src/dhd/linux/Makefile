@@ -69,6 +69,7 @@ OBJCOPY := $(CROSS_COMPILE)objcopy
 # driver source base and C file path
 ifeq ($(SRCBASE),)
 SRCBASE := $(shell /bin/pwd)/../..
+FWBASE := $(SRCBASE)/../../firmware/4329inuse
 endif
 vpath %.c $(SRCBASE)/dhd/sys $(SRCBASE)/shared $(SRCBASE)/bcmsdio/sys $(SRCBASE)/wl/sys $(SRCBASE)/crypto
 
@@ -364,10 +365,13 @@ ifeq ($(BCM_KVER), 2.6)
 else
 	$(OBJCOPY) --strip-unneeded $(OBJDIR)/dhd.o $(OBJDIR)/dhd.o.stripped
 endif
-	cp $(OBJDIR)/$(KMODULES) $(INSTALL_DIR)
-	cp $(SRCBASE)/dhd/linux/fw_bcm4329.bin $(INSTALL_DIR)
-	cp $(SRCBASE)/dhd/linux/nvram.txt $(INSTALL_DIR)
-
+	cp -vf $(OBJDIR)/$(KMODULES) $(INSTALL_DIR)/usi4329_dhd.ko
+	cp -vf $(FWBASE)/fw_bcm4329.bin $(INSTALL_DIR)/usi4329_fw.bin
+	cp -vf $(FWBASE)/usi4329_nvram.txt $(INSTALL_DIR)/usi4329_nvram.txt
+	cp -vf $(OBJDIR)/$(KMODULES) $(INSTALL_DIR)/swbb23_dhd.ko
+	cp -vf $(FWBASE)/fw_bcm4329.bin $(INSTALL_DIR)/swbb23_fw.bin
+	cp -vf $(FWBASE)/swbb23_nvram.txt $(INSTALL_DIR)/swbb23_nvram.txt
+    
 
 dep: $(foreach file,$(CFILES),.$(file).depend)
 .%.c.depend: %.c

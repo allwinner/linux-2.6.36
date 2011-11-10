@@ -216,6 +216,15 @@ const char **v4l2_ctrl_get_menu(u32 id)
 		"75 useconds",
 		NULL,
 	};
+	/* Add camera flash light by raymonxiu */
+	static const char *flash_mode[] = {
+		"Off",
+		"Auto",
+		"On",
+		"Torch",
+		"Red-Eye",
+		NULL
+	};
 
 	switch (id) {
 	case V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ:
@@ -256,6 +265,9 @@ const char **v4l2_ctrl_get_menu(u32 id)
 		return colorfx;
 	case V4L2_CID_TUNE_PREEMPHASIS:
 		return tune_preemphasis;
+	/* Add camera flash light by raymonxiu */
+	case V4L2_CID_CAMERA_FLASH_MODE:
+		return flash_mode;
 	default:
 		return NULL;
 	}
@@ -305,7 +317,10 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_ROTATE:			return "Rotate";
 	case V4L2_CID_BG_COLOR:			return "Background Color";
 	case V4L2_CID_CHROMA_GAIN:		return "Chroma Gain";
-
+	
+	/* Add camera flash light by raymonxiu */
+	case V4L2_CID_CAMERA_FLASH_MODE:    return "FlashLight Mode";
+	
 	/* MPEG controls */
 	/* Keep the order of the 'case's the same as in videodev2.h! */
 	case V4L2_CID_MPEG_CLASS:		return "MPEG Encoder Controls";
@@ -448,6 +463,8 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 	case V4L2_CID_EXPOSURE_AUTO:
 	case V4L2_CID_COLORFX:
 	case V4L2_CID_TUNE_PREEMPHASIS:
+	/* Add camera flash light by raymonxiu */
+	case V4L2_CID_CAMERA_FLASH_MODE:	
 		*type = V4L2_CTRL_TYPE_MENU;
 		break;
 	case V4L2_CID_RDS_TX_PS_NAME:

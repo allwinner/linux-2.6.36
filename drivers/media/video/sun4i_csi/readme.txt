@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_52
+Version: V1_60
 
 Author:  raymonxiu
 
-Date:     2011-10-19 15:17:09
+Date:     2011-11-8 18:56:31
 
 Description:
 
@@ -15,6 +15,16 @@ insmod sun4i_csiX.ko ccm="gt2005" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="hi704"  i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
+insmod sun4i_csiX.ko ccm="mt9m113" i2c_addr=0x78
+insmod sun4i_csiX.ko ccm="ov2655" i2c_addr=0x60
+
+V1_60
+CSI: Support dual sensor at one csi and add new module
+1)Support dual sensor at one csi interface 
+2)Add flash light io support
+3)Modify the pm , set io to hi-z state when standby 
+4)Add mt9m113 new module
+5)Add ov2655 new module
 
 V1_52 CSI: Update mt9m112 module
 1) mt9m112 support VGA@25fps and SXGA@15fps

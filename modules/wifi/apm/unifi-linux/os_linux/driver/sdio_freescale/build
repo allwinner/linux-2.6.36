@@ -1,0 +1,17 @@
+#! /bin/sh
+
+os_top=$(dirname $0)
+config=$1 ; shift
+config_file=$os_top/config.$config.mk
+
+if [ "x$config" = "x" ]; then
+    echo "Usage: $0 <config> [<make target/option>]..." >&2	
+    exit 1
+fi
+
+if [ ! -e $config_file ]; then
+    echo "Configuration '$config' ($config_file) does not exist." >&2
+    exit 1
+fi
+
+exec make -C ${os_top} CONFIG=$config "$@"

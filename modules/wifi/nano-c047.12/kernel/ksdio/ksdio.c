@@ -104,6 +104,30 @@
 #include <linux/completion.h> 
 #include <linux/sched.h>
 
+
+#if defined WINNER_POWER_ONOFF_CTRL && defined CONFIG_SW_MMC_POWER_CONTROL
+extern void sw_mmc_rescan_card(unsigned id, unsigned insert);
+extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_gpio_ctrl(char* name, int level);
+extern int mmc_pm_get_io_val(char* name);
+int nano_sdio_powerup(void)
+{
+    mmc_pm_gpio_ctrl("swl_n20_vcc_en", 1);
+    udelay(100);
+    mmc_pm_gpio_ctrl("swl_n20_shdn", 1);
+    udelay(50);
+    mmc_pm_gpio_ctrl("swl_n20_vdd_en", 1);
+    return 0;
+}
+int nano_sdio_poweroff(void)
+{
+    mmc_pm_gpio_ctrl("swl_n20_shdn", 0);
+    mmc_pm_gpio_ctrl("swl_n20_vdd_en", 0);
+    mmc_pm_gpio_ctrl("swl_n20_vcc_en", 0);
+    return 0;
+}
+#endif
+
 #undef  PROCFS_HIC
 
 #ifndef KSDIO_SIZE_ALIGN
@@ -1498,9 +1522,6 @@ static struct sdio_driver sdio_nrx_driver = {
     .id_table   = sdio_nrx_ids,
 };
 
-extern int sw_sdio_powerup(char* mname);
-extern int sw_sdio_poweroff(char* mname);
-
 static int __init sdio_nrx_init(void)
 {
 #ifdef KSDIO_HOST_RESET_PIN
@@ -1515,8 +1536,9 @@ static int __init sdio_nrx_init(void)
     */
 #endif
     
-#ifdef WINNER_POWER_ONOFF_CTRL
-    sw_sdio_powerup("Nano-n20s");
+#if defined WINNER_POWER_ONOFF_CTRL && defined CONFIG_SW_MMC_POWER_CONTROL
+    nano_sdio_powerup();
+    sw_mmc_rescan_card(3, 1);
 #endif
 
     return sdio_register_driver(&sdio_nrx_driver);
@@ -1542,8 +1564,9 @@ static void __exit sdio_nrx_exit(void)
 
     sdio_unregister_driver(&sdio_nrx_driver);
     
-#ifdef WINNER_POWER_ONOFF_CTRL
-    sw_sdio_poweroff("Nano-n20s");
+#if defined WINNER_POWER_ONOFF_CTRL && defined CONFIG_SW_MMC_POWER_CONTROL
+    nano_sdio_poweroff();
+    sw_mmc_rescan_card(3, 0);
 #endif
 }
 

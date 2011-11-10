@@ -98,7 +98,11 @@ build_modules()
 	make -C modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host CROSS_COMPILE=${CROSS_COMPILE} \
 	        ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
 	        all install
-
+    
+    #build apm sdio wifi module
+    make -C modules/wifi/apm/unifi-linux/os_linux/driver/ CONFIG=android-arm ARCH=arm KDIR=${LICHEE_KDIR} \
+            CROSS_COMPILE=${CROSS_COMPILE} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR}
+	
     #make -C modules/mali LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
     #    CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} all install
     export LANG=en_US.UTF-8
@@ -125,7 +129,7 @@ clean_modules()
 {
     make -C modules/example LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LICHEE_KDIR=${LICHEE_KDIR} clean
 
-    #clean swl-n20 sdio wifi module
+	#clean swl-n20 sdio wifi module
     make -C modules/wifi/nano-c047.12 LICHEE_MOD_DIR=${LICHEE_MOD_DIR} KERNEL_DIR=${LICHEE_KDIR} \
 		CONFIG_CHIP_ID=${CONFIG_CHIP_ID} HOST=${CROSS_COMPILE} INSTALL_DIR=${LICHEE_MOD_DIR} clean
 
@@ -139,6 +143,11 @@ clean_modules()
 	make -C modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host CROSS_COMPILE=${CROSS_COMPILE} \
 		ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
 		clean
+
+    #clean apm sdio wifi module
+    make -C modules/wifi/apm/unifi-linux/os_linux/driver/ CONFIG=android-arm ARCH=arm KDIR=${LICHEE_KDIR} \
+            CROSS_COMPILE=${CROSS_COMPILE} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} clean
+
 }
 
 #####################################################################
