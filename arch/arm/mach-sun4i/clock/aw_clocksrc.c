@@ -205,29 +205,19 @@ static int aw_set_next_clkevt(unsigned long delta, struct clock_event_device *de
 	unsigned long flags;
     CLKSRC_DBG("aw_set_next_clkevt: %u\n", (unsigned int)delta);
 
-    /* time value timer must larger than 50 cycles at least, suggested by david 2011-5-25 11:41 */
-//    if(delta < 50)
-//    {
-//    	printk("*%d\n",delta);
-//        delta = 50;
-//    }
 	spin_lock_irqsave(&timer1_spin_lock, flags);
     /* disable timer and clear pending first    */
     TMR_REG_TMR1_CTL &= ~(1<<0);
     /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-    __delay(50);
+    udelay(1);
 
     /* set timer intervalue         */
     TMR_REG_TMR1_INTV = delta;
     /* reload the timer intervalue  */
     TMR_REG_TMR1_CTL |= (1<<1);
-    /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-   // __delay(50);
 
     /* enable timer */
-    TMR_REG_TMR1_CTL |= (1<<0); 
-    /* wait hardware synchronization, 2 cycles of the hardware work clock at least  */
-    __delay(50);
+    TMR_REG_TMR1_CTL |= (1<<0);     
     spin_unlock_irqrestore(&timer1_spin_lock, flags);
     return 0;
 }
@@ -256,10 +246,10 @@ static irqreturn_t aw_clkevt_irq(int irq, void *handle)
     if(TMR_REG_IRQ_STAT & (1<<1))
     {
         CLKSRC_DBG("aw_clkevt_irq!\n");
-        /* clock event interrupt handled */
-        aw_clock_event.event_handler(&aw_clock_event);
         /* clear pending */
         TMR_REG_IRQ_STAT = (1<<1);
+        /* clock event interrupt handled */
+        aw_clock_event.event_handler(&aw_clock_event);
 
         return IRQ_HANDLED;
     }
