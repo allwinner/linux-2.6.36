@@ -39,10 +39,13 @@ static u32 ir_gpio_hdle;
 #define DEBUG_IR_LEVEL0
 #define DEBUG_IR_LEVEL2
 #define DEBUG_IR_LEVEL1
+#define dprintk(level, fmt, arg...)	if (debug >= level) \
+	printk(KERN_DEBUG fmt , ## arg)
 #else
 #undef DEBUG_IR_LEVEL0
 #undef DEBUG_IR_LEVEL2
 #undef DEBUG_IR_LEVEL1
+#define dprintk(level, fmt, arg...)	//
 #endif
 
 //Registers
@@ -87,8 +90,6 @@ static u32 ir_gpio_hdle;
 #define IR_REPEAT_CODE		        (0x00000000)
 #define DRV_VERSION	                "1.00"
 
-#define dprintk(level, fmt, arg...)	if (debug >= level) \
-	printk(KERN_DEBUG fmt , ## arg)
 
 /*    
 #define dprintk(level, fmt, arg...)	if (debug >= level) \
