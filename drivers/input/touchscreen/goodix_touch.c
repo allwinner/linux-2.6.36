@@ -537,6 +537,7 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 	else
 	{
 	    print_int_info("Other Interrupt\n");
+	    return IRQ_NONE;
 	}
 	return IRQ_HANDLED;
 }

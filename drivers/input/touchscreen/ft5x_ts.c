@@ -1047,6 +1047,7 @@ static irqreturn_t ft5x_ts_interrupt(int irq, void *dev_id)
 	    //For Debug 
 	    //writel(reg_val,gpio_addr + PIO_INT_STAT_OFFSET);
 	   //enable_irq(IRQ_EINT);
+	   return IRQ_NONE;
 	}
 
 	return IRQ_HANDLED;
