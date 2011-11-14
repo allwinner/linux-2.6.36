@@ -32,7 +32,7 @@ static struct class *pa_dev_class;
 static struct cdev *pa_dev;
 static dev_t dev_num ;
 
-#define PA_DEBUG
+//#define PA_DEBUG
 typedef enum PA_OPT
 {
 	PA_OPEN = 200,
