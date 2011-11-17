@@ -73,7 +73,7 @@ struct goodix_ts_data {
 };
 
 
-const char *f3x_ts_name = "Goodix TouchScreen of GT80X";
+const char *f3x_ts_name = "gt80x";
 static struct workqueue_struct *goodix_wq;
 static void* __iomem gpio_addr = NULL;
 static int gpio_int_hdle = 0;
