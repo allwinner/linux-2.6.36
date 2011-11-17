@@ -1894,6 +1894,8 @@ static int wemac_drv_suspend(struct platform_device *dev, pm_message_t state)
 		db->in_suspend = 1;
 
 		//if (netif_running(ndev)) {	//todo: shutdown the device before open it. bingge
+		if(mii_link_ok(&db->mii))
+			netif_carrier_off(ndev);
 		netif_device_detach(ndev);
 		wemac_shutdown(ndev);
 		//}
@@ -1911,10 +1913,10 @@ static int wemac_drv_resume(struct platform_device *dev)
 		//if (netif_running(ndev)) {
 		wemac_reset(db);
 		wemac_init_wemac(ndev);
-
 		netif_device_attach(ndev);
+		if(mii_link_ok(&db->mii))
+			netif_carrier_on(ndev);
 		//}
-
 		db->in_suspend = 0;
 	}
 	return 0;

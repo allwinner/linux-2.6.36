@@ -90,8 +90,6 @@ typedef struct
 	__u32 base_ccmu;
 	__u32 base_pwm;
 
-	__s32 (*scaler_begin) (__u32 sel);
-	void (*scaler_finish) (__u32 sel);
 	void (*tve_interrup) (__u32 sel);
 	__s32 (*hdmi_set_mode)(__disp_tv_mode_t mode);
 	__s32 (*Hdmi_open)(void);

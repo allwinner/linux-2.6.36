@@ -1,10 +1,10 @@
 ===========================================
 
-Version: V1_60
+Version: V1_61
 
 Author:  raymonxiu
 
-Date:     2011-11-8 18:56:31
+Date:     2011-11-17 18:56:31
 
 Description:
 
@@ -17,6 +17,11 @@ insmod sun4i_csiX.ko ccm="sp0838" i2c_addr=0x30
 insmod sun4i_csiX.ko ccm="mt9m112" i2c_addr=0xba
 insmod sun4i_csiX.ko ccm="mt9m113" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov2655" i2c_addr=0x60
+
+V1_61
+CSI: Fix mt9m112 and gc0308
+1)Modify the mclk to 24M when using mt9m112 and fine tune the flicker
+2)Modify gc0308 to low fps for better image
 
 V1_60
 CSI: Support dual sensor at one csi and add new module

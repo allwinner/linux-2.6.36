@@ -47,6 +47,7 @@
 //#define PRINT_POINT_INFO
 #define DEBUG
 //#define TOUCH_KEY_SUPPORT
+#define TOUCH_KEY_NUMBER     10
 //#define TOUCH_KEY_LIGHT_SUPPORT
 static struct i2c_client *this_client;
 
@@ -829,10 +830,12 @@ static void ft5x_report_value(void)
 		//printk("==ft5x_report_value =\n");
 #ifdef CONFIG_FT5X0X_MULTITOUCH
 #ifdef TOUCH_KEY_SUPPORT
-  if((1==event->touch_point)&&(event->x1 > 60000))
+  //printk("x=%d===Y=%d\n",event->x1,event->y1);
+
+  if((1==event->touch_point)&&((event->x1 > 848)&&(event->x1<852)))
   {
   	key_tp = 1;
-  	if(event->y1 < 40)
+  	if(event->y1 < 5)
   	{
   		key_val = 1;
 	    input_report_key(data->input_dev, key_val, 1);
@@ -840,7 +843,7 @@ static void ft5x_report_value(void)
 			#ifdef PRINT_POINT_INFO
 			    printk("===KEY 1====\n");
 			#endif	     
-  	}else if(event->y1 < 90)
+  	}else if((event->y1 < 45)&&(event->y1>35))
   	{
   		key_val = 2;
       input_report_key(data->input_dev, key_val, 1);
@@ -848,7 +851,7 @@ static void ft5x_report_value(void)
 			#ifdef PRINT_POINT_INFO
 			    printk("===KEY 2 ====\n");
 			#endif     		
-  	}else
+  	}else if((event->y1 < 75)&&(event->y1>65))
   	{
   		key_val = 3;
       input_report_key(data->input_dev, key_val, 1);
@@ -857,6 +860,16 @@ static void ft5x_report_value(void)
 			    printk("===KEY 3====\n");
 			#endif		
   	}
+        else if ((event->y1 < 105)&&(event->y1>95))
+	{
+  		key_val = 4;
+                 input_report_key(data->input_dev, key_val, 1);
+                input_sync(data->input_dev);     
+			#ifdef PRINT_POINT_INFO
+			    printk("===KEY 4====\n");
+			#endif		
+  	}
+			
 	   #ifdef TOUCH_KEY_LIGHT_SUPPORT
     if(EGPIO_SUCCESS != gpio_write_one_pin_value(gpio_light_hdle, 1, "ctp_light")){
         printk("ft5x_ts_light: err when operate gpio. \n");
@@ -1295,7 +1308,7 @@ ft5x_ts_probe(struct i2c_client *client, const struct i2c_device_id *id)
 #ifdef TOUCH_KEY_SUPPORT
 	key_tp = 0;
 	input_dev->evbit[0] = BIT_MASK(EV_KEY);
-	for (i = 1; i < 4; i++)
+	for (i = 1; i < TOUCH_KEY_NUMBER; i++)
 		set_bit(i, input_dev->keybit);
 #endif
 #else

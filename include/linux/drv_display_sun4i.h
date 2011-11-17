@@ -438,6 +438,11 @@ typedef struct
 	__u32   lcd_gamma_correction_en;
 	__u32   lcd_gamma_tbl[256];
 
+	__u32   lcd_hv_srgb_seq0;
+	__u32   lcd_hv_srgb_seq1;
+	__u32   lcd_hv_syuv_seq;
+	__u32   lcd_hv_syuv_fdly;
+
 	__u32   port_index;
 	__u32   start_delay;//not need to config for user
 	__u32   tcon_index; //not need to config for user

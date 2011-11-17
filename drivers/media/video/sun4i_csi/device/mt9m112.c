@@ -22,7 +22,9 @@ MODULE_DESCRIPTION("A low-level driver for Micron mt9m112 sensors");
 MODULE_LICENSE("GPL");
 
 
-#define MCLK (49.5*1000*1000)
+#define MCLK (24*1000*1000)
+//#define MCLK (49.5*1000*1000)
+
 #define VREF_POL	CSI_HIGH
 #define HREF_POL	CSI_HIGH
 #define CLK_POL		CSI_RISING
@@ -130,6 +132,16 @@ struct regval_list {
  */
 
 static struct regval_list sensor_default_regs[] = {
+
+#if 1 //MCLK == 24M
+{{0xf0},{0x00,0x00}},
+{{0x66},{0x10,0x01}},
+{{0x67},{0x05,0x01}},
+{{0x65},{0xa0,0x00}},
+{{0xff},{0x00,0x64}},
+{{0x65},{0x20,0x00}},
+{{0xff},{0x00,0x64}},
+#endif 
 {{0xf0},{0x00,0x00}},
 {{0x0d},{0x00,0x09}},
 {{0xff},{0x00,0x20}},
@@ -253,7 +265,7 @@ static struct regval_list sensor_default_regs[] = {
 
 static struct regval_list sensor_sxga_regs[] = {
 {{0xf0},{0x00,0x00}},
-{{0x05},{0x01,0x70}},// horizontal blank
+{{0x05},{0x01,0x40}},// horizontal blank
 {{0x06},{0x00,0x0d}},
 {{0xf0},{0x00,0x02}},
 {{0xc8},{0x1f,0x0b}},
@@ -279,7 +291,7 @@ static struct regval_list sensor_sxga_regs[] = {
 
 static struct regval_list sensor_vga_regs[] = {
 {{0xf0},{0x00,0x00}},
-{{0x07},{0x03,0x90}},   //horizontal blank
+{{0x07},{0x03,0x74}},   //horizontal blank
 {{0x08},{0x00,0x09}},
 {{0xf0},{0x00,0x02}},
 {{0xc8},{0x00,0x00}},
@@ -890,7 +902,7 @@ static long sensor_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 			ccm_info->vref 	=	info->ccm_info->vref ;
 			ccm_info->href 	=	info->ccm_info->href ;
 			ccm_info->clock	=	info->ccm_info->clock;
-			info->ccm_info->iocfg	=	ccm_info->iocfg	;
+			ccm_info->iocfg	=	info->ccm_info->iocfg;
 			break;
 		}
 		case CSI_SUBDEV_CMD_SET_INFO:
