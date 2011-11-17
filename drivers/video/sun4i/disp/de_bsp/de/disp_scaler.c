@@ -434,6 +434,7 @@ __s32 Scaler_Set_Framebuffer(__u32 sel, __disp_fb_t *pfb)//keep the source windo
 	in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
 	in_type.ps= Scaler_sw_para_to_reg(2,(__u8)scaler->in_fb.seq);
 	in_type.byte_seq = 0;
+	in_type.sample_method = 0;
 
 	scal_addr.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[0]));
 	scal_addr.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[1]));
@@ -546,6 +547,7 @@ __s32 Scaler_Set_Output_Size(__u32 sel, __disp_rectsz_t *size)
 	in_type.fmt = Scaler_sw_para_to_reg(0,scaler->in_fb.format);
 	in_type.ps = Scaler_sw_para_to_reg(2,(__u8)scaler->in_fb.seq);
 	in_type.byte_seq = 0;
+	in_type.sample_method = 0;
 
 	in_size.src_width = scaler->src_win.width;
 	in_size.src_height = scaler->in_fb.size.height;
@@ -604,6 +606,7 @@ __s32 Scaler_Set_SclRegn(__u32 sel, __disp_rect_t *scl_rect)
 	in_type.fmt = Scaler_sw_para_to_reg(0,scaler->in_fb.format);
 	in_type.ps = Scaler_sw_para_to_reg(2,(__u8)scaler->in_fb.seq);
 	in_type.byte_seq = 0;
+	in_type.sample_method = 0;
 
 	scal_addr.ch0_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[0]));
 	scal_addr.ch1_addr= (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[1]));
@@ -714,6 +717,7 @@ __s32 Scaler_Set_Para(__u32 sel, __disp_scaler_t *scl)
 	in_type.fmt = Scaler_sw_para_to_reg(0,scaler->in_fb.format);
 	in_type.ps = Scaler_sw_para_to_reg(2,(__u8)scaler->in_fb.seq);
 	in_type.byte_seq = 0;
+	in_type.sample_method = 0;
 	
 	scal_addr.ch0_addr = (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[0]));
 	scal_addr.ch1_addr = (__u32)OSAL_VAtoPA((void*)(scaler->in_fb.addr[1]));
@@ -801,6 +805,7 @@ __s32 Scaler_Set_Outitl(__u32 sel,  __bool enable)
 	in_type.mod= Scaler_sw_para_to_reg(1,scaler->in_fb.mode);
 	in_type.ps= Scaler_sw_para_to_reg(2,scaler->in_fb.seq);
 	in_type.byte_seq = 0;
+	in_type.sample_method = 0;
 
 	in_size.src_width = scaler->in_fb.size.width;
 	in_size.src_height = scaler->in_fb.size.height;
@@ -847,6 +852,7 @@ __s32 BSP_disp_scaler_set_smooth(__u32 sel, __disp_video_smooth_t  mode)
 	in_type.fmt = Scaler_sw_para_to_reg(0,scaler->in_fb.format);
 	in_type.ps = Scaler_sw_para_to_reg(2,(__u8)scaler->in_fb.seq);
     in_type.byte_seq = 0;
+    in_type.sample_method = 0;
     
 	in_size.src_width = scaler->in_fb.size.width;
 	in_size.src_height = scaler->in_fb.size.height;
@@ -923,6 +929,7 @@ __s32 BSP_disp_scaler_start(__u32 handle,__disp_scaler_para_t *para)
 	in_type.fmt= Scaler_sw_para_to_reg(0,para->input_fb.format);
 	in_type.ps= Scaler_sw_para_to_reg(2,(__u8)para->input_fb.seq);
 	in_type.byte_seq = 0;
+	in_type.sample_method = 0;
 
 	if(get_fb_type(para->output_fb.format) == DISP_FB_TYPE_YUV)
 	{      
@@ -1086,6 +1093,7 @@ __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para)
     in_type.fmt= Scaler_sw_para_to_reg(0,DISP_FORMAT_ARGB8888);
     in_type.ps= Scaler_sw_para_to_reg(2,DISP_SEQ_ARGB);
     in_type.byte_seq = 0;
+    in_type.sample_method = 0;
 
     if(get_fb_type(para->output_fb.format) == DISP_FB_TYPE_YUV)
     {      
