@@ -32,7 +32,8 @@ typedef enum
 	SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD,
 	SCIRPT_PARSER_VALUE_TYPE_STRING,
 	SCIRPT_PARSER_VALUE_TYPE_MULTI_WORD,
-	SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD	
+	SCIRPT_PARSER_VALUE_TYPE_GPIO_WORD,
+	SCIRPT_PARSER_VALUE_TYPE_NULL
 }
 script_parser_value_type_t;
 
@@ -42,6 +43,7 @@ script_parser_value_type_t;
 #define   SCRIPT_PARSER_DATA_VALUE_NULL	   (-3)
 #define   SCRIPT_PARSER_KEY_NOT_FIND       (-4)
 #define   SCRIPT_PARSER_BUFFER_NOT_ENOUGH  (-5)
+#define   SCRIPT_PARSER_VALUE_EMPTY        (-5)
 
 typedef struct
 {
@@ -61,6 +63,8 @@ extern  int script_parser_exit                  (void                           
 extern  int script_parser_fetch                 (char *main_name, char *sub_name, int value[], int count);
 extern  int script_parser_fetch_ex              (char *main_name, char *sub_name, int value[],
                                                              script_parser_value_type_t *type, int count);
+extern  int script_parser_patch					(char *main_name, char *sub_name, int value				);                                                             
+
 extern  int script_parser_subkey_count          (char *main_name                                        );
 extern  int script_parser_mainkey_count         (void                                                   );
 extern  int script_parser_mainkey_get_gpio_count(char *main_name                                        );
