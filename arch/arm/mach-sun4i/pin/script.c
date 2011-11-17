@@ -226,6 +226,10 @@ int script_parser_fetch(char *main_name, char *sub_name, int value[], int count)
 					memcpy(&user_gpio_cfg->port, script_mod_buf + (sub_key->offset<<2),  sizeof(script_gpio_set_t) - 32);
 					break;
 			    }
+			    case SCIRPT_PARSER_VALUE_TYPE_NULL:
+			    {
+					return SCRIPT_PARSER_VALUE_EMPTY;
+			    }
 			}
 
 			return SCRIPT_PARSER_OK;
@@ -354,6 +358,90 @@ int script_parser_fetch_ex(char *main_name, char *sub_name, int value[], script_
 	return SCRIPT_PARSER_KEY_NOT_FIND;
 }
 EXPORT_SYMBOL(script_parser_fetch_ex);
+/*
+************************************************************************************************************
+*
+*                                             eGon2_script_parser_patch
+*
+*    函数名称：
+*
+*    参数列表：
+*
+*    返回值  ：
+*
+*    说明    ：根据传进的主键，子键，键值，填充对应的数值
+*
+*
+************************************************************************************************************
+*/
+int script_parser_patch(char *main_name, char *sub_name, int value)
+{
+	char   main_bkname[32], sub_bkname[32];
+	char   *main_char, *sub_char;
+	script_main_key_t  *main_key = NULL;
+	script_sub_key_t   *sub_key = NULL;
+	int    i, j;
+	int    pattern;
+
+	//检查脚本buffer是否存在
+	if(!script_mod_buf)
+	{
+		return SCRIPT_PARSER_EMPTY_BUFFER;
+	}
+	//检查主键名称和子键名称是否为空
+	if((main_name == NULL) || (sub_name == NULL))
+	{
+		return SCRIPT_PARSER_KEYNAME_NULL;
+	}
+	//检查数据buffer是否为空
+	if(value == NULL)
+	{
+		return SCRIPT_PARSER_DATA_VALUE_NULL;
+	}
+	//保存主键名称和子键名称，如果超过31字节则截取31字节
+	main_char = main_name;
+	if(_test_str_length(main_name) > 31)
+	{
+	    memset(main_bkname, 0, 32);
+		strncpy(main_bkname, main_name, 31);
+		main_char = main_bkname;
+	}
+    sub_char = sub_name;
+	if(_test_str_length(sub_name) > 31)
+	{
+		memset(sub_bkname, 0, 32);
+		strncpy(sub_bkname, sub_name, 31);
+		sub_char = sub_bkname;
+	}
+	for(i=0;i<script_main_key_count;i++)
+	{
+		main_key = (script_main_key_t *)(script_mod_buf + (sizeof(script_head_t)) + i * sizeof(script_main_key_t));
+		if(strcmp(main_key->main_name, main_char))    //如果主键不匹配，寻找下一个主键
+		{
+			continue;
+		}
+		//主键匹配，寻找子键名称匹配
+		for(j=0;j<main_key->lenth;j++)
+		{
+			sub_key = (script_sub_key_t *)(script_mod_buf + (main_key->offset<<2) + (j * sizeof(script_sub_key_t)));
+			if(strcmp(sub_key->sub_name, sub_char))    //如果主键不匹配，寻找下一个主键
+			{
+				continue;
+			}
+			pattern    = (sub_key->pattern>>16) & 0xffff;             //获取数据的类型
+			//取出数据
+			if(pattern == SCIRPT_PARSER_VALUE_TYPE_SINGLE_WORD)       //单word数据类型
+			{
+				*(int *)(script_mod_buf + (sub_key->offset<<2)) = value;
+
+				return SCRIPT_PARSER_OK;
+			}
+		}
+	}
+
+	return SCRIPT_PARSER_KEY_NOT_FIND;
+}
+EXPORT_SYMBOL(script_parser_patch);
 /*
 ************************************************************************************************************
 *
