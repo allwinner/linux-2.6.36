@@ -50,9 +50,9 @@ module_param_named(mod_clock, smc_mod_clock, int, 0);
 
 static int sdc_used[4] = {0};
 #ifdef CONFIG_SW_MMC_POWER_CONTROL
-extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_io_shd_suspend_host(void);
 #else
-static __inline int mmc_pm_get_mod_type(void){return 0;}
+static __inline int mmc_pm_io_shd_suspend_host(void){return 1;}
 #endif
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
@@ -1009,7 +1009,7 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
     mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
-    if (pdev->id==3 && (mmc_pm_get_mod_type()==2 || mmc_pm_get_mod_type()==5))
+    if (pdev->id==3 && !mmc_pm_io_shd_suspend_host())
         mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
 
     mmc->max_blk_count	= 0xffff;
@@ -1172,7 +1172,7 @@ static int awsmc_suspend(struct device *dev)
     {
         struct awsmc_host *smc_host = mmc_priv(mmc);
         
-        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || (mmc_pm_get_mod_type()!=2 && mmc_pm_get_mod_type()!=5)))
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_io_shd_suspend_host()))
             ret = mmc_suspend_host(mmc);
             
         if (smc_host->power_on) {
@@ -1228,7 +1228,7 @@ static int awsmc_resume(struct device *dev)
             enable_irq(smc_host->irq);
         }
     
-        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_get_mod_type()!=2))
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_io_shd_suspend_host()))
             ret = mmc_resume_host(mmc);
     }
 

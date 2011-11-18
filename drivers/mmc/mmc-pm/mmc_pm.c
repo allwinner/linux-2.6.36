@@ -63,6 +63,13 @@ void mmc_pm_power(int mode, int* updown)
 }
 EXPORT_SYMBOL(mmc_pm_power);
 
+int mmc_pm_io_shd_suspend_host(void)
+{
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    return (ops->module_sel!=2) && (ops->module_sel!=5) && (ops->module_sel!=6);
+}
+EXPORT_SYMBOL(mmc_pm_io_shd_suspend_host);
+
 #ifdef CONFIG_PROC_FS
 static int mmc_pm_power_stat(char *page, char **start, off_t off, int count, int *eof, void *data)
 {
