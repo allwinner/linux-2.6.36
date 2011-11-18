@@ -243,12 +243,15 @@ static void axp_power_off(void)
     mdelay(20);
 	axp_read(&axp->dev, POWER20_STATUS, &val);
 	if(val & 0xF0){
-        printk("[axp] set flag!\n");
-	    axp_write(&axp->dev, POWER20_DATA_BUFFERC, 0x0f);
-        mdelay(20);
-		printk("[axp] reboot!\n");
-		arch_reset(0,NULL);
-		printk("[axp] warning!!! arch can't ,reboot, maybe some error happend!\n");
+	    axp_read(&axp->dev, POWER20_MODE_CHGSTATUS, &val);
+	    if(val & 0x20){
+            printk("[axp] set flag!\n");
+	        axp_write(&axp->dev, POWER20_DATA_BUFFERC, 0x0f);
+            mdelay(20);
+		    printk("[axp] reboot!\n");
+		    arch_reset(0,NULL);
+		    printk("[axp] warning!!! arch can't ,reboot, maybe some error happend!\n");
+	    }
 	}
     axp_write(&axp->dev, POWER20_DATA_BUFFERC, 0x00);
     mdelay(20);
