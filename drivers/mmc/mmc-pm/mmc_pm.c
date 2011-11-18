@@ -5,6 +5,7 @@
 #include <linux/init.h>
 #include <mach/gpio_v2.h>
 #include <mach/script_v2.h>
+#include <linux/proc_fs.h>
 #include "mmc_pm.h"
 
 #define mmc_pm_msg(...)    do {printk("[mmc_pm]: "__VA_ARGS__);} while(0)
@@ -49,6 +50,78 @@ int mmc_pm_get_io_val(char* name)
     }
 }
 EXPORT_SYMBOL(mmc_pm_get_io_val);
+
+void mmc_pm_power(int mode, int* updown)
+{
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    if (ops->sdio_card_used && ops->power)
+        return ops->power(mode, updown);
+    else {
+        mmc_pm_msg("No sdio card, please check your config !!\n");
+        return;
+    }
+}
+EXPORT_SYMBOL(mmc_pm_power);
+
+#ifdef CONFIG_PROC_FS
+static int mmc_pm_power_stat(char *page, char **start, off_t off, int count, int *eof, void *data)
+{
+    struct mmc_pm_ops *ops = (struct mmc_pm_ops *)data;
+    char *p = page;
+    int power = 0;
+    
+    if (ops->power)
+        ops->power(0, &power);
+    p += sprintf(p, "%s : power state %s\n", ops->mod_name, power ? "on" : "off");
+    return p - page;
+}
+
+static int mmc_pm_power_ctrl(struct file *file, const char __user *buffer, unsigned long count, void *data)
+{
+    struct mmc_pm_ops *ops = (struct mmc_pm_ops *)data;
+    int power = simple_strtoul(buffer, NULL, 10);
+    
+    power = power ? 1 : 0;
+    if (ops->power)
+        ops->power(1, &power);
+    else
+        mmc_pm_msg("No power control for %s\n", ops->mod_name);
+    return sizeof(power);
+}
+
+static inline void awsmc_procfs_attach(void)
+{
+    char proc_rootname[] = "driver/mmc-pm";
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+
+    ops->proc_root = proc_mkdir(proc_rootname, NULL);
+    if (IS_ERR(ops->proc_root))
+    {
+        mmc_pm_msg("failed to create procfs \"driver/mmc-pm\".\n");
+    }
+
+    ops->proc_power = create_proc_entry("power", 0644, ops->proc_root);
+    if (IS_ERR(ops->proc_power))
+    {
+        mmc_pm_msg("failed to create procfs \"power\".\n");
+    }
+    ops->proc_power->data = ops;
+    ops->proc_power->read_proc = mmc_pm_power_stat;
+    ops->proc_power->write_proc = mmc_pm_power_ctrl;
+}
+
+static inline void awsmc_procfs_remove(void)
+{
+    struct mmc_pm_ops *ops = &mmc_card_pm_ops;
+    char proc_rootname[] = "driver/mmc-pm";
+    
+    remove_proc_entry("power", ops->proc_root);
+    remove_proc_entry(proc_rootname, NULL);
+}
+#else
+static inline void awsmc_procfs_attach(void) {}
+static inline void awsmc_procfs_remove(void) {}
+#endif
 
 static int mmc_pm_get_res(void)
 {
@@ -108,10 +181,14 @@ static int __devinit mmc_pm_probe(struct platform_device *pdev)
         case 5: /* swb b23 */
             swbb23_gpio_init();
             break;
+        case 6: /* huawei mw269x */
+            hwmw269_gpio_init();
+            break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);
     }
     
+    awsmc_procfs_attach();
     mmc_pm_msg("SDIO card gpio init is OK !!\n");
     return 0;
 }
@@ -132,13 +209,18 @@ static int __devexit mmc_pm_remove(struct platform_device *pdev)
             break;
         case 4: /* usi bm01a */
             apm_6xxx_gpio_init();
+            break;
         case 5: /* swb b23 */
             swbb23_gpio_init();
+            break;
+        case 6: /* huawei mw269x */
+            hwmw269_gpio_init();
             break;
         default:
             mmc_pm_msg("Wrong sdio module select %d !!\n", ops->module_sel);
     }
     
+    awsmc_procfs_remove();
     mmc_pm_msg("SDIO card gpio is released !!\n");
     return 0;
 }
