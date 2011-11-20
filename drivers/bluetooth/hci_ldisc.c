@@ -64,6 +64,9 @@ static void wake_up_brcm_bt(void)
         case 5: /* swb b23 */
             mmc_pm_gpio_ctrl("swbb23_bt_wake", 0);
             break;
+//        case 6: /* huawei mw269x */
+//            mmc_pm_gpio_ctrl("hw_mw269x_bt_wake", 0);
+//            break;
         default:
             BT_DBG("no bt module matched !!\n");
 	}

@@ -50,12 +50,21 @@ static int rfkill_set_power(void *data, bool blocked)
                 mmc_pm_gpio_ctrl("swbb23_bt_shdn", 0);
             }
             break;
+        case 6: /* huawei mw269x */
+            if (!blocked) {
+                mmc_pm_gpio_ctrl("hw_mw269x_bt_wake", 1);
+                mmc_pm_gpio_ctrl("hw_mw269x_bt_enb", 1);
+            } else {
+                mmc_pm_gpio_ctrl("hw_mw269x_bt_enb", 0);
+                mmc_pm_gpio_ctrl("hw_mw269x_bt_wake", 0);
+            }
+            break;
         default:
             RF_MSG("no bt module matched !!\n");
     }
     
     spin_unlock(&bt_power_lock);
-    mdelay(100);
+    msleep(100);
     return 0;
 }
 
