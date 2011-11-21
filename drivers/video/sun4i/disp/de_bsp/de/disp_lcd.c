@@ -125,14 +125,21 @@ void Lcd_Panel_Parameter_Check(__u32 sel)
 
 	if(Lcd_Panel_Err_Flag != 0 || Lcd_Panel_Wrn_Flag != 0)
 	{
-		__u32 i;
-
-		for(i=0;i<200;i++)
+		if(Lcd_Panel_Err_Flag != 0)
 		{
-			DE_WRN("*** Lcd Panel Cfg Err!\n");
+			__u32 i;
+			for(i=0;i<200;i++)
+			{
+				OSAL_PRINTF("*** Lcd in danger...\n");	
+			}
 		}
+		
 		OSAL_PRINTF("*****************************************************************\n");	
-		OSAL_PRINTF("***              Lcd Panel Parameter Check                    ***\n");
+		OSAL_PRINTF("***\n");
+		OSAL_PRINTF("*** LCD Panel Parameter Check\n");
+		OSAL_PRINTF("***\n");
+		OSAL_PRINTF("***             by dulianping\n");				
+		OSAL_PRINTF("***\n");
 		OSAL_PRINTF("*****************************************************************\n");
 		
 		OSAL_PRINTF("*** \n");	
@@ -141,6 +148,8 @@ void Lcd_Panel_Parameter_Check(__u32 sel)
 			{OSAL_PRINTF("*** Parallel HV Panel\n");}
 		else if(info->lcd_if==0 && info->lcd_hv_if==1)
 			{OSAL_PRINTF("*** Serial HV Panel\n");}
+		else if(info->lcd_if==0 && info->lcd_hv_if==2)
+			{OSAL_PRINTF("*** Serial YUV Panel\n");}
 		else if(info->lcd_if==3 && info->lcd_lvds_bitwidth==0)
 			{OSAL_PRINTF("*** 24Bit LVDS Panel\n");}
 		else if(info->lcd_if==3 && info->lcd_lvds_bitwidth==1)
@@ -170,47 +179,52 @@ void Lcd_Panel_Parameter_Check(__u32 sel)
 		OSAL_PRINTF("*** lcd_y:      %d\n",info->lcd_y);
 		OSAL_PRINTF("*** lcd_ht:     %d\n",info->lcd_ht);
 		OSAL_PRINTF("*** lcd_hbp:    %d\n",info->lcd_hbp);
-		OSAL_PRINTF("*** lcd_hspw:   %d\n",info->lcd_hv_hspw);	
 		OSAL_PRINTF("*** lcd_vt:     %d\n",info->lcd_vt);
 		OSAL_PRINTF("*** lcd_vbp:    %d\n",info->lcd_vbp);
+		OSAL_PRINTF("*** lcd_hspw:   %d\n",info->lcd_hv_hspw);			
 		OSAL_PRINTF("*** lcd_vspw:   %d\n",info->lcd_hv_vspw);		
 		OSAL_PRINTF("*** lcd_frame_frq:  %dHz\n",lcd_fclk_frq);	
 		
 		//´òÓ¡´íÎóÌáÊ¾
+		OSAL_PRINTF("*** \n");	
 		if(Lcd_Panel_Err_Flag & BIT0)
-			{DE_WRN("*** Err01: Violate \"lcd_hbp > lcd_hspw\"\n");}
+			{OSAL_PRINTF("*** Err01: Violate \"lcd_hbp > lcd_hspw\"\n");}
 		if(Lcd_Panel_Err_Flag & BIT1)
-			{DE_WRN("*** Err02: Violate \"lcd_vbp > lcd_vspw\"\n");}
+			{OSAL_PRINTF("*** Err02: Violate \"lcd_vbp > lcd_vspw\"\n");}
 		if(Lcd_Panel_Err_Flag & BIT2)
-			{DE_WRN("*** Err03: Violate \"lcd_ht >= (lcd_hbp+lcd_x*cycle_num(%d)+4)\"\n", cycle_num);}
+			{OSAL_PRINTF("*** Err03: Violate \"lcd_ht >= (lcd_hbp+lcd_x*%d+4)\"\n", cycle_num);}
 		if(Lcd_Panel_Err_Flag & BIT3)								
-			{DE_WRN("*** Err04: Violate \"lcd_vt/2) >= (lcd_vbp+lcd_y+2)\"\n");}
+			{OSAL_PRINTF("*** Err04: Violate \"(lcd_vt/2) >= (lcd_vbp+lcd_y+2)\"\n");}
 		if(Lcd_Panel_Err_Flag & BIT10)			
-			{DE_WRN("*** Err10: Violate \"lcd_io_cfg0\",use \"0x00000000\" or \"0x04000000\"");}
+			{OSAL_PRINTF("*** Err10: Violate \"lcd_io_cfg0\",use \"0x00000000\" or \"0x04000000\"");}
 		if(Lcd_Panel_Wrn_Flag & BIT0)			
-			{DE_WRN("*** WRN01: Recommend \"lcd_frm = 1\"\n");}
+			{OSAL_PRINTF("*** WRN01: Recommend \"lcd_frm = 1\"\n");}
 		if(Lcd_Panel_Wrn_Flag & BIT1)
-			{DE_WRN("*** WRN02: Recommend \"lcd_frm = 2\"\n");}		
+			{OSAL_PRINTF("*** WRN02: Recommend \"lcd_frm = 2\"\n");}		
 		if(Lcd_Panel_Wrn_Flag & BIT2)							
-			{DE_WRN("*** WRN03: Recommend \"lcd_dclk_frq = %d\"\n",((info->lcd_vt/2) * info->lcd_ht)*60/(1000*1000));}
+			{OSAL_PRINTF("*** WRN03: Recommend \"lcd_dclk_frq = %d\"\n",((info->lcd_vt/2) * info->lcd_ht)*60/(1000*1000));}
+		OSAL_PRINTF("*** \n");	
 
-    	if(0)//Lcd_Panel_Err_Flag != 0)
+    	if(Lcd_Panel_Err_Flag != 0)
     	{	
-    		__u32 lcd_base_addr;
-    		__u32 value = 0;
-    		
-    	 	TCON0_select_src(sel,LCDC_SRC_BLACK);
-    	 	
-    	 	lcd_base_addr =	LCDC_get_reg_base(sel);
-    	 	value = sys_get_wvalue(lcd_base_addr+0x088);
-    		sys_put_wvalue(lcd_base_addr+0x088,value | 0x00ff00ff);
+            __u32 image_base_addr;
+            __u32 reg_value = 0;
+
+            image_base_addr = DE_Get_Reg_Base(sel);
+
+            sys_put_wvalue(image_base_addr+0x804,0xffff00ff);//set background color
+
+            reg_value = sys_get_wvalue(image_base_addr+0x800);
+            sys_put_wvalue(image_base_addr+0x800,reg_value & 0xfffff0ff);//close all layer
+
 #ifdef __LINUX_OSAL__
             LCD_delay_ms(2000);
-            sys_put_wvalue(lcd_base_addr+0x088,value);
-            TCON0_select_src(sel,LCDC_SRC_DE1);
+            sys_put_wvalue(image_base_addr+0x800,reg_value);//open layer
 #endif
-    		OSAL_PRINTF("*** Call 0756-801543 if needed.\n");
+            OSAL_PRINTF("*** Try new parameters,you can make it pass!\n");
     	}
+        OSAL_PRINTF("*** LCD Panel Parameter Check End\n");
+        OSAL_PRINTF("*****************************************************************\n");
 	}
 }
 
@@ -940,7 +954,6 @@ __s32 LCD_POWER_EN(__u32 sel, __bool b_en)
     {
         DE_INF("%s.lcd_power gpio_port=%d,gpio_port_num:%d, data:%d\n", primary_key, gpio_info->port, gpio_info->port_num, gpio_info->data);
     }
-
     if(!b_en)
     {
         gpio_info->data = (gpio_info->data==0)?1:0;

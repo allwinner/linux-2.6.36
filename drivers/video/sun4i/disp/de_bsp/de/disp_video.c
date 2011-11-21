@@ -138,34 +138,31 @@ static __inline __s32 Hal_Set_Frame(__u32 sel, __u32 tcon_index, __u32 id)
     		scaler->out_fb.cs_mode = DISP_BT601;
     	}	
 
-        if(g_video[sel][id].display_cnt == 0)
+        if(scaler->in_fb.b_trd_src)
         {
-            if(scaler->in_fb.b_trd_src)
+            __scal_3d_inmode_t inmode;
+            __scal_3d_outmode_t outmode = 0;
+            __scal_buf_addr_t scal_addr_right;
+
+            inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
+            outmode = Scaler_3d_sw_para_to_reg(1, scaler->out_trd_mode, gdisp.screen[sel].b_out_interlace);
+            
+            DE_SCAL_Get_3D_In_Single_Size(inmode, &in_size, &in_size);
+            if(scaler->b_trd_out)
             {
-                __scal_3d_inmode_t inmode;
-                __scal_3d_outmode_t outmode = 0;
-                __scal_buf_addr_t scal_addr_right;
-
-                inmode = Scaler_3d_sw_para_to_reg(0, scaler->in_fb.trd_mode, 0);
-                outmode = Scaler_3d_sw_para_to_reg(1, scaler->out_trd_mode, gdisp.screen[sel].b_out_interlace);
-                
-                DE_SCAL_Get_3D_In_Single_Size(inmode, &in_size, &in_size);
-                if(scaler->b_trd_out)
-                {
-                    DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
-                }
-
-            	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(g_video[sel][id].video_cur.addr_right[0]));
-            	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(g_video[sel][id].video_cur.addr_right[1]));
-            	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(g_video[sel][id].video_cur.addr_right[2]));
-
-                DE_SCAL_Set_3D_Ctrl(scaler_index, scaler->b_trd_out, inmode, outmode);
-                DE_SCAL_Config_3D_Src(scaler_index, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+                DE_SCAL_Get_3D_Out_Single_Size(outmode, &out_size, &out_size);
             }
-            else
-            {
-        	    DE_SCAL_Config_Src(scaler_index,&scal_addr,&in_size,&in_type,FALSE,FALSE);
-        	}
+
+        	scal_addr_right.ch0_addr= (__u32)OSAL_VAtoPA((void*)(g_video[sel][id].video_cur.addr_right[0]));
+        	scal_addr_right.ch1_addr= (__u32)OSAL_VAtoPA((void*)(g_video[sel][id].video_cur.addr_right[1]));
+        	scal_addr_right.ch2_addr= (__u32)OSAL_VAtoPA((void*)(g_video[sel][id].video_cur.addr_right[2]));
+
+            DE_SCAL_Set_3D_Ctrl(scaler_index, scaler->b_trd_out, inmode, outmode);
+            DE_SCAL_Config_3D_Src(scaler_index, &scal_addr, &in_size, &in_type, inmode, &scal_addr_right);
+        }
+        else
+        {
+    	    DE_SCAL_Config_Src(scaler_index,&scal_addr,&in_size,&in_type,FALSE,FALSE);
     	}
 
         if(g_video[sel][id].dit_enable == TRUE && gdisp.screen[sel].de_flicker_status == DE_FLICKER_USED)
