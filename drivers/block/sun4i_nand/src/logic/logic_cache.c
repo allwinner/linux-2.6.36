@@ -109,6 +109,30 @@ __s32 _flush_w_cache(void)
 
 }
 
+__s32 _flush_w_cache_simple(__u32 i)
+{
+	if(nand_w_cache[i].hit_page != 0xffffffff)
+	{
+		if(nand_w_cache[i].secbitmap != FULL_BITMAP_OF_LOGIC_PAGE)
+			LML_PageRead(nand_w_cache[i].hit_page,(nand_w_cache[i].secbitmap ^ FULL_BITMAP_OF_LOGIC_PAGE)&FULL_BITMAP_OF_LOGIC_PAGE,nand_w_cache[i].data);
+
+		LML_PageWrite(nand_w_cache[i].hit_page,FULL_BITMAP_OF_LOGIC_PAGE,nand_w_cache[i].data);
+		nand_w_cache[i].hit_page = 0xffffffff;
+		nand_w_cache[i].secbitmap = 0;
+		nand_w_cache[i].access_count = 0;
+
+		/*disable read cache with current page*/
+		if (nand_r_cache.hit_page == nand_w_cache[i].hit_page){
+				nand_r_cache.hit_page = 0xffffffff;
+				nand_r_cache.secbitmap = 0;
+		}
+
+	}
+
+	return 0;
+
+}
+
 
 __s32 NAND_CacheFlush(void)
 {
@@ -281,6 +305,12 @@ __s32 _fill_nand_cache(__u32 page, __u32 secbitmap, __u8 *pdata)
 					pos = i;
 					access_cnt = nand_w_cache[i].access_count;
 				}
+				
+				if((nand_w_cache[i].hit_page == page-1)&&(page>0))
+				{
+				    pos = i;
+				    break;
+				}
 			}
 
 			if(nand_w_cache[pos].secbitmap != FULL_BITMAP_OF_LOGIC_PAGE)
@@ -324,7 +354,7 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 	__u32	SecBitmap,SecWithinPage;
 	__u32	i;
 	__u8 	*pdata;
-	__u32 hit = 0;
+	//__u32  hit = 0;
 
 	nSector 	= nblk;
 	StartSec 	= blk;
@@ -349,11 +379,18 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 				/*disable write cache with current page*/
 				for (i = 0; i < N_NAND_W_CACHE; i++)
 				{
-					if (nand_w_cache[i].hit_page == page){
+					if(nand_w_cache[i].hit_page == page)
+					{
 						nand_w_cache[i].hit_page = 0xffffffff;
 						nand_w_cache[i].secbitmap = 0;
-						hit=1;
+						//hit=1;
 					}
+					else if((nand_w_cache[i].hit_page == page-1)&&(page>0))
+					{
+					    _flush_w_cache_simple(i);
+					}
+					
+					
 				}
 				/*disable read cache with current page*/
 				if (nand_r_cache.hit_page == page){
@@ -361,8 +398,8 @@ __s32 NAND_CacheWrite(__u32 blk, __u32 nblk, void *buf)
 					nand_r_cache.secbitmap = 0;
 				}
 
-                if(!hit)
-                    _flush_w_cache();
+                //if(!hit)
+                //    _flush_w_cache();
 
 				LML_PageWrite(page,FULL_BITMAP_OF_LOGIC_PAGE,pdata + 512 - 512*SECTOR_CNT_OF_LOGIC_PAGE);
 			}
