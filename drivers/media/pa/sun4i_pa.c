@@ -39,7 +39,7 @@ typedef enum PA_OPT
 	PA_CLOSE,
 	PA_DEV_
 }__ace_ops_e;
-
+  
 
 static int pa_dev_open(struct inode *inode, struct file *filp){
 	#ifdef PA_DEBUG
@@ -122,7 +122,11 @@ static int __init pa_dev_init(void)
 	if ((err = platform_driver_register(&sw_pa_driver)) < 0)
 		return err;
   	
-
+	 gpio_pa_shutdown = gpio_request_ex("audio_para", "audio_pa_ctrl");
+	 if(!gpio_pa_shutdown) {
+		printk("audio codec_wakeup request gpio fail!\n");
+		return err;		
+	}
     alloc_chrdev_region(&dev_num, 0, 1, "pa_chrdev");
     pa_dev = cdev_alloc();
     cdev_init(pa_dev, &pa_dev_fops);
