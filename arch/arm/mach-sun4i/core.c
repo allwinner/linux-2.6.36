@@ -407,11 +407,14 @@ enum sw_ic_ver sw_get_ic_ver(void)
 
 	val = (val >> 6) & 0x3;
 
-	if (val == 0x3) {
-		return MAGIC_VER_B;
+	if (val == 0x00) {
+		return MAGIC_VER_A;
+	}
+	else if(val == 0x03) {
+	    return MAGIC_VER_B;
 	}
 
-	return MAGIC_VER_A;
+	return MAGIC_VER_C;
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
 
@@ -513,5 +516,5 @@ MACHINE_START(SUN4I, "sun4i")
 	.init_machine   = sw_init,
 	.boot_params    = (unsigned long)(0x40000000 + 0x100),
 MACHINE_END
-	
+
 
