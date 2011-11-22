@@ -211,34 +211,6 @@ __s32 DRV_lcd_close(__u32 sel)
     return 0;
 }
 
-__s32 DRV_scaler_begin(__u32 sel)
-{
-    long timeout = (100 * HZ)/1000;//100ms
-
-    g_disp_drv.b_scaler_finished[sel] = 1;
-    timeout = wait_event_interruptible_timeout(g_disp_drv.scaler_queue[sel], g_disp_drv.b_scaler_finished[sel] == 2, timeout);
-    g_disp_drv.b_scaler_finished[sel] = 0;
-    if(timeout == 0)
-    {
-        __wrn("wait scaler %d finished timeout\n", sel);
-        return -1;
-    }
-    return 0;
-}
-
-void DRV_scaler_finish(__u32 sel)
-{
-    if(g_disp_drv.b_scaler_finished[sel] == 1)
-    {
-        g_disp_drv.b_scaler_finished[sel] = 2;
-        wake_up_interruptible(&g_disp_drv.scaler_queue[sel]);
-    }
-    else
-    {
-        __wrn("not scaler %d begin in DRV_scaler_finish\n", sel);
-    }
-}
-
 
 void DRV_disp_wait_cmd_finish(__u32 sel)
 {
@@ -342,8 +314,6 @@ __s32 DRV_DISP_Init(void)
     para.base_sdram     = (__u32)g_fbi.base_sdram;
     para.base_pioc      = (__u32)g_fbi.base_pioc;
     para.base_pwm       = (__u32)g_fbi.base_pwm;
-    para.scaler_begin   		= DRV_scaler_begin;
-    para.scaler_finish  		= DRV_scaler_finish;
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
@@ -353,8 +323,6 @@ __s32 DRV_DISP_Init(void)
         init_waitqueue_head(&g_disp_drv.my_queue[0][i]);
         init_waitqueue_head(&g_disp_drv.my_queue[1][i]);
     }
-    init_waitqueue_head(&g_disp_drv.scaler_queue[0]);
-    init_waitqueue_head(&g_disp_drv.scaler_queue[1]);
 
     BSP_disp_init(&para);
     BSP_disp_open();
@@ -907,7 +875,13 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         return -1;
     }
 
-	//__inf("disp_ioctl,cmd:%x\n",cmd);
+    //if(cmd!=DISP_CMD_TV_GET_INTERFACE && cmd!=DISP_CMD_HDMI_GET_HPD_STATUS && cmd!=DISP_CMD_GET_OUTPUT_TYPE 
+    //	&& cmd!=DISP_CMD_SCN_GET_WIDTH && cmd!=DISP_CMD_SCN_GET_HEIGHT
+    //	&& cmd!=DISP_CMD_VIDEO_SET_FB && cmd!=DISP_CMD_VIDEO_GET_FRAME_ID)
+    //{
+    //    OSAL_PRINTF("disp_ioctl,cmd:%x,%d,%d\n",cmd, ubuffer[0], ubuffer[1]);
+    //}
+	
     switch(cmd)
     {
     //----disp global----

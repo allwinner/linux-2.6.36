@@ -73,7 +73,7 @@ struct goodix_ts_data {
 };
 
 
-const char *f3x_ts_name = "Goodix TouchScreen of GT80X";
+const char *f3x_ts_name = "gt80x";
 static struct workqueue_struct *goodix_wq;
 static void* __iomem gpio_addr = NULL;
 static int gpio_int_hdle = 0;
@@ -537,6 +537,7 @@ static irqreturn_t goodix_ts_irq_handler(int irq, void *dev_id)
 	else
 	{
 	    print_int_info("Other Interrupt\n");
+	    return IRQ_NONE;
 	}
 	return IRQ_HANDLED;
 }

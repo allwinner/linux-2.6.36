@@ -513,7 +513,7 @@ static void sdxc_send_cmd(struct awsmc_host* smc_host, struct mmc_command* cmd)
     
     sdxc_enable_imask(smc_host, imask);
 	
-	awsmc_info("smc %d send cmd %d(%08x), imask = 0x%08x, wait = %d\n", smc_host->pdev->id, cmd_val&0x3f, cmd_val, imask, smc_host->wait);
+//	awsmc_info("smc %d send cmd %d(%08x), imask = 0x%08x, wait = %d\n", smc_host->pdev->id, cmd_val&0x3f, cmd_val, imask, smc_host->wait);
     
     sdc_write(SDXC_REG_CARG, cmd->arg);
     sdc_write(SDXC_REG_CMDR, cmd_val);
@@ -875,7 +875,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     msk_int = sdc_read(SDXC_REG_MISTA);
     
     smc_host->int_sum |= raw_int;
-    awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
+//    awsmc_info("smc %d int, ri %08x(%08x) mi %08x ie %08x idi %08x\n", smc_host->pdev->id, raw_int, smc_host->int_sum, msk_int, idma_inte, idma_int);
     
 	if (msk_int & SDXC_SDIOInt) 
 	{
@@ -887,7 +887,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     {
         if (msk_int&SDXC_CardInsert) 
         {
-    	    awsmc_dbg("card detect insert\n");
+    	    awsmc_msg("card detect insert\n");
     	    smc_host->present = 1;
     	    smc_host->change = 1;
     	    sdc_write(SDXC_REG_RINTR, SDXC_CardInsert);
@@ -895,7 +895,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     	}
     	if (msk_int&SDXC_CardRemove) 
     	{
-    	    awsmc_dbg("card detect remove\n");
+    	    awsmc_msg("card detect remove\n");
     	    smc_host->present = 0;
     	    smc_host->change = 1;
     	    sdc_write(SDXC_REG_RINTR, SDXC_CardRemove);
@@ -905,7 +905,7 @@ void sdxc_check_status(struct awsmc_host* smc_host)
     
     if (smc_host->wait == SDC_WAIT_NONE && !smc_host->sdio_int)
     {
-    	awsmc_dbg_err("smc %x, nothing to complete, raw_int = %08x, mask_int = %08x\n", smc_host->pdev->id, raw_int, msk_int);
+    	awsmc_msg("smc %x, nothing irq, rint %08x, mint %08x\n", smc_host->pdev->id, raw_int, msk_int);
     	sdxc_clear_imask(smc_host);
 		goto irq_normal_out;
     }
@@ -1000,7 +1000,7 @@ _out_:
     {
         if (!(req->data->flags & MMC_DATA_WRITE) && (sdc_read(SDXC_REG_STAS) & SDXC_DataFSMBusy))
         {
-            printk("data fsm busy\n");
+            awsmc_msg("data fsm busy\n");
         }
         if (smc_host->dodma)
         {
@@ -1040,16 +1040,16 @@ _out_:
 		sdxc_send_manual_stop(smc_host, req);
 	}
     
-    if ((smc_host->pdev->id==3) && req->data && (req->data->flags & MMC_DATA_WRITE) && !(smc_host->int_sum & SDXC_IntErrBit))
-    {
-        u32 ready = 0;
+//    if ((smc_host->pdev->id==3) && req->data && (req->data->flags & MMC_DATA_WRITE) && !(smc_host->int_sum & SDXC_IntErrBit))
+//    {
+//        u32 ready = 0;
 //        u32 i = 0;
-        do {
+//        do {
 //            awsmc_msg("smc %d check ready %d \r", smc_host->pdev->id, i++);
-            ready = sdxc_check_r1_ready(smc_host);
-        } while (!ready);
+//            ready = sdxc_check_r1_ready(smc_host);
+//        } while (!ready);
 //        awsmc_msg("\n");
-    }
+//    }
     return ret;
 }
 

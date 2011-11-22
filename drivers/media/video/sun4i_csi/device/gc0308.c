@@ -64,7 +64,7 @@ MODULE_LICENSE("GPL");
 /*
  * Our nominal (default) frame rate.
  */
-#define SENSOR_FRAME_RATE 25
+#define SENSOR_FRAME_RATE 10
 
 /*
  * The gc0308 sits on i2c with ID 0x42
@@ -128,10 +128,10 @@ struct regval_list {
  */
 static struct regval_list sensor_default_regs[] = {
 {{0xfe},{0x00}},																					 
-#if 1 //MCLK=49.5MHz
-{{0x01},{0x28}},                                           
-{{0x02},{0x00}},    
-{{0x0f},{0x21}},	                                  
+#if 1 //MCLK=49.5MHz 10fps
+{{0x01},{0xcb}},   //0x28                                        
+{{0x02},{0x60}},   //0x00
+{{0x0f},{0x18}},	 //0x21                                 
 {{0xe2},{0x00}},                                           
 {{0xe3},{0xFA}},                                           
 {{0xe4},{0x03}},                                           
@@ -142,10 +142,10 @@ static struct regval_list sensor_default_regs[] = {
 {{0xe9},{0xE8}},                                           
 {{0xea},{0x09}},                                           
 {{0xeb},{0xC4}},
-#else
-{{0x0f},{0x00}},	                                         
-{{0x01},{0x6a}},                                           
-{{0x02},{0x70}},                                           
+#else //MCLK=24MHz 10fps
+{{0x0f},{0x05}},	 //0x00                                        
+{{0x01},{0xe1}},   //0x6a                                        
+{{0x02},{0x70}},   //0x70                                        
 {{0xe2},{0x00}},                                           
 {{0xe3},{0x96}},                                           
 {{0xe4},{0x02}},                                           
@@ -184,16 +184,21 @@ static struct regval_list sensor_default_regs[] = {
 {{0x1d},{0x9a}},                                           
 {{0x1e},{0x61}},                                           
 {{0x1f},{0x16}},                                           
-{{0x20},{0xff}},                                           
+{{0x20},{0x7f}},                                           
 {{0x21},{0xfa}},                                           
 {{0x22},{0x57}},                                           
 {{0x24},{0xa2}},	//YCbYCr                                 
 {{0x25},{0x0f}},                                           
-{{0x26},{0x03}}, // 0x01                                   
+{{0x26},{0x03}}, // 0x01        
+{{0x28},{0x00}},       
+{{0x2d},{0x0a}},                      
 {{0x2f},{0x01}},                                           
 {{0x30},{0xf7}},                                           
 {{0x31},{0x50}},                                           
-{{0x32},{0x00}},                                           
+{{0x32},{0x00}},   
+{{0x33},{0x28}},    
+{{0x34},{0x2a}},    
+{{0x35},{0x28}},                                            
 {{0x39},{0x04}},                                           
 {{0x3a},{0x20}},                                           
 {{0x3b},{0x20}},                                           
@@ -201,29 +206,38 @@ static struct regval_list sensor_default_regs[] = {
 {{0x3d},{0x00}},                                           
 {{0x3e},{0x00}},                                           
 {{0x3f},{0x00}},                                           
-{{0x50},{0x16}}, // 0x14                                   
+{{0x50},{0x14}}, // 0x14  
+{{0x52},{0x41}},                                  
 {{0x53},{0x80}},                                           
-{{0x54},{0x87}},                                           
-{{0x55},{0x87}},                                           
+{{0x54},{0x80}},                                           
+{{0x55},{0x80}},                                           
 {{0x56},{0x80}},                                           
-{{0x8b},{0x10}},                                           
-{{0x8c},{0x10}},                                           
-{{0x8d},{0x10}},                                           
-{{0x8e},{0x10}},                                           
+{{0x8b},{0x20}},                                           
+{{0x8c},{0x20}},                                           
+{{0x8d},{0x20}},                                           
+{{0x8e},{0x14}},                                           
 {{0x8f},{0x10}},                                           
-{{0x90},{0x10}},                                           
+{{0x90},{0x14}},                                           
 {{0x91},{0x3c}},                                           
-{{0x92},{0x50}},                                           
+{{0x92},{0x50}},   
+//{{0x8b},{0x10}},                                           
+//{{0x8c},{0x10}},                                           
+//{{0x8d},{0x10}},                                           
+//{{0x8e},{0x10}},                                           
+//{{0x8f},{0x10}},                                           
+//{{0x90},{0x10}},                                           
+//{{0x91},{0x3c}},                                           
+//{{0x92},{0x50}},                                         
 {{0x5d},{0x12}},                                           
 {{0x5e},{0x1a}},                                           
 {{0x5f},{0x24}},                                           
 {{0x60},{0x07}},                                           
 {{0x61},{0x15}},                                           
-{{0x62},{0x0f}}, // 0x08                                   
-{{0x64},{0x01}},  // 0x03                                  
+{{0x62},{0x08}}, // 0x08                                   
+{{0x64},{0x03}},  // 0x03                                  
 {{0x66},{0xe8}},                                           
 {{0x67},{0x86}},                                           
-{{0x68},{0xa2}},                                           
+{{0x68},{0x82}},                                           
 {{0x69},{0x18}},                                           
 {{0x6a},{0x0f}},                                           
 {{0x6b},{0x00}},                                           
@@ -234,34 +248,34 @@ static struct regval_list sensor_default_regs[] = {
 {{0x70},{0x15}},                                           
 {{0x71},{0x33}},                                           
 {{0x72},{0xdc}},                                           
-{{0x73},{0x80}},                                           
+{{0x73},{0x00}},                                           
 {{0x74},{0x02}},                                           
 {{0x75},{0x3f}},                                           
 {{0x76},{0x02}},                                           
-{{0x77},{0x57}}, // 0x47                                   
+{{0x77},{0x38}}, // 0x47                                   
 {{0x78},{0x88}},                                           
 {{0x79},{0x81}},                                           
 {{0x7a},{0x81}},                                           
 {{0x7b},{0x22}},                                           
-{{0x7c},{0xff}},                                           
-{{0x93},{0x46}},                                           
-{{0x94},{0x00}},                                           
-{{0x95},{0x03}},                                           
-{{0x96},{0xd0}},                                           
+{{0x7c},{0xff}},                                          
+{{0x93},{0x48}},  //color matrix default                                          
+{{0x94},{0x02}},                                           
+{{0x95},{0x07}},                                           
+{{0x96},{0xe0}},                                           
 {{0x97},{0x40}},                                           
-{{0x98},{0xf0}},                                           
-{{0xb1},{0x3c}},                                           
-{{0xb2},{0x3c}},                                           
-{{0xb3},{0x44}}, //0x40                                    
+{{0x98},{0xf0}},                                     
+{{0xb1},{0x40}},                                           
+{{0xb2},{0x40}},                                           
+{{0xb3},{0x40}}, //0x40                                    
 {{0xb6},{0xe0}},                                           
-{{0xbd},{0x3C}},                                           
+{{0xbd},{0x38}},                                           
 {{0xbe},{0x36}},                                           
-{{0xd0},{0xC9}},                                           
+{{0xd0},{0xCB}},                                           
 {{0xd1},{0x10}},                                           
 {{0xd2},{0x90}},                                           
-{{0xd3},{0x88}},                                           
+{{0xd3},{0x48}},                                           
 {{0xd5},{0xF2}},                                           
-{{0xd6},{0x10}},                                           
+{{0xd6},{0x16}},                                           
 {{0xdb},{0x92}},                                           
 {{0xdc},{0xA5}},                                           
 {{0xdf},{0x23}},                                           
@@ -273,65 +287,67 @@ static struct regval_list sensor_default_regs[] = {
 {{0xef},{0x40}},                                           
 {{0x80},{0x03}},                                           
                                                           
-{{0x9F},{0x14}},                                           
-{{0xA0},{0x28}},                                           
-{{0xA1},{0x44}},                                           
-{{0xA2},{0x5d}},                                           
-{{0xA3},{0x72}},                                           
-{{0xA4},{0x86}},                                           
-{{0xA5},{0x95}},                                           
-{{0xA6},{0xb1}},                                           
-{{0xA7},{0xc6}},                                           
-{{0xA8},{0xd5}},                                           
-{{0xA9},{0xe1}},                                           
-{{0xAA},{0xea}},                                           
-{{0xAB},{0xf1}},                                           
-{{0xAC},{0xf5}},                                           
-{{0xAD},{0xFb}},                                           
-{{0xAE},{0xFe}},                                           
+{{0x9F},{0x10}},                                           
+{{0xA0},{0x20}},                                           
+{{0xA1},{0x38}},                                           
+{{0xA2},{0x4e}},                                           
+{{0xA3},{0x63}},                                           
+{{0xA4},{0x76}},                                           
+{{0xA5},{0x87}},                                           
+{{0xA6},{0xa2}},                                           
+{{0xA7},{0xb8}},                                           
+{{0xA8},{0xca}},                                           
+{{0xA9},{0xd8}},                                           
+{{0xAA},{0xe3}},                                           
+{{0xAB},{0xeb}},                                           
+{{0xAC},{0xf0}},                                           
+{{0xAD},{0xF8}},                                           
+{{0xAE},{0xFd}},                                           
 {{0xAF},{0xFF}},                                                     
                                                            
 {{0xc0},{0x00}},                                           
-{{0xc1},{0x14}},                                           
-{{0xc2},{0x21}},                                           
-{{0xc3},{0x36}},                                           
-{{0xc4},{0x49}},                                           
-{{0xc5},{0x5B}},                                           
-{{0xc6},{0x6B}},                                           
-{{0xc7},{0x7B}},                                           
-{{0xc8},{0x98}},                                           
-{{0xc9},{0xB4}},                                           
-{{0xca},{0xCE}},                                           
-{{0xcb},{0xE8}},                                           
+{{0xc1},{0x10}},                                           
+{{0xc2},{0x1c}},                                           
+{{0xc3},{0x30}},                                           
+{{0xc4},{0x43}},                                           
+{{0xc5},{0x54}},                                           
+{{0xc6},{0x65}},                                           
+{{0xc7},{0x75}},                                           
+{{0xc8},{0x93}},                                           
+{{0xc9},{0xB0}},                                           
+{{0xca},{0xCB}},                                           
+{{0xcb},{0xE6}},                                           
 {{0xcc},{0xFF}},                                           
 {{0xf0},{0x02}},                                           
 {{0xf1},{0x01}},                                           
-{{0xf2},{0x04}},                                           
-{{0xf3},{0x30}},                                           
+{{0xf2},{0x02}},                                           
+{{0xf3},{0x30}},     
+{{0xf7},{0x12}}, 
+{{0xf8},{0x0a}},                                       
 {{0xf9},{0x9f}},                                           
 {{0xfa},{0x78}},                                           
 {{0xfe},{0x01}},                                           
 {{0x00},{0xf5}},                                           
 {{0x02},{0x20}},                                           
 {{0x04},{0x10}},                                           
-{{0x05},{0x10}},                                           
+{{0x05},{0x08}},                                           
 {{0x06},{0x20}},                                           
-{{0x08},{0x15}},                                           
+{{0x08},{0x0a}},                                           
 {{0x0a},{0xa0}},                                           
-{{0x0b},{0x64}},                                           
+{{0x0b},{0x60}},                                           
 {{0x0c},{0x08}},                                           
-{{0x0e},{0x4C}},                                           
-{{0x0f},{0x39}},                                           
+{{0x0e},{0x44}},                                           
+{{0x0f},{0x32}},                                           
 {{0x10},{0x41}},                                           
 {{0x11},{0x37}},                                           
-{{0x12},{0x24}},                                           
-{{0x13},{0x39}},                                           
-{{0x14},{0x45}},                                           
-{{0x15},{0x45}},                                           
+{{0x12},{0x22}},                                           
+{{0x13},{0x19}},                                           
+{{0x14},{0x44}},                                           
+{{0x15},{0x44}},                                           
 {{0x16},{0xc2}},                                           
 {{0x17},{0xA8}},                                           
 {{0x18},{0x18}},                                           
-{{0x19},{0x55}},                                           
+{{0x19},{0x50}},                                           
 {{0x1a},{0xd8}},                                           
 {{0x1b},{0xf5}},                                           
 {{0x70},{0x40}},                                           
@@ -365,11 +381,14 @@ static struct regval_list sensor_default_regs[] = {
 {{0x44},{0xB8}},                                           
 {{0x45},{0xD6}},                                           
 {{0x46},{0xEE}},                                           
-{{0x47},{0x0d}},                                           
-{{0xfe},{0x00}},                                          
+{{0x47},{0x0d}},   
+{{0x62},{0xf7}},
+{{0x63},{0x68}},
+{{0x64},{0xd3}},
+{{0x65},{0xd3}},
+{{0x66},{0x60}},
+{{0xfe},{0x00}},              
 };
-
-
 /*
  * The white balance settings
  * Here only tune the R G B channel gain. 
@@ -669,48 +688,48 @@ static struct regval_list sensor_saturation_pos4_regs[] = {
  * The exposure target setttings
  */
 static struct regval_list sensor_ev_neg4_regs[] = {
-	{{0xb5},{0xd0}},
-	{{0xd3},{0x38}}
+	{{0xb5},{0xc0}},
+	{{0xd3},{0x28}}
 };
 
 static struct regval_list sensor_ev_neg3_regs[] = {
-	{{0xb5},{0xe0}},
-	{{0xd3},{0x40}}
+	{{0xb5},{0xd0}},
+	{{0xd3},{0x30}}
 };
 
 static struct regval_list sensor_ev_neg2_regs[] = {
-	{{0xb5},{0xf0}},
-	{{0xd3},{0x48}}
+	{{0xb5},{0xe0}},
+	{{0xd3},{0x38}}
 };
 
 static struct regval_list sensor_ev_neg1_regs[] = {
-	{{0xb5},{0x00}},
-	{{0xd3},{0x50}}
+	{{0xb5},{0xf0}},
+	{{0xd3},{0x40}}
 };
 
 static struct regval_list sensor_ev_zero_regs[] = {
+	{{0xb5},{0x00}},
+	{{0xd3},{0x48}}
+};
+
+static struct regval_list sensor_ev_pos1_regs[] = {
+	{{0xb5},{0x10}},
+	{{0xd3},{0x50}}
+};
+
+static struct regval_list sensor_ev_pos2_regs[] = {
 	{{0xb5},{0x20}},
 	{{0xd3},{0x58}}
 };
 
-static struct regval_list sensor_ev_pos1_regs[] = {
+static struct regval_list sensor_ev_pos3_regs[] = {
 	{{0xb5},{0x30}},
 	{{0xd3},{0x60}}
 };
 
-static struct regval_list sensor_ev_pos2_regs[] = {
+static struct regval_list sensor_ev_pos4_regs[] = {
 	{{0xb5},{0x40}},
 	{{0xd3},{0x68}}
-};
-
-static struct regval_list sensor_ev_pos3_regs[] = {
-	{{0xb5},{0x50}},
-	{{0xd3},{0x70}}
-};
-
-static struct regval_list sensor_ev_pos4_regs[] = {
-	{{0xb5},{0x60}},
-	{{0xd3},{0x78}}
 };
 
 
@@ -1037,7 +1056,6 @@ static int sensor_init(struct v4l2_subdev *sd, u32 val)
 		csi_err("chip found is not an target chip.\n");
 		return ret;
 	}
-	
 	return sensor_write_array(sd, sensor_default_regs , ARRAY_SIZE(sensor_default_regs));
 }
 

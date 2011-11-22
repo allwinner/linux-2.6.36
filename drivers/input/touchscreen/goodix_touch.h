@@ -46,7 +46,7 @@
 
 #define GOODIX_MULTI_TOUCH
 #ifndef GOODIX_MULTI_TOUCH
-	#define MAX_FINGER_NUM 1
+	#define MAX_FINGER_NUM 5
 #else
 	#define MAX_FINGER_NUM 5				//最大支持手指数(<=5)
 #endif

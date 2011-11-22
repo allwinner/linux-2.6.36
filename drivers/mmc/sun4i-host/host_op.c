@@ -50,9 +50,9 @@ module_param_named(mod_clock, smc_mod_clock, int, 0);
 
 static int sdc_used[4] = {0};
 #ifdef CONFIG_SW_MMC_POWER_CONTROL
-extern int mmc_pm_get_mod_type(void);
+extern int mmc_pm_io_shd_suspend_host(void);
 #else
-static __inline int mmc_pm_get_mod_type(void){return 0;}
+static __inline int mmc_pm_io_shd_suspend_host(void){return 1;}
 #endif
 void awsmc_dumpreg(struct awsmc_host* smc_host)
 {
@@ -354,6 +354,8 @@ static void finalize_request(struct awsmc_host *smc_host)
         {
         	mrq->data->error = ETIMEDOUT;
         }
+        if (mrq->stop)
+            mrq->stop->error = ETIMEDOUT;
     }
     else
     {
@@ -414,25 +416,32 @@ static s32 awsmc_get_ro(struct mmc_host *mmc)
 static void awsmc_cd_timer(unsigned long data)
 {
     struct awsmc_host *smc_host = (struct awsmc_host *)data;
-    u32 gpio_val;
+    u32 gpio_val = 0;
     u32 present;
 
     gpio_val = gpio_read_one_pin_value(smc_host->pio_hdle, "sdc_det");
-    if (gpio_val)
+    gpio_val += gpio_read_one_pin_value(smc_host->pio_hdle, "sdc_det");
+    gpio_val += gpio_read_one_pin_value(smc_host->pio_hdle, "sdc_det");
+    gpio_val += gpio_read_one_pin_value(smc_host->pio_hdle, "sdc_det");
+    gpio_val += gpio_read_one_pin_value(smc_host->pio_hdle, "sdc_det");
+    if (gpio_val==5)
         present = 0;
-    else
+    else if (gpio_val==0)
         present = 1;
+    else
+        goto modtimer;
 
 //    awsmc_dbg("cd %d, host present %d, cur present %d\n", gpio_val, smc_host->present, present);
 
     if (smc_host->present ^ present) {
         awsmc_msg("mmc %d detect change, present %d\n", smc_host->pdev->id, present);
         smc_host->present = present;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(100));
+        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
     } else {
 //        awsmc_dbg("card detect no change\n");
     }
 
+modtimer:
     mod_timer(&smc_host->cd_timer, jiffies + 30);
     return;
 }
@@ -611,7 +620,7 @@ static void awsmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
     if (cmd->opcode == MMC_STOP_TRANSMISSION)
     {
-        awsmc_msg("Request to send stop command, do not care !!\n");
+        awsmc_dbg("Request to send stop command, do not care !!\n");
         //mmc_request_done(mmc, mrq);
         return;
     }
@@ -620,7 +629,7 @@ static void awsmc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
     if (awsmc_card_present(mmc) == 0)
     {
-    	awsmc_dbg("no medium present\n");
+    	awsmc_msg("no medium present\n");
     	smc_host->mrq->cmd->error = -ENOMEDIUM;
     	mmc_request_done(mmc, mrq);
     }
@@ -1009,11 +1018,11 @@ static int __devinit awsmc_probe(struct platform_device *pdev)
     mmc->caps	    = MMC_CAP_4_BIT_DATA|MMC_CAP_MMC_HIGHSPEED|MMC_CAP_SD_HIGHSPEED|MMC_CAP_SDIO_IRQ;
     mmc->f_min 	    = 200000;
     mmc->f_max 	    = pdev->id == 3 ? SMC_3_MAX_IO_CLOCK :  smc_io_clock;
-    if (pdev->id==3 && (mmc_pm_get_mod_type()==2 || mmc_pm_get_mod_type()==5))
+    if (pdev->id==3 && !mmc_pm_io_shd_suspend_host())
         mmc->pm_flags   = MMC_PM_IGNORE_PM_NOTIFY;
 
-    mmc->max_blk_count	= 0xffff;
-    mmc->max_blk_size	= 0xffff;
+    mmc->max_blk_count	= 0x4096;
+    mmc->max_blk_size	= 0x4096;
     mmc->max_req_size	= 0x800000;              //32bit byte counter = 2^32 - 1
     mmc->max_seg_size	= mmc->max_req_size;
 
@@ -1172,7 +1181,7 @@ static int awsmc_suspend(struct device *dev)
     {
         struct awsmc_host *smc_host = mmc_priv(mmc);
         
-        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || (mmc_pm_get_mod_type()!=2 && mmc_pm_get_mod_type()!=5)))
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_io_shd_suspend_host()))
             ret = mmc_suspend_host(mmc);
             
         if (smc_host->power_on) {
@@ -1228,7 +1237,7 @@ static int awsmc_resume(struct device *dev)
             enable_irq(smc_host->irq);
         }
     
-        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_get_mod_type()!=2))
+        if (mmc->card && (mmc->card->type!=MMC_TYPE_SDIO || mmc_pm_io_shd_suspend_host()))
             ret = mmc_resume_host(mmc);
     }
 

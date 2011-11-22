@@ -1224,6 +1224,8 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	int scan_unassoc_time = 40;
 	uint32 listen_interval = LISTEN_INTERVAL; /* Default Listen Interval in Beacons */
 	int ret = 0;
+	uint btc_wire_value = 0;
+	uint btc_mode_value = 0;
 #ifdef GET_CUSTOM_MAC_ENABLE
 	struct ether_addr ea_addr;
 #endif /* GET_CUSTOM_MAC_ENABLE */
@@ -1287,7 +1289,27 @@ dhd_preinit_ioctls(dhd_pub_t *dhd)
 	/* Enable/Disable build-in roaming to allowed ext supplicant to take of romaing */
 	bcm_mkiovar("roam_off", (char *)&dhd_roam, 4, iovbuf, sizeof(iovbuf));
 	dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf));
-
+    
+    #if 1 /* for wifi and bluetooth co-existence */
+    /* set btc wire */
+    btc_wire_value = 4;
+    bzero(iovbuf, sizeof(iovbuf));
+    bcm_mkiovar("btc_wire", (char *)&btc_wire_value, 4, iovbuf, sizeof(iovbuf));
+    if (dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf)) < 0)
+    {
+        DHD_ERROR(("setting btc wire failed"));
+    }
+    #endif
+    #if 1 /* for wifi and bluetooth co-existence */
+    /* Set btc mode */
+    btc_mode_value = 1;
+    bzero(iovbuf, sizeof(iovbuf));
+    bcm_mkiovar("btc_mode", (char *)&btc_mode_value, 4, iovbuf, sizeof(iovbuf));
+    if (dhdcdc_set_ioctl(dhd, 0, WLC_SET_VAR, iovbuf, sizeof(iovbuf)) < 0)
+    {
+        DHD_ERROR(("setting btc mode failed"));
+    }
+    #endif
 	if (dhd_roam == 0)
 	{
 		/* set internal roaming roaming parameters */
