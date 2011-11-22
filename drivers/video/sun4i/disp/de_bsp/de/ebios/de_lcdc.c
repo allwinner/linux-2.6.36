@@ -1272,12 +1272,13 @@ __s32 LCD_LVDS_open(__u32 sel)
 {
 	__u32 i;
 	LCDC_SET_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 
-	LCDC_SET_BIT(sel, LCDC_LVDS_ANA0,0x3F510000);
+	LCDC_SET_BIT(sel, LCDC_LVDS_ANA0,0x3F310000);
 	LCDC_SET_BIT(sel, LCDC_LVDS_ANA0,1<<22);
 	for(i=0;i<1200;i++);	//1200ns
 	LCDC_SET_BIT(sel, LCDC_LVDS_ANA1,0x1f<<26 | 0x1f<<10);
 	for(i=0;i<120;i++);		//120ns
 	LCDC_SET_BIT(sel, LCDC_LVDS_ANA1,0x1f<<16 | 0x1f<<00);
+	LCDC_SET_BIT(sel, LCDC_LVDS_ANA0,1<<22);
     return 0;
 }
 
@@ -1286,7 +1287,7 @@ __s32 LCD_LVDS_close(__u32 sel)
 	LCDC_CLR_BIT(sel, LCDC_LVDS_ANA1,0x1f<<16 | 0x1f<<00);
 	LCDC_CLR_BIT(sel, LCDC_LVDS_ANA1,0x1f<<26 | 0x1f<<10);
 	LCDC_CLR_BIT(sel, LCDC_LVDS_ANA0,1<<22);
-	LCDC_CLR_BIT(sel, LCDC_LVDS_ANA0,0x3F510000);
+	LCDC_CLR_BIT(sel, LCDC_LVDS_ANA0,0x3F310000);
 	LCDC_CLR_BIT(sel, LCDC_LVDS_OFF,(__u32)1<<31); 	
 	return 0;
 }
