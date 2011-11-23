@@ -162,13 +162,25 @@ A_STATUS HIFInit(OSDRV_CALLBACKS *callbacks)
 
 }
 
-static int __HIFCheckR1Ready(HIF_DEVICE *device)
+#if defined CONFIG_ARCH_SUN4I
+/* winner's support, to check r1 response ready status */
+extern int awsmc_check_r1_ready(struct mmc_host *mmc);
+static int __HIFCheckR1Ready(HIF_DEVICE *device, unsigned timeout)
 {
     AR_DEBUG_ASSERT(device != NULL);
     AR_DEBUG_ASSERT(device->func != NULL);
-    //return sdio_check_r1_ready(device->func, 0xffffff);
-    return 1;
+    
+    while (!awsmc_check_r1_ready(device->func->card->host)) {
+        if (timeout==0) {
+            AR_DEBUG_PRINTF(ATH_DEBUG_ERROR, ("HIF wait R1 ready timeout\n"));
+            break;
+        }
+        timeout--;
+    }
+    
+    return timeout ? 1 : 0;
 }
+#endif
 
 static A_STATUS
 __HIFReadWrite(HIF_DEVICE *device,
@@ -277,7 +289,12 @@ __HIFReadWrite(HIF_DEVICE *device,
                 AR_DEBUG_PRINTF(ATH_DEBUG_TRACE, ("AR6000: writeio ret=%d address: 0x%X, len: %d, 0x%X\n",
 						  ret, address, length, *(int *)tbuffer));
             }
-            while(!__HIFCheckR1Ready(device));
+
+#if defined CONFIG_ARCH_SUN4I
+			/* winner's support, to check r1 response ready status */
+            if (!__HIFCheckR1Ready(device, 0xffffff))
+                ret = -1;
+#endif
         } else if (request & HIF_READ) {
 #if HIF_USE_DMA_BOUNCE_BUFFER
             if (BUFFER_NEEDS_BOUNCE(buffer)) {

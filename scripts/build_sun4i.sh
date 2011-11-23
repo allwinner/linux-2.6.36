@@ -77,6 +77,11 @@ build_kernel()
 
     #rm -rf output/kernel-source
     #scripts/gen_kernel_src.sh output/kernel-source
+    
+    #copy bcm4330 firmware and nvram.txt
+    cp drivers/net/wireless/bcm4330/firmware/bcm4330.bin ${LICHEE_MOD_DIR}
+    cp drivers/net/wireless/bcm4330/firmware/bcm4330.hcd ${LICHEE_MOD_DIR}
+    cp drivers/net/wireless/bcm4330/firmware/nvram.txt ${LICHEE_MOD_DIR}/bcm4330_nvram.txt
 }
 
 build_modules()
@@ -94,10 +99,21 @@ build_modules()
 			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl 
 	
+	#build huawei-mw269 sdio wifi module
+	make -C modules/wifi/hw-mw269/v4.218.248.27/open-src/src/dhd/linux \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+			INSTALL_DIR=${LICHEE_MOD_DIR} dhd-cdc-sdmmc-gpl
+	
 	#build ar6302 sdio wifi module
 	make -C modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host CROSS_COMPILE=${CROSS_COMPILE} \
 	        ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
 	        all install
+    
+	#build ar6003 sdio wifi module
+	make -C modules/wifi/ar6003/AR6kSDK.build_3.1_RC.514/host CROSS_COMPILE=${CROSS_COMPILE} \
+	        ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
+	        all
     
     #build apm sdio wifi module
     make -C modules/wifi/apm/unifi-linux/os_linux/driver/ CONFIG=android-arm ARCH=arm KDIR=${LICHEE_KDIR} \
@@ -139,11 +155,22 @@ clean_modules()
 		LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
 		INSTALL_DIR=${LICHEE_MOD_DIR} clean 
 	
+	#clean huawei-mw269 sdio wifi module
+	make -C modules/wifi/hw-mw269/v4.218.248.27/open-src/src/dhd/linux \
+			CROSS_COMPILE=${CROSS_COMPILE} ARCH=arm LINUXVER=${KERNEL_VERSION} \
+			LICHEE_MOD_DIR=${LICHEE_MOD_DIR} LINUXDIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} \
+			INSTALL_DIR=${LICHEE_MOD_DIR} clean
+			
 	#clean ar6302 sdio wifi module
 	make -C modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host CROSS_COMPILE=${CROSS_COMPILE} \
 		ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
 		clean
 
+	#build ar6003 sdio wifi module
+	make -C modules/wifi/ar6003/AR6kSDK.build_3.1_RC.514/host CROSS_COMPILE=${CROSS_COMPILE} \
+	        ARCH=arm KERNEL_DIR=${LICHEE_KDIR} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} \
+	        clean
+    
     #clean apm sdio wifi module
     make -C modules/wifi/apm/unifi-linux/os_linux/driver/ CONFIG=android-arm ARCH=arm KDIR=${LICHEE_KDIR} \
             CROSS_COMPILE=${CROSS_COMPILE} CONFIG_CHIP_ID=${CONFIG_CHIP_ID} INSTALL_DIR=${LICHEE_MOD_DIR} clean

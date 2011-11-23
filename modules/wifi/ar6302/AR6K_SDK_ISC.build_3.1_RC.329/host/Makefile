@@ -81,7 +81,8 @@ ifeq ($(ATH_BUILD_3RDPARTY),yes)
 endif
 
 install: FORCE
-	cp -f $(ATH_SRC_BASE)/os/linux/ar6000.$(KMOD_EXTENSION) $(COMPILED_IMAGE_OBJECTS_PATH)
+	$(STRIP) -g -S -d $(ATH_SRC_BASE)/os/linux/ar6000.$(KMOD_EXTENSION)
+	cp -f $(ATH_SRC_BASE)/os/linux/ar6000.$(KMOD_EXTENSION) $(COMPILED_IMAGE_OBJECTS_PATH)/ar6302.$(KMOD_EXTENSION)
 	cp -f $(ATH_SRC_BASE)/../../ath6k $(COMPILED_IMAGE_OBJECTS_PATH) -rf
 #	if test -e $(ATH_SRC_BASE)/os/linux/bt_hci_sdio.$(KMOD_EXTENSION); \
 #	then	\

@@ -436,7 +436,11 @@ static void awsmc_cd_timer(unsigned long data)
     if (smc_host->present ^ present) {
         awsmc_msg("mmc %d detect change, present %d\n", smc_host->pdev->id, present);
         smc_host->present = present;
-        mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
+        if (smc_host->present)
+            mmc_detect_change(smc_host->mmc, msecs_to_jiffies(300));
+        else
+            mmc_detect_change(smc_host->mmc, msecs_to_jiffies(10));
+            
     } else {
 //        awsmc_dbg("card detect no change\n");
     }
