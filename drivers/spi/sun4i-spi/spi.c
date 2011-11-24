@@ -201,7 +201,7 @@ static int aw16xx_spi_config_dma(struct aw16xx_spi *aw_spi, void *buf, unsigned 
 	#ifdef CONFIG_SUN4I_SPI_NDMA
     //write
     if (aw_spi->dma_dir == SW_DMA_WDEV) {
-	    spi_hw_conf.drqsrc_type  = N_DRQDST_SDRAM;               // must be sdram,or sdram
+	    spi_hw_conf.drqsrc_type  = N_DRQSRC_SDRAM;               // must be sdram,or sdram
 	    spi_hw_conf.drqdst_type  = spi_drq[bus_num];             // spi drq type
 	    spi_hw_conf.dir          = SW_DMA_WDEV;                  //transmit data to device
 	    spi_hw_conf.address_type = DMAADDRT_D_IO_S_LN;           //dest io, src linear
@@ -209,7 +209,7 @@ static int aw16xx_spi_config_dma(struct aw16xx_spi *aw_spi, void *buf, unsigned 
 	}//read 
 	else if (aw_spi->dma_dir == SW_DMA_RDEV) {    
 	    spi_hw_conf.drqsrc_type  = spi_drq[bus_num];    // spi drq type
-	    spi_hw_conf.drqdst_type  = N_DRQSRC_SDRAM;      // must be sdram ?? what about sram ?
+	    spi_hw_conf.drqdst_type  = N_DRQDST_SDRAM;      // must be sdram ?? what about sram ?
 	    spi_hw_conf.dir          = SW_DMA_RDEV;         // receive data from device
 	    spi_hw_conf.address_type = DMAADDRT_D_LN_S_IO; // dest linear, src io
 	    spi_hw_conf.from         = spi_phyaddr[bus_num] + SPI_RXDATA_REG; // physical address, source address
