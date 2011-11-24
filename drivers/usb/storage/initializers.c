@@ -104,3 +104,36 @@ int usb_stor_huawei_e220_init(struct us_data *us)
 	US_DEBUGP("Huawei mode set result is %d\n", result);
 	return 0;
 }
+
+//AC560--ZTE--	0x19d20026->0x19d20094	转化前的处理过程，不上报光盘设备
+int usb_stor_ZTE_AC580_init(struct us_data *us) // PID = 0x0026
+{
+	int result = 0;
+	int act_len = 0;
+
+#if 0
+	result = usb_stor_control_msg(us, us->send_ctrl_pipe,USB_REQ_CLEAR_FEATURE,
+		USB_TYPE_STANDARD | USB_RECIP_ENDPOINT,0x0, 0x89, NULL, 0x0, 1000);
+		
+	US_DEBUGP("usb_stor_control_msg performing result is %d\n", result);
+	printk("====AC580/AC560===>usb_stor_control_msg performing result is %d\n", result);
+	
+	result = usb_stor_control_msg(us, us->send_ctrl_pipe,USB_REQ_CLEAR_FEATURE,
+		USB_TYPE_STANDARD | USB_RECIP_ENDPOINT,0x0, 0x9, NULL, 0x0, 1000);
+		
+	US_DEBUGP("usb_stor_control_msg performing result is %d\n", result);
+	printk("====AC580/AC560===>usb_stor_control_msg performing result is %d\n", result);
+	return (result ? 0 : -ENODEV);
+#else
+	return -ENODEV;
+#endif			
+}
+
+//AC560--ZTE--	0x19d20026->0x19d20094	转化后的处理过程，不上报光盘设备
+int usb_stor_ZTE_AC580_init2(struct us_data *us) // PID = 0x0026
+{
+	int result = 0;
+	int act_len = 0;
+	
+	return -ENODEV;
+}

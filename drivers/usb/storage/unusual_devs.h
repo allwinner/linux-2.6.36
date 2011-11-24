@@ -1806,6 +1806,27 @@ UNUSUAL_DEV(  0x12d1, 0x143F, 0x0000, 0x0000,
 		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
 		0),
 
+//AC560--ZTE--	0x19d20026->0x19d20094	转化前的处理过程，不上报光盘设备	
+UNUSUAL_DEV(0x19D2,0x0026,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
+		0),
+		
+//AC560--ZTE--	0x19d20026->0x19d20094	转化后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x0094,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
+		0),
+
+//AC560--ZTE--	0x19d20026->0x19d20152	转化后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x0152,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
+		0),
+				
 /* Reported by Vilius Bilinkevicius <vilisas AT xxx DOT lt) */
 UNUSUAL_DEV(  0x132b, 0x000b, 0x0001, 0x0001,
 		"Minolta",
@@ -1960,3 +1981,4 @@ USUAL_DEV(US_SC_QIC, US_PR_BULK, USB_US_TYPE_STOR),
 USUAL_DEV(US_SC_UFI, US_PR_BULK, USB_US_TYPE_STOR),
 USUAL_DEV(US_SC_8070, US_PR_BULK, USB_US_TYPE_STOR),
 USUAL_DEV(US_SC_SCSI, US_PR_BULK, 0),
+
