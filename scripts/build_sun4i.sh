@@ -67,7 +67,7 @@ build_kernel()
     ${OBJCOPY} -R .note.gnu.build-id -S -O binary vmlinux output/bImage
     cp -vf arch/arm/boot/[zu]Image output/
     cp .config output/
-	rootfs/sun4i_rootfs.cpio.gz output/
+	cp rootfs/sun4i_rootfs.cpio.gz output/
 
     mkdir -p ${LICHEE_MOD_DIR}
 
