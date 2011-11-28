@@ -363,8 +363,7 @@ static  int codec_init(void)
 
 static int codec_play_open(struct snd_pcm_substream *substream)
 {	
-	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  
-	mdelay(100);
+	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);  	
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//set TX FIFO send drq level
 	codec_wr_control(SW_DAC_FIFOC ,0x4, TX_TRI_LEVEL, 0xf);
@@ -408,7 +407,7 @@ static int codec_capture_open(void)
 	 codec_wr_control(SW_ADC_FIFOC, 0xf, RX_TRI_LEVEL, 0x7);
 	 //enable adc1 analog
 	 codec_wr_control(SW_ADC_ACTL, 0x3,  ADC_EN, 0x3);
-	 mdelay(100);
+	 
 	 return 0;
 }
 
