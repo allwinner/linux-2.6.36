@@ -1292,7 +1292,7 @@ static int __init gsensor_i2c_awxx_init(void)
 		goto err;
 	}
 
-	ret = script_parser_fetch("gsensor_para", "gsenser_name", (int *)gsensor_name, I2C_NAME_SIZE);
+	ret = script_parser_fetch("gsensor_para", "gsensor_name", (int *)gsensor_name, I2C_NAME_SIZE);
 	if(ret) {
 		pr_err("gsensor_i2c_awxx_init: script_parser_fetch gsensor_name err, err = %d \n", ret);
 		goto err;
