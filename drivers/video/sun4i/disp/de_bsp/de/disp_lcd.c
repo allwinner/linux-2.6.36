@@ -219,6 +219,7 @@ void Lcd_Panel_Parameter_Check(__u32 sel)
 
 #ifdef __LINUX_OSAL__
             LCD_delay_ms(2000);
+            sys_put_wvalue(image_base_addr+0x804,0x00000000);//set background color
             sys_put_wvalue(image_base_addr+0x800,reg_value);//open layer
 #endif
             OSAL_PRINTF("*** Try new parameters,you can make it pass!\n");
@@ -1611,7 +1612,7 @@ __s32 BSP_disp_lcd_open_before(__u32 sel)
     {
         TCON1_cfg_ex(sel,(__panel_para_t*)&gpanel_info[sel]);
     }
-    BSP_disp_set_yuv_output(sel, FALSE);
+    BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_LCD);
     DE_BE_set_display_size(sel, gpanel_info[sel].lcd_x, gpanel_info[sel].lcd_y);
     DE_BE_Output_Select(sel, sel);
 
