@@ -51,4 +51,5 @@ int usb_stor_huawei_e220_init(struct us_data *us);
 
 int usb_stor_ZTE_AC580_init(struct us_data *us);
 int usb_stor_ZTE_AC580_init2(struct us_data *us);
+int usb_stor_ASB_init(struct us_data *us);
 

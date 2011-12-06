@@ -377,7 +377,7 @@ UNUSUAL_DEV(  0x04ce, 0x0002, 0x026c, 0x026c,
 /* Reported by Kriston Fincher <kriston@airmail.net>
  * Patch submitted by Sean Millichamp <sean@bruenor.org>
  * This is to support the Panasonic PalmCam PV-SD4090
- * This entry is needed because the device reports Sub=ff 
+ * This entry is needed because the device reports Sub=ff
  */
 UNUSUAL_DEV(  0x04da, 0x0901, 0x0100, 0x0200,
 		"Panasonic",
@@ -416,7 +416,7 @@ UNUSUAL_DEV(  0x04e6, 0x0001, 0x0200, 0x0200,
 UNUSUAL_DEV(  0x04e6, 0x0002, 0x0100, 0x0100,
 		"Shuttle",
 		"eUSCSI Bridge",
-		US_SC_DEVICE, US_PR_DEVICE, usb_stor_euscsi_init, 
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_euscsi_init,
 		US_FL_SCM_MULT_TARG ),
 
 #ifdef NO_SDDR09
@@ -461,7 +461,7 @@ UNUSUAL_DEV(  0x04e6, 0x000B, 0x0100, 0x0100,
 		"Shuttle",
 		"eUSCSI Bridge",
 		US_SC_SCSI, US_PR_BULK, usb_stor_euscsi_init,
-		US_FL_SCM_MULT_TARG ), 
+		US_FL_SCM_MULT_TARG ),
 
 UNUSUAL_DEV(  0x04e6, 0x000C, 0x0100, 0x0100,
 		"Shuttle",
@@ -498,7 +498,7 @@ UNUSUAL_DEV(  0x050d, 0x0115, 0x0133, 0x0133,
 		US_SC_SCSI, US_PR_BULK, usb_stor_euscsi_init,
 		US_FL_SCM_MULT_TARG ),
 
-/* Iomega Clik! Drive 
+/* Iomega Clik! Drive
  * Reported by David Chatenay <dchatenay@hotmail.com>
  * The reason this is needed is not fully known.
  */
@@ -615,7 +615,7 @@ UNUSUAL_DEV(  0x054c, 0x0058, 0x0000, 0x9999,
 		"PEG N760c Memorystick",
 		US_SC_DEVICE, US_PR_DEVICE, NULL,
 		US_FL_FIX_INQUIRY ),
-		
+
 UNUSUAL_DEV(  0x054c, 0x0069, 0x0000, 0x9999,
 		"Sony",
 		"Memorystick MSC-U03",
@@ -753,6 +753,12 @@ UNUSUAL_DEV( 0x05ac, 0x120a, 0x0000, 0x9999,
  * Option N.V. mobile broadband modems
  * Ignore driver CD mode and force into modem mode by default.
  */
+
+UNUSUAL_DEV(  0x05c6, 0x1000, 0x0000, 0x0000,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
 
 /* Globetrotter HSDPA; mass storage shows up as Qualcomm for vendor */
 UNUSUAL_DEV(  0x05c6, 0x1000, 0x0000, 0x9999,
@@ -942,7 +948,7 @@ UNUSUAL_DEV(  0x07af, 0x0004, 0x0100, 0x0133,
 		"Microtech",
 		"USB-SCSI-DB25",
 		US_SC_DEVICE, US_PR_DEVICE, usb_stor_euscsi_init,
-		US_FL_SCM_MULT_TARG ), 
+		US_FL_SCM_MULT_TARG ),
 
 UNUSUAL_DEV(  0x07af, 0x0005, 0x0100, 0x0100,
 		"Microtech",
@@ -1805,14 +1811,60 @@ UNUSUAL_DEV(  0x12d1, 0x143F, 0x0000, 0x0000,
 		"Mass Storage",
 		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
 		0),
+UNUSUAL_DEV(  0x12d1, 0x1446, 0x0000, 0x0000,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
+UNUSUAL_DEV(  0x12d1, 0x14ac, 0x0000, 0x0000,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
+UNUSUAL_DEV(  0x12d1, 0x1505, 0x0000, 0x0000,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
+UNUSUAL_DEV(  0x12d1, 0x1d09, 0x0100, 0x0100,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
 
-//AC560--ZTE--	0x19d20026->0x19d20094	转化前的处理过程，不上报光盘设备	
+UNUSUAL_DEV(  0x12d1, 0x1da1, 0x0100, 0x0100,
+		"HUAWEI MOBILE-TD",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
+
+
+UNUSUAL_DEV(  0x05c6, 0x6000, 0x0000, 0x0000,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
+//MU350--ZTE--	0x19D20003->0x19D20003	转化前的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x0003,0x0100,0x0100,
+		"ZTE MOBILE-TD",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
+		0),
+
+//AC560--ZTE--	0x19d20026->0x19d20094	转化前的处理过程，不上报光盘设备
 UNUSUAL_DEV(0x19D2,0x0026,0x0000,0x0000,
 		"ZTE MOBILE",
 		"Mass Storage",
 		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
 		0),
-		
+
+//MF626/MF633/MF110--ZTE--	0x19d22000->0x19d20031	转化后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x0031,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
+		0),
+
 //AC560--ZTE--	0x19d20026->0x19d20094	转化后的处理过程，不上报光盘设备
 UNUSUAL_DEV(0x19D2,0x0094,0x0000,0x0000,
 		"ZTE MOBILE",
@@ -1826,7 +1878,42 @@ UNUSUAL_DEV(0x19D2,0x0152,0x0000,0x0000,
 		"Mass Storage",
 		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
 		0),
-				
+
+//MF626/MF633/MF110--ZTE--	0x19d22000->0x19d20031	转化前的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x2000,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
+		0),
+
+//MF637U--ZTE--	 	转化前的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0xf006,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
+		0),
+
+//MF637U--ZTE--	 ->0x19d2fff1	转化后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0xfff1,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
+		0),
+
+//AC2736/AC2746	转化前的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0xfff5,0x0000,0x0000,
+		"ZTE MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init2,
+		0),
+
+//上海阿尔卡特 ASB T920--ASB--	 转化后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x04cc,0x226e,0x0100,0x0100,
+		"ASB MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ASB_init,
+		0),
+
 /* Reported by Vilius Bilinkevicius <vilisas AT xxx DOT lt) */
 UNUSUAL_DEV(  0x132b, 0x000b, 0x0001, 0x0001,
 		"Minolta",
@@ -1981,4 +2068,5 @@ USUAL_DEV(US_SC_QIC, US_PR_BULK, USB_US_TYPE_STOR),
 USUAL_DEV(US_SC_UFI, US_PR_BULK, USB_US_TYPE_STOR),
 USUAL_DEV(US_SC_8070, US_PR_BULK, USB_US_TYPE_STOR),
 USUAL_DEV(US_SC_SCSI, US_PR_BULK, 0),
+
 
