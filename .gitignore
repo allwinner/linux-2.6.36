@@ -91,6 +91,7 @@ output/
 arch/arm/mach-sun4i/pm/standby/standby.code
 modules/wifi/usi-bcm4329/v4.218.248.15/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl*2.6.36-android*/
 modules/wifi/ar6302/AR6K_SDK_ISC.build_3.1_RC.329/host/os/linux/Module.symvers
+modules/wifi/ar6003/AR6kSDK.build_3.1_RC.514/host/os/linux/Module.symvers
 modules/wifi/hw-mw269/v4.218.248.27/open-src/src/dhd/linux/dhd-cdc-sdmmc-gpl*2.6.36-android*/
 modules/wifi/apm/unifi-linux/os_linux/driver/Module.symvers
 modules/wifi/apm/unifi-linux/os_linux/driver/sme_csr/event_pack_unpack
