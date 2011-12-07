@@ -657,7 +657,6 @@ struct screen_info screen_info = {
  .orig_video_points	= 8
 };
 
-
 static int __init parse_tag_videotext(const struct tag *tag)
 {
 	screen_info.orig_x            = tag->u.videotext.x;
@@ -712,7 +711,6 @@ static int __init parse_tag_cmdline(const struct tag *tag)
 __tagtable(ATAG_CMDLINE, parse_tag_cmdline);
 #endif /* CONFIG_CMDLINE_FORCE */
 
-#ifdef USE_TAG
 /*
  * Scan the tag table for this tag, and call its parse function.
  * The tag table is built by the linker from all the __tagtable
@@ -744,7 +742,6 @@ static void __init parse_tags(const struct tag *t)
 				"Ignoring unrecognised tag 0x%08x\n",
 				t->hdr.tag);
 }
-#endif
 
 /*
  * This holds our defaults.
@@ -762,7 +759,6 @@ static struct init_tags {
 	{ MEM_SIZE, PHYS_OFFSET },
 	{ 0, ATAG_NONE }
 };
-
 
 static void (*init_machine)(void) __initdata;
 
@@ -848,25 +844,18 @@ static int __init setup_elfcorehdr(char *arg)
 early_param("elfcorehdr", setup_elfcorehdr);
 #endif /* CONFIG_CRASH_DUMP */
 
-#ifdef USE_TAG
 static void __init squash_mem_tags(struct tag *tag)
 {
 	for (; tag->hdr.size; tag = tag_next(tag))
 		if (tag->hdr.tag == ATAG_MEM)
 			tag->hdr.tag = ATAG_NONE;
 }
-#endif
 
 void __init setup_arch(char **cmdline_p)
 {
 	struct tag *tags = (struct tag *)&init_tags;
 	struct machine_desc *mdesc;
 	char *from = default_command_line;
-#ifndef CONFIG_CMDLINE_FORCE
-        int i;
-        char *mbp = NULL;
-#endif
-
 
 	unwind_init();
 
@@ -877,33 +866,11 @@ void __init setup_arch(char **cmdline_p)
 	if (mdesc->soft_reboot)
 		reboot_setup("s");
 
-#ifdef USE_TAG
-	if (__atags_pointer) {
+	if (__atags_pointer)
 		tags = phys_to_virt(__atags_pointer);
-	}
-	else if (mdesc->boot_params) {
+	else if (mdesc->boot_params)
 		tags = phys_to_virt(mdesc->boot_params);
-	}
-#endif /*USE_TAG*/
 
-#ifndef CONFIG_CMDLINE_FORCE
-        mbp = phys_to_virt(mdesc->boot_params);
-        /* Reset kernel parameter to user defined */
-        for (i=0; i<COMMAND_LINE_SIZE; i++) {
-                if (mbp[i] == ';' || mbp[i] == '\n' || mbp[i] == '\r') {
-                        /* valid */
-                        mbp[i] = 0;
-                        break;
-                }
-        }
-
-	from = mbp;
-        //strlcpy(boot_command_line, mbp, COMMAND_LINE_SIZE);
-        //strlcpy(cmd_line, boot_command_line, COMMAND_LINE_SIZE);
-        //printk("User defined parameters:\n%s at %p\n", boot_command_line, mbp);
-#endif
-
-#ifdef USE_TAG
 #if defined(CONFIG_DEPRECATED_PARAM_STRUCT)
 	/*
 	 * If we have the old style parameters, convert them to
@@ -914,19 +881,16 @@ void __init setup_arch(char **cmdline_p)
 #endif
 	if (tags->hdr.tag != ATAG_CORE)
 		tags = (struct tag *)&init_tags;
-#endif /*USE_TAG*/
 
 	if (mdesc->fixup)
 		mdesc->fixup(mdesc, tags, &from, &meminfo);
 
-#ifdef USE_TAG
 	if (tags->hdr.tag == ATAG_CORE) {
 		if (meminfo.nr_banks != 0)
 			squash_mem_tags(tags);
 		save_atags(tags);
 		parse_tags(tags);
 	}
-#endif /*USE_TAG*/
 
 	init_mm.start_code = (unsigned long) _text;
 	init_mm.end_code   = (unsigned long) _etext;
