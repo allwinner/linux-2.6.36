@@ -1,6 +1,6 @@
 /* driver/misc/sun4i-gpio.c
  *
- *  Copyright (C) 2011 Allwinner Co.Ltd
+ *  Copyright (C) 2011 Allwinner Technology Co.Ltd
  *   Tom Cubie <tangliang@allwinnertech.com>
  *
  *  www.allwinnertech.com
