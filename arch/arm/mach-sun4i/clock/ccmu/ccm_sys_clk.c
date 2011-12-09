@@ -345,6 +345,12 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
 
         case AW_SYS_CLK_PLL4:
         {
+            #if(USE_PLL6M_REPLACE_PLL4)
+            if(MAGIC_VER_C == sw_get_ic_ver()) {
+                return sys_clk_get_rate(AW_SYS_CLK_PLL6M);
+            }
+            #endif
+
             return ccu_clk_uldiv(((__s64)24000000*aw_ccu_reg->Pll4Ctl.FactorN * (aw_ccu_reg->Pll4Ctl.FactorK + 1)   \
                 >> aw_ccu_reg->Pll4Ctl.FactorP), (aw_ccu_reg->Pll4Ctl.FactorM + 1));
         }
@@ -852,6 +858,13 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
         {
             struct core_pll_factor_t    factor;
             __u32   tmpDly = ccu_clk_uldiv(sys_clk_get_rate(AW_SYS_CLK_CPU), 1000000) * 200;
+
+            #if(USE_PLL6M_REPLACE_PLL4)
+            if(MAGIC_VER_C == sw_get_ic_ver()) {
+                CCU_ERR("PLL4 clock rate should not be set!\n");
+                return -1;
+            }
+            #endif
 
             ccm_clk_get_pll_para(&factor, rate);
 
