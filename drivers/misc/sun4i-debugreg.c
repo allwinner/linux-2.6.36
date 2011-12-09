@@ -24,7 +24,7 @@
 #include <linux/miscdevice.h>
 #include <linux/device.h>
 
-#define DEBUG_SUN4I
+#undef DEBUG_SUN4I
 
 #ifdef DEBUG_SUN4I
 #define sun4i_reg_dbg(x...) printk(x)
@@ -36,9 +36,9 @@
 static char readme[] = "This is a userspace interface to access the sunxi soc registers.\n"
                        "Usage:\n"
                        "\techo address > read           # Read the value at address\n"
-					   "\teg: echo f1c20000 > read\n"
+					   "\teg: echo f1c20c14 > read\n"
                        "\techo address:value > write    # Write value to address\n"
-					   "\teg: echo f1c20000:00000001\n"
+					   "\teg: echo f1c20c14:ffff > write\n"
                        "\tcat read or cat write         # See this readme\n"
                        "Note: Always use hex and always use virtual address\n"
 					   "Warnning: use at your own risk\n";
@@ -110,7 +110,7 @@ static ssize_t sun4i_debugreg_write_store(struct device *dev,
 		return count;
 	}
 
-
+	/* value starts after the : */
 	len = strlen(s+1);
 	sun4i_reg_dbg("s+1 length: %d\n", len);
 	if( len > 11) {
