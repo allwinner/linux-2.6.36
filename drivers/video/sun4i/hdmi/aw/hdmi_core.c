@@ -374,10 +374,10 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT32(0x004,0x80000000);			//start hdmi controller	    
     //////////////////////    
     //hdmi pll setting
-    if( (vic == HDMI1440_480I) || (vic == HDMI1440_576I) || 
-        (vic == HDMI480P)      || (vic == HDMI576P)       )
+    if( (vic == HDMI1440_480I) || (vic == HDMI1440_576I))
     {
         clk_div = hdmi_clk/video_timing[i].PCLK;
+        clk_div /= 2;
     }
     else
     {

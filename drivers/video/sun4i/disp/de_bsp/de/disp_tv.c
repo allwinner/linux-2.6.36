@@ -252,6 +252,9 @@ __s32 BSP_disp_tv_open(__u32 sel)
         gdisp.screen[sel].status |= TV_ON;
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
         gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_TV;
+#ifdef __LINUX_OSAL__
+        Display_set_fb_timming(sel);
+#endif
     }
     return DIS_SUCCESS;
 }

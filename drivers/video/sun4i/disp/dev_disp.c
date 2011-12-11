@@ -211,84 +211,6 @@ __s32 DRV_lcd_close(__u32 sel)
     return 0;
 }
 
-
-void DRV_disp_wait_cmd_finish(__u32 sel)
-{
-#if 0
-    sys_put_wvalue((__u32)g_fbi.io[DISP_IO_SCALER0] + 0x04, 0x00010001);
-    while(1)
-    {
-        __u32 value = sys_get_wvalue((__u32)g_fbi.io[DISP_IO_SCALER0] + 0x64);
-        if((value & (0x1 << 10)) != 0)
-        {
-            sys_put_wvalue((__u32)g_fbi.io[DISP_IO_SCALER0] + 0x64, (0x1 << 10));
-
-            //value = sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc);
-
-            //__inf("%d\n", (value & 0x03ff0000)>>16);
-            break;
-        }
-    }
-#endif
-
-#if 0
-    __inf("1:%d\n", (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
-    sys_put_wvalue((__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x870, 3);
-    while(1)
-    {
-        __u32 value = sys_get_wvalue((__u32)g_fbi.io[DISP_IO_IMAGE0] + 0x870);
-        if((value & 1) == 0)
-        {
-            break;
-        }
-    }
-    __inf("2:%d\n", (sys_get_wvalue((__u32)g_fbi.io[DISP_IO_LCDC0] + 0xfc) & 0x03ff0000) >> 16);
-#endif
-
-#if 1
-	__u32 timeout = (20 * HZ)/1000,ret;//20ms
-	__u32 i;
-
-    timeout = (HZ * 2) / BSP_disp_get_frame_rate(sel);//wait two frame
-
-    if(g_disp_drv.b_cache[sel] == 0 && BSP_disp_get_output_type(sel)!= DISP_OUTPUT_TYPE_NONE)
-    {
-        if(atomic_read(&cmd_index) >= 20)
-        {
-            atomic_set(&cmd_index, 0);
-        }
-        i = atomic_read(&cmd_index);
-        atomic_inc(&cmd_index);
-
-        g_disp_drv.b_cmd_finished[sel][i] = 1;
-    	ret = wait_event_interruptible_timeout(g_disp_drv.my_queue[sel][i], g_disp_drv.b_cmd_finished[sel][i] == 2, timeout);
-    	g_disp_drv.b_cmd_finished[sel][i] = 0;
-    	if(ret == 0)
-        {
-            __inf("timeout,%d,%d,%d\n", sel,BSP_disp_get_frame_rate(sel),timeout);
-        }
-    }
-#endif
-}
-
-__s32 DRV_disp_int_process(__u32 sel)
-{
-#if 1
-    __u32 i = 0;
-
-    for(i=0; i<20; i++)
-    {
-        if(g_disp_drv.b_cmd_finished[sel][i] == 1)
-        {
-            g_disp_drv.b_cmd_finished[sel][i] = 2;
-            wake_up_interruptible(&g_disp_drv.my_queue[sel][i]);
-            break;
-        }
-    }
-#endif
-    return 0;
-}
-
 __s32 disp_set_hdmi_func(__disp_hdmi_func * func)
 {
     BSP_disp_set_hdmi_func(func);
@@ -299,7 +221,11 @@ __s32 disp_set_hdmi_func(__disp_hdmi_func * func)
 __s32 DRV_DISP_Init(void)
 {
     __disp_bsp_init_para para;
-    __u32 i = 0;
+
+    init_waitqueue_head(&g_fbi.wait[0]);
+    init_waitqueue_head(&g_fbi.wait[1]);
+    g_fbi.wait_count[0] = 0;
+    g_fbi.wait_count[1] = 0;
 
     memset(&para, 0, sizeof(__disp_bsp_init_para));
     para.base_image0    = (__u32)g_fbi.io[DISP_IO_IMAGE0];
@@ -317,12 +243,6 @@ __s32 DRV_DISP_Init(void)
 	para.disp_int_process       = DRV_disp_int_process;
 
 	memset(&g_disp_drv, 0, sizeof(__disp_drv_t));
-
-    for(i=0; i<20; i++)
-    {
-        init_waitqueue_head(&g_disp_drv.my_queue[0][i]);
-        init_waitqueue_head(&g_disp_drv.my_queue[1][i]);
-    }
 
     BSP_disp_init(&para);
     BSP_disp_open();
@@ -874,14 +794,16 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
         __wrn("ioctl:%x fail when in suspend!\n", cmd);
         return -1;
     }
+    
+#if 0
+    if(cmd!=DISP_CMD_TV_GET_INTERFACE && cmd!=DISP_CMD_HDMI_GET_HPD_STATUS && cmd!=DISP_CMD_GET_OUTPUT_TYPE 
+    	&& cmd!=DISP_CMD_SCN_GET_WIDTH && cmd!=DISP_CMD_SCN_GET_HEIGHT
+    	&& cmd!=DISP_CMD_VIDEO_SET_FB && cmd!=DISP_CMD_VIDEO_GET_FRAME_ID)
+    {
+        OSAL_PRINTF("cmd:0x%x,%ld,%ld\n",cmd, ubuffer[0], ubuffer[1]);
+    }
+#endif
 
-    //if(cmd!=DISP_CMD_TV_GET_INTERFACE && cmd!=DISP_CMD_HDMI_GET_HPD_STATUS && cmd!=DISP_CMD_GET_OUTPUT_TYPE 
-    //	&& cmd!=DISP_CMD_SCN_GET_WIDTH && cmd!=DISP_CMD_SCN_GET_HEIGHT
-    //	&& cmd!=DISP_CMD_VIDEO_SET_FB && cmd!=DISP_CMD_VIDEO_GET_FRAME_ID)
-    //{
-    //    OSAL_PRINTF("disp_ioctl,cmd:%x,%d,%d\n",cmd, ubuffer[0], ubuffer[1]);
-    //}
-	
     switch(cmd)
     {
     //----disp global----
@@ -1039,7 +961,6 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     	case DISP_CMD_LAYER_RELEASE:
     		ret = BSP_disp_layer_release(ubuffer[0], ubuffer[1]);
-    		DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
 
     	case DISP_CMD_LAYER_OPEN:

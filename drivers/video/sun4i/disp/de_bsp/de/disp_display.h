@@ -44,6 +44,26 @@
 #define DE_FLICKER_REQUIRED_MASK (~(DE_FLICKER_REQUIRED))
 
 typedef struct
+{
+    __bool                  lcd_used;
+    
+	__bool                  lcd_bl_en_used;
+	user_gpio_set_t         lcd_bl_en;
+	
+	__bool                  lcd_power_used;
+	user_gpio_set_t         lcd_power;
+	
+	__bool                  lcd_pwm_used;
+	user_gpio_set_t         lcd_pwm;
+
+	__bool                  lcd_gpio_used[4];
+    user_gpio_set_t         lcd_gpio[4];
+
+    __bool                  lcd_io_used[28];
+    user_gpio_set_t         lcd_io[28];
+}__disp_lcd_cfg_t;
+
+typedef struct
 {    
     __u32                   status; /*display engine,lcd,tv,vga,hdmi status*/
     __u32                   lcdc_status;//tcon0 used, tcon1 used
@@ -78,10 +98,12 @@ typedef struct
     __s32                   (*LCD_CPUIF_XY_Swap)(__s32 mode);
     void                    (*LCD_CPUIF_ISR)(void);
 	__u32	                pll_use_status;	//lcdc0/lcdc1 using which video pll(0 or 1)
-	__bool                  bl_not_open;
 
 	__disp_lcd_bright_t     lcd_bright;
 	__disp_color_range_t    out_color_range;
+
+	__disp_lcd_cfg_t        lcd_cfg;
+    __hdle                  gpio_hdl[4];
 }__disp_screen_t;
 
 typedef struct

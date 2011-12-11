@@ -34,6 +34,8 @@ typedef struct
     __u32                   layer_hdl[FB_MAX][2];//[fb_id][0]:screen0 layer handle;[fb_id][1]:screen1 layer handle 
     struct fb_info *        fbinfo[FB_MAX];
     __disp_fb_create_para_t fb_para[FB_MAX];
+	wait_queue_head_t       wait[2];
+	unsigned long           wait_count[2];
 }fb_info_t;
 
 typedef struct
@@ -44,8 +46,6 @@ typedef struct
     __u32    		    exit_mode;//0:clean all  1:disable interrupt
     __bool              b_cache[2];
 	__bool			    b_lcd_open[2];
-	wait_queue_head_t   my_queue[2][20];
-	__bool              b_cmd_finished[2][20];
 }__disp_drv_t;
 
 
@@ -75,7 +75,6 @@ extern __s32 Display_Fb_get_para(__u32 fb_id, __disp_fb_create_para_t *fb_para);
 extern __s32 Display_get_disp_init_para(__disp_init_t * init_para);
 
 extern __s32 DRV_disp_int_process(__u32 sel);
-extern void DRV_disp_wait_cmd_finish(__u32 sel);
 
 extern __s32 DRV_DISP_Init(void);
 extern __s32 DRV_DISP_Exit(void);
