@@ -251,7 +251,13 @@ static __inline u32 sdxc_disable_imask(struct awsmc_host* smc_host, u32 imask)
 *********************************************************************/
 static __inline void sdxc_clear_imask(struct awsmc_host* smc_host)
 {
-    sdc_write(SDXC_REG_IMASK, sdc_read(SDXC_REG_IMASK)&(SDXC_SDIOInt|SDXC_CardInsert|SDXC_CardRemove));
+	/* use 16bit read/write operation to enable/disable other interrupt bits
+	 * sdio/card-det bits are controlled by it self operation.
+	 * If you want use 32bit operation, you must do an atomic operation on 
+	 * this read and write back operation.
+	 */
+	writew(0, SDXC_REG_IMASK);
+//	writel(readl(SDXC_REG_IMASK)&(SDXC_SDIOInt|SDXC_CardInsert|SDXC_CardRemove), SDXC_REG_IMASK);
 }
 
 /*********************************************************************
