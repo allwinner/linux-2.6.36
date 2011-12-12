@@ -57,6 +57,7 @@
 #define DRV_VERSION	"1.00"
 #define DMA_CPU_TRRESHOLD 2000
 #define TOLOWER(x) ((x) | 0x20)
+#define PHY_MOS 1
 /*
  * Transmit timeout, default 5 seconds.
  */
@@ -135,6 +136,10 @@ typedef struct wemac_board_info {
 
 	struct mii_if_info mii;
 	u32		msg_enable;
+#if PHY_MOS
+	user_gpio_set_t *mos_gpio;
+	u32 mos_pin_handler;
+#endif
 } wemac_board_info_t;
 
 /* debug code */
@@ -867,7 +872,7 @@ unsigned int wemac_powerup(struct net_device *ndev )
 	emac_setup(ndev);
 
 	/* set mac_address to chip */
-	if(SCRIPT_PARSER_OK != script_parser_fetch("dynamic","MAC", (int *)emac_mac, 3)){
+	if(SCRIPT_PARSER_OK != script_parser_fetch("dynamic", "MAC", (int *)emac_mac, 3)){
 		printk(KERN_WARNING "emac MAC isn't valid!\n");
 	}else{
 		emac_mac[12]='\0';
@@ -1063,6 +1068,12 @@ wemac_init_wemac(struct net_device *dev)
 	unsigned int phy_reg;
 	unsigned int reg_val;
 
+#if PHY_MOS
+	if(db->mos_pin_handler == SCRIPT_PARSER_OK){
+		db->mos_gpio->data = 1;
+		gpio_set_one_pin_status(db->mos_pin_handler, db->mos_gpio, "emac_power", 1);
+	}
+#endif
 	/* PHY POWER UP */
 	phy_reg = wemac_phy_read(dev, 0, 0);
 	wemac_phy_write(dev, 0, 0, phy_reg & (~(1 <<11)));
@@ -1608,8 +1619,15 @@ static void wemac_shutdown(struct net_device *dev)
 	reg_val = wemac_phy_read(dev, 0, 0);
 	if(reg_val & (1<<15))
 		wemac_dbg(db, 5, "phy_reset not complete. value of reg0: %x\n", reg_val);
-
 	wemac_phy_write(dev, 0, 0, reg_val | (1 <<11));	/* PHY POWER DOWN */
+
+#if PHY_MOS
+	if(db->mos_pin_handler == SCRIPT_PARSER_OK){
+		db->mos_gpio->data = 0;
+		gpio_set_one_pin_status(db->mos_pin_handler, db->mos_gpio, "emac_power", 1);
+	}
+#endif
+
 	writel(0, db->emac_vbase + EMAC_INT_CTL_REG);					/* Disable all interrupt */
 	writel(readl(db->emac_vbase + EMAC_INT_STA_REG), db->emac_vbase + EMAC_INT_STA_REG);          /* clear interupt status */
 	writel(readl(db->emac_vbase + EMAC_CTL_REG) & (~(0x7)), db->emac_vbase + EMAC_CTL_REG);	/* Disable RX */
@@ -1773,6 +1791,23 @@ static int __devinit wemac_probe(struct platform_device *pdev)
 		goto out;
 	}
 
+#if PHY_MOS
+	db->mos_gpio = kmalloc(sizeof(user_gpio_set_t), GFP_KERNEL);
+	if(NULL == db->mos_gpio){
+		printk(KERN_ERR "can't request memory for mos_gpio\n");
+	}else{
+		if(SCRIPT_PARSER_OK != script_parser_fetch("emac", "emac_power", 
+					(int *)(db->mos_gpio), sizeof(user_gpio_set_t)/sizeof(int))){
+			printk(KERN_ERR "can't get information emac_power gpio\n");
+			goto out;
+		}
+
+		db->mos_pin_handler = gpio_request(db->mos_gpio, 1);
+		if(SCRIPT_PARSER_OK != db->mos_pin_handler)
+			printk(KERN_ERR "can't request gpio_port %d, port_num %d\n",
+					db->mos_gpio->port, db->mos_gpio->port_num);
+	}
+#endif
 	/* ccmu address remap */
 	iosize = res_size(db->ccmu_base_res);
 	db->ccmu_base_req = request_mem_region(db->ccmu_base_res->start, iosize,
