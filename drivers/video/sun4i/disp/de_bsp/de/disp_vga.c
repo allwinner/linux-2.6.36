@@ -25,6 +25,7 @@ __s32 BSP_disp_vga_open(__u32 sel)
     if(!(gdisp.screen[sel].status & VGA_ON))
     {
     	__disp_vga_mode_t vga_mode;
+        __u32 i = 0;
 
     	vga_mode = gdisp.screen[sel].vga_mode;
     	
@@ -43,6 +44,15 @@ __s32 BSP_disp_vga_open(__u32 sel)
 
     	Disp_TVEC_Open(sel);
     	TCON1_open(sel);
+
+        for(i=0; i<4; i++)
+        {
+            if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_COMPOSITE)
+            {
+                TVE_dac_set_source(1-sel, i, DISP_TV_DAC_SRC_COMPOSITE);
+                TVE_dac_sel(1-sel, i, i);
+            }
+        }
 
     	Disp_Switch_Dram_Mode(DISP_OUTPUT_TYPE_VGA, vga_mode);
 

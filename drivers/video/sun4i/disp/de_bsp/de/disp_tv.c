@@ -169,6 +169,11 @@ static void Disp_TVEC_DacCfg(__u32 sel, __u8 mode)
 		            TVE_dac_enable(sel, i);
 		            TVE_dac_sel(sel, i, i);
     	        }
+                else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_COMPOSITE)
+                {
+                    TVE_dac_set_source(1-sel, i, DISP_TV_DAC_SRC_COMPOSITE);
+                    TVE_dac_sel(1-sel, i, i);
+                }
     	    }
     	}
     	break;
