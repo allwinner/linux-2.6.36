@@ -43,4 +43,4 @@ obj-$(CONFIG_APANIC)		+= apanic.o
 obj-$(CONFIG_SENSORS_AK8975)	+= akm8975.o
 obj-$(CONFIG_SUN4I_VIBRATOR)	+= sun4i-vibrator.o
 obj-$(CONFIG_SUN4I_GPIO_UGLY)	+= sun4i-gpio.o
-obj-$(CONFIG_SUN4I_DEBUG_REG)	+= sun4i-debugreg.o
+obj-$(CONFIG_SUN4I_REG)			+= sun4i-reg.o

@@ -69,13 +69,13 @@ config SUN4I_GPIO_UGLY
 	  To compile this driver as a module, choose M here: the
 	  module will be called sun4i-gpio.
 
-config SUN4I_DEBUG_REG
-	tristate "Sun4i debug register driver"
+config SUN4I_REG
+	tristate "Sun4i userspace register driver"
 	help
-	  Say Y here if you want to debug the register.
+	  Say Y here if you want to access sunxi registers in userspace.
 
 	  To compile this driver as a module, choose M here: the
-	  module will be called sun4i-debugreg.
+	  module will be called sun4i-reg.
 
 config ANDROID_PMEM
 	bool "Android pmem allocator"
