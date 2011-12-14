@@ -19,6 +19,9 @@ insmod sun4i_csiX.ko ccm="mt9m113" i2c_addr=0x78
 insmod sun4i_csiX.ko ccm="ov2655" i2c_addr=0x60
 insmod sun4i_csiX.ko ccm="hi253" i2c_addr=0x40
 
+V1_63
+CSI: Fix HI704 and HI253 i2c bug
+
 V1_62
 CSI: Add HI253 support and IC version detection
 
