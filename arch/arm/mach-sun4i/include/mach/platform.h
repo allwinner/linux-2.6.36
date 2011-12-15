@@ -45,7 +45,7 @@
 #define SW_PA_MSCC_IO_BASE          0x01c07000
 #define SW_PA_TVD_IO_BASE           0x01c08000
 #define SW_PA_CSI0_IO_BASE          0x01c09000
-#define SW_PA_TVE_IO_BASE           0x01c0a000
+#define SW_PA_TVE0_IO_BASE          0x01c0a000
 #define SW_PA_EMAC_IO_BASE          0x01c0b000
 #define SW_PA_TCON0_IO_BASE         0x01c0c000
 #define SW_PA_TCON1_IO_BASE         0x01c0d000
@@ -126,7 +126,7 @@
 #define SW_VA_MSCC_IO_BASE          0xf1c07000
 #define SW_VA_TVD_IO_BASE           0xf1c08000
 #define SW_VA_CSI0_IO_BASE          0xf1c09000
-#define SW_VA_TVE_IO_BASE           0xf1c0a000
+#define SW_VA_TVE0_IO_BASE          0xf1c0a000
 #define SW_VA_EMAC_IO_BASE          0xf1c0b000
 #define SW_VA_TCON0_IO_BASE         0xf1c0c000
 #define SW_VA_TCON1_IO_BASE         0xf1c0d000
