@@ -19,9 +19,16 @@ struct info_mm {
 typedef struct
 {
 	struct device   *       dev;
-	struct resource *       mem[DISP_IO_NUM];
-	void __iomem    *       io[DISP_IO_NUM];
-
+	
+	__u32                   base_image0;
+	__u32                   base_image1;
+	__u32                   base_scaler0;
+	__u32                   base_scaler1;
+	__u32                   base_lcdc0;
+	__u32                   base_lcdc1;
+	__u32                   base_tvec0;
+	__u32                   base_tvec1;
+	__u32                   base_hdmi;
 	__u32                   base_ccmu;
 	__u32                   base_sdram;
     __u32                   base_pioc;

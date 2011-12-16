@@ -335,6 +335,8 @@ __s32 Parse_HDMI_VSDB(__u8 * pbuf,__u8 size)
 	if(pbuf[index]&0x80)		//mandatary format support
 	{
 		Device_Support_VIC[HDMI1080P_24_3D_FP] = 1;
+		Device_Support_VIC[HDMI720P_50_3D_FP] = 1;
+		Device_Support_VIC[HDMI720P_60_3D_FP] = 1;
 		__inf("3D_present\n");
 	}
 	else

@@ -20,8 +20,7 @@ typedef struct
 {
 	__bool bopen;
 	__disp_tv_mode_t mode;
-	struct resource *mem;
-	void __iomem    *io;
+	__u32           base_hdmi;
 }hdmi_info_t;
 
 extern hdmi_info_t ghdmi;

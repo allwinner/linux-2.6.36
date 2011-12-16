@@ -13,7 +13,7 @@ __u32 hdmi_clk = 297000000;
 
 HDMI_VIDE_INFO video_timing[] = 
 {
-	//VIC                           PCLK  AVI_PR INPUTX INPUTY   HT   HBP   HFP HPSW  VT VBP VFP VPSW
+	//VIC                 PCLK  AVI_PR INPUTX INPUTY   HT   HBP   HFP HPSW  VT VBP VFP VPSW
 	{HDMI1440_480I     ,  13500000, 1,  720,  240,  858, 119,  19, 62,  525, 18, 4, 3},
 	{HDMI1440_576I     ,  13500000, 1,  720,  288,  864, 132,  12, 63,  625, 22, 2, 3},
 	{HDMI480P          ,  27000000, 0,  720,  480,  858, 122,  16, 62, 1050, 36, 9, 6},
@@ -24,8 +24,10 @@ HDMI_VIDE_INFO video_timing[] =
 	{HDMI1080I_60      ,  74250000, 0, 1920,  540, 2200, 192,  88, 44, 1125, 20, 2, 5},
 	{HDMI1080P_50      , 148500000, 0, 1920, 1080, 2640, 192, 528, 44, 2250, 41, 4, 5},
 	{HDMI1080P_60      , 148500000, 0, 1920, 1080, 2200, 192,  88, 44, 2250, 41, 4, 5},  
-    {HDMI1080P_24_3D_FP, 148500000, 0, 1920, 2160, 2750, 192, 638, 44, 4500, 41, 4, 5},
 	{HDMI1080P_24      ,  74250000, 0, 1920, 1080, 2750, 192, 638, 44, 2250, 41, 4, 5},
+    {HDMI1080P_24_3D_FP, 148500000, 0, 1920, 2160, 2750, 192, 638, 44, 4500, 41, 4, 5},	
+	{HDMI720P_50_3D_FP , 148500000, 0, 1280, 1440, 1980, 260, 440, 40, 3000, 25, 5, 5},
+	{HDMI720P_60_3D_FP , 148500000, 0, 1280, 1440, 1650, 260, 110, 40, 3000, 25, 5, 5},	
 };
 
 __s32 hdmi_core_initial(void)
@@ -218,8 +220,9 @@ __s32 get_audio_info(__s32 sample_rate)
    {
    		 audio_info.CTS =   ((74250000/100) *(audio_info.ACR_N /128)) / (sample_rate/100);
    }
-   else if( (video_mode == HDMI1080P_50) || (video_mode == HDMI1080P_60) ||
-            (video_mode == HDMI1080P_24_3D_FP) )
+   else if( (video_mode == HDMI1080P_50)       || (video_mode == HDMI1080P_60)       ||
+            (video_mode == HDMI1080P_24_3D_FP) || (video_mode == HDMI720P_50_3D_FP) || 
+            (video_mode == HDMI720P_60_3D_FP) )
    {
    		 audio_info.CTS =   ((148500000/100) *(audio_info.ACR_N /128)) / (sample_rate/100);
    }
@@ -278,11 +281,11 @@ __s32 video_config(__s32 vic)
      	HDMI_WUINT16(0x020,(video_timing[i].HPSW<<0)   -1);               	//active HSPW
     }    
      	
-    if( vic == HDMI1080P_24_3D_FP)
+    if( ( vic == HDMI1080P_24_3D_FP) || (vic == HDMI720P_50_3D_FP ) || (vic == HDMI720P_60_3D_FP ) )
     {
-    	HDMI_WUINT16(0x016,video_timing[i].INPUTY + 45 -1);             		//active V
-    }
-    else
+    	//HDMI_WUINT16(0x016,video_timing[i].INPUTY + 45 -1);             		//active V
+    	HDMI_WUINT16(0x016,video_timing[i].INPUTY + video_timing[i].VBP + video_timing[i].VFP -1);             		//active V
+    }else    
     { 	
     	HDMI_WUINT16(0x016,video_timing[i].INPUTY   -1);             			//active V
 	}
@@ -357,7 +360,7 @@ __s32 video_config(__s32 vic)
     HDMI_WUINT8 (0x252,0x00);
     
     //packet config
-    if( vic != HDMI1080P_24_3D_FP)
+    if( ( vic != HDMI1080P_24_3D_FP) && (vic != HDMI720P_50_3D_FP) && ( vic != HDMI720P_60_3D_FP) )
     { 
     	HDMI_WUINT32(0x2f0,0x0000f321);
     	HDMI_WUINT32(0x2f4,0x0000000f);  

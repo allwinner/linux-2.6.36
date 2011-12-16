@@ -10,15 +10,12 @@ __disp_drv_t g_disp_drv;
 #define MY_BYTE_ALIGN(x) ( ( (x + (4*1024-1)) >> 12) << 12)             /* alloc based on 4K byte */
 static struct alloc_struct_t boot_heap_head, boot_heap_tail;
 
-
 static unsigned int gbuffer[4096];
 static __u32 output_type[2] = {0,0};
 static __u32 suspend_status = 0;//0:normal; suspend_status&1 != 0:in early_suspend; suspend_status&2 != 0:in suspend;
 
 static struct info_mm  g_disp_mm[10];
 static int g_disp_mm_sel = 0;
-
-atomic_t cmd_index;
 
 static struct cdev *my_cdev;
 static dev_t devid ;
@@ -228,14 +225,14 @@ __s32 DRV_DISP_Init(void)
     g_fbi.wait_count[1] = 0;
 
     memset(&para, 0, sizeof(__disp_bsp_init_para));
-    para.base_image0    = (__u32)g_fbi.io[DISP_IO_IMAGE0];
-    para.base_image1    = (__u32)g_fbi.io[DISP_IO_IMAGE1];
-    para.base_scaler0   = (__u32)g_fbi.io[DISP_IO_SCALER0];
-    para.base_scaler1   = (__u32)g_fbi.io[DISP_IO_SCALER1];
-    para.base_lcdc0     = (__u32)g_fbi.io[DISP_IO_LCDC0];
-    para.base_lcdc1     = (__u32)g_fbi.io[DISP_IO_LCDC1];
-    para.base_tvec0      = (__u32)g_fbi.io[DISP_IO_TVEC0];
-    para.base_tvec1      = (__u32)g_fbi.io[DISP_IO_TVEC1];
+    para.base_image0    = (__u32)g_fbi.base_image0;
+    para.base_image1    = (__u32)g_fbi.base_image1;
+    para.base_scaler0   = (__u32)g_fbi.base_scaler0;
+    para.base_scaler1   = (__u32)g_fbi.base_scaler1;
+    para.base_lcdc0     = (__u32)g_fbi.base_lcdc0;
+    para.base_lcdc1     = (__u32)g_fbi.base_lcdc1;
+    para.base_tvec0      = (__u32)g_fbi.base_tvec0;
+    para.base_tvec1      = (__u32)g_fbi.base_tvec1;
     para.base_ccmu      = (__u32)g_fbi.base_ccmu;
     para.base_sdram     = (__u32)g_fbi.base_sdram;
     para.base_pioc      = (__u32)g_fbi.base_pioc;
@@ -372,229 +369,45 @@ ssize_t disp_write(struct file *file, const char __user *buf, size_t count, loff
 static int __init disp_probe(struct platform_device *pdev)//called when platform_driver_register
 {
 	fb_info_t * info = NULL;
-	struct resource *res;
-	int ret = 0;
-	int size;
-	int i;
 
 	__inf("disp_probe call\n");
 
 	info = &g_fbi;
-
 	info->dev = &pdev->dev;
 	platform_set_drvdata(pdev,info);
 
-	for(i=0;i<DISP_IO_NUM;i++)
-	{
-		res = platform_get_resource(pdev, IORESOURCE_MEM, i);
-		if (res == NULL)
-		{
-			__wrn("platform_get_resource fail\n");
-			ret = -ENXIO;
-			if(i==DISP_IO_SCALER0)
-			{
-				goto dealloc_fb;
-			}
-			else if(i==DISP_IO_SCALER1)
-			{
-				goto release_regs0;
-			}
-			else if(i==DISP_IO_IMAGE0)
-			{
-				goto release_regs1;
-			}
-			else if(i==DISP_IO_IMAGE1)
-			{
-				goto release_regs2;
-			}
-			else if(i==DISP_IO_LCDC0)
-			{
-				goto release_regs3;
-			}
-			else if(i==DISP_IO_LCDC1)
-			{
-				goto release_regs4;
-			}
-			else if(i==DISP_IO_TVEC0)
-			{
-				goto release_regs5;
-			}
-			else if(i==DISP_IO_TVEC1)
-			{
-				goto release_regs6;
-			}
-		}
-
-		size = (res->end - res->start) + 1;
-		info->mem[i] = request_mem_region(res->start, size, pdev->name);
-		if (info->mem[i] == NULL)
-		{
-			__wrn("request_mem_region fail\n");
-			ret = -ENOENT;
-			if(i==DISP_IO_SCALER0)
-			{
-				goto dealloc_fb;
-			}
-			else if(i==DISP_IO_SCALER1)
-			{
-				goto release_regs0;
-			}
-			else if(i==DISP_IO_IMAGE0)
-			{
-				goto release_regs1;
-			}
-			else if(i==DISP_IO_IMAGE1)
-			{
-				goto release_regs2;
-			}
-			else if(i==DISP_IO_LCDC0)
-			{
-				goto release_regs3;
-			}
-			else if(i==DISP_IO_LCDC1)
-			{
-				goto release_regs4;
-			}
-			else if(i==DISP_IO_TVEC0)
-			{
-				goto release_regs5;
-			}
-			else if(i==DISP_IO_TVEC1)
-			{
-				goto release_regs6;
-			}
-		}
-
-		info->io[i] = ioremap(res->start, size);
-		if (info->io[i] == NULL)
-		{
-			__wrn("ioremap() fail\n");
-			ret = -ENXIO;
-			if(i==DISP_IO_SCALER0)
-			{
-				goto release_mem0;
-			}
-			else if(i==DISP_IO_SCALER1)
-			{
-				goto release_mem1;
-			}
-			else if(i==DISP_IO_IMAGE0)
-			{
-				goto release_mem2;
-			}
-			else if(i==DISP_IO_IMAGE1)
-			{
-				goto release_mem3;
-			}
-			else if(i==DISP_IO_LCDC0)
-			{
-				goto release_mem4;
-			}
-			else if(i==DISP_IO_LCDC1)
-			{
-				goto release_mem5;
-			}
-			else if(i==DISP_IO_TVEC0)
-			{
-				goto release_mem6;
-			}
-			else if(i==DISP_IO_TVEC1)
-			{
-				goto release_mem7;
-			}
-	    }
-	}
-
+	info->base_image0 = 0xf1e60000;
+	info->base_image1 = 0xf1e40000;
+	info->base_scaler0 = 0xf1e00000;
+	info->base_scaler1 = 0xf1e20000;
+	info->base_lcdc0 = 0xf1c0c000;
+	info->base_lcdc1 = 0xf1c0d000;
+	info->base_tvec0 = 0xf1c0a000;
+	info->base_tvec1 = 0xf1c1b000;
 	info->base_ccmu = 0xf1c20000;
 	info->base_sdram = 0xf1c01000;
 	info->base_pioc = 0xf1c20800;
 	info->base_pwm = 0xf1c20c00;
 
-	__inf("SCALER0 base 0x%08x\n", (__u32)info->io[DISP_IO_SCALER0]);
-	__inf("SCALER1 base 0x%08x\n", (__u32)info->io[DISP_IO_SCALER1]);
-	__inf("IMAGE0 base 0x%08x\n", (__u32)info->io[DISP_IO_IMAGE0] + 0x800);
-	__inf("IMAGE1 base 0x%08x\n", (__u32)info->io[DISP_IO_IMAGE1] + 0x800);
-	__inf("LCDC0 base 0x%08x\n", (__u32)info->io[DISP_IO_LCDC0]);
-	__inf("LCDC1 base 0x%08x\n", (__u32)info->io[DISP_IO_LCDC1]);
-	__inf("TVEC0 base 0x%08x\n", (__u32)info->io[DISP_IO_TVEC0]);
-	__inf("TVEC1 base 0x%08x\n", (__u32)info->io[DISP_IO_TVEC1]);
+	__inf("SCALER0 base 0x%08x\n", info->base_scaler0);
+	__inf("SCALER1 base 0x%08x\n", info->base_scaler1);
+	__inf("IMAGE0 base 0x%08x\n", info->base_image0+ 0x800);
+	__inf("IMAGE1 base 0x%08x\n", info->base_image1+ 0x800);
+	__inf("LCDC0 base 0x%08x\n", info->base_lcdc0);
+	__inf("LCDC1 base 0x%08x\n", info->base_lcdc1);
+	__inf("TVEC0 base 0x%08x\n", info->base_tvec0);
+	__inf("TVEC1 base 0x%08x\n", info->base_tvec1);
 	__inf("CCMU base 0x%08x\n", info->base_ccmu);
 	__inf("SDRAM base 0x%08x\n", info->base_sdram);
 	__inf("PIO base 0x%08x\n", info->base_pioc);
 	__inf("PWM base 0x%08x\n", info->base_pwm);
 
-
 	return 0;
-
-release_mem7:
-	release_resource(info->mem[7]);
-	kfree(info->mem[7]);
-
-release_regs6:
-	iounmap(info->io[6]);
-release_mem6:
-	release_resource(info->mem[6]);
-	kfree(info->mem[6]);
-
-release_regs5:
-	iounmap(info->io[5]);
-release_mem5:
-	release_resource(info->mem[5]);
-	kfree(info->mem[5]);
-
-release_regs4:
-	iounmap(info->io[4]);
-release_mem4:
-	release_resource(info->mem[4]);
-	kfree(info->mem[4]);
-
-release_regs3:
-	iounmap(info->io[3]);
-release_mem3:
-	release_resource(info->mem[3]);
-	kfree(info->mem[3]);
-
-release_regs2:
-	iounmap(info->io[2]);
-release_mem2:
-	release_resource(info->mem[2]);
-	kfree(info->mem[2]);
-
-release_regs1:
-	iounmap(info->io[1]);
-release_mem1:
-	release_resource(info->mem[1]);
-	kfree(info->mem[1]);
-
-release_regs0:
-	iounmap(info->io[0]);
-release_mem0:
-	release_resource(info->mem[0]);
-	kfree(info->mem[0]);
-
-dealloc_fb:
-	platform_set_drvdata(pdev, NULL);
-	kfree(info);
-
-	return ret;
 }
-
-
 
 static int disp_remove(struct platform_device *pdev)
 {
-	fb_info_t *info = platform_get_drvdata(pdev);
-	int i;
-
 	__inf("disp_remove call\n");
-
-	for(i=0;i<DISP_IO_NUM - 3;i++)
-	{
-		iounmap(info->io[i]);
-
-		release_resource(info->mem[i]);
-		kfree(info->mem[i]);
-	}
 
 	platform_set_drvdata(pdev, NULL);
 
@@ -859,13 +672,10 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
     	case DISP_CMD_START_CMD_CACHE:
     		ret = BSP_disp_cmd_cache(ubuffer[0]);
-    		g_disp_drv.b_cache[ubuffer[0]] = 1;
     		break;
 
     	case DISP_CMD_EXECUTE_CMD_AND_STOP_CACHE:
-    	    g_disp_drv.b_cache[ubuffer[0]] = 0;
     		ret = BSP_disp_cmd_submit(ubuffer[0]);
-    		//DRV_disp_wait_cmd_finish(ubuffer[0]);
     		break;
 
     	case DISP_CMD_GET_OUTPUT_TYPE:
@@ -1844,7 +1654,6 @@ int __init disp_module_init(void)
 
     __inf("disp_module_init\n");
 
-    atomic_set(&cmd_index, 0);
     alloc_chrdev_region(&devid, 0, 1, "disp");
     my_cdev = cdev_alloc();
     cdev_init(my_cdev, &disp_fops);

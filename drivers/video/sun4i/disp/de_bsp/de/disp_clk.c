@@ -103,8 +103,8 @@ __disp_clk_tab clk_tab = //record tv/vga/hdmi mode clock requirement
 	{27000000	  ,	2	    ,	27000000,		270000000	,	0	},	 //    DISP_TV_MOD_PAL_NC_SVIDEO	        //0x15
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved  //0x16		
 	{148500000	  ,	1	    ,  148500000, 		297000000	,	0	},	 //    DISP_TV_MOD_1080P_24HZ_3D_FP    //0x17
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x18
-	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x19
+	{148500000	  ,	1	    ,  148500000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_50HZ_3D_FP 	 //0x18
+	{148500000	  ,	1	    ,  148500000,		297000000	,	0	},	 //    DISP_TV_MOD_720P_60HZ_3D_FP 	 //0x19
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1a
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1b
 	{		0	  ,	1	    ,	       0,		        0	,	0	},	 //    reserved 					        //0x1c

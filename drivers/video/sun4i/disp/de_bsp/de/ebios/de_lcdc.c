@@ -742,7 +742,47 @@ __u32 TCON1_set_hdmi_mode(__u32 sel, __u8 mode)
         LCDC_WUINT32(sel, LCDC_3DF_A1E,(1125 + 45)<<12);
         LCDC_WUINT32(sel, LCDC_3DF_D1, 0); 
         LCDC_SET_BIT(sel, LCDC_3DF_CTL,1<<31);   
-        break;        
+        break; 
+    case DISP_TV_MOD_720P_50HZ_3D_FP:
+        cfg.b_interlace   = 0;
+        cfg.src_x      = 1280;
+        cfg.src_y      = 1440;
+        cfg.scl_x      = 1280;
+        cfg.scl_y      = 1440 + 30;
+        cfg.out_x      = 1280;
+        cfg.out_y      = 1440 + 30;
+        cfg.ht       = 1980;
+        cfg.hbp      = 260;
+        cfg.vt       = (750*4);
+        cfg.vbp      = 25;
+        cfg.vspw     = 5;
+        cfg.hspw     = 40; 
+        cfg.io_pol      = 0x07000000;
+        LCDC_WUINT32(sel, LCDC_3DF_A1B,(750 + 1)<<12);
+        LCDC_WUINT32(sel, LCDC_3DF_A1E,(750 + 30)<<12);
+        LCDC_WUINT32(sel, LCDC_3DF_D1, 0); 
+        LCDC_SET_BIT(sel, LCDC_3DF_CTL,1<<31);           
+        break;            
+    case DISP_TV_MOD_720P_60HZ_3D_FP:
+        cfg.b_interlace   = 0;
+        cfg.src_x       = 1280;
+        cfg.src_y       = 1440;
+        cfg.scl_x       = 1280;
+        cfg.scl_y       = 1440 + 30;
+        cfg.out_x       = 1280;
+        cfg.out_y       = 1440 + 30;
+        cfg.ht       = 1650;
+        cfg.hbp      = 260;
+        cfg.vt       = (750*4);
+        cfg.vbp      = 25;
+        cfg.vspw     = 5;
+        cfg.hspw     = 40; 
+        cfg.io_pol      = 0x07000000;
+        LCDC_WUINT32(sel, LCDC_3DF_A1B,(750 + 1)<<12);
+        LCDC_WUINT32(sel, LCDC_3DF_A1E,(750 + 30)<<12);
+        LCDC_WUINT32(sel, LCDC_3DF_D1, 0); 
+        LCDC_SET_BIT(sel, LCDC_3DF_CTL,1<<31);          
+        break;         
     default:
         return 0;
     }

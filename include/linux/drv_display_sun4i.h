@@ -160,6 +160,8 @@ typedef enum
     DISP_TV_MOD_1080P_50HZ          = 9,
     DISP_TV_MOD_1080P_60HZ          = 0xa,
     DISP_TV_MOD_1080P_24HZ_3D_FP    = 0x17,
+    DISP_TV_MOD_720P_50HZ_3D_FP     = 0x18,
+    DISP_TV_MOD_720P_60HZ_3D_FP     = 0x19,
     DISP_TV_MOD_PAL                 = 0xb,
     DISP_TV_MOD_PAL_SVIDEO          = 0xc,
     DISP_TV_MOD_NTSC                = 0xe,
@@ -168,7 +170,7 @@ typedef enum
     DISP_TV_MOD_PAL_M_SVIDEO        = 0x12,
     DISP_TV_MOD_PAL_NC              = 0x14,
     DISP_TV_MOD_PAL_NC_SVIDEO       = 0x15,
-    DISP_TV_MODE_NUM               = 0x18,
+    DISP_TV_MODE_NUM               = 0x1a,
 }__disp_tv_mode_t;
 
 typedef enum

@@ -26,6 +26,9 @@
 #define HDMI1080P_24 		32
 #define HDMI1080P_25 		33
 #define HDMI1080P_24_3D_FP  (HDMI1080P_24 +0x80)
+#define HDMI720P_50_3D_FP   (HDMI720P_50  +0x80)
+#define HDMI720P_60_3D_FP   (HDMI720P_60  +0x80)
+
 
 
 extern void hdmi_delay_ms(__u32 t);

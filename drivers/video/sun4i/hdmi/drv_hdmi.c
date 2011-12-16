@@ -95,6 +95,14 @@ __s32 Hdmi_set_display_mode(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_1080P_24HZ_3D_FP:
 		hdmi_mode = HDMI1080P_24_3D_FP;
 		break;  
+		
+    case DISP_TV_MOD_720P_50HZ_3D_FP:
+        hdmi_mode = HDMI720P_50_3D_FP;
+        break;
+
+    case DISP_TV_MOD_720P_60HZ_3D_FP:
+        hdmi_mode = HDMI720P_60_3D_FP;
+        break;
 
 	default:
 	    __wrn("unsupported video mode %d when set display mode\n", mode);
@@ -172,7 +180,15 @@ __s32 Hdmi_mode_support(__disp_tv_mode_t mode)
 	case DISP_TV_MOD_1080P_24HZ_3D_FP:
 	    hdmi_mode = HDMI1080P_24_3D_FP;
 	    break;
-	    
+
+    case DISP_TV_MOD_720P_50HZ_3D_FP:
+        hdmi_mode = HDMI720P_50_3D_FP;
+        break;
+
+    case DISP_TV_MOD_720P_60HZ_3D_FP:
+        hdmi_mode = HDMI720P_60_3D_FP;
+        break;
+
 	default:
 		hdmi_mode = HDMI720P_50;
 		break;
@@ -240,7 +256,7 @@ __s32 Hdmi_init(void)
 	}
 	wake_up_process(HDMI_task);
 
-    Hdmi_set_reg_base((__u32)ghdmi.io);
+    Hdmi_set_reg_base((__u32)ghdmi.base_hdmi);
 	Hdmi_hal_init();
 
     audio_func.hdmi_audio_enable = Hdmi_Audio_Enable;

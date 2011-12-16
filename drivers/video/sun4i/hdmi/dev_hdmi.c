@@ -30,55 +30,16 @@ struct platform_device hdmi_device =
 
 static int __init hdmi_probe(struct platform_device *pdev)
 {
-	struct resource *res;
-	int size;
-	int ret = 0;
-
 	__inf("hdmi_probe call\n");
 		
     memset(&ghdmi, 0, sizeof(hdmi_info_t));
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (res == NULL) 
-	{
-		__wrn("platform_get_resource fail\n");
-		ret = -ENXIO;
-		goto hdmi_error;
-	}
-	
-	size = (res->end - res->start) + 1;
-	ghdmi.mem = request_mem_region(res->start, size, pdev->name);
-	if (ghdmi.mem == NULL) 
-	{
-		__wrn("request_mem_region fail\n");
-		ret = -ENOENT;
-		goto hdmi_error;
-	}
-
-	ghdmi.io = ioremap(res->start, size);
-	if (ghdmi.io == NULL) 
-	{
-		__wrn("ioremap() fail\n");
-		ret = -ENXIO;
-		goto release_mem0;
-	}
-
-	
-	__inf("HDMI base 0x%08x\n", (__u32)ghdmi.io);
+	ghdmi.base_hdmi = 0xf1c16000;
 
 	Hdmi_init();
     Fb_Init(1);
 
 	return 0;
-
-release_mem0:
-	release_resource(ghdmi.mem);
-	kfree(ghdmi.mem);
-	
-hdmi_error:
-    
-
-	return ret;
 }
 
 
@@ -87,11 +48,6 @@ static int hdmi_remove(struct platform_device *pdev)
     __inf("hdmi_remove call\n");
 
     Hdmi_exit();
-
-    iounmap(ghdmi.io);
-
-    release_resource(ghdmi.mem);
-    kfree(ghdmi.mem);
 
     return 0;
 }

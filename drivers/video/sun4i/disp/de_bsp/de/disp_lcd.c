@@ -1316,6 +1316,8 @@ __u32 tv_mode_to_width(__disp_tv_mode_t mode)
             break;
         case DISP_TV_MOD_720P_50HZ:
         case DISP_TV_MOD_720P_60HZ:
+        case DISP_TV_MOD_720P_50HZ_3D_FP:
+        case DISP_TV_MOD_720P_60HZ_3D_FP:
             width = 1280;
             break;
         case DISP_TV_MOD_1080I_50HZ:
@@ -1370,6 +1372,10 @@ __u32 tv_mode_to_height(__disp_tv_mode_t mode)
             break;
         case DISP_TV_MOD_1080P_24HZ_3D_FP:
             height = 1080*2;
+            break;
+        case DISP_TV_MOD_720P_50HZ_3D_FP:
+        case DISP_TV_MOD_720P_60HZ_3D_FP:
+            height = 720*2;
             break;
         default:
             height = 0;
@@ -1608,6 +1614,7 @@ __s32 BSP_disp_get_frame_rate(__u32 sel)
             case DISP_TV_MOD_720P_60HZ:
             case DISP_TV_MOD_1080I_60HZ:
             case DISP_TV_MOD_1080P_60HZ:
+            case DISP_TV_MOD_720P_60HZ_3D_FP:
                 frame_rate = 60;
                 break;
             case DISP_TV_MOD_576I:
@@ -1615,6 +1622,7 @@ __s32 BSP_disp_get_frame_rate(__u32 sel)
             case DISP_TV_MOD_720P_50HZ:
             case DISP_TV_MOD_1080I_50HZ:
             case DISP_TV_MOD_1080P_50HZ:
+            case DISP_TV_MOD_720P_50HZ_3D_FP:
                 frame_rate = 50;
                 break;
             case DISP_TV_MOD_1080P_24HZ:
