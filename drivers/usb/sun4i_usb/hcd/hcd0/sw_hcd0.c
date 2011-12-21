@@ -714,6 +714,7 @@ static void sw_hcd_shutdown(struct platform_device *pdev)
 
 	close_usb_clock(&g_sw_hcd_io);
 	sw_hcd_set_vbus(sw_hcd, 0);
+	sw_hcd_port_suspend_ex(sw_hcd);
 
 	DMSG_INFO_HCD0("sw_hcd shutdown end\n");
 
