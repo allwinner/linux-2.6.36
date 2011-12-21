@@ -33,6 +33,8 @@
 #include "ahci.h"
 
 #include <linux/clk.h>
+#include <mach/gpio_v2.h>
+#include <mach/script_v2.h>
 #include "sw_ahci_platform.h"
 
 static struct scsi_host_template ahci_platform_sht = {
@@ -41,6 +43,9 @@ static struct scsi_host_template ahci_platform_sht = {
 
 static char* sw_ahci_hclk_name = "ahb_sata";
 static char* sw_ahci_mclk_name = "sata";
+static char* sw_ahci_para_name = "sata_para";
+static char* sw_ahci_used_name = "sata_used";
+static char* sw_ahci_gpio_name = "sata_power_en";
 
 static struct resource sw_ahci_resources[] = {
 	[0] = {
@@ -150,8 +155,18 @@ static int sw_ahci_start(struct device *dev, void __iomem *addr)
 {
 	struct clk *hclk;
 	struct clk *mclk;
+	u32 pio_hdle = 0;
+	int ctrl = 0;
 	int rc = 0;
 		
+	script_parser_fetch(sw_ahci_para_name, sw_ahci_used_name, &ctrl, sizeof(int));
+	if(!ctrl)
+	{
+		dev_err(dev, "AHCI is disable\n");
+		rc = -EINVAL;
+    	goto err2;
+	}	
+
 	/*Enable mclk and hclk for AHCI*/
 	mclk = clk_get(dev, sw_ahci_mclk_name);
 	if (IS_ERR(mclk))
@@ -175,6 +190,13 @@ static int sw_ahci_start(struct device *dev, void __iomem *addr)
 	clk_enable(hclk);
 	
 	sw_ahci_phy_init((unsigned int)addr);
+
+	pio_hdle = gpio_request_ex(sw_ahci_para_name, sw_ahci_gpio_name);
+	if(pio_hdle) 
+	{
+		gpio_write_one_pin_value(pio_hdle, 1, sw_ahci_gpio_name);	
+		gpio_release(pio_hdle, 2);
+	}
 	
 	clk_put(hclk);
 err1:
@@ -187,6 +209,7 @@ static void sw_ahci_stop(struct device *dev)
 {
 	struct clk *hclk;
 	struct clk *mclk;
+	u32 pio_hdle = 0;
 	int rc = 0;
 		
 	mclk = clk_get(dev, sw_ahci_mclk_name);
@@ -203,6 +226,13 @@ static void sw_ahci_stop(struct device *dev)
 		dev_err(dev, "Error to get ahb clk for AHCI\n");
     	rc = -EINVAL;
     	goto err1;
+	}
+
+	pio_hdle = gpio_request_ex(sw_ahci_para_name, sw_ahci_gpio_name);
+	if(pio_hdle) 
+	{
+		gpio_write_one_pin_value(pio_hdle, 0, sw_ahci_gpio_name);
+		gpio_release(pio_hdle, 2);
 	}
 	
 	/*Disable mclk and hclk for AHCI*/
@@ -390,11 +420,67 @@ static int __devexit sw_ahci_remove(struct platform_device *pdev)
 	return 0;
 }
 
+
+void sw_ahci_dump_reg(struct device *dev)
+{
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data; 
+	u32 base = (u32)hpriv->mmio;
+	int i = 0;
+
+	for(i=0; i<0x200; i+=0x10) {
+		printk("0x%3x = 0x%x, 0x%3x = 0x%x, 0x%3x = 0x%x, 0x%3x = 0x%x\n", i, ahci_readl(base, i), i+4, ahci_readl(base, i+4), i+8, ahci_readl(base, i+8), i+12, ahci_readl(base, i+12));
+	}
+}
+
+#ifdef CONFIG_PM
+
+static int sw_ahci_suspend(struct device *dev)
+{
+	
+	printk("sw_ahci_platform: sw_ahci_suspend\n"); //danielwang
+	//sw_ahci_dump_reg(dev);
+
+	sw_ahci_stop(dev);
+
+	return 0;
+}
+
+extern int ahci_hardware_recover_for_controller_resume(struct ata_host *host);
+static int sw_ahci_resume(struct device *dev)
+{
+	struct ata_host *host = dev_get_drvdata(dev);
+	struct ahci_host_priv *hpriv = host->private_data; 
+		
+	printk("sw_ahci_platform: sw_ahci_resume\n"); //danielwang
+
+	sw_ahci_start(dev, hpriv->mmio);
+	//sw_ahci_dump_reg(dev);	
+
+	ahci_hardware_recover_for_controller_resume(host);
+
+	return 0;
+}
+
+
+static const struct dev_pm_ops  sw_ahci_pmops = {
+	.suspend	= sw_ahci_suspend,
+	.resume		= sw_ahci_resume,
+};
+
+#define SW_AHCI_PMOPS &sw_ahci_pmops
+#else
+#define SW_AHCI_PMOPS NULL
+#endif
+
+
+
 static struct platform_driver sw_ahci_driver = {
 	.remove = __devexit_p(sw_ahci_remove),
 	.driver = {
 		.name = "sw_ahci",
 		.owner = THIS_MODULE,
+		.pm = SW_AHCI_PMOPS,
 	},
 };
 

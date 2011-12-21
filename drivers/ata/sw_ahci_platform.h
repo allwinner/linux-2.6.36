@@ -15,12 +15,12 @@
 #ifndef _SW_AHCI_PLATFORM_H
 #define _SW_AHCI_PLATFORM_H
 
-#define	ahci_readb(base,offset)  		(*((volatile unsigned char*)(base+offset)))
-#define	ahci_readw(base,offset)  		(*((volatile unsigned short*)(base+offset)))
-#define	ahci_readl(base,offset)  		(*((volatile unsigned int*)(base+offset)))
-#define ahci_writeb(base,offset,val)	(*((volatile unsigned char*)(base+offset)) = (val))
-#define ahci_writew(base,offset,val)	(*((volatile unsigned short*)(base+offset)) = (val))
-#define ahci_writel(base,offset,val)	(*((volatile unsigned int*)(base+offset)) = (val))
+#define	ahci_readb(base,offset)  		(*((volatile unsigned char*)((base)+(offset))))
+#define	ahci_readw(base,offset)  		(*((volatile unsigned short*)((base)+(offset))))
+#define	ahci_readl(base,offset)  		(*((volatile unsigned int*)((base)+(offset))))
+#define ahci_writeb(base,offset,val)	(*((volatile unsigned char*)((base)+(offset))) = (val))
+#define ahci_writew(base,offset,val)	(*((volatile unsigned short*)((base)+(offset))) = (val))
+#define ahci_writel(base,offset,val)	(*((volatile unsigned int*)((base)+(offset))) = (val))
 
 #define SW_AHCI_BASE				0x01c18000
 
@@ -48,7 +48,7 @@
 #define SW_AHCI_P0PHYCR_OFFSET		0x0178
 #define SW_AHCI_P0PHYSR_OFFSET		0x017C
 
-#define SW_AHCI_ACCESS_LOCK(base,x)		(*((volatile unsigned int *)(base+SW_AHCI_RWCR_OFFSET)) = (x))  
+#define SW_AHCI_ACCESS_LOCK(base,x)		(*((volatile unsigned int *)((base)+SW_AHCI_RWCR_OFFSET)) = (x))  
 
 #define INTC_IRQNO_AHCI				56
 
