@@ -1289,7 +1289,7 @@ __s32 BSP_disp_layer_vpp_enable(__u32 sel, __u32 hid, __bool enable)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER) && (get_fb_type(layer_man->para.fb.format) == DISP_FB_TYPE_YUV))
     {
-        DE_SCAL_Vpp_Enable(sel, enable);
+        DE_SCAL_Vpp_Enable(layer_man->scaler_index, enable);
         gdisp.scaler[layer_man->scaler_index].vpp_en = enable;
         return DIS_SUCCESS;
     }
@@ -1321,7 +1321,7 @@ __s32 BSP_disp_layer_set_luma_sharp_level(__u32 sel, __u32 hid, __u32 level)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER) && (get_fb_type(layer_man->para.fb.format) == DISP_FB_TYPE_YUV))
     {
-        DE_SCAL_Vpp_Set_Luma_Sharpness_Level(sel,level);
+        DE_SCAL_Vpp_Set_Luma_Sharpness_Level(layer_man->scaler_index,level);
         gdisp.scaler[layer_man->scaler_index].luma_sharpe_level = level;
         return DIS_SUCCESS;
     }
@@ -1353,7 +1353,7 @@ __s32 BSP_disp_layer_set_chroma_sharp_level(__u32 sel, __u32 hid, __u32 level)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER) && (get_fb_type(layer_man->para.fb.format) == DISP_FB_TYPE_YUV))
     {
-        DE_SCAL_Vpp_Set_Chroma_Sharpness_Level(sel,level);
+        DE_SCAL_Vpp_Set_Chroma_Sharpness_Level(layer_man->scaler_index,level);
         gdisp.scaler[layer_man->scaler_index].chroma_sharpe_level = level;
         return DIS_SUCCESS;
     }
@@ -1385,7 +1385,7 @@ __s32 BSP_disp_layer_set_white_exten_level(__u32 sel, __u32 hid, __u32 level)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER) && (get_fb_type(layer_man->para.fb.format) == DISP_FB_TYPE_YUV))
     {
-        DE_SCAL_Vpp_Set_White_Level_Extension(sel,level);
+        DE_SCAL_Vpp_Set_White_Level_Extension(layer_man->scaler_index,level);
         gdisp.scaler[layer_man->scaler_index].while_exten_level = level;
         return DIS_SUCCESS;
     }
@@ -1417,7 +1417,7 @@ __s32 BSP_disp_layer_set_black_exten_level(__u32 sel, __u32 hid, __u32 level)
     layer_man = &gdisp.screen[sel].layer_manage[hid];
     if((layer_man->status & LAYER_USED) && (layer_man->para.mode == DISP_LAYER_WORK_MODE_SCALER) && (get_fb_type(layer_man->para.fb.format) == DISP_FB_TYPE_YUV))
     {
-        DE_SCAL_Vpp_Set_Black_Level_Extension(sel,level);
+        DE_SCAL_Vpp_Set_Black_Level_Extension(layer_man->scaler_index,level);
         gdisp.scaler[layer_man->scaler_index].black_exten_level = level;
         return DIS_SUCCESS;
     }
