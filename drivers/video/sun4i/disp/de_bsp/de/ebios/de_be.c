@@ -543,7 +543,6 @@ __s32 DE_BE_Set_Enhance(__u8 sel,__u32 brightness, __u32 contrast, __u32 saturai
 	__u32 i;
 	__s32 sinv, cosv;	//sin_tab: 7 bit fractional
 
-    OSAL_PRINTF("==%d,%d,%d,%d\n", brightness,  contrast,  saturaion,  hue);
 
 	brightness = brightness>100?100:(brightness<0?0:brightness);
 	contrast = contrast>100?100:(contrast<0?0:contrast);
@@ -612,7 +611,6 @@ __s32 DE_BE_Set_Enhance(__u8 sel,__u32 brightness, __u32 contrast, __u32 saturai
 		DE_BE_WUINT32(sel, DE_BE_OUT_COLOR_G_COEFF_OFF+ 4*i, *(pt + i));
 		DE_BE_WUINT32(sel, DE_BE_OUT_COLOR_R_COEFF_OFF+ 4*i, *(pt + 4 + i));
 		DE_BE_WUINT32(sel, DE_BE_OUT_COLOR_B_COEFF_OFF+ 4*i, *(pt + 8 + i));
-		OSAL_PRINTF("%x,%x,%x\n", DE_BE_RUINT32(sel, DE_BE_OUT_COLOR_R_COEFF_OFF+4*i),DE_BE_RUINT32(sel, DE_BE_OUT_COLOR_G_COEFF_OFF+4*i),DE_BE_RUINT32(sel, DE_BE_OUT_COLOR_B_COEFF_OFF+4*i));
 	}
 	
     return 0;
