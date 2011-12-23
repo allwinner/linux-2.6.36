@@ -129,6 +129,8 @@ extern __s32 BSP_disp_set_contrast(__u32 sel, __u32 contrast);
 extern __s32 BSP_disp_get_contrast(__u32 sel);
 extern __s32 BSP_disp_set_saturation(__u32 sel, __u32 saturation);
 extern __s32 BSP_disp_get_saturation(__u32 sel);
+extern __s32 BSP_disp_set_hue(__u32 sel, __u32 hue);
+extern __s32 BSP_disp_get_hue(__u32 sel);
 extern __s32 BSP_disp_enhance_enable(__u32 sel, __bool enable);
 extern __s32 BSP_disp_get_enhance_enable(__u32 sel);
 extern __s32 BSP_disp_capture_screen(__u32 sel, __disp_capture_screen_para_t * para);

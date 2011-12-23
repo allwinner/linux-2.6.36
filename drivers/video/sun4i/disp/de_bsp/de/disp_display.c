@@ -31,11 +31,12 @@ __s32 BSP_disp_init(__disp_bsp_init_para * para)
         gdisp.screen[screen_id].bright = 50;
         gdisp.screen[screen_id].contrast = 50;
         gdisp.screen[screen_id].saturation = 50;
+        gdisp.screen[screen_id].hue = 50;
         
-        gdisp.scaler[screen_id].bright = 32;
-        gdisp.scaler[screen_id].contrast = 32;
-        gdisp.scaler[screen_id].saturation = 32;
-        gdisp.scaler[screen_id].hue = 32;
+        gdisp.scaler[screen_id].bright = 50;
+        gdisp.scaler[screen_id].contrast = 50;
+        gdisp.scaler[screen_id].saturation = 50;
+        gdisp.scaler[screen_id].hue = 50;
 
         gdisp.screen[screen_id].lcd_bright = DISP_LCD_BRIGHT_LEVEL12;
     }

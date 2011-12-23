@@ -78,6 +78,7 @@ typedef struct
     __u32                   bright;
     __u32                   contrast;
     __u32                   saturation;
+    __u32                   hue;
     __bool                  enhance_en;
     __u32                   max_layers;
     __layer_man_t           layer_manage[4];

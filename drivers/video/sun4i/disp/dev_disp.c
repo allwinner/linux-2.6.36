@@ -736,6 +736,14 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
             ret = BSP_disp_get_saturation(ubuffer[0]);
     		break;
 
+        case DISP_CMD_SET_HUE:
+            ret = BSP_disp_set_hue(ubuffer[0], ubuffer[1]);
+    		break;
+
+        case DISP_CMD_GET_HUE:
+            ret = BSP_disp_get_hue(ubuffer[0]);
+    		break;
+
         case DISP_CMD_ENHANCE_ON:
             ret = BSP_disp_enhance_enable(ubuffer[0], 1);
     		break;
