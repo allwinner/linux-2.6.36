@@ -131,6 +131,7 @@ int usb_stor_ZTE_AC580_init(struct us_data *us) // PID = 0x0026
 	printk("====AC580/AC560===>usb_stor_control_msg performing result is %d\n", result);
 	return (result ? 0 : -ENODEV);
 #else
+	printk("%s,%d\n",__FUNCTION__,__LINE__);
 	return -ENODEV;
 #endif
 }
@@ -141,6 +142,7 @@ int usb_stor_ZTE_AC580_init2(struct us_data *us) // PID = 0x0026
 	int result = 0;
 	int act_len = 0;
 
+	printk("%s,%d\n",__FUNCTION__,__LINE__);
 	return -ENODEV;
 }
 
@@ -150,5 +152,31 @@ int usb_stor_ASB_init(struct us_data *us)
 	int act_len = 0;
 
 	return -ENODEV;
+}
+
+int usb_stor_TechFaith_init(struct us_data *us)
+{
+	int result = 0;
+	int act_len = 0;
+
+	usb_stor_port_reset(us);
+	return -ENODEV;
+}
+
+int usb_stor_Shichuangxing_init(struct us_data *us)
+{
+	int result = 0;
+	int act_len = 0;
+
+	printk("====usb_stor_Shichuangxing_init===>\n");
+	return -ENODEV;
+}
+
+int usb_stor_wangxun_init(struct us_data *us)
+{
+
+	printk("====usb_stor_wangxun_init===>\n");
+	usb_stor_port_reset(us);
+
 }
 

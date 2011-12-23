@@ -1826,6 +1826,11 @@ UNUSUAL_DEV(  0x12d1, 0x1505, 0x0000, 0x0000,
 		"Mass Storage",
 		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
 		0),
+UNUSUAL_DEV(  0x12d1, 0x1506, 0x0000, 0x0000,
+		"HUAWEI MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE, US_PR_DEVICE, usb_stor_huawei_e220_init,
+		0),
 UNUSUAL_DEV(  0x12d1, 0x1d09, 0x0100, 0x0100,
 		"HUAWEI MOBILE",
 		"Mass Storage",
@@ -1847,6 +1852,27 @@ UNUSUAL_DEV(  0x05c6, 0x6000, 0x0000, 0x0000,
 //MU350--ZTE--	0x19D20003->0x19D20003	转化前的处理过程，不上报光盘设备
 UNUSUAL_DEV(0x19D2,0x0003,0x0100,0x0100,
 		"ZTE MOBILE-TD",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
+		0),
+
+//A355--ZTE--	0x19D20120->0x19D20079	转化前的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x0120,0x0204  ,0x0204  ,
+		"ZTE MOBILE-TD",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
+		0),
+
+//A355--ZTE--	0x19D20120->0x19D20079	转化前的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x19D2,0x0079,0x0204  ,0x0204  ,
+		"ZTE MOBILE-TD",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
+		0),
+
+//TU930--GaoKeZhongtian--	0x04cc225a->0x04cc225a	转化前后的处理过程，不上报光盘设�?
+UNUSUAL_DEV(0x04cc,0x225a,0x100,0x100,
+		"GaoKeZhongtian MOBILE-TD",
 		"Mass Storage",
 		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ZTE_AC580_init,
 		0),
@@ -1912,6 +1938,47 @@ UNUSUAL_DEV(0x04cc,0x226e,0x0100,0x0100,
 		"ASB MOBILE",
 		"Mass Storage",
 		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ASB_init,
+		0),
+
+//上海阿尔卡特 ASB C820--ASB--	 转化后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x05c6,0x00a0,0x00,0x00,
+		"ASB MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_ASB_init,
+		0),
+
+//TechFaith--	 转化�?后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x1d09,0x1010,0x0,0x0,
+		"TechFaith MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_TechFaith_init,
+		0),
+//TechFaith--	 转化�?后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x1d09,0x1000,0x0,0x0,
+		"TechFaith MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_TechFaith_init,
+		0),
+
+//wangxun--	 转化�?后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x1e89,0x1e16,0x0,0x0,
+		"wangxun MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_wangxun_init,
+		0),
+
+//TechFaith--	 转化�?后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x1e89,0x1a20,0x0,0x0,
+		"Shichuangxing MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_TechFaith_init,
+		0),
+
+//TechFaith--	 转化�?后的处理过程，不上报光盘设备
+UNUSUAL_DEV(0x1e89,0xf000,0x0,0x0,
+		"Shichuangxing MOBILE",
+		"Mass Storage",
+		US_SC_DEVICE,US_PR_DEVICE,usb_stor_Shichuangxing_init,
 		0),
 
 /* Reported by Vilius Bilinkevicius <vilisas AT xxx DOT lt) */

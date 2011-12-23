@@ -148,8 +148,10 @@ static void option_instat_callback(struct urb *urb);
 #define HUAWEI_PRODUCT_K4505			0x1464
 #define HUAWEI_PRODUCT_K3765			0x1465
 #define HUAWEI_PRODUCT_E14AC			0x14AC
+#define HUAWEI_PRODUCT_E1506			0x1506
 #define HUAWEI_PRODUCT_ETS1220			0x1803
 #define HUAWEI_PRODUCT_ET128			0x1D09
+
 
 #define QUANTA_VENDOR_ID			0x0408
 #define QUANTA_PRODUCT_Q101			0xEA02
@@ -292,6 +294,8 @@ static void option_instat_callback(struct urb *urb);
 #define BANDRICH_PRODUCT_1012			0x1012
 
 #define QUALCOMM_VENDOR_ID			0x05C6
+#define QUALCOMM_ASB_C820			0x00a0	//ASB use QUALCOMM ic dongle
+
 
 #define CMOTECH_VENDOR_ID			0x16d8
 #define CMOTECH_PRODUCT_6008			0x6008
@@ -396,7 +400,24 @@ static void option_instat_callback(struct urb *urb);
 /*ÉÏº£°¢¶û¿¨ÌØ ASB products*/
 #define ASB_VENDOR_ID				0x04cc
 #define ASB_PRODUCT_T920			0x226e
+#define ASB_PRODUCT_TU930			0x225a
 
+/*TechFaith products*/
+#define TechFaith_VENDOR_ID			0x1d09
+#define TechFaith_PRODUCT_HSDPA		0x1010
+#define TechFaith_PRODUCT_SRTE800	0xAEF4
+
+/* A100 ???,evdo */
+#define AXX_VENDOR_ID			0x21F5
+#define AXXT_PRODUCT_XXX		0x2008 // evdo
+
+/* PuChuang WCDMA */
+#define PUCHUANG_VENDOR_ID			0x20A6
+#define PUCHUANG_PRODUCT_E003		0x1105 //wcdma
+
+ /* Vtion Information Technology (Fujian) */
+#define VTION_VENDOR_ID			0x1E89
+#define VTION_PRODUCT_E1916		0x1E16 //evdo ???
 
 /* some devices interfaces need special handling due to a number of reasons */
 enum option_blacklist_reason {
@@ -520,6 +541,7 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE_AND_INTERFACE_INFO(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_ETS1220, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_ET128) },//0x12D11DA1->0x12D11D09	GSM,HUAWEI ET128-2,ET128
 	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E14AC) },
+	{ USB_DEVICE(HUAWEI_VENDOR_ID, HUAWEI_PRODUCT_E1506) },
 	{ USB_DEVICE(NOVATELWIRELESS_VENDOR_ID, NOVATELWIRELESS_PRODUCT_V640) },
 	{ USB_DEVICE(NOVATELWIRELESS_VENDOR_ID, NOVATELWIRELESS_PRODUCT_V620) },
 	{ USB_DEVICE(NOVATELWIRELESS_VENDOR_ID, NOVATELWIRELESS_PRODUCT_V740) },
@@ -667,6 +689,7 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0069, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0076, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0078, 0xff, 0xff, 0xff) },
+	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0079, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0082, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0086, 0xff, 0xff, 0xff) },
 	{ USB_DEVICE_AND_INTERFACE_INFO(ZTE_VENDOR_ID, 0x0094, 0xff, 0xff, 0xff) },//for ZTE AC560 0x19d20026->0x19d20094
@@ -934,6 +957,8 @@ static const struct usb_device_id option_ids[] = {
   	  .driver_info = (kernel_ulong_t)&four_g_w14_blacklist
   	},
 	{ USB_DEVICE(HAIER_VENDOR_ID, HAIER_PRODUCT_CE100) },
+	{ USB_DEVICE(PUCHUANG_VENDOR_ID, PUCHUANG_PRODUCT_E003) },
+	{ USB_DEVICE(VTION_VENDOR_ID, 0x1a20) },
 	/* Pirelli  */
 	{ USB_DEVICE(PIRELLI_VENDOR_ID, PIRELLI_PRODUCT_C100_1)},
 	{ USB_DEVICE(PIRELLI_VENDOR_ID, PIRELLI_PRODUCT_C100_2)},
@@ -955,6 +980,13 @@ static const struct usb_device_id option_ids[] = {
 	{ USB_DEVICE(OLIVETTI_VENDOR_ID, OLIVETTI_PRODUCT_OLICARD100) },
 	{ USB_DEVICE(CELOT_VENDOR_ID, CELOT_PRODUCT_CT680M) }, /* CT-650 CDMA 450 1xEVDO modem */
 	{ USB_DEVICE(ASB_VENDOR_ID, ASB_PRODUCT_T920) }, /*ASB T920 */
+	{ USB_DEVICE(ASB_VENDOR_ID, ASB_PRODUCT_TU930) }, /*ASB TU930 */
+	{ USB_DEVICE(TechFaith_VENDOR_ID,TechFaith_PRODUCT_HSDPA) },/*TechFaith WCDMA product*/
+	{ USB_DEVICE(TechFaith_VENDOR_ID,TechFaith_PRODUCT_SRTE800) },/*TechFaith WCDMA product*/
+	{ USB_DEVICE(AXX_VENDOR_ID,   AXXT_PRODUCT_XXX)   },
+	{ USB_DEVICE(PUCHUANG_VENDOR_ID,PUCHUANG_PRODUCT_E003)},
+	{ USB_DEVICE(VTION_VENDOR_ID,   VTION_PRODUCT_E1916)},
+	{ USB_DEVICE(QUALCOMM_VENDOR_ID,   QUALCOMM_ASB_C820)},
 	{ } /* Terminating entry */
 };
 MODULE_DEVICE_TABLE(usb, option_ids);
