@@ -266,7 +266,7 @@ static __s64 sys_clk_get_rate(__aw_ccu_sys_clk_e id)
                     return 24576000;
                 }
             }
-            else if(chip_ver == MAGIC_VER_B){
+            else if((chip_ver == MAGIC_VER_B) || (chip_ver == MAGIC_VER_C)){
                 /* chip is version B:
                     FactorN=79, PreDiv=21, PostDiv=4, output=24*79/21/4=22.571mhz, 44.1k series fs
                     FactorN=86, PreDiv=21, PostDiv=4, output=24*86/21/4=24.571mhz, 48k series fs */
@@ -764,7 +764,7 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
                     aw_ccu_reg->Pll2Ctl.VCOBias = 10;
                     aw_ccu_reg->Pll2Ctl.FactorN = 94;
                 }
-                else if(chip_ver == MAGIC_VER_B){
+                else if((chip_ver == MAGIC_VER_B) || (chip_ver == MAGIC_VER_C)){
                     /* chip is version B, FactorN=79, PreDiv=21, PostDiv=4,
                        output=24*79/21/4=22.571mhz, 44.1k series fs     */
                     __u32   tmpReg;
@@ -786,14 +786,14 @@ static __s32 sys_clk_set_rate(__aw_ccu_sys_clk_e id, __s64 rate)
                     aw_ccu_reg->Pll2Ctl.VCOBias = 9;
                     aw_ccu_reg->Pll2Ctl.FactorN = 83;
                 }
-                else if(chip_ver == MAGIC_VER_B){
+                else if((chip_ver == MAGIC_VER_B) || (chip_ver == MAGIC_VER_C)){
                     /* chip is version B, FactorN=86, PreDiv=21, PostDiv=4,
                        output=24*86/21/4=24.571mhz, 48k series fs       */
                     __u32   tmpReg;
 
                     tmpReg = *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl;
                     tmpReg &= ~((0x1f<<0)|(0x7f<<8)|(0x0f<<26));
-                    tmpReg |= (21<<0)|(86<<8)|(4<<26);
+                   tmpReg |= (21<<0)|(86<<8)|(4<<26);
                     *(volatile __u32 *)&aw_ccu_reg->Pll2Ctl = tmpReg;
                 }
                 else{
@@ -1239,6 +1239,8 @@ __aw_ccu_err_e aw_ccu_set_sys_clk(__aw_ccu_clk_t *clk)
             goto _restore_clk_pare;
         }
 
+        /* update clock parent */
+        clk->parent = sys_clk_get_parent(clk->id);
         /* update clock rate */
         clk->rate = sys_clk_get_rate(clk->id);
         /* update clock status */
@@ -1254,6 +1256,8 @@ __aw_ccu_err_e aw_ccu_set_sys_clk(__aw_ccu_clk_t *clk)
             CCU_ERR("try to set %s rate to %lld failed!\n", clk->name, clk->rate);
             goto _restore_clk_pare;
         }
+        /* update clock rate */
+        clk->rate = sys_clk_get_rate(clk->id);
         /* update clock status */
         clk->onoff = sys_clk_get_status(clk->id);
         return AW_CCU_ERR_NONE;
@@ -1267,6 +1271,8 @@ __aw_ccu_err_e aw_ccu_set_sys_clk(__aw_ccu_clk_t *clk)
             CCU_ERR("try to set %s status to %d failed!\n", clk->name, clk->onoff);
             goto _restore_clk_pare;
         }
+        /* update clock status */
+        clk->onoff = sys_clk_get_status(clk->id);
         return AW_CCU_ERR_NONE;
     }
 
