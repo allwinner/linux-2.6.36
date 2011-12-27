@@ -652,7 +652,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
 	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
 	            restore_context();
-	        }else if(MAGIC_VER_B == sw_get_ic_ver()){
+	        }else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){
 				v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        
 	            temp = v & 0xffff0000;		
 	            temp =temp + temp*arg_s/100; 
@@ -698,7 +698,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
 	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x8c);
 	            restore_context();
-	        }else if(MAGIC_VER_B == sw_get_ic_ver()){		        
+	        }else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){		        
 	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);				        	
 	            v = (v_dst<<16)  | (v&0x0000ffff);   
 	            pr_debug("Kernel AVS ADJUST Print: 0x%x\n", v);             
@@ -726,7 +726,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 				/* Set AVS_CNT1 init value as zero  */
 	            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
 				restore_context();        		
-        	}else if(MAGIC_VER_B == sw_get_ic_ver()){
+        	}else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){
 				/* Set AVS counter divisor */
 	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x8c);
 	            v = 239 << 16 | (v & 0xffff);
@@ -751,7 +751,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	        	save_context();
 	            writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
 	            restore_context();
-        	}else if(MAGIC_VER_B == sw_get_ic_ver()){
+        	}else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){
         		writel(0, cedar_devp->iomap_addrs.regs_avs + 0x88);
         	}else{
         		printk("IOCTL_RESET_AVS2 error:%s,%d\n", __func__, __LINE__);
@@ -767,7 +767,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	            v |= 1 << 9;
 	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
 	            restore_context();
-        	}else if(MAGIC_VER_B == sw_get_ic_ver()){        	
+        	}else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){        	
 	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
 	            v |= 1 << 9;
 	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);	            
@@ -785,7 +785,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	            v &= ~(1 << 9);
 	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);
 	            restore_context();
-        	}else if(MAGIC_VER_B == sw_get_ic_ver()){        	
+        	}else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){        	
 	            v = readl(cedar_devp->iomap_addrs.regs_avs + 0x80);
 	            v &= ~(1 << 9);
 	            writel(v, cedar_devp->iomap_addrs.regs_avs + 0x80);	            
@@ -809,7 +809,7 @@ long cedardev_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
         {        	
         	if(MAGIC_VER_A == sw_get_ic_ver()){
         		return 0x0A10000A;
-        	}else if(MAGIC_VER_B == sw_get_ic_ver()){
+        	}else if(MAGIC_VER_B == sw_get_ic_ver() || MAGIC_VER_C == sw_get_ic_ver()){
         		return 0x0A10000B;
         	}else{
         		printk("IC_VER get error:%s,%d\n", __func__, __LINE__);

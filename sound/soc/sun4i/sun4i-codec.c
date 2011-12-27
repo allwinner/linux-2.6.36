@@ -328,8 +328,6 @@ static  int codec_init(void)
 	enum sw_ic_ver  codec_chip_ver = sw_get_ic_ver();
 	//enable dac digital 
 	codec_wr_control(SW_DAC_DPC, 0x1, DAC_EN, 0x1);  
-	//codec version seting
-	//codec_wr_control(SW_DAC_DPC ,  0x1, DAC_VERSION, 0x1);
 	codec_wr_control(SW_DAC_FIFOC ,  0x1,28, 0x1);
 	//set digital volume to maximum
 	if(codec_chip_ver == MAGIC_VER_A){
@@ -340,12 +338,10 @@ static  int codec_init(void)
 	//enable PA
 	codec_wr_control(SW_ADC_ACTL, 0x1, PA_ENABLE, 0x1);
 	codec_wr_control(SW_DAC_FIFOC, 0x3, DRA_LEVEL,0x3);
-	//enable headphone direct 
-//	codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
 	//set volume
 	if(codec_chip_ver == MAGIC_VER_A){
 		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x01);
-	}else if(codec_chip_ver == MAGIC_VER_B){
+	}else if (codec_chip_ver == MAGIC_VER_B || codec_chip_ver == MAGIC_VER_C){
 		codec_wr_control(SW_DAC_ACTL, 0x6, VOLUME, 0x3b);
 	}else{
 		printk("[audio codec] chip version is unknown!\n");
@@ -354,8 +350,7 @@ static  int codec_init(void)
 	if(SCRIPT_AUDIO_OK != script_parser_fetch("audio_para", "audio_lr_change", &device_lr_change, sizeof(device_lr_change)/sizeof(int))){
 		pr_err("audiocodec_adap_awxx_init: script_parser_fetch err. \n");
 	    return -1;
-	}	
-	pr_debug("device_lr_change == %d. \n", device_lr_change);
+	}		
 	if(device_lr_change)
 		codec_wr_control(SW_DAC_DEBUG ,  0x1, DAC_CHANNEL, 0x1);
 	return 0;
@@ -394,9 +389,6 @@ static int codec_capture_open(void)
 	 //codec_wr_control(SW_ADC_ACTL, 0x1, MIC2_EN, 0x1);	 
 	  //enable VMIC
 	 codec_wr_control(SW_ADC_ACTL, 0x1, VMIC_EN, 0x1);
-	 //select mic souce
-	 pr_debug("ADC SELECT \n");
-	 //codec_wr_control(SW_ADC_ACTL, 0x7, ADC_SELECT, 0x4);//2011-6-17 11:41:12 hx del
 	 //enable adc digital
 	 codec_wr_control(SW_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x1);
 	 //set RX FIFO mode
@@ -413,9 +405,7 @@ static int codec_capture_open(void)
 
 static int codec_play_start(void)
 {
-	/*if the address of bit 27 is 0,means that the tv is close, so open pa*/
-//	if(0 == test_bit(27, (void *)(volatile int *)0xf1c22c10))
-		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");
 	//flush TX FIFO
 	codec_wr_control(SW_DAC_FIFOC ,0x1, DAC_FIFO_FLUSH, 0x1);
 	//enable dac drq
@@ -450,22 +440,19 @@ static int codec_capture_stop(void)
 {
 	//disable adc drq
 	codec_wr_control(SW_ADC_FIFOC ,0x1, ADC_DRQ, 0x0);
-	//enable mic1 pa
+	//disable mic1 pa
 	codec_wr_control(SW_ADC_ACTL, 0x1, MIC1_EN, 0x0);
-	//enable mic2 pa
+	//disable mic2 pa
 	//codec_wr_control(SW_ADC_ACTL, 0x1, MIC2_EN, 0x1);	 
-	//enable VMIC
+	//disable VMIC
 	codec_wr_control(SW_ADC_ACTL, 0x1, VMIC_EN, 0x0);
-	//select mic souce
-	pr_debug("ADC SELECT \n");
-	//codec_wr_control(SW_ADC_ACTL, 0x7, ADC_SELECT, 0x2);
-	//enable adc digital
+	//disable adc digital
 	codec_wr_control(SW_ADC_FIFOC, 0x1,ADC_DIG_EN, 0x0);
 	//set RX FIFO mode
 	codec_wr_control(SW_ADC_FIFOC, 0x1, RX_FIFO_MODE, 0x0);
 	//flush RX FIFO
 	codec_wr_control(SW_ADC_FIFOC, 0x1, ADC_FIFO_FLUSH, 0x0);
-	//enable adc1 analog
+	//disable adc1 analog
 	codec_wr_control(SW_ADC_ACTL, 0x3,  ADC_EN, 0x0);
 	return 0;
 }
@@ -478,8 +465,8 @@ static int codec_dev_free(struct snd_device *device)
 /*	对sun4i-codec.c各寄存器的各种设定，或读取。主要实现函数有三个.
 * 	.info = snd_codec_info_volsw, .get = snd_codec_get_volsw,\.put = snd_codec_put_volsw, 
 */
-static const struct snd_kcontrol_new codec_snd_controls_b[] = {
-	//FOR B VERSION
+static const struct snd_kcontrol_new codec_snd_controls_b_c[] = {
+	//FOR B C VERSION
 	CODEC_SINGLE("Master Playback Volume", SW_DAC_ACTL,0,0x3f,0),
 	CODEC_SINGLE("Playback Switch", SW_DAC_ACTL,6,1,0),//全局输出开关
 	CODEC_SINGLE("Capture Volume",SW_ADC_ACTL,20,7,0),//录音音量
@@ -542,9 +529,9 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
 				return err;
 			}
 		}
-	}else if(codec_chip_ver == MAGIC_VER_B){
-		for (idx = 0; idx < ARRAY_SIZE(codec_snd_controls_b); idx++) {
-			if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls_b[idx],clnt))) < 0) {
+	}else if (codec_chip_ver == MAGIC_VER_B || codec_chip_ver == MAGIC_VER_C){
+		for (idx = 0; idx < ARRAY_SIZE(codec_snd_controls_b_c); idx++) {
+			if ((err = snd_ctl_add(card, snd_ctl_new1(&codec_snd_controls_b_c[idx],clnt))) < 0) {
 				return err;
 			}
 		}
@@ -552,7 +539,6 @@ int __init snd_chip_codec_mixer_new(struct snd_card *card)
 		printk("[audio codec] chip version is unknown!\n");
 		return -1;
 	}
-	
 	/*
 	*	当card被创建后，设备（组件）能够被创建并关联于该card。第一个参数是snd_card_create
 	*	创建的card指针，第二个参数type指的是device-level即设备类型，形式为SNDRV_DEV_XXX,包括
@@ -809,8 +795,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				reg_val = readl(baseaddr + SW_DAC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
-				writel(reg_val, baseaddr + SW_DAC_FIFOC);
-				
+				writel(reg_val, baseaddr + SW_DAC_FIFOC);				
 				break;
 			case 22050:
 				clk_set_rate(codec_pll2clk, 22579200);
@@ -927,8 +912,7 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 				reg_val = readl(baseaddr + SW_ADC_FIFOC);
 				reg_val &=~(7<<29); 
 				reg_val |=(0<<29);
-				writel(reg_val, baseaddr + SW_ADC_FIFOC);
-				
+				writel(reg_val, baseaddr + SW_ADC_FIFOC);				
 				break;
 			case 22050:
 				clk_set_rate(codec_pll2clk, 22579200);
@@ -1023,12 +1007,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		}        	
 	}
    if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK){      		
-//		codec_play_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
-//		if (!codec_play_dma_conf){
-//		   play_ret =  - ENOMEM;
-//		   printk("Can't audio malloc dma play configure memory\n");
-//		   return play_ret;
-//		}
    	 	play_prtd = substream->runtime->private_data;
    	 	/* return if this is a bufferless transfer e.g.
 	  	* codec <--> BT codec or GSM modem -- lg FIXME */       
@@ -1054,12 +1032,6 @@ static int snd_sw_codec_prepare(struct	snd_pcm_substream	*substream)
 		sw_pcm_enqueue(substream);
 		return play_ret;
 	}else {			
-//		codec_capture_dma_conf = kmalloc(sizeof(struct dma_hw_conf), GFP_KERNEL);
-//		if (!codec_capture_dma_conf){
-//		   capture_ret =  - ENOMEM;
-//		   printk("Can't audio malloc dma capture configure memory\n");
-//		   return capture_ret;
-//		}
 		capture_prtd = substream->runtime->private_data;
    	 	/* return if this is a bufferless transfer e.g.
 	  	 * codec <--> BT codec or GSM modem -- lg FIXME */       
@@ -1294,8 +1266,7 @@ void snd_sw_codec_free(struct snd_card *card)
 }
 
 static void codec_resume_events(struct work_struct *work)
-{
-	printk("%s,%d\n",__func__,__LINE__);
+{	
 	codec_wr_control(SW_DAC_DPC ,  0x1, DAC_EN, 0x1);
 	msleep(20);
 	//enable PA
@@ -1303,26 +1274,11 @@ static void codec_resume_events(struct work_struct *work)
 	msleep(550);
     //enable dac analog
 	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_L, 0x1);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);
-	//mdelay(20);
-	//codec_wr_control(SW_ADC_ACTL, 0x1, HP_DIRECT, 0x1);
-
-	//enable dac to pa
-	 //mdelay(20);
-	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);
-	//mdelay(30);
-		//pa unmute
-//	codec_wr_control(SW_DAC_ACTL, 0x1, PA_MUTE, 0x1);
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACAEN_R, 0x1);	
+	codec_wr_control(SW_DAC_ACTL, 0x1, 	DACPAS, 0x1);	
     msleep(50);
-	printk("====pa turn on===\n");
-	//if(0 == test_bit(27, (void *)(volatile int *)0xf1c22c10))
-		gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");	
-	/*for clk test*/
-	//printk("[codec resume reg]\n");
-	//printk("codec_module CLK:0xf1c20140 is:%x\n", *(volatile int *)0xf1c20140);
-	//printk("codec_pll2 CLK:0xf1c20008 is:%x\n", *(volatile int *)0xf1c20008);
-	//printk("codec_apb CLK:0xf1c20068 is:%x\n", *(volatile int *)0xf1c20068);
-	//printk("[codec resume reg]\n");
+	printk("====pa turn on===\n");	
+	gpio_write_one_pin_value(gpio_pa_shutdown, 1, "audio_pa_ctrl");		
 }
 
 static int __init sw_codec_probe(struct platform_device *pdev)
