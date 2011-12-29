@@ -872,6 +872,7 @@ unsigned int wemac_powerup(struct net_device *ndev )
 	emac_setup(ndev);
 
 	/* set mac_address to chip */
+	/*
 	if(SCRIPT_PARSER_OK != script_parser_fetch("dynamic", "MAC", (int *)emac_mac, 3)){
 		printk(KERN_WARNING "emac MAC isn't valid!\n");
 	}else{
@@ -883,6 +884,7 @@ unsigned int wemac_powerup(struct net_device *ndev )
 			mac_addr[i] = simple_strtoul(emac_tmp, NULL, 16);
 		}
 	}
+	*/
 	writel(mac_addr[0]<<16 | mac_addr[1]<<8 | mac_addr[2],
 			db->emac_vbase + EMAC_MAC_A1_REG);
 	writel(mac_addr[3]<<16 | mac_addr[4]<<8 | mac_addr[5],
@@ -2040,12 +2042,13 @@ static int __init set_mac_addr(char *str)
 	int i;
 	char* p = str;
 
+	printk(KERN_INFO "MAC address: %s\n" str);
 	for(i=0;i<6;i++,p++)
 		mac_addr[i] = simple_strtoul(p, &p, 16);
 
 	return 0;
 }
-__setup("set_mac_addr", set_mac_addr);
+__setup("mac_addr=", set_mac_addr);
 
 static int __init wemac_init(void)
 {
