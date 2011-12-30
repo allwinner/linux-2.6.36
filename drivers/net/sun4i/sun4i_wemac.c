@@ -2042,7 +2042,7 @@ static int __init set_mac_addr(char *str)
 	int i;
 	char* p = str;
 
-	printk(KERN_INFO "MAC address: %s\n" str);
+	printk(KERN_INFO "MAC address: %s\n", str);
 	for(i=0;i<6;i++,p++)
 		mac_addr[i] = simple_strtoul(p, &p, 16);
 
