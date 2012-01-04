@@ -417,17 +417,22 @@ struct sys_timer sw_timer = {
 
 enum sw_ic_ver sw_get_ic_ver(void)
 {
-	volatile u32 val = readl(SW_VA_TIMERC_IO_BASE + 0x13c);
+	volatile u32 val;
 
+    /* write the register */
+	val = readl(SW_VA_TIMERC_IO_BASE + 0x13c);
+    val &= ~(0x03<<6);
+    writel(val, SW_VA_TIMERC_IO_BASE + 0x13c);
+
+    /* read the register and parse ic version */
+	val = readl(SW_VA_TIMERC_IO_BASE + 0x13c);
 	val = (val >> 6) & 0x3;
-
 	if (val == 0x00) {
 		return MAGIC_VER_A;
 	}
 	else if(val == 0x03) {
 	    return MAGIC_VER_B;
 	}
-
 	return MAGIC_VER_C;
 }
 EXPORT_SYMBOL(sw_get_ic_ver);
