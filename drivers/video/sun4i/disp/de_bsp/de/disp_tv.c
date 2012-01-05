@@ -343,7 +343,7 @@ __s32 BSP_disp_tv_get_mode(__u32 sel)
 
 __s32 BSP_disp_tv_get_interface(__u32 sel)
 {
-    __u8 dac[4];
+    __u8 dac[4] = {0};
     __s32 i = 0;
 	__u32  ret = DISP_TV_NONE;
 
@@ -351,10 +351,16 @@ __s32 BSP_disp_tv_get_interface(__u32 sel)
     {
         dac[i] = TVE_get_dac_status(i);
     }
+    if(gdisp.screen[sel].status & VGA_ON)
+    {
+        dac[0] = 0;
+        dac[1] = 0;
+        dac[2] = 0;
+    }
 
     if(dac[0]>1 || dac[1]>1 || dac[2]>1 || dac[3]>1)
     {
-        DE_WRN("shor to ground\n");
+        DE_WRN("short to ground\n");
     }
     else
     {
@@ -382,7 +388,7 @@ __s32 BSP_disp_tv_get_interface(__u32 sel)
 
 __s32 BSP_disp_tv_get_dac_status(__u32 sel, __u32 index)
 {
-	return gdisp.screen[sel].dac_source[index];
+	return TVE_get_dac_status(index);
 }
 
 __s32 BSP_disp_tv_set_dac_source(__u32 sel, __u32 index, __disp_tv_dac_source source)
