@@ -425,7 +425,7 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
 {
     __s32 in_w0, in_h0, out_w0, out_h0;
     __s32 ch0_hstep, ch0_vstep ;
-	__u32 w_shift, h_shift;
+	__s8 w_shift, h_shift;
     
     in_w0 = in_size->scal_width;
     in_h0 = in_size->scal_height;
@@ -485,11 +485,11 @@ __s32 DE_SCAL_Set_Scaling_Factor(__u8 sel, __scal_scan_mod_t *in_scan, __scal_sr
     //step factor
     ch0_hstep = (in_w0<<16)/out_w0;
     ch0_vstep = ((in_h0>>in_scan->field)<<16)/( out_h0 );
-
+    
 	scal_dev[sel]->ch0_horzfact.dwval = ch0_hstep;
     scal_dev[sel]->ch0_vertfact.dwval = ch0_vstep<<(out_scan->field);
-    scal_dev[sel]->ch1_horzfact.dwval = (ch0_hstep>>8)<<(8-w_shift);
-    scal_dev[sel]->ch1_vertfact.dwval = ((ch0_vstep>>8)<<(8-h_shift))<<(out_scan->field);
+    scal_dev[sel]->ch1_horzfact.dwval = (w_shift>0) ? (ch0_hstep>>w_shift) : ch0_hstep<<(0-w_shift);
+    scal_dev[sel]->ch1_vertfact.dwval = (h_shift>0) ? (ch0_vstep>>h_shift)<<(out_scan->field) : (ch0_vstep<<(0-h_shift))<<(out_scan->field);
     
 	return 0;
 }
