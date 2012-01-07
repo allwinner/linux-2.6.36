@@ -15,8 +15,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
  *
- *
- 
+ * 
 ******************************************************************************/
 #ifndef __STA_INFO_H_
 #define __STA_INFO_H_
@@ -141,6 +140,8 @@ struct sta_info {
 
 	//for A-MPDU Tx
 	//unsigned char		ampdu_txen_bitmap;
+	u16	BA_starting_seqctrl[16];
+	
 
 #ifdef CONFIG_80211N_HT
 	struct ht_priv	htpriv;	
@@ -184,7 +185,7 @@ struct sta_info {
 	u8 no_ht_gf_set;
 	u8 no_ht_set;
 	u8 ht_20mhz_set;
-#endif
+#endif	// CONFIG_NATIVEAP_MLME
 
 	unsigned int tx_ra_bitmap;
 	u8 qos_info;
@@ -214,7 +215,12 @@ struct sta_info {
 	u16 dev_name_len;
 	u8 dev_name[32];	
 #endif //CONFIG_P2P
-#endif	
+
+#ifdef CONFIG_TX_MCAST2UNI
+	u8 under_exist_checking;
+#endif	// CONFIG_TX_MCAST2UNI
+	
+#endif	// CONFIG_AP_MODE	
 
 	//for DM
 	RSSI_STA	 rssi_stat;
@@ -242,6 +248,8 @@ struct	sta_priv {
 #ifdef CONFIG_AP_MODE
 	_list asoc_list;
 	_list auth_list;
+	_lock asoc_list_lock;
+	_lock auth_list_lock;
 
 	unsigned int auth_to;  //sec, time to expire in authenticating.
 	unsigned int assoc_to; //sec, time to expire before associating.

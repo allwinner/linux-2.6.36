@@ -175,7 +175,8 @@ enum _PS_BBRegBackup_ {
 
 enum { // for ips_mode
 	IPS_NORMAL = 0,
-	IPS_LEVEL_2
+	IPS_LEVEL_2,
+	IPS_NONE,
 };
 
 struct	pwrctrl_priv {
@@ -233,7 +234,7 @@ struct	pwrctrl_priv {
 	u8		bInSuspend;
 	u8		bSupportRemoteWakeup;	
 	_timer 	pwr_state_check_timer;
-	int		pwr_state_check_inverval;
+	int		pwr_state_check_interval;
 	u8		pwr_state_check_cnts;
 	uint 		bips_processing;
 
@@ -280,7 +281,7 @@ struct	pwrctrl_priv {
 	} while(0)
 	
 #define rtw_set_pwr_state_check_timer(pwrctrlpriv) \
-	_rtw_set_pwr_state_check_timer((pwrctrlpriv), (pwrctrlpriv)->pwr_state_check_inverval)
+	_rtw_set_pwr_state_check_timer((pwrctrlpriv), (pwrctrlpriv)->pwr_state_check_interval)
 
 extern void rtw_init_pwrctrl_priv(_adapter *adapter);
 extern void rtw_free_pwrctrl_priv(_adapter * adapter);

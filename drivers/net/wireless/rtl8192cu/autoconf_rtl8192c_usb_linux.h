@@ -39,6 +39,7 @@
 //#define CONFIG_H2CLBK
 
 #define CONFIG_EMBEDDED_FWIMG	1
+//#define CONFIG_FILE_FWIMG
 
 #define CONFIG_R871X_TEST	1
 
@@ -51,31 +52,42 @@
 //#define CONFIG_DRVEXT_MODULE	1
 
 #ifndef CONFIG_MP_INCLUDED
-#define CONFIG_IPS	1
-#ifdef CONFIG_IPS
-	//#define CONFIG_IPS_LEVEL_2	1 //enable this to set default IPS mode to IPS_LEVEL_2
-#endif
-#define SUPPORT_HW_RFOFF_DETECTED	1
-
-#define CONFIG_LPS	1
-#define CONFIG_BT_COEXIST	1
-//befor link
-#define CONFIG_ANTENNA_DIVERSITY	 	
-//after link
-#ifdef CONFIG_ANTENNA_DIVERSITY
-#define CONFIG_SW_ANTENNA_DIVERSITY	 
-//#define CONFIG_HW_ANTENNA_DIVERSITY	
-#endif
-
-#else
-#define CONFIG_MP_IWPRIV_SUPPORT	1
-#endif
+	#define CONFIG_IPS	1
+	#ifdef CONFIG_IPS
+		//#define CONFIG_IPS_LEVEL_2	1 //enable this to set default IPS mode to IPS_LEVEL_2
+	#endif
+	#define SUPPORT_HW_RFOFF_DETECTED	1
+	
+	#define CONFIG_LPS	1
+	#define CONFIG_BT_COEXIST	1
+	//befor link
+	#define CONFIG_ANTENNA_DIVERSITY	 	
+	//after link
+	#ifdef CONFIG_ANTENNA_DIVERSITY
+	#define CONFIG_SW_ANTENNA_DIVERSITY	 
+	//#define CONFIG_HW_ANTENNA_DIVERSITY	
+	#endif
+	
+	#define CONFIG_IOL
+#else  //#ifndef CONFIG_MP_INCLUDED
+	#define CONFIG_MP_IWPRIV_SUPPORT	1
+#endif  //#ifndef CONFIG_MP_INCLUDED
 
 #define CONFIG_AP_MODE	1
 #define CONFIG_NATIVEAP_MLME	1
 
 //	Added by Albert 20110314
 #define CONFIG_P2P	1
+
+
+#ifdef CONFIG_P2P
+//	Added by Albert 20110812
+//	The CONFIG_WFD is for supporting the Wi-Fi display
+//#define CONFIG_WFD	1
+
+//	Unmarked if there is low p2p scanned ratio; Kurt
+//#define CONFIG_P2P_AGAINST_NOISE	1
+#endif
 
 //	Added by Kurt 20110511
 //#define CONFIG_TDLS	1
@@ -84,7 +96,7 @@
 	#ifndef CONFIG_NATIVEAP_MLME
 		#define CONFIG_HOSTAPD_MLME	1
 	#endif			
-	//#define CONFIG_FIND_BEST_CHANNEL	1
+	#define CONFIG_FIND_BEST_CHANNEL	1
 #endif
 
 #define CONFIG_SKB_COPY	1//for amsdu
@@ -92,9 +104,12 @@
 #define CONFIG_LED
 #ifdef CONFIG_LED
 	#define CONFIG_SW_LED
-#endif //CONFIG_LED
+	#ifdef CONFIG_SW_LED
+		//#define CONFIG_LED_HANDLED_BY_CMD_THREAD
+	#endif
+#endif // CONFIG_LED
 
-#define CONFIG_HANDLE_JOINBSS_ON_ASSOC_RSP
+
 
 #define USB_INTERFERENCE_ISSUE // this should be checked in all usb interface
 #define CONFIG_GLOBAL_UI_PID
@@ -106,6 +121,25 @@
 //#define CONFIG_SET_SCAN_DENY_TIMER
 #define CONFIG_LONG_DELAY_ISSUE
 #define CONFIG_NEW_SIGNAL_STAT_PROCESS
+//#define CONFIG_SIGNAL_DISPLAY_DBM //display RX signal with dbm
+
+#ifdef CONFIG_IOL
+	#define CONFIG_IOL_LLT
+	#define CONFIG_IOL_MAC
+	#define CONFIG_IOL_BB_PHY_REG
+	#define CONFIG_IOL_BB_AGC_TAB
+	#define CONFIG_IOL_RF_RF90_PATH_A
+	#define CONFIG_IOL_RF_RF90_PATH_B
+#endif
+
+#define CONFIG_BR_EXT	1	// Enable NAT2.5 support for STA mode interface with a L2 Bridge
+#ifdef CONFIG_BR_EXT
+#define CONFIG_BR_EXT_BRNAME	"br0"
+#endif	// CONFIG_BR_EXT
+
+#define CONFIG_TX_MCAST2UNI	1	// Support IP multicast->unicast
+//#define CONFIG_CHECK_AC_LIFETIME 1	// Check packet lifetime of 4 ACs.
+
 
 /*
  * Interface  Related Config
@@ -118,16 +152,24 @@
 #endif
 
 #define CONFIG_PREALLOC_RECV_SKB	1
-#define CONFIG_REDUCE_USB_TX_INT	1
+//#define CONFIG_REDUCE_USB_TX_INT	1	// Trade-off: Improve performance, but may cause TX URBs blocked by USB Host/Bus driver on few platforms.
 //#define CONFIG_EASY_REPLACEMENT	1
 
 /* 
  * CONFIG_USE_USB_BUFFER_ALLOC_XX uses Linux USB Buffer alloc API and is for Linux platform only now!
  */
-#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// For TX path
+#define CONFIG_USE_USB_BUFFER_ALLOC_TX 1	// Trade-off: For TX path, improve stability on some platforms, but may cause performance degrade on other platforms.
 //#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1	// For RX path
 
-#define CONFIG_USB_VENDOR_REQ_PREALLOC 1
+/* 
+ * USB VENDOR REQ BUFFER ALLOCATION METHOD
+ * if not set we'll use function local variable (stack memory)
+ */
+//#define CONFIG_USB_VENDOR_REQ_BUFFER_DYNAMIC_ALLOCATE
+#define CONFIG_USB_VENDOR_REQ_BUFFER_PREALLOC
+
+#define CONFIG_USB_VENDOR_REQ_MUTEX
+#define CONFIG_VENDOR_REQ_RETRY
 
 //#define CONFIG_USB_SUPPORT_ASYNC_VDN_REQ 1
 
@@ -180,13 +222,12 @@
 
 #endif
 
-#ifndef CONFIG_WISTRON_PLATFORM
-//#define CONFIG_DYNAMIC_ALLOCIATE_VENDOR_CMD	1
-#define SILENT_RESET_FOR_SPECIFIC_PLATFOM	1
+#ifdef CONFIG_WISTRON_PLATFORM
+
 #endif
 
 #ifdef CONFIG_PLATFORM_TI_DM365
-#define CONFIG_SPECIFIC_URB_NUM
+#define CONFIG_USE_USB_BUFFER_ALLOC_RX 1
 #endif
 
 
@@ -211,6 +252,17 @@
 
 //#define DBG_RX_DROP_FRAME
 //#define DBG_RX_SEQ
+//#define DBG_RX_SIGNAL_DISPLAY_PROCESSING
+//#define DBG_RX_SIGNAL_DISPLAY_SSID_MONITORED "jeff-ap"
+
+
 
 //#define DBG_SHOW_MCUFWDL_BEFORE_51_ENABLE
+//#define DBG_ROAMING_TEST
+
+//#define DBG_HAL_INIT_PROFILING
+#define DBG_MEMORY_LEAK	1
+
+#define DBG_CONFIG_ERROR_DETECT
+//#define DBG_CONFIG_ERROR_RESET
 

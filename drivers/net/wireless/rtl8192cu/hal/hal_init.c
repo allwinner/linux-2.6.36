@@ -74,7 +74,6 @@ uint	 rtw_hal_init(_adapter *padapter)
 	
 	padapter->hw_init_completed=_FALSE;
 
-	padapter->bfirst_init = _TRUE;
 	status = padapter->HalFunc.hal_init(padapter);
 
 	if(status == _SUCCESS){
@@ -84,7 +83,6 @@ uint	 rtw_hal_init(_adapter *padapter)
 	 	padapter->hw_init_completed = _FALSE;
 		RT_TRACE(_module_hal_init_c_,_drv_err_,("rtw_hal_init: hal__init fail\n"));
 	}
-	padapter->bfirst_init = _FALSE;
 
 	RT_TRACE(_module_hal_init_c_,_drv_err_,("-rtl871x_hal_init:status=0x%x\n",status));
 
@@ -95,12 +93,10 @@ uint	 rtw_hal_init(_adapter *padapter)
 uint	 rtw_hal_deinit(_adapter *padapter)
 {
 	uint	status = _SUCCESS;
-	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
-_func_enter_;
 	
-	if(pwrpriv->bInSuspend != _TRUE) {// when suspend ignore this operation, 2011-09-07, allwinner!!!
-		status = padapter->HalFunc.hal_deinit(padapter);
-	}
+_func_enter_;
+
+	status = padapter->HalFunc.hal_deinit(padapter);
 
 	if(status == _SUCCESS){
 		padapter->hw_init_completed = _FALSE;
@@ -115,7 +111,7 @@ _func_exit_;
 	return status;
 	
 }
-#ifdef SILENT_RESET_FOR_SPECIFIC_PLATFOM
+#ifdef DBG_CONFIG_ERROR_DETECT
 void	rtw_sreset_init(_adapter *padapter)
 {
 	if(padapter->HalFunc.sreset_init_value)

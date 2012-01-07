@@ -31,11 +31,9 @@
 #elif defined(PLATFORM_OS_CE)
 	#define NR_RECVBUFF (4)
 #else
-#ifdef CONFIG_SPECIFIC_URB_NUM
-	#define NR_RECVBUFF (1)
-#else
+
 	#define NR_RECVBUFF (4)
-#endif
+
 	#define NR_PREALLOC_RECV_SKB (8)
 #endif
 

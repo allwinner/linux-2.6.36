@@ -15,8 +15,7 @@
  * this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
  *
- *
- 
+ * 
 ******************************************************************************/
 #define _RTW_STA_MGT_C_
 
@@ -78,8 +77,12 @@ _func_enter_;
 	psta->no_ht_set = 0;
 	psta->ht_20mhz_set = 0;
 #endif	
+
+#ifdef CONFIG_TX_MCAST2UNI
+	psta->under_exist_checking = 0;
+#endif	// CONFIG_TX_MCAST2UNI
 	
-#endif	
+#endif	// CONFIG_AP_MODE	
 	
 _func_exit_;	
 
@@ -130,9 +133,14 @@ _func_enter_;
 
 	_rtw_init_listhead(&pstapriv->asoc_list);
 	_rtw_init_listhead(&pstapriv->auth_list);
+
+	_rtw_spinlock_init(&pstapriv->asoc_list_lock);
+	_rtw_spinlock_init(&pstapriv->auth_list_lock);	
+	
 	pstapriv->auth_to = 3; // 3*2 = 6 sec 
 	pstapriv->assoc_to = 3;
-	pstapriv->expire_to = 900;// 900*2 = 1800 sec = 30 min, expire after no any traffic.
+	//pstapriv->expire_to = 900;// 900*2 = 1800 sec = 30 min, expire after no any traffic.
+	pstapriv->expire_to = 30;// 30*2 = 60 sec = 1 min, expire after no any traffic.
 	
 	pstapriv->max_num_sta = NUM_STA;
 	
@@ -222,6 +230,11 @@ void rtw_mfree_sta_priv_lock(struct	sta_priv *pstapriv)
 	_rtw_spinlock_free(&pstapriv->wakeup_q.lock);
 	_rtw_spinlock_free(&pstapriv->sleep_q.lock);
 
+#ifdef CONFIG_AP_MODE
+	_rtw_spinlock_free(&pstapriv->asoc_list_lock);
+	_rtw_spinlock_free(&pstapriv->auth_list_lock);	
+#endif
+
 }
 
 u32	_rtw_free_sta_priv(struct	sta_priv *pstapriv)
@@ -261,6 +274,7 @@ _func_enter_;
 
 	if (_rtw_queue_empty(pfree_sta_queue) == _TRUE)
 	{
+		_exit_critical_bh(&(pfree_sta_queue->lock), &irqL);
 		psta = NULL;
 	}
 	else
@@ -268,6 +282,8 @@ _func_enter_;
 		psta = LIST_CONTAINOR(get_next(&pfree_sta_queue->queue), struct sta_info, list);
 		
 		rtw_list_delete(&(psta->list));
+		
+		_exit_critical_bh(&(pfree_sta_queue->lock), &irqL);
 		
 		tmp_aid = psta->aid;	
 	
@@ -343,11 +359,14 @@ _func_enter_;
 			rtw_init_recv_timer(preorder_ctrl);
 		}
 
+
+		//init for DM
+		psta->rssi_stat.UndecoratedSmoothedPWDB = (-1);
+		psta->rssi_stat.UndecoratedSmoothedCCK = (-1);
+		
 	}
 	
 exit:
-
-	_exit_critical_bh(&(pfree_sta_queue->lock), &irqL);
 	
 _func_exit_;	
 
@@ -383,43 +402,46 @@ _func_enter_;
 	
 	//rtw_list_delete(&psta->wakeup_list);
 	
+	_enter_critical_bh(&pxmitpriv->lock, &irqL0);
+	
 	rtw_free_xmitframe_queue(pxmitpriv, &psta->sleep_q);
 	psta->sleepq_len = 0;
 	
-	_enter_critical_bh(&(pxmitpriv->vo_pending.lock), &irqL0);
+	//_enter_critical_bh(&(pxmitpriv->vo_pending.lock), &irqL0);
 
 	rtw_free_xmitframe_queue( pxmitpriv, &pstaxmitpriv->vo_q.sta_pending);
 
 	rtw_list_delete(&(pstaxmitpriv->vo_q.tx_pending));
 
-	_exit_critical_bh(&(pxmitpriv->vo_pending.lock), &irqL0);
+	//_exit_critical_bh(&(pxmitpriv->vo_pending.lock), &irqL0);
 	
 
-	_enter_critical_bh(&(pxmitpriv->vi_pending.lock), &irqL0);
+	//_enter_critical_bh(&(pxmitpriv->vi_pending.lock), &irqL0);
 
 	rtw_free_xmitframe_queue( pxmitpriv, &pstaxmitpriv->vi_q.sta_pending);
 
 	rtw_list_delete(&(pstaxmitpriv->vi_q.tx_pending));
 
-	_exit_critical_bh(&(pxmitpriv->vi_pending.lock), &irqL0);
+	//_exit_critical_bh(&(pxmitpriv->vi_pending.lock), &irqL0);
 
 
-	_enter_critical_bh(&(pxmitpriv->bk_pending.lock), &irqL0);
+	//_enter_critical_bh(&(pxmitpriv->bk_pending.lock), &irqL0);
 
 	rtw_free_xmitframe_queue( pxmitpriv, &pstaxmitpriv->bk_q.sta_pending);
 
 	rtw_list_delete(&(pstaxmitpriv->bk_q.tx_pending));
 
-	_exit_critical_bh(&(pxmitpriv->bk_pending.lock), &irqL0);
+	//_exit_critical_bh(&(pxmitpriv->bk_pending.lock), &irqL0);
 
-	_enter_critical_bh(&(pxmitpriv->be_pending.lock), &irqL0);
+	//_enter_critical_bh(&(pxmitpriv->be_pending.lock), &irqL0);
 
 	rtw_free_xmitframe_queue( pxmitpriv, &pstaxmitpriv->be_q.sta_pending);
 
 	rtw_list_delete(&(pstaxmitpriv->be_q.tx_pending));
 
-	_exit_critical_bh(&(pxmitpriv->be_pending.lock), &irqL0);
+	//_exit_critical_bh(&(pxmitpriv->be_pending.lock), &irqL0);
 	
+	_exit_critical_bh(&pxmitpriv->lock, &irqL0);
 	
 	rtw_list_delete(&psta->hash_list);
 	RT_TRACE(_module_rtl871x_sta_mgt_c_,_drv_err_,("\n free number_%d stainfo  with hwaddr = 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x  \n",pstapriv->asoc_sta_count , psta->hwaddr[0], psta->hwaddr[1], psta->hwaddr[2],psta->hwaddr[3],psta->hwaddr[4],psta->hwaddr[5]));
@@ -442,16 +464,50 @@ _func_enter_;
 	//for A-MPDU Rx reordering buffer control, cancel reordering_ctrl_timer
 	for(i=0; i < 16 ; i++)
 	{
+		_irqL irqL;
+		_list	*phead, *plist;
+		union recv_frame *prframe;
+		_queue *ppending_recvframe_queue;
+		_queue *pfree_recv_queue = &padapter->recvpriv.free_recv_queue;
+	
 		preorder_ctrl = &psta->recvreorder_ctrl[i];
 		
 		_cancel_timer_ex(&preorder_ctrl->reordering_ctrl_timer);		
+
+		
+		ppending_recvframe_queue = &preorder_ctrl->pending_recvframe_queue;
+
+		_enter_critical_bh(&ppending_recvframe_queue->lock, &irqL);
+
+		phead = 	get_list_head(ppending_recvframe_queue);
+		plist = get_next(phead);
+		
+		while(!rtw_is_list_empty(phead))
+		{	
+			prframe = LIST_CONTAINOR(plist, union recv_frame, u);
+			
+			plist = get_next(plist);
+			
+			rtw_list_delete(&(prframe->u.hdr.list));
+
+			rtw_free_recvframe(prframe, pfree_recv_queue);
+		}
+
+		_exit_critical_bh(&ppending_recvframe_queue->lock, &irqL);
+		
 	}
 
 
 #ifdef CONFIG_AP_MODE
 
+	_enter_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
 	rtw_list_delete(&psta->asoc_list);	
+	_exit_critical_bh(&pstapriv->asoc_list_lock, &irqL0);
+
+	_enter_critical_bh(&pstapriv->auth_list_lock, &irqL0);
 	rtw_list_delete(&psta->auth_list);
+	_exit_critical_bh(&pstapriv->auth_list_lock, &irqL0);
+	
 	psta->expire_to = 0;
 	
 	psta->sleepq_ac_len = 0;
@@ -478,9 +534,13 @@ _func_enter_;
 		psta->aid = 0;
 	}	
 
-#endif	
+#endif	// CONFIG_NATIVEAP_MLME	
 
-#endif	
+#ifdef CONFIG_TX_MCAST2UNI
+	psta->under_exist_checking = 0;
+#endif	// CONFIG_TX_MCAST2UNI
+
+#endif	// CONFIG_AP_MODE	
 
 	_enter_critical_bh(&(pfree_sta_queue->lock), &irqL0);
 	rtw_list_insert_tail(&psta->list, get_list_head(pfree_sta_queue));
@@ -602,7 +662,7 @@ u32 rtw_init_bcmc_stainfo(_adapter* padapter)
 	NDIS_802_11_MAC_ADDRESS	bcast_addr= {0xff,0xff,0xff,0xff,0xff,0xff};
 	
 	struct	sta_priv *pstapriv = &padapter->stapriv;
-	_queue	*pstapending = &padapter->xmitpriv.bm_pending; 
+	//_queue	*pstapending = &padapter->xmitpriv.bm_pending; 
 	
 _func_enter_;
 

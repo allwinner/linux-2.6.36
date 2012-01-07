@@ -586,8 +586,6 @@ void flush_all_cam_entry(_adapter *padapter)
 {
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
-	struct pwrctrl_priv *pwrpriv = &padapter->pwrctrlpriv;
-	
 #if 0
 	unsigned char null_sta[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 	unsigned char null_key[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00};
@@ -597,9 +595,7 @@ void flush_all_cam_entry(_adapter *padapter)
 		write_cam(padapter, i, 0, null_sta, null_key);
 	}
 #else
-	if(pwrpriv->bInSuspend != _TRUE) { // when suspend ignore this operation, 2011-09-07, allwinner!!!
-		padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);
-	}
+	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_CAM_INVALID_ALL, 0);
 #endif
 	_rtw_memset((u8 *)(pmlmeinfo->FW_sta_info), 0, sizeof(pmlmeinfo->FW_sta_info));
 }
@@ -644,16 +640,19 @@ int WMM_param_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs	pIE)
 }
 
 void WMMOnAssocRsp(_adapter *padapter)
-{	
-	unsigned char		ACI, ACM, AIFS, ECWMin, ECWMax, aSifsTime;
-	unsigned short	TXOP;
-	unsigned int		acParm, i;
+{
+	u8	ACI, ACM, AIFS, ECWMin, ECWMax, aSifsTime;
+	u8	acm_ctrl;
+	u16	TXOP;
+	u32	acParm, i;
 	struct registry_priv	*pregpriv = &padapter->registrypriv;
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
 	
 	if (pmlmeinfo->WMM_enable == 0)
 		return;
+
+	acm_ctrl = 0;
 
 	if( pmlmeext->cur_wireless_mode == WIRELESS_11B)
 		aSifsTime = 10;
@@ -678,24 +677,30 @@ void WMMOnAssocRsp(_adapter *padapter)
 		{
 			case 0x0:
 				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_BE, (u8 *)(&acParm));
+				acm_ctrl |= (ACM? BIT(1):0);
 				break;
 								
 			case 0x1:
 				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_BK, (u8 *)(&acParm));
+				acm_ctrl |= (ACM? BIT(0):0);
 				break;
 								
 			case 0x2:
 				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_VI, (u8 *)(&acParm));
+				acm_ctrl |= (ACM? BIT(2):0);
 				break;
 								
 			case 0x3:
 				padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AC_PARAM_VO, (u8 *)(&acParm));
+				acm_ctrl |= (ACM? BIT(3):0);
 				break;							
 		}
 		
 		DBG_871X("WMM(%x): %x, %x\n", ACI, ACM, acParm);
 	}
-	
+
+	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_ACM_CTRL, (u8 *)(&acm_ctrl));
+
 	return;	
 }
 
@@ -796,6 +801,8 @@ void HT_caps_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 	struct mlme_priv 		*pmlmepriv = &padapter->mlmepriv;	
 	struct ht_priv			*phtpriv = &pmlmepriv->htpriv;
 
+	if(pIE==NULL) return;
+	
 	if(phtpriv->ht_option == _FALSE)	return;
 
 	pmlmeinfo->HT_caps_enable = 1;
@@ -869,6 +876,8 @@ void HT_info_handler(_adapter *padapter, PNDIS_802_11_VARIABLE_IEs pIE)
 	struct mlme_priv 		*pmlmepriv = &padapter->mlmepriv;	
 	struct ht_priv			*phtpriv = &pmlmepriv->htpriv;
 
+	if(pIE==NULL) return;
+
 	if(phtpriv->ht_option == _FALSE)	return;
 
 
@@ -885,11 +894,10 @@ void HTOnAssocRsp(_adapter *padapter)
 {
 	unsigned char		max_AMPDU_len;
 	unsigned char		min_MPDU_spacing;
-	unsigned char		FactorLevel[18] = {2, 4, 4, 7, 7, 13, 13, 13, 2, 7, 7, 13, 13, 15, 15, 15, 15, 0};
-	struct registry_priv	 *pregpriv = &padapter->registrypriv;
+	//struct registry_priv	 *pregpriv = &padapter->registrypriv;
 	struct mlme_ext_priv	*pmlmeext = &padapter->mlmeextpriv;
 	struct mlme_ext_info	*pmlmeinfo = &(pmlmeext->mlmext_info);
-	WLAN_BSSID_EX 		*cur_network = &(pmlmeinfo->network);
+	//WLAN_BSSID_EX 		*cur_network = &(pmlmeinfo->network);
 	
 	DBG_871X("%s\n", __FUNCTION__);
 
@@ -900,7 +908,7 @@ void HTOnAssocRsp(_adapter *padapter)
 	else
 	{
 		pmlmeinfo->HT_enable = 0;
-		set_channel_bwmode(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset, pmlmeext->cur_bwmode);
+		//set_channel_bwmode(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset, pmlmeext->cur_bwmode);
 		return;
 	}
 	
@@ -917,6 +925,7 @@ void HTOnAssocRsp(_adapter *padapter)
 
 	padapter->HalFunc.SetHwRegHandler(padapter, HW_VAR_AMPDU_FACTOR, (u8 *)(&max_AMPDU_len));
 
+#if 0 //move to rtw_update_ht_cap()
 	if ((pregpriv->cbw40_enable) &&
 		(pmlmeinfo->HT_caps.HT_cap_element.HT_caps_info & BIT(1)) && 
 		(pmlmeinfo->HT_info.infos[0] & BIT(2)))
@@ -940,9 +949,11 @@ void HTOnAssocRsp(_adapter *padapter)
 		
 		//SelectChannel(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset);
 	}
+#endif
 
-	set_channel_bwmode(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset, pmlmeext->cur_bwmode);
+	//set_channel_bwmode(padapter, pmlmeext->cur_channel, pmlmeext->cur_ch_offset, pmlmeext->cur_bwmode);
 
+#if 0 //move to rtw_update_ht_cap()
 	//
 	// Config SM Power Save setting
 	//
@@ -962,6 +973,7 @@ void HTOnAssocRsp(_adapter *padapter)
 	// Config current HT Protection mode.
 	//
 	pmlmeinfo->HT_protection = pmlmeinfo->HT_info.infos[1] & 0x3;
+#endif
 	
 }
 
@@ -1068,6 +1080,36 @@ void update_beacon_info(_adapter *padapter, u8 *pframe, uint pkt_len, struct sta
 		i += (pIE->Length + 2);
 	}
 }
+
+#ifdef CONFIG_DFS
+void process_csa_ie(_adapter *padapter, u8 *pframe, uint pkt_len)
+{
+	unsigned int i;
+	unsigned int len;
+	PNDIS_802_11_VARIABLE_IEs	pIE;
+	u8 new_ch_no = 0; 
+		
+	len = pkt_len - (_BEACON_IE_OFFSET_ + WLAN_HDR_A3_LEN);
+
+	for (i = 0; i < len;)
+	{
+		pIE = (PNDIS_802_11_VARIABLE_IEs)(pframe + (_BEACON_IE_OFFSET_ + WLAN_HDR_A3_LEN) + i);
+		
+		switch (pIE->ElementID)
+		{
+			case _CH_SWTICH_ANNOUNCE_:
+				_rtw_memcpy(&new_ch_no, pIE->data+1, 1);
+				rtw_set_csa_cmd(padapter, new_ch_no);
+				break;
+
+			default:
+				break;
+		}
+		
+		i += (pIE->Length + 2);
+	}
+}
+#endif //CONFIG_DFS
 
 unsigned int is_ap_in_tkip(_adapter *padapter)
 {
@@ -1615,6 +1657,8 @@ void process_addba_req(_adapter *padapter, u8 *paddba_req, u8 *addr)
 		DBG_871X("DBG_RX_SEQ %s:%d IndicateSeq: %d, start_seq: %d\n", __FUNCTION__, __LINE__,
 			preorder_ctrl->indicate_seq, start_seq);
 		#endif
+		#else
+		preorder_ctrl->indicate_seq = 0xffff;
 		#endif
 		
 		preorder_ctrl->enable =(pmlmeinfo->bAcceptAddbaReq == _TRUE)? _TRUE :_FALSE;

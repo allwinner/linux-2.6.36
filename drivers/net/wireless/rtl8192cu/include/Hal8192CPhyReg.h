@@ -116,6 +116,13 @@
 #define		rFPGA0_XA_HSSIParameter2		0x824
 #define		rFPGA0_XB_HSSIParameter1		0x828
 #define		rFPGA0_XB_HSSIParameter2		0x82c
+#define		rTxAGC_B_Rate18_06				0x830
+#define		rTxAGC_B_Rate54_24				0x834
+#define		rTxAGC_B_CCK1_55_Mcs32		0x838
+#define		rTxAGC_B_Mcs03_Mcs00			0x83c
+
+#define		rTxAGC_B_Mcs07_Mcs04			0x848
+#define		rTxAGC_B_Mcs11_Mcs08			0x84c
 
 #define		rFPGA0_XA_LSSIParameter		0x840
 #define		rFPGA0_XB_LSSIParameter		0x844
@@ -128,6 +135,9 @@
 
 #define		rFPGA0_XA_RFInterfaceOE		0x860	// RF Channel switch
 #define		rFPGA0_XB_RFInterfaceOE		0x864
+
+#define		rTxAGC_B_Mcs15_Mcs12			0x868
+#define		rTxAGC_B_CCK11_A_CCK2_11		0x86c
 
 #define		rFPGA0_XAB_RFInterfaceSW		0x870	// RF Interface Software Control
 #define		rFPGA0_XCD_RFInterfaceSW		0x874
@@ -296,14 +306,54 @@
 #define		rTxAGC_A_Mcs11_Mcs08			0xe18
 #define		rTxAGC_A_Mcs15_Mcs12			0xe1c
 
-#define		rTxAGC_B_Rate18_06			0x830
-#define		rTxAGC_B_Rate54_24			0x834
-#define		rTxAGC_B_CCK1_55_Mcs32		0x838
-#define		rTxAGC_B_Mcs03_Mcs00			0x83c
-#define		rTxAGC_B_Mcs07_Mcs04			0x848
-#define		rTxAGC_B_Mcs11_Mcs08			0x84c
-#define		rTxAGC_B_Mcs15_Mcs12			0x868
-#define		rTxAGC_B_CCK11_A_CCK2_11		0x86c
+#define		rFPGA0_IQK					0xe28
+#define		rTx_IQK_Tone_A				0xe30
+#define		rRx_IQK_Tone_A				0xe34
+#define		rTx_IQK_PI_A					0xe38
+#define		rRx_IQK_PI_A					0xe3c
+
+#define		rTx_IQK 						0xe40
+#define		rRx_IQK						0xe44
+#define		rIQK_AGC_Pts					0xe48
+#define		rIQK_AGC_Rsp					0xe4c
+#define		rTx_IQK_Tone_B				0xe50
+#define		rRx_IQK_Tone_B				0xe54
+#define		rTx_IQK_PI_B					0xe58
+#define		rRx_IQK_PI_B					0xe5c
+#define		rIQK_AGC_Cont				0xe60
+
+#define		rBlue_Tooth					0xe6c
+#define		rRx_Wait_CCA					0xe70
+#define		rTx_CCK_RFON					0xe74
+#define		rTx_CCK_BBON				0xe78
+#define		rTx_OFDM_RFON				0xe7c
+#define		rTx_OFDM_BBON				0xe80
+#define		rTx_To_Rx					0xe84
+#define		rTx_To_Tx					0xe88
+#define		rRx_CCK						0xe8c
+
+#define		rTx_Power_Before_IQK_A		0xe94
+#define		rTx_Power_After_IQK_A			0xe9c
+
+#define		rRx_Power_Before_IQK_A		0xea0
+#define		rRx_Power_Before_IQK_A_2		0xea4
+#define		rRx_Power_After_IQK_A			0xea8
+#define		rRx_Power_After_IQK_A_2		0xeac
+
+#define		rTx_Power_Before_IQK_B		0xeb4
+#define		rTx_Power_After_IQK_B			0xebc
+
+#define		rRx_Power_Before_IQK_B		0xec0
+#define		rRx_Power_Before_IQK_B_2		0xec4
+#define		rRx_Power_After_IQK_B			0xec8
+#define		rRx_Power_After_IQK_B_2		0xecc
+
+#define		rRx_OFDM					0xed0
+#define		rRx_Wait_RIFS 				0xed4
+#define		rRx_TO_Rx 					0xed8
+#define		rStandby 						0xedc
+#define		rSleep 						0xee0
+#define		rPMPD_ANAEN				0xeec
 
 //
 // 7. RF Register 0x00-0x2E (RF 8256)

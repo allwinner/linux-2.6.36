@@ -16,7 +16,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110, USA
  *
  *
- 
 ******************************************************************************/
 #ifndef	__RTW_RF_H_ 
 #define __RTW_RF_H_
@@ -37,8 +36,14 @@
 #define RTL8711_RF_MAX_SENS 6
 #define RTL8711_RF_DEF_SENS 4
 
+//
+// We now define the following channels as the max channels in each channel plan.
+// 2G, total 14 chnls
+// {1,2,3,4,5,6,7,8,9,10,11,12,13,14}
+// 5G, total 24 chnls
+// {36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165}
+#define	MAX_CHANNEL_NUM					38//14+24
 
-#define NUM_CHANNELS	32
 //#define NUM_REGULATORYS	21
 #define NUM_REGULATORYS	1
 
@@ -49,9 +54,9 @@
 
 struct	regulatory_class {
 	u32	starting_freq;					//MHz, 
-	u8	channel_set[NUM_CHANNELS];
-	u8	channel_cck_power[NUM_CHANNELS];//dbm
-	u8	channel_ofdm_power[NUM_CHANNELS];//dbm
+	u8	channel_set[MAX_CHANNEL_NUM];
+	u8	channel_cck_power[MAX_CHANNEL_NUM];//dbm
+	u8	channel_ofdm_power[MAX_CHANNEL_NUM];//dbm
 	u8	txpower_limit;  				//dbm
 	u8	channel_spacing;				//MHz
 	u8	modem;
@@ -129,6 +134,13 @@ typedef	enum _RT_RF_TYPE_DEFINITION
 	RF_819X_MAX_TYPE = 5,
 }RT_RF_TYPE_DEF_E;
 
+typedef enum _RF_RADIO_PATH{
+	RF_PATH_A = 0,			//Radio Path A
+	RF_PATH_B = 1,			//Radio Path B
+	RF_PATH_C = 2,			//Radio Path C
+	RF_PATH_D = 3,			//Radio Path D
+	//RF_PATH_MAX				//Max RF number 90 support 
+}RF_RADIO_PATH_E, *PRF_RADIO_PATH_E;
 
 u32 rtw_ch2freq(u32 ch);
 u32 rtw_freq2ch(u32 freq);

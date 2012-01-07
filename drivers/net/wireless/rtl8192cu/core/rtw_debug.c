@@ -374,8 +374,8 @@ int proc_get_trx_info(char *page, char **start,
 	struct recv_priv  *precvpriv = &padapter->recvpriv;
 	int len = 0;
 	
-	len += snprintf(page + len, count - len, "free_xmitbuf_cnt=%d, free_xmitframe_cnt=%d\n", 
-				pxmitpriv->free_xmitbuf_cnt, pxmitpriv->free_xmitframe_cnt);
+	len += snprintf(page + len, count - len, "free_xmitbuf_cnt=%d, free_xmitframe_cnt=%d, free_ext_xmitbuf_cnt=%d, free_recvframe_cnt=%d\n", 
+				pxmitpriv->free_xmitbuf_cnt, pxmitpriv->free_xmitframe_cnt,pxmitpriv->free_xmit_extbuf_cnt, precvpriv->free_recvframe_cnt);
 #ifdef CONFIG_USB_HCI
 	len += snprintf(page + len, count - len, "rx_urb_pending_cn=%d\n", precvpriv->rx_pending_cnt);
 #endif
@@ -493,6 +493,13 @@ int proc_get_all_sta_info(char *page, char **start,
 				len += snprintf(page + len, count - len, "ampdu_enable = %d\n", psta->htpriv.ampdu_enable);									
 				len += snprintf(page + len, count - len, "agg_enable_bitmap=%x, candidate_tid_bitmap=%x\n", psta->htpriv.agg_enable_bitmap, psta->htpriv.candidate_tid_bitmap);
 				len += snprintf(page + len, count - len, "sleepq_len=%d\n", psta->sleepq_len);
+				len += snprintf(page + len, count - len, "capability=0x%x\n", psta->capability);
+				len += snprintf(page + len, count - len, "flags=0x%x\n", psta->flags);
+				len += snprintf(page + len, count - len, "wpa_psk=0x%x\n", psta->wpa_psk);
+				len += snprintf(page + len, count - len, "wpa2_group_cipher=0x%x\n", psta->wpa2_group_cipher);
+				len += snprintf(page + len, count - len, "wpa2_pairwise_cipher=0x%x\n", psta->wpa2_pairwise_cipher);
+				len += snprintf(page + len, count - len, "qos_info=0x%x\n", psta->qos_info);
+				len += snprintf(page + len, count - len, "dot118021XPrivacy=0x%x\n", psta->dot118021XPrivacy);
 								
 				for(j=0;j<16;j++)
 				{							
@@ -518,7 +525,7 @@ int proc_get_all_sta_info(char *page, char **start,
 	
 #endif		
 
-#ifdef MEMORY_LEAK_DEBUG
+#ifdef DBG_MEMORY_LEAK
 #include <asm/atomic.h>
 extern atomic_t _malloc_cnt;;
 extern atomic_t _malloc_size;;
@@ -536,7 +543,7 @@ int proc_get_malloc_cnt(char *page, char **start,
 	*eof = 1;
 	return len;
 }
-#endif /* MEMORY_LEAK_DEBUG */
+#endif /* DBG_MEMORY_LEAK */
 
 #ifdef CONFIG_FIND_BEST_CHANNEL
 int proc_get_best_channel(char *page, char **start,
@@ -585,7 +592,7 @@ int proc_get_best_channel(char *page, char **start,
 				best_channel_5G = pmlmeext->channel_set[i].ChannelNum;
 			}
 		}
-#if 0 // debug
+#if 1 // debug
 		len += snprintf(page + len, count - len, "The rx cnt of channel %3d = %d\n", 
 					pmlmeext->channel_set[i].ChannelNum, pmlmeext->channel_set[i].rx_count);
 #endif
