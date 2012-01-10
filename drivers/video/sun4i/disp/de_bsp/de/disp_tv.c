@@ -326,34 +326,23 @@ __s32 BSP_disp_tv_get_interface(__u32 sel)
     for(i=0; i<4; i++)
     {
         dac[i] = TVE_get_dac_status(i);
-    }
-    if(gdisp.screen[sel].status & VGA_ON)
-    {
-        dac[0] = 0;
-        dac[1] = 0;
-        dac[2] = 0;
-    }
-
-    if(dac[0]>1 || dac[1]>1 || dac[2]>1 || dac[3]>1)
-    {
-        DE_WRN("short to ground\n");
-    }
-    else
-    {
-        for(i=0; i<4; i++)
+        if(dac[i]>1)
         {
-            if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_COMPOSITE && dac[i] == 1)
-            {
-                ret |= DISP_TV_CVBS;
-            }
-            else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_Y && dac[i] == 1)
-            {
-                ret |= DISP_TV_YPBPR;
-            }
-            else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_LUMA && dac[i] == 1)
-            {
-                ret |= DISP_TV_SVIDEO;
-            }
+            DE_WRN("dac %d short to ground\n", i);
+            dac[i] = 0;
+        }
+   
+        if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_COMPOSITE && dac[i] == 1)
+        {
+            ret |= DISP_TV_CVBS;
+        }
+        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_Y && dac[i] == 1)
+        {
+            ret |= DISP_TV_YPBPR;
+        }
+        else if(gdisp.screen[sel].dac_source[i] == DISP_TV_DAC_SRC_LUMA && dac[i] == 1)
+        {
+            ret |= DISP_TV_SVIDEO;
         }
     }
 
