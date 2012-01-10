@@ -4,6 +4,23 @@
 #include <linux/kernel.h>
 #include <linux/videodev2.h>
 
+#define USE_RESERVED_MEM
+
+//for internel driver debug
+#define DBG_EN   		1 	
+
+//for internel driver debug
+#if(DBG_EN==1)		
+#define uvc_dbg(x,arg...) printk(KERN_INFO"[UVC_DEBUG]"x,##arg)
+#else
+#define uvc_dbg(x,arg...) 
+#endif
+
+//print when error happens
+#define uvc_err(x,arg...) printk(KERN_INFO"[UVC_ERR]"x,##arg)
+
+#define uvc_F_LOG uvc_dbg("%s, %d", __func__, __LINE__)
+
 /*
  * Dynamic controls
  */

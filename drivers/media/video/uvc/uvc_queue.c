@@ -100,6 +100,8 @@ void uvc_queue_init(struct uvc_video_queue *queue, enum v4l2_buf_type type,
 int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 		unsigned int buflength)
 {
+	uvc_dbg("uvc_alloc_buffers\n");
+	
 	unsigned int bufsize = PAGE_ALIGN(buflength);
 	unsigned int i;
 	void *mem = NULL;
@@ -116,7 +118,8 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 	/* Bail out if no buffers should be allocated. */
 	if (nbuffers == 0)
 		goto done;
-
+	
+#ifndef USE_RESERVED_MEM
 	/* Decrement the number of buffers until allocation succeeds. */
 	for (; nbuffers > 0; --nbuffers) {
 		mem = vmalloc_32(nbuffers * bufsize);
@@ -141,7 +144,23 @@ int uvc_alloc_buffers(struct uvc_video_queue *queue, unsigned int nbuffers,
 		queue->buffer[i].buf.flags = 0;
 		init_waitqueue_head(&queue->buffer[i].wait);
 	}
-
+#else
+	int start_addr_phy = (CONFIG_SW_SYSMEM_RESERVED_BASE + CONFIG_SW_SYSMEM_RESERVED_SIZE * 1024 - 16*1024*1024 + 4095) & (~(4095));	// not used
+	uvc_dbg("start_addr_phy: %x, vir: %x", start_addr_phy, start_addr_phy + 0x80000000);
+	mem = (void *)(start_addr_phy + 0x80000000);	// not used
+	for (i = 0; i < nbuffers; ++i) {
+		memset(&queue->buffer[i], 0, sizeof queue->buffer[i]);
+		queue->buffer[i].buf.index = i;
+		queue->buffer[i].buf.m.offset = i * bufsize;
+		queue->buffer[i].buf.length = buflength;
+		queue->buffer[i].buf.type = queue->type;
+		queue->buffer[i].buf.sequence = 0;
+		queue->buffer[i].buf.field = V4L2_FIELD_NONE;
+		queue->buffer[i].buf.memory = V4L2_MEMORY_MMAP;
+		queue->buffer[i].buf.flags = 0;
+		init_waitqueue_head(&queue->buffer[i].wait);
+	}
+#endif
 	queue->mem = mem;
 	queue->count = nbuffers;
 	queue->buf_size = bufsize;
@@ -159,6 +178,8 @@ done:
  */
 int uvc_free_buffers(struct uvc_video_queue *queue)
 {
+	uvc_dbg("uvc_free_buffers\n");
+	
 	unsigned int i;
 
 	for (i = 0; i < queue->count; ++i) {
@@ -166,10 +187,14 @@ int uvc_free_buffers(struct uvc_video_queue *queue)
 			return -EBUSY;
 	}
 
+#ifndef USE_RESERVED_MEM
 	if (queue->count) {
 		vfree(queue->mem);
 		queue->count = 0;
 	}
+#else
+	queue->count = 0;
+#endif // USE_RESERVED_MEM
 
 	return 0;
 }
@@ -181,9 +206,11 @@ int uvc_queue_allocated(struct uvc_video_queue *queue)
 {
 	int allocated;
 
+#ifndef USE_RESERVED_MEM
 	mutex_lock(&queue->mutex);
 	allocated = queue->count != 0;
 	mutex_unlock(&queue->mutex);
+#endif // USE_RESERVED_MEM
 
 	return allocated;
 }
@@ -363,6 +390,10 @@ int uvc_dequeue_buffer(struct uvc_video_queue *queue,
 
 	list_del(&buf->stream);
 	__uvc_query_buffer(buf, v4l2_buf);
+	
+#ifdef USE_RESERVED_MEM
+	v4l2_buf->m.offset = queue->mem + v4l2_buf->m.offset - 0x80000000;
+#endif // USE_RESERVED_MEM
 
 done:
 	mutex_unlock(&queue->mutex);

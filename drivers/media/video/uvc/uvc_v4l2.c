@@ -181,7 +181,6 @@ static int uvc_v4l2_try_format(struct uvc_streaming *stream,
 	__u32 interval;
 	int ret = 0;
 	__u8 *fcc;
-
 	if (fmt->type != stream->type)
 		return -EINVAL;
 
@@ -194,9 +193,11 @@ static int uvc_v4l2_try_format(struct uvc_streaming *stream,
 	/* Check if the hardware supports the requested format. */
 	for (i = 0; i < stream->nformats; ++i) {
 		format = &stream->format[i];
+		uvc_dbg("format->fcc: %x, in fmt: %x",format->fcc, fmt->fmt.pix.pixelformat);
 		if (format->fcc == fmt->fmt.pix.pixelformat)
 			break;
 	}
+
 
 	if (format == NULL || format->fcc != fmt->fmt.pix.pixelformat) {
 		uvc_trace(UVC_TRACE_FORMAT, "Unsupported format 0x%08x.\n",
@@ -314,17 +315,17 @@ static int uvc_v4l2_set_format(struct uvc_streaming *stream,
 	struct uvc_format *format;
 	struct uvc_frame *frame;
 	int ret;
-
+	
 	if (fmt->type != stream->type)
 		return -EINVAL;
-
+	
 	if (uvc_queue_allocated(&stream->queue))
 		return -EBUSY;
 
 	ret = uvc_v4l2_try_format(stream, fmt, &probe, &format, &frame);
 	if (ret < 0)
 		return ret;
-
+	
 	memcpy(&stream->ctrl, &probe, sizeof probe);
 	stream->cur_format = format;
 	stream->cur_frame = frame;
@@ -475,6 +476,8 @@ static int uvc_has_privileges(struct uvc_fh *handle)
 
 static int uvc_v4l2_open(struct file *file)
 {
+	uvc_dbg("uvc_v4l2_open\n");
+	
 	struct uvc_streaming *stream;
 	struct uvc_fh *handle;
 	int ret = 0;
@@ -516,6 +519,8 @@ static int uvc_v4l2_open(struct file *file)
 
 static int uvc_v4l2_release(struct file *file)
 {
+	uvc_dbg("uvc_v4l2_release\n");
+	
 	struct uvc_fh *handle = file->private_data;
 	struct uvc_streaming *stream = handle->stream;
 
@@ -551,7 +556,7 @@ static long uvc_v4l2_do_ioctl(struct file *file, unsigned int cmd, void *arg)
 	struct uvc_video_chain *chain = handle->chain;
 	struct uvc_streaming *stream = handle->stream;
 	long ret = 0;
-
+	
 	switch (cmd) {
 	/* Query capabilities */
 	case VIDIOC_QUERYCAP:
@@ -1099,12 +1104,14 @@ static ssize_t uvc_v4l2_read(struct file *file, char __user *data,
  */
 static void uvc_vm_open(struct vm_area_struct *vma)
 {
+	uvc_dbg("uvc_vm_open\n");
 	struct uvc_buffer *buffer = vma->vm_private_data;
 	buffer->vma_use_count++;
 }
 
 static void uvc_vm_close(struct vm_area_struct *vma)
 {
+	uvc_dbg("uvc_vm_close\n");
 	struct uvc_buffer *buffer = vma->vm_private_data;
 	buffer->vma_use_count--;
 }
@@ -1124,6 +1131,7 @@ static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 	unsigned long addr, start, size;
 	unsigned int i;
 	int ret = 0;
+	struct videobuf_mapping *map;
 
 	uvc_trace(UVC_TRACE_CALLS, "uvc_v4l2_mmap\n");
 
@@ -1131,7 +1139,7 @@ static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 	size = vma->vm_end - vma->vm_start;
 
 	mutex_lock(&queue->mutex);
-
+	
 	for (i = 0; i < queue->count; ++i) {
 		buffer = &queue->buffer[i];
 		if ((buffer->buf.m.offset >> PAGE_SHIFT) == vma->vm_pgoff)
@@ -1142,7 +1150,8 @@ static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 		ret = -EINVAL;
 		goto done;
 	}
-
+	
+#ifndef USE_RESERVED_MEM
 	/*
 	 * VM_IO marks the area as being an mmaped region for I/O to a
 	 * device. It also prevents the region from being core dumped.
@@ -1163,6 +1172,26 @@ static int uvc_v4l2_mmap(struct file *file, struct vm_area_struct *vma)
 	vma->vm_ops = &uvc_vm_ops;
 	vma->vm_private_data = buffer;
 	uvc_vm_open(vma);
+	
+#else
+
+	addr = (unsigned long)queue->mem + buffer->buf.m.offset;
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+	ret = remap_pfn_range(vma, vma->vm_start,
+				 (addr - 0x80000000) >> PAGE_SHIFT,
+				 size, vma->vm_page_prot);
+	if (ret) {
+		uvc_err("mmap: remap failed with error %d. ", ret);
+		goto done;
+	}
+
+	vma->vm_ops = &uvc_vm_ops;
+	vma->vm_flags |= VM_DONTEXPAND;
+	vma->vm_private_data = buffer;
+
+	uvc_vm_open(vma);
+	
+#endif	// USE_RESERVED_MEM
 
 done:
 	mutex_unlock(&queue->mutex);

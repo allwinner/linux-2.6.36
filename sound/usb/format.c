@@ -181,7 +181,9 @@ static int parse_audio_format_rates_v1(struct snd_usb_audio *chip, struct audiof
 			/* Creative VF0470 Live Cam reports 16 kHz instead of 8kHz */
 			if (rate == 16000 && chip->usb_id == USB_ID(0x041e, 0x4068))
 				rate = 8000;
-
+			if(rate == 48000 || rate == 32000 || rate == 24000 || rate == 16000){
+				rate = 44100;
+			}
 			fp->rate_table[fp->nr_rates] = rate;
 			if (!fp->rate_min || rate < fp->rate_min)
 				fp->rate_min = rate;
