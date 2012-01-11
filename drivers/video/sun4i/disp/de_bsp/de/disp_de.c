@@ -16,13 +16,16 @@ __s32 Image_init(__u32 sel)
     BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_LCD);
     
     Image_open(sel);
+
+    DE_BE_EnableINT(sel, DE_IMG_REG_LOAD_FINISH);
+    DE_BE_reg_auto_load_en(sel, 0);
 	
     return DIS_SUCCESS;
 }
       
 __s32 Image_exit(__u32 sel)
 {    
-    DE_BE_DisableINT(sel, DE_IMG_IRDY_IE);
+    DE_BE_DisableINT(sel, DE_IMG_REG_LOAD_FINISH);
     BSP_disp_sprite_exit(sel);
     image_clk_exit(sel);
         

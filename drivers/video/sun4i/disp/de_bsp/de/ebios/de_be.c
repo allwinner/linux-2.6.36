@@ -144,7 +144,7 @@ __u32  fir_tab[1792] =
     0x19fd0000,0x0000fa30,0x16fd0000,0x0000fa33,0x14fd0000,0x0000fa35,0x11fe0000,0x0000fa37,
     0x0ffe0000,0x0000fa39,0x0dfe0000,0x0000fa3b,0x0afe0000,0x0000fa3e,0x08ff0000,0x0000fb3e,
     0x06ff0000,0x0000fb40,0x05ff0000,0x0000fc40,0x03ff0000,0x0000fd41,0x01ff0000,0x0000fe42,
-    
+    //8 tap
     0x40000000,0x00000000,0x40fe0000,0x0000ff03,0x3ffd0000,0x0000ff05,0x3ffc0000,0x0000ff06,
     0x3efb0000,0x0000ff08,0x3dfb0000,0x0000ff09,0x3bfa0000,0x0000fe0d,0x39fa0000,0x0000fe0f,
     0x38fa0000,0x0000fe10,0x36fa0000,0x0000fe12,0x33fa0000,0x0000fd16,0x31fa0000,0x0000fd18,
@@ -323,7 +323,7 @@ __u32 DE_Get_Reg_Base(__u32 sel)
 __u32 DE_BE_Reg_Init(__u32 sel)
 {
 	memset((void*)(image_reg_base[sel]+0x800), 0,0x1000-0x800); 
-	
+
 	return 0;
 }
 
@@ -425,12 +425,22 @@ __s32 DE_BE_Set_ColorKey(__u32 sel, __disp_color_t ck_max,__disp_color_t  ck_min
     return 0;
 }
 
+__s32 DE_BE_reg_auto_load_en(__u32 sel, __u32 en)
+{
+    __u32 tmp;
+    
+    tmp = DE_BE_RUINT32(sel, DE_BE_FRMBUF_CTL_OFF);
+    DE_BE_WUINT32(sel, DE_BE_FRMBUF_CTL_OFF, tmp | ((1-en)<<1));//bit1:enable, bit0:ready
+    
+    return 0;
+}
+
 __s32 DE_BE_Cfg_Ready(__u32 sel)
 {
     __u32 tmp;
     
     tmp = DE_BE_RUINT32(sel, DE_BE_FRMBUF_CTL_OFF);
-    DE_BE_WUINT32(sel, DE_BE_FRMBUF_CTL_OFF, tmp | (0x1<<1) | 0x1);//bit1:enable, bit0:ready
+    DE_BE_WUINT32(sel, DE_BE_FRMBUF_CTL_OFF, tmp | 0x1);//bit1:enable, bit0:ready
     
     return 0;
 }

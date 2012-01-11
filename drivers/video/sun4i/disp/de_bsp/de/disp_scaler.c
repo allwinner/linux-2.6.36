@@ -248,16 +248,23 @@ __s32 Scaler_event_proc(__s32 irq, void *parg)
 __s32 Scaler_event_proc(void *parg)
 #endif
 {
-    __u8 fe_intflags;
+    __u8 fe_intflags, be_intflags;
     __u32 sel = (__u32)parg;
 
     fe_intflags = DE_SCAL_QueryINT(sel);
-
+    be_intflags = DE_BE_QueryINT(sel);
+    DE_SCAL_ClearINT(sel,fe_intflags);
+    DE_BE_ClearINT(sel,be_intflags);
+    
     DE_INF("scaler %d interrupt, scal_int_status:0x%x!\n", sel, fe_intflags);
+
+    if(be_intflags & DE_IMG_REG_LOAD_FINISH)
+    {
+        LCD_line_event_proc(sel); 
+    }
 
     if(fe_intflags & DE_WB_END_IE)
     {        
-        DE_SCAL_ClearINT(sel,DE_WB_END_IE);
         DE_SCAL_DisableINT(sel,DE_FE_INTEN_ALL);
 #ifdef __LINUX_OSAL__
         if(gdisp.scaler[sel].b_scaler_finished == 1 && (&gdisp.scaler[sel].scaler_queue != NULL))
