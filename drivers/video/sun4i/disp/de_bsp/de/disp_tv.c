@@ -201,7 +201,6 @@ __s32 BSP_disp_tv_open(__u32 sel)
         BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_TV);
         DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
         DE_BE_Output_Select(sel, sel);
-        Disp_set_out_interlace(sel, Disp_get_screen_scan_mode(tv_mod));
         
         TCON1_set_tv_mode(sel,tv_mod);
         TVE_set_tv_mode(sel, tv_mod);	
@@ -241,6 +240,8 @@ __s32 BSP_disp_tv_open(__u32 sel)
         gdisp.screen[sel].status |= TV_ON;
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
         gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_TV;
+
+        Disp_set_out_interlace(sel);
 #ifdef __LINUX_OSAL__
         Display_set_fb_timming(sel);
 #endif
@@ -260,7 +261,6 @@ __s32 BSP_disp_tv_close(__u32 sel)
         tve_clk_off(sel);
         image_clk_off(sel);
         lcdc_clk_off(sel);
-		Disp_set_out_interlace(sel, FALSE);
         
 #ifdef __LINUX_OSAL__
         {
@@ -293,6 +293,8 @@ __s32 BSP_disp_tv_close(__u32 sel)
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;
         gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_NONE;
 		gdisp.screen[sel].pll_use_status &= ((gdisp.screen[sel].pll_use_status == VIDEO_PLL0_USED)? VIDEO_PLL0_USED_MASK : VIDEO_PLL1_USED_MASK);
+
+		Disp_set_out_interlace(sel);
     }
     return DIS_SUCCESS;
 }

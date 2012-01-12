@@ -41,7 +41,6 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
         BSP_disp_set_output_csc(sel, DISP_OUTPUT_TYPE_HDMI);
     	DE_BE_set_display_size(sel, tv_mode_to_width(tv_mod), tv_mode_to_height(tv_mod));
     	DE_BE_Output_Select(sel, sel);
-        Disp_set_out_interlace(sel, Disp_get_screen_scan_mode(tv_mod));
 
     	TCON1_set_hdmi_mode(sel,tv_mod);		 	 
     	TCON1_open(sel);
@@ -61,7 +60,7 @@ __s32 BSP_disp_hdmi_open(__u32 sel)
     	gdisp.screen[sel].status |= HDMI_ON;
         gdisp.screen[sel].lcdc_status |= LCDC_TCON1_USED;
         gdisp.screen[sel].output_type = DISP_OUTPUT_TYPE_HDMI;
-        
+
 #ifdef __LINUX_OSAL__
         Display_set_fb_timming(sel);
 #endif
@@ -89,7 +88,6 @@ __s32 BSP_disp_hdmi_close(__u32 sel)
     	image_clk_off(sel);
     	lcdc_clk_off(sel);
     	hdmi_clk_off();
-        Disp_set_out_interlace(sel, FALSE);
 
         gdisp.screen[sel].b_out_interlace = 0;
         gdisp.screen[sel].lcdc_status &= LCDC_TCON1_USED_MASK;

@@ -171,11 +171,11 @@ __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en)
 	{
 		gdisp.screen[sel].de_flicker_status &= DE_FLICKER_REQUIRED_MASK;
 	}
-	Disp_set_out_interlace(sel, gdisp.screen[sel].b_out_interlace);
+	Disp_set_out_interlace(sel);
 	return DIS_SUCCESS;
 }
 
-__s32 Disp_set_out_interlace(__u32 sel, __bool b_out_interlace)
+__s32 Disp_set_out_interlace(__u32 sel)
 {
 	__u32 i;
 	__u32 scaler_index;
@@ -219,7 +219,7 @@ __s32 Disp_set_out_interlace(__u32 sel, __bool b_out_interlace)
     		if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 
     				((scaler_index = gdisp.screen[sel].layer_manage[i].scaler_index) == sel))
     		{
-    			Scaler_Set_Outitl(scaler_index, b_out_interlace);
+    			Scaler_Set_Outitl(scaler_index, gdisp.screen[sel].b_out_interlace);
     			gdisp.scaler[scaler_index].b_reg_change = TRUE;
     		}
     	}
@@ -229,7 +229,7 @@ __s32 Disp_set_out_interlace(__u32 sel, __bool b_out_interlace)
     	BSP_disp_cfg_finish(sel);
     }
 
-	DE_BE_Set_Outitl_enable(sel, b_out_interlace);
+	DE_BE_Set_Outitl_enable(sel, gdisp.screen[sel].b_out_interlace);
 	
 	return DIS_SUCCESS;
 }
