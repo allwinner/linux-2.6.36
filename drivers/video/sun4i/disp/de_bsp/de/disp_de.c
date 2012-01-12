@@ -178,7 +178,6 @@ __s32 BSP_disp_de_flicker_enable(__u32 sel, __bool b_en)
 __s32 Disp_set_out_interlace(__u32 sel)
 {
 	__u32 i;
-	__u32 scaler_index;
 	__bool b_cvbs_out = 0;
 
 	if(gdisp.screen[sel].output_type==DISP_OUTPUT_TYPE_TV && 
@@ -189,48 +188,38 @@ __s32 Disp_set_out_interlace(__u32 sel)
 	}
 
     gdisp.screen[sel].de_flicker_status |= DE_FLICKER_REQUIRED;
-    
+
+    BSP_disp_cfg_start(sel);
+
 	if((gdisp.screen[sel].de_flicker_status & DE_FLICKER_REQUIRED) && b_cvbs_out)	//when output device is cvbs
 	{
-		BSP_disp_cfg_start(sel);
-		
 		DE_BE_deflicker_enable(sel, TRUE);
-
-		//config scaler to fit de-flicker
-		for(i = 0; i < gdisp.screen[sel].max_layers; i++)
-		{
-			if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 
-				 ((scaler_index = gdisp.screen[sel].layer_manage[i].scaler_index) == sel))
-			{
-				Scaler_Set_Outitl(scaler_index, FALSE);
-				gdisp.scaler[scaler_index].b_reg_change = TRUE;
+        for(i=0; i<2; i++)
+        {
+            if((gdisp.scaler[i].status & SCALER_USED) && (gdisp.scaler[i].screen_index == sel))
+            {
+				Scaler_Set_Outitl(i, FALSE);
+				gdisp.scaler[i].b_reg_change = TRUE;
 			}
 		}
 		gdisp.screen[sel].de_flicker_status |= DE_FLICKER_USED;
-
-		BSP_disp_cfg_finish(sel);
 	}
 	else
 	{
-    	BSP_disp_cfg_start(sel);
-
-    	for(i = 0; i < gdisp.screen[sel].max_layers; i++)
-    	{
-    		if((gdisp.screen[sel].layer_manage[i].para.mode == DISP_LAYER_WORK_MODE_SCALER) && 
-    				((scaler_index = gdisp.screen[sel].layer_manage[i].scaler_index) == sel))
+	    DE_BE_deflicker_enable(sel, FALSE);
+        for(i=0; i<2; i++)
+        {
+            if((gdisp.scaler[i].status & SCALER_USED) && (gdisp.scaler[i].screen_index == sel))
     		{
-    			Scaler_Set_Outitl(scaler_index, gdisp.screen[sel].b_out_interlace);
-    			gdisp.scaler[scaler_index].b_reg_change = TRUE;
+    			Scaler_Set_Outitl(i, gdisp.screen[sel].b_out_interlace);
+    			gdisp.scaler[i].b_reg_change = TRUE;
     		}
     	}
-    	DE_BE_deflicker_enable(sel, FALSE);
     	gdisp.screen[sel].de_flicker_status &= DE_FLICKER_USED_MASK;
-
-    	BSP_disp_cfg_finish(sel);
     }
-
 	DE_BE_Set_Outitl_enable(sel, gdisp.screen[sel].b_out_interlace);
-	
+
+    BSP_disp_cfg_finish(sel);
 	return DIS_SUCCESS;
 }
 
