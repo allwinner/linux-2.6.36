@@ -716,17 +716,17 @@ static ssize_t bma250_enable_store(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(range, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(range, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma250_range_show, bma250_range_store);
-static DEVICE_ATTR(bandwidth, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(bandwidth, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma250_bandwidth_show, bma250_bandwidth_store);
-static DEVICE_ATTR(mode, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(mode, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma250_mode_show, bma250_mode_store);
-static DEVICE_ATTR(value, S_IRUGO,
+static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma250_value_show, NULL);
-static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(delay, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma250_delay_show, bma250_delay_store);
-static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(enable, S_IRUGO|S_IWUSR|S_IWGRP,
 		bma250_enable_show, bma250_enable_store);
 
 static struct attribute *bma250_attributes[] = {
