@@ -107,9 +107,9 @@ static ssize_t sunxi_reg_addr_store(struct device *dev,
 	return count;
 }
 
-static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(value, S_IRUGO|S_IWUSR|S_IWGRP,
 		sunxi_reg_value_show, sunxi_reg_value_store);
-static DEVICE_ATTR(address, S_IRUGO|S_IWUSR|S_IWGRP|S_IWOTH,
+static DEVICE_ATTR(address, S_IRUGO|S_IWUSR|S_IWGRP,
 		sunxi_reg_addr_show, sunxi_reg_addr_store);
 
 static struct attribute *sunxi_reg_attributes[] = {
