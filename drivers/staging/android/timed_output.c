@@ -49,7 +49,7 @@ static ssize_t enable_store(
 	return size;
 }
 
-static DEVICE_ATTR(enable, S_IRUGO | S_IWUSR, enable_show, enable_store);
+static DEVICE_ATTR(enable, S_IRUSR | S_IRGRP, enable_show, enable_store);
 
 static int create_timed_output_class(void)
 {
